@@ -1,0 +1,2 @@
+This file is here so that building the Docker image
+by Docker Compose in development succeeds.

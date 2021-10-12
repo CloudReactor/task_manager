@@ -1,0 +1,47 @@
+# If your code needs to be compiled, you can add steps here to compile it,
+# for example:
+# name: Package code using maven
+# command: "mvn package"
+# tags:
+#  - build
+#
+# After it is compiled, your Dockerfile should COPY the binary (JAR file in
+# the case of JDK projects).
+---
+- debug:
+    msg: "Pre-build"
+
+# - name: Upload .env file to AWS Secrets Manager
+#   community.aws.aws_secret:
+#     name: 'CloudReactor/task_manager/{{env}}/env'
+#     state: present
+#     secret_type: 'string'
+#     secret: "{{ lookup('file', '/work/deploy_config/files/.env.' + env)  }}"
+#   register: create_dotenv_secret_result
+
+# - debug:
+#     msg: "Secret: {{create_dotenv_secret_result}}"
+
+# - name: Copy server .env file
+#   copy: |
+#     src=/work/deploy_config/files/.env.{{env}}
+#     dest=/work/docker_context/build/{{env}}/.env
+
+- name: Set client build variables
+  set_fact:
+    docker_client_build_image_name: "cloudreactor-task-manager-web-builder-{{env}}"
+  tags:
+    - always
+    - client
+
+- name: Build client Docker image
+  command: "docker --debug build -f /work/docker_context/client/Dockerfile -t {{docker_client_build_image_name | quote}} /work/docker_context"
+  tags:
+    - build
+    - client
+
+- name: Build client code
+  command: "docker run --rm -v {{lookup('env','HOST_PWD')}}/client:/work/client -v {{lookup('env','HOST_PWD')}}/deploy_config/files/client.env.{{env}}:/work/deploy_config/files/client.env -e REACT_APP_VERSION_SIGNATURE={{task_version_signature | quote}} {{docker_client_build_image_name | quote}} npm run build:deployed"
+  tags:
+    - build
+    - client

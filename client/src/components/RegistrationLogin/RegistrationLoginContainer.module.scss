@@ -1,0 +1,32 @@
+@import '../../styles/settings.scss';
+
+.container {
+  max-width: 600px;
+  box-sizing: border-box;
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding: 100px 0px;
+
+  h1 {
+    color: $highText;
+    text-align: center;
+    padding-bottom: 30px;
+  }
+  
+  p {
+    font-size: 16px;
+  }
+}
+
+.logo {
+  padding-bottom: 40px;
+  display: flex;
+
+  svg {
+    width: 50%;
+    min-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

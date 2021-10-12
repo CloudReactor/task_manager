@@ -1,0 +1,24 @@
+@import '../../styles/settings.scss';
+
+$linkHoverBorder: $lightGray;
+
+.links {
+  margin-bottom: 10px;
+
+  img {
+    height: 32px;
+    width: 32px;
+  }
+  
+  a.externalLink {
+    padding: 0.5rem;
+    cursor: pointer;
+    display: inline-block;
+    border: 1px solid transparent;
+    border-radius: 5px;
+
+    &:hover {
+      border: 1px solid $linkHoverBorder;
+    }
+  }
+}

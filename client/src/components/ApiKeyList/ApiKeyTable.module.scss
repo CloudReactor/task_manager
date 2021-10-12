@@ -1,0 +1,9 @@
+.tableContainer {
+  box-sizing: border-box;
+  border: 0;
+
+  tr, td {
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+}

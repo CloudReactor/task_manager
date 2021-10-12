@@ -1,0 +1,12 @@
+.taskStatus {
+  white-space: nowrap;
+  overflow-x: auto;
+
+  i, span {
+    display: inline-block;
+  }
+
+  span {
+   margin-left: 0.25rem;
+  }
+}

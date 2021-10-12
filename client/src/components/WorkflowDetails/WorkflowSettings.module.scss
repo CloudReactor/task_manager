@@ -1,0 +1,36 @@
+@import '../../styles/settings.scss';
+$formSectionSpacing: 1.5em;
+
+.container {
+  width: 100%;
+}
+
+.formContainer {
+  width: 60%;
+  min-width: 500px;
+  box-sizing: border-box;
+  margin-top: 12px;
+  color: $highText;
+}
+
+.buttonContainer {
+  margin: 40px 0px;
+  display: flex;
+}
+
+.saveButton {
+  width: 400px;
+}
+
+.formSection {
+  border-bottom: 1px solid hsla(360,100%,100%,0.1);
+  padding-bottom: $formSectionSpacing;
+  &:not(:first-child) {
+    padding-top: $formSectionSpacing;
+  }
+}
+
+.sectionTitle {
+  font-size: 24px;
+  padding-bottom: 0.5em;
+}

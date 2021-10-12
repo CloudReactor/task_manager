@@ -1,0 +1,22 @@
+@import "~bootswatch/dist/slate/variables";
+@import './settings.scss';
+
+.custom_bg_hover {
+	width: 400px;
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+	margin-right: 1rem;
+  cursor: pointer;
+	display: inline-block;
+}
+
+.card-body {
+	min-height: 96px;
+}
+
+.card-footer {
+  cursor: default;
+	.text-muted {
+		color: $gray-300 !important;
+	}
+}

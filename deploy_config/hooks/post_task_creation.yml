@@ -1,0 +1,30 @@
+# Override this file with after the Task has been created in ECS and
+# CloudReactor. The Task creation response will be available in the variable
+# cloudreactor_task, so you can use it start a Task Execution immediately.
+---
+- debug:
+    msg: "Post-Task creation"
+    verbosity: 1
+
+- debug:
+    msg: "cloudreactor_task = {{ cloudreactor_task }}"
+  when: resolved_cloudreactor.enabled
+
+- name: Run DB migration in ECS using Supervisor CloudReactor
+  uri:
+    url: "{{ resolved_cloudreactor.api_base_url }}/api/v1/task_executions/"
+    method: POST
+    headers:
+      Authorization: "Token {{resolved_cloudreactor.deploy_api_key}}"
+    return_content: yes
+    body:
+      task:
+        uuid: "{{ saved_cloudreactor_task.uuid }}"
+      status: MANUALLY_STARTED
+    body_format: json
+    status_code:
+      - 200
+      - 201
+  when: resolved_cloudreactor.enabled and (item == 'db_migrator')
+  tags:
+    - always

@@ -1,0 +1,3 @@
+*.yml
+!common.yml
+!example.yml

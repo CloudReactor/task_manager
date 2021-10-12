@@ -1,0 +1,2 @@
+export const TASK_REFRESH_INTERVAL_MILLIS = 30000;
+export const DEFAULT_PAGE_SIZE = 25;

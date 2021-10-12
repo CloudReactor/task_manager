@@ -1,0 +1,36 @@
+@import '../../styles/settings.scss';
+
+.tabsNavItem {
+	padding-top: 0.5rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid transparent;
+	&:hover {
+		border-bottom: 1px solid white;
+		background-color: rgba(255,255,255,0.1);
+		font-weight: bold;
+		cursor: pointer;
+	}
+}
+
+.tabsNavSelected {
+	border-bottom: 1px solid white;
+	background-color: rgba(255,255,255,0.1);
+	font-weight: bold;
+}
+
+.tabFix {
+	margin-bottom: -1px;
+}
+
+.tabBar {
+  border-bottom: 1px solid $darkGray;
+  border-top: 1px solid $darkGray;
+	margin-bottom: 0.5rem;
+	display: flex;
+	flex-wrap: wrap;
+	padding-left: 15px;
+
+	// fix to extend to borders to full page width. Previously used Bootstrap Row, which uses this style too
+	margin-right: -15px;
+	margin-left: -15px;
+}

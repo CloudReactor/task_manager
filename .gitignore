@@ -1,0 +1,17 @@
+build/
+.pytest_cache
+.idea/
+.vscode/
+vsc_workspace.code-workspace
+
+# Mounted volume for Dockerized PostgreSQL
+pg_data/
+
+.DS_Store
+
+deploy.env
+deploy.*.env
+!deploy.example.env
+
+# User-specific deployment configuration
+custom_deploy.sh

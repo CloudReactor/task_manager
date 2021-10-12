@@ -1,0 +1,62 @@
+
+{% load humanize %}
+
+{% block subject %}
+CloudReactor Workflow '{{ workflow.name | default:"N/A"}}' finished with status {{ workflow_execution.status }}
+{% endblock %}
+
+{% block html %}
+<p>
+  CloudReactor Workflow
+  {% if workflow %}
+    <a href="{{ workflow.dashboard_url }}">{{ workflow.name }}</a>
+  {% else %}
+  [N/A]
+  {% endif %}
+  finished with status {{ workflow_execution.status }}.
+  See this <a href="{{ workflow_execution.dashboard_url }}">Workflow Execution</a> in the CloudReactor Dashboard.
+</p>./
+<table class="table table-sm table-striped table-bordered table-hover">
+  <tbody>
+    <tr>
+      <td style="font-weight: bold;">Started by</td>
+      <td align="left">{{ workflow_execution.started_by | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Started at</td>
+      <td align="left">{{ workflow_execution.started_at | default:"Not started yet"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Finished at</td>
+      <td align="left">{{ workflow_execution.finished_at | default:"PENDING" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Duration</td>
+      <td align="right">
+        {% if model_workflow_execution.finished_at %}
+          {{ model_workflow_execution.started_at|timesince:model_workflow_execution.finished_at }}
+        {% else %}
+          {{ model_workflow_execution.started_at|timesince }}
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Stop reason</td>
+      <td align="left">{{ workflow_execution.stop_reason | default:"N/A"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Stopped by</td>
+      <td align="left">{{ workflow_execution.killed_by | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Failed attempts</td>
+      <td align="left">{{ workflow_execution.failed_attempts | intcomma }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Timed out attempts</td>
+      <td align="left">{{ workflow_execution.timed_out_attempts | intcomma }}</td>
+    </tr>
+  </tbody>
+</table>
+
+{% endblock %}

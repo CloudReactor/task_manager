@@ -1,0 +1,102 @@
+@import '../../../styles/settings.scss';
+
+$height: 48px;
+$outlineBorderColor: red;
+$disabledOpacity: 0.5;
+$loadingOpacity: 0.75;
+
+$paddingVertical: 5px;
+$paddingHorizontal: 22px;
+$borderRadius: 5px;
+
+// primary button colors
+$primaryBackground: $mainBlue;
+$primaryBackgroundHover: darken($primaryBackground, 15%);
+
+// other button colors (not used yet)
+$secondary: green;
+$danger: $red;
+
+
+.button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  height: $height;
+  margin: 0px; // override default <button> stylesheet
+  padding: $paddingVertical $paddingHorizontal;
+  border: none;
+  border-radius: $borderRadius;
+  outline: none;
+  box-sizing: border-box;
+  user-select: none;
+  background-color: $primaryBackground; // default colour
+  color: $priorityText;
+  font-size: 16px;
+  cursor: pointer;
+
+  a {
+    text-decoration: none;
+    &:hover {
+      text-decoration: none;
+      color: darken($priorityText, 15%)
+    }
+  }
+
+  &:not(.disabled) {
+    &:hover, &:focus {
+      background-color: $primaryBackgroundHover;
+      color: darken($priorityText, 15%)
+    }
+    &:active {
+    }
+  }
+
+  &.disabled {
+    opacity: $disabledOpacity;
+    cursor: not-allowed;
+
+    &.loading {
+      opacity: $loadingOpacity;
+      cursor: wait;
+    }
+  }
+
+  &.outline {
+    background-color: $transparent;
+    border: 1px solid $outlineBorderColor;
+  }
+
+}
+
+.small {
+  font-size: 14px;
+  padding: $paddingVertical * 0.5 $paddingHorizontal * 0.5;
+}
+
+.outlined {
+  background-color: $transparent; // default colour
+  border: 1px solid $primaryBackground;
+}
+
+.secondary {
+  background-color: $secondary;
+}
+.danger {
+  background-color: $danger;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.noMargin {
+  margin: 0;
+}
+
+.fullWidth {
+  width: 100%
+}

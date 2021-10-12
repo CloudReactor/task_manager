@@ -1,0 +1,8 @@
+**/_pycache__
+**/*.py[cod]
+.vscode
+.idea
+.git
+.gitattributes
+**/.gitignore
+**/.editorconfig

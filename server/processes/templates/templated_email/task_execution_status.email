@@ -1,0 +1,156 @@
+
+{% load humanize %}
+
+{% block subject %}
+CloudReactor Task '{{ task.name }}' finished with status {{ task_execution.status }}
+{% endblock %}
+
+{% block html %}
+<p>
+  CloudReactor Task
+  {% if task %}
+    <a href="{{ task.dashboard_url }}">{{ task.name }}</a>
+  {% else %}
+  [N/A]
+  {% endif %}
+  finished with status {{ task_execution.status }}
+  {% if run_environment %}
+  in Run Environment <a href="{{ run_environment.dashboard_url }}">{{ run_environment.name }}</a>.
+  {% else %}
+  in unknown Run Environment.
+  {% endif %}
+  See this <a href="{{ task_execution.dashboard_url }}">Task Execution</a> in the CloudReactor Dashboard.
+</p>./
+<table class="table table-sm table-striped table-bordered table-hover">
+  <tbody>
+    <tr>
+      <td style="font-weight: bold;">Started by</td>
+      <td align="left">{{ task_execution.started_by | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Started at</td>
+      <td align="left">{{ task_execution.started_at | default:"Not started yet"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Finished at</td>
+      <td align="left">{{ task_execution.finished_at | default:"PENDING" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Duration</td>
+      <td align="right">
+        {% if model_task_execution.finished_at %}
+          {{ model_task_execution.started_at|timesince:model_task_execution.finished_at }}
+        {% else %}
+          {{ model_task_execution.started_at|timesince }}
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Last heartbeat at</td>
+      <td align="left">
+        {% if task_execution.last_heartbeat_at %}
+          {{ task_execution.last_heartbeat_at }} ({{ model_task_execution.last_heartbeat_at | naturaltime }})
+        {% else %}
+          PENDING
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Heartbeat interval</td>
+      <td align="right">
+        {% if task_execution.heartbeat_interval_seconds %}
+          {{ task_execution.heartbeat_interval_seconds | intcomma }} seconds</td>
+        {% else %}
+          (None)
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Commit</td>
+
+      <td align="left">
+        {% if task_execution.task_version_signature %}
+          {% if task_execution.commit_url %}
+            <a href="{{ task_execution.commit_url }}">{{ task_execution.task_version_signature }}</a>
+          {% else %}
+            {{ task_execution.task_version_signature }}
+          {% endif %}
+        {% elif task_execution.commit_url %}
+          <a href="{{ task_execution.commit_url }}">{{ task_execution.commit_url }}</a>
+        {% else %}
+          N/A
+        {% endif %}
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Version number</td>
+      <td align="left">{{ task_execution.task_version_number | default:"N/A"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Version text</td>
+      <td align="left">{{ task_execution.task_version_text | default:"N/A"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Deployment</td>
+      <td align="left">>{{ task_execution.deployment | default:"N/A"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Command</td>
+      <td align="left">>{{ task_execution.command | default:"N/A"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Exit code</td>
+      <td align="left">>{{ task_execution.exit_code | default:"N/A"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Stop reason</td>
+      <td align="left">{{ task_execution.stop_reason | default:"N/A"}}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Stopped by</td>
+      <td align="left">{{ task_execution.killed_by | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Last status message</td>
+      <td align="left">{{ task_execution.last_status_message | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Success count</td>
+      <td align="left">{{ task_execution.success_count | intcomma | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Skipped count</td>
+      <td align="left">{{ task_execution.skipped_count | intcomma | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Error count</td>
+      <td align="left">{{ task_execution.error_count | intcomma | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Expected count</td>
+      <td align="left">{{ task_execution.expected_count | intcomma | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Failed attempts</td>
+      <td align="left">{{ task_execution.failed_attempts | intcomma }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Timed out attempts</td>
+      <td align="left">{{ task_execution.timed_out_attempts | intcomma }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Hostname</td>
+      <td align="left">{{ task_execution.hostname | default:"N/A" }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Schedule</td>
+      <td align="left">N/A</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Execution method</td>
+      <td align="left">{{ task_execution.execution_method.type }}</td>
+    </tr>
+  </tbody>
+</table>
+
+{% endblock %}

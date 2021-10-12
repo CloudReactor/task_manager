@@ -1,0 +1,47 @@
+@import "~bootswatch/dist/slate/variables";
+
+table {
+	.th-header {
+	  //background: #f9fafb;
+	  font-weight: bold;
+	}
+	tr.custom_status_bg {
+  	cursor: pointer;
+
+		.danger {
+			color: $danger;
+		}
+
+		.success {
+			color: $success;
+		}
+
+		.warning {
+			color: $warning;
+		}
+	}
+
+
+	.custom_status_bg:hover {
+		td.danger {
+			// Not good for dark mode
+			//background-color: #FFE7E7;
+		}
+		td.success {
+			// Not good for dark mode
+			//background-color: #F7FFE6;
+		}
+		td.warning {
+			// Not good for dark mode
+			//background-color: #FFF4E4;
+		}
+	}
+}
+
+.tableActionsColumn {
+  white-space: nowrap;
+  
+  button, .fas {
+    display: inline-block;
+  }
+}

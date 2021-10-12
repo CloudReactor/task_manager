@@ -1,0 +1,21 @@
+@import '../../styles/settings.scss';
+
+.dashboardContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.dashboardContent {
+  flex: 1;
+  padding: 10px 15px;
+
+  h1 {
+    padding-bottom: 15px;
+  }
+}
+
+.dashboardFooter {
+  padding: 10px 15px;
+  color: $mediumText;
+}

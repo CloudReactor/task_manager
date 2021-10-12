@@ -1,0 +1,12 @@
+@import '../../styles/settings.scss';
+
+.cronHelp {
+  a {
+    color: $linkColor;
+    text-decoration: underline;
+
+    &:hover {
+      color: $linkHoverColor;
+    }
+  }
+}

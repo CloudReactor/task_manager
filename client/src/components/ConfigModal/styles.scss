@@ -1,0 +1,21 @@
+@import "~bootswatch/dist/slate/variables";
+
+.config-modal-section {
+	padding-top: 0.8rem;
+	padding-bottom: 0.8rem;
+	border-bottom: 1px solid #CCC;
+}
+.config-modal-process-name {
+	text-align: center;
+	padding-top: 1.5rem;
+}
+
+.config-modal-section-title {
+	color: $info;
+	font-size: 18px;
+}
+
+/* hide cron schedule examples if screen height is <=900px */
+@media only screen and (max-height: 900px) {
+  #cron-help { display: none; }
+}

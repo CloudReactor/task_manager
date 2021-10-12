@@ -1,0 +1,170 @@
+version: "3.7"
+
+x-service-base: &service-base
+  image: cloudreactor-task-manager
+  build:
+    context: ./
+    args:
+      asset_path: client/public
+  entrypoint: python manage.py
+  volumes:
+    - ./server:/home/appuser/src
+  env_file:
+    - server/.env
+  environment:
+    PYTHONWARNINGS: always
+  depends_on:
+    - db
+  profiles: ["tools"]
+
+x-dev-base: &dev-base
+  <<: *service-base
+  image: cloudreactor-task-manager-dev
+  build:
+    context: ./
+    dockerfile: Dockerfile-dev
+  working_dir: /home/appuser/src
+  volumes:
+    - ./server:/home/appuser/src
+    #- ./deploy/files/.env.dev:/home/appuser/.env
+  depends_on: []
+
+x-client-base: &client-base
+  image: cloudreactor-task-manager-web-builder
+  build:
+    context: ./
+    dockerfile: client/Dockerfile
+  working_dir: /work/client
+  volumes:
+    - ./client:/work/client
+    - ./deploy:/work/deploy
+    - task_manager_node_modules:/work/client/node_modules
+  profiles: ["tools"]
+
+services:
+  web:
+    <<: *service-base
+    container_name: web
+    ports:
+      - "$SERVER_PORT:$SERVER_PORT"
+    command: runserver 0.0.0.0:$SERVER_PORT
+    profiles: []
+
+  gunicorn:
+    <<: *service-base
+    container_name: gunicorn
+    # There are some permission problems when static, client, and public are mounted as root
+    # Can't do hotloading
+    volumes:
+      - ./server/.env:/home/appuser/src/.env
+    ports:
+      - "$SERVER_PORT:$SERVER_PORT"
+    entrypoint: gunicorn task_manager.wsgi --threads=3 --bind 0.0.0.0:$SERVER_PORT
+
+  checker:
+    <<: *service-base
+    container_name: task_manager_checker
+    command: task_schedule_checker
+
+  db:
+    container_name: db
+    # Should be the version we have in AWS
+    image: postgres:13.4
+    volumes:
+      - ./server/sql/initial.sql:/docker-entrypoint-initdb.d/initial.sql
+      - ./server/sql/db-setup.sql:/db-setup.sql
+      - ./server/processes/fixtures:/tmp/fixtures
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "9432:5432"
+    environment:
+      POSTGRES_USER: dbusername
+      POSTGRES_PASSWORD: dbpassword
+
+  django-shell:
+    <<: *service-base
+    command: shell_plus
+
+  api-schema:
+    <<: *service-base
+    command: spectacular --file schema/cloudreactor-openapi3.yml
+    environment:
+      - DJANGO_IN_SCHEMA_GENERATION=TRUE
+
+  shell:
+    <<: *service-base
+    entrypoint: bash
+
+  pytest:
+    <<: *dev-base
+    entrypoint: ./clean_pytest.sh
+
+  pytest-cov:
+    <<: *dev-base
+    entrypoint: ./clean_pytest.sh --cov=processes
+
+  pylint:
+    <<: *dev-base
+    entrypoint: pylint --load-plugins pylint_django processes
+
+  mypy:
+    <<: *dev-base
+    entrypoint: mypy .
+
+  safety:
+    <<: *dev-base
+    entrypoint: safety check
+
+  dev-shell:
+    <<: *dev-base
+    entrypoint: bash
+
+  client:
+    <<: *client-base
+    container_name: client
+    command: npm start
+    restart: on-failure
+    ports:
+      - "$CLIENT_PORT:$CLIENT_PORT"
+    # Workaround for premature exit
+    # https://stackoverflow.com/questions/60895246/react-app-exiting-in-docker-container-with-exit-code-0
+    stdin_open: true
+
+  client-builder:
+    <<: *client-base
+    entrypoint: "npm run build:$DEPLOYMENT"
+
+  client-shell:
+    <<: *client-base
+    container_name: client-shell
+    entrypoint: bash
+
+  client-npm:
+    <<: *client-base
+    container_name: client-npm
+    entrypoint: npm
+    command: install
+
+  pip-compile:
+    <<: *service-base
+    entrypoint: pip-compile --allow-unsafe --generate-hashes requirements.in --output-file requirements.txt
+
+  pip-compile-dev:
+    <<: *dev-base
+    entrypoint: pip-compile --allow-unsafe --generate-hashes dev-requirements.in --output-file dev-requirements.txt
+
+  # Check your Dockerfile against best-practices:
+  # See https://github.com/hadolint/hadolint
+  hadolint:
+    image: hadolint/hadolint
+    volumes:
+      - ./Dockerfile:/mnt/Dockerfile
+      - ./.hadolint.yaml:/mnt/.hadolint.yaml
+    command: /bin/hadolint --config /mnt/.hadolint.yaml /mnt/Dockerfile
+    profiles: ["tools"]
+
+volumes:
+  task_manager_node_modules:
+    external: true
+  pgdata:
+    external: true

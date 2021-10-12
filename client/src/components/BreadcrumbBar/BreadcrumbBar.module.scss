@@ -1,0 +1,19 @@
+@import "../../styles/settings.scss";
+
+.breadcrumb {
+  font-size: 24px;
+  margin-bottom: 15px;
+
+  li {
+    border: none;
+    padding: 5px;
+    text-decoration: none;
+    display: inline-block;
+    border-radius: 16px;
+  }
+
+  a {
+    color: $lightBlue;
+    cursor: pointer;
+  }
+}

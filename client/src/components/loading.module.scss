@@ -1,0 +1,28 @@
+@import '../styles/settings.scss';
+
+
+.loadingContainer {
+  font-size: 48px;
+  color: $highText;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  svg {
+    width: 300px;
+    height: 300px;
+    opacity: 0.05;
+    animation: fadeInOut 3s ease-in-out infinite
+  }
+  
+  .text {
+    padding: 0.5em 0em;
+  }
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0.05; }
+  50% { opacity: 1; }
+  100% { opacity: 0.05; }
+}

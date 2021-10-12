@@ -1,0 +1,30 @@
+{% block subject %}
+You've been invited to join the Group '{{ invitation.group.name }}' in CloudReactor
+{% endblock %}
+
+{% block html %}
+<p>
+  {{ invitation.invited_by_user.username }} has invited you to join the Group
+  '{{ invitation.group.name }}' in CloudReactor.
+</p>
+
+<p>
+  Please click
+  <a href="{{ invitation.acceptance_link }}">this link to CloudReactor</a>
+  to join the Group, so you can start viewing and managing Tasks and Workflows
+  created by the Group.
+</p>
+
+<p>
+  If you have trouble following links, you can copy the URL below
+  and enter it into your browser's address bar:
+</p>
+
+<p>
+  {{ invitation.acceptance_link }}
+</p>
+
+<p>
+  We hope you enjoy using CloudReactor!
+</p>
+{% endblock %}

@@ -1,0 +1,16 @@
+FROM cloudreactor-task-manager
+
+WORKDIR /tmp
+
+COPY server/dev-requirements.in .
+
+RUN pip-compile --allow-unsafe --generate-hashes \
+  dev-requirements.in --output-file dev-requirements.txt
+
+RUN pip install --no-input -r requirements.txt -r dev-requirements.txt
+
+WORKDIR /usr/src/app
+
+COPY server/.env.test ./src/
+
+CMD ["pytest"]

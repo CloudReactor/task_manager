@@ -1,0 +1,11 @@
+@import '../../styles/settings.scss';
+
+.summaryContainer {
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: $mediumText;
+
+  .description {
+    font-size: 18px;
+  }
+}

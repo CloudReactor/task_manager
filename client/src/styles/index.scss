@@ -1,0 +1,311 @@
+@import "../styles/settings.scss";
+// from Bootstrap
+$white:    #fff !default;
+$gray-100: #f8f9fa !default;
+$gray-200: #e9ecef !default;
+$gray-300: #dee2e6 !default;
+$gray-400: #ced4da !default;
+$gray-500: #adb5bd !default;
+$gray-600: #6c757d !default;
+$gray-700: #495057 !default;
+$gray-800: #343a40 !default;
+$gray-900: #212529 !default;
+$black:    #000 !default;
+
+// Your bootswatch variable overrides can go here, e.g.:
+$input-bg:                              $gray-700;
+$input-disabled-bg:                     $gray-800;
+
+$input-color:                           $highText;
+$input-border-color:                    $gray-700;
+
+$input-focus-bg:                        $input-bg;
+$input-focus-border-color:              lighten($input-bg, 25%);
+$input-focus-color:                     $input-color;
+
+@import "~bootswatch/dist/slate/variables";
+@import "~bootstrap/scss/bootstrap";
+@import "~bootswatch/dist/slate/bootswatch";
+
+// fonts
+@import url('https://fonts.googleapis.com/css?family=Roboto');
+
+// colors
+$h1Color: #f0f0f0;
+
+#root {
+  h1 {
+    font-weight: 700;
+    font-size: 55px;
+    color: $h1Color;
+  }
+
+  .fas {
+    cursor: pointer;
+  }
+
+  input {
+    background-color: $input-bg;
+    color: $input-color;
+    margin-bottom: 1rem;
+  }
+
+  input:disabled {
+    color: $disabledText;
+  }
+
+  input, select {
+    max-width: 800px;
+  }
+
+  .form-check-label {
+    margin-top: 2px;
+  }
+
+  /* Dark mode modifications */
+
+  button.close {
+    color: $gray-200;
+    &:hover {
+      color: $gray-200;
+    }
+  }
+
+  .btn-outline-primary.disabled, .btn-outline-primary:disabled {
+    color: inherit;
+  }
+
+  .MuiButton-outlinedPrimary {
+    color: blue;
+  }
+
+  /* End dark mode modifications */
+
+  nav.navbar {
+    font-size: 14px;
+    font-weight: bold;
+    color: #E0E0E0;
+    margin-bottom: 1.5rem;
+    //padding-left: 30px;
+
+    .dropleft {
+      margin-right: 1rem;
+    }
+
+    .navbar-brand {
+      padding-left: 0;
+    }
+  }
+
+  form {
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    .invalid-feedback, .valid-feedback {
+      display: block;
+    }
+
+    .btn-toolbar {
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+  }
+
+  input[type="number"] {
+    text-align: right;
+  }
+
+  .pointer {
+    cursor: pointer;
+  }
+
+  table.table {
+    color: #aaa;
+  }
+
+  .MuiButtonBase-root.action-button {
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+
+    .fas {
+      margin-top: 0;
+    }
+  }
+
+
+  th, td {
+    vertical-align: middle;
+  }
+
+  td {
+    .MuiButtonBase-root.action-button {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+
+  .no-data {
+    .graph-name {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 1rem;
+
+    }
+    .message {
+      margin-top: 15%;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: lighter;
+    }
+  }
+
+  .graph-view {
+    height: 500px;
+    margin-bottom: 2rem;
+
+    .view-wrapper {
+      .graph-controls-wrapper {
+        position: absolute;
+      }
+
+      .graph-controls {
+        position: relative;
+        top: 466px;
+        bottom: 0;
+      }
+
+      .edge {
+        stroke: #808080;
+
+        &.selected {
+          .edge-text {
+            fill: $primary;
+          }
+        }
+        .edge-text {
+          font-size: 1.5rem;
+          fill: $secondary;
+        }
+      }
+
+      .taken .edge-container .edge .edge-path {
+        stroke:rgba(96, 255, 96, 0.75);
+      }
+
+      .not-taken .edge-container .edge .edge-path {
+        stroke: lightgrey;
+      }
+
+      .not-evaluated .edge-container .edge .edge-path {
+        stroke-dasharray: 5;
+      }
+
+      .node {
+        .shape > use.node.selected {
+          fill: white;
+        }
+
+        .node-text.selected {
+          stroke: $primary;
+        }
+      }
+
+      .successful {
+        color: $success;
+      }
+
+      .failed {
+        color: $danger;
+      }
+
+      .terminated-after-time-out {
+        color: yellow;
+      }
+
+    }
+  }
+
+  // surfaces (from Material UI)
+  .dp01 {
+    background-color: hsla(0, 100%, 100%, 0.05);
+    box-shadow:
+        /* offset-x | offset-y | blur-radius | spread-radius | color */
+        0px 1px 1px 0px hsla(0,0%,0%,0.14),
+        0px 2px 1px -1px hsla(0,0%,0%,0.12),
+        0px 1px 3px 0px hsla(0,0%,0%,0.2);
+  }
+
+  .dp02 {
+    background-color: hsla(0, 100%, 100%, 0.07);
+    box-shadow:
+    /* offset-x | offset-y | blur-radius | spread-radius | color */
+    0px 2px 2px 0px hsla(0,0%,0%,0.14),
+    0px 3px 1px -2px hsla(0,0%,0%,0.12),
+    0px 1px 5px 0px hsla(0,0%,0%,0.2);
+  }
+
+  .dp03 {
+    background-color: hsla(0, 100%, 100%, 0.08);
+    box-shadow:
+        /* offset-x | offset-y | blur-radius | spread-radius | color */
+        0px 3px 4px 0px hsla(0,0%,0%,0.14),
+        0px 3px 3px -2px hsla(0,0%,0%,0.12),
+        0px 1px 8px 0px hsla(0,0%,0%,0.2);
+  }
+
+  .dp04 {
+    background-color: hsla(0, 100%, 100%, 0.09);
+    box-shadow:
+        /* offset-x | offset-y | blur-radius | spread-radius | color */
+        0px 4px 5px 0px hsla(0,0%,0%,0.14),
+        0px 1px 10px 0px hsla(0,0%,0%,0.12),
+        0px 2px 4px -1px hsla(0,0%,0%,0.2);
+  }
+
+  .dp06 {
+    background-color: hsla(0, 100%, 100%, 0.11);
+    box-shadow:
+        /* offset-x | offset-y | blur-radius | spread-radius | color */
+        0px 6px 10px 0px hsla(0,0%,0%,0.14),
+        0px 1px 18px 0px hsla(0,0%,0%,0.12),
+        0px 3px 5px -1px hsla(0,0%,0%,0.2);
+  }
+
+  .dp08 {
+    background-color: hsla(0, 100%, 100%, 0.12);
+    box-shadow:
+        /* offset-x | offset-y | blur-radius | spread-radius | color */
+        0px 8px 10px 1px hsla(0,0%,0%,0.14),
+        0px 3px 14px 2px hsla(0,0%,0%,0.12),
+        0px 5px 5px -3px hsla(0,0%,0%,0.2);
+  }
+
+  .dp12 {
+    background-color: hsla(0, 100%, 100%, 0.14);
+    box-shadow:
+        /* offset-x | offset-y | blur-radius | spread-radius | color */
+        0px 12px 17px 2px hsla(0,0%,0%,0.14),
+        0px 5px 22px 4px hsla(0,0%,0%,0.12),
+        0px 7px 8px -4px hsla(0,0%,0%,0.2);
+  }
+
+  .dp16 {
+    background-color: hsla(0, 100%, 100%, 0.15);
+    box-shadow:
+        /* offset-x | offset-y | blur-radius | spread-radius | color */
+        0px 16px 24px 2px hsla(0,0%,0%,0.14),
+        0px 6px 30px 5px hsla(0,0%,0%,0.12),
+        0px 8px 10px -5px hsla(0,0%,0%,0.2);
+  }
+
+  .dp24 {
+    background-color: hsla(0, 100%, 100%, 0.16);
+    box-shadow:
+        /* offset-x | offset-y | blur-radius | spread-radius | color */
+        0px 24px 38px 3px hsla(0,0%,0%,0.14),
+        0px 9px 46px 8px hsla(0,0%,0%,0.12),
+        0px 11px 15px -7px hsla(0,0%,0%,0.2);
+  }
+}

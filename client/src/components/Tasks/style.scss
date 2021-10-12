@@ -1,0 +1,35 @@
+@import "../../styles/settings.scss";
+
+
+.rc-pagination-item-active {
+  background-color: #e3e3e3 !important;
+  border-color: #e3e3e3 !important;
+}
+
+.MuiTablePagination-actions {
+  display: none;
+}
+
+.MuiTablePagination-input {
+  opacity: 0;
+}
+
+.MuiTablePagination-select {
+  display: none !important;
+}
+
+.MuiTablePagination-input {
+  display: none !important;
+}
+
+.MuiTablePagination-toolbar {
+  padding: 0 !important;
+}
+
+.MuiTableCell-root {
+  border: none !important;
+}
+
+.MuiTablePagination-caption {
+  padding-right: 15px;
+}
