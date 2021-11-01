@@ -5,7 +5,7 @@ botocore==1.20.41
 cloudreactor-procwrapper==3.0.1
 crontab==0.23.0
 cryptography==3.4.7
-Django==3.2.6
+Django==3.2.8
 django-anymail[amazon_ses]==7.2  # https://github.com/anymail/django-anymail
 django-cors-headers==3.8.0
 django-dynamic-fixtures==0.2.1 # https://github.com/Peter-Slump/django-dynamic-fixtures
@@ -20,7 +20,7 @@ djangorestframework==3.12.4
 djangorestframework-simplejwt==4.7.2
 djoser==2.1.0
 drf-flex-fields==0.9.3
-drf-spectacular==0.15.1 # https://github.com/tfranzel/drf-spectacular
+drf-spectacular==0.20.2 # https://github.com/tfranzel/drf-spectacular
 Jinja2>=3.0.1
 jsonpath-ng>=1.5.2
 gunicorn>=20.1.0 # https://github.com/benoitc/gunicorn
@@ -34,6 +34,8 @@ python-intervals==1.10.0
 pytz==2021.1
 PyYAML==5.4.1
 requests==2.26.0
+# sqlparse < 0.4.1 has a SQL injection vulnerability
+sqlparse>=0.4.2
 stringcase==1.2.0 # https://github.com/okunishinishi/python-stringcase
 urllib3>=1.25.10
 whitenoise==5.3.0
