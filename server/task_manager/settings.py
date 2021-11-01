@@ -374,6 +374,9 @@ SPECTACULAR_SETTINGS = {
         'url': 'https://docs.cloudreactor.io/',
         'description': 'CloudReactor Documentation Home',
     },
+    'AUTHENTICATION_WHITELIST': [
+        'processes.authentication.SaasTokenAuthentication',
+    ],
     # Code generation has trouble with oneOf with BlankEnum choice
     'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
     'PREPROCESSING_HOOKS': [
