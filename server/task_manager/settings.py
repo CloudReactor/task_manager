@@ -358,15 +358,24 @@ CACHE_INVALIDATE_ON_CREATE = 'whole-model'
 SPECTACULAR_SETTINGS = {
     'TITLE': 'CloudReactor API',
     'DESCRIPTION': 'CloudReactor API Documentation',
-    'VERSION': '0.1.0',
+    'VERSION': '0.2.0',
+    'SERVERS': [
+        {
+            'url': 'https://api.cloudreactor.io',
+            'description': 'CloudReactor API server',
+        }
+    ],
     'CONTACT': {
         'name': 'Jeff Tsay',
-        'email': 'jeff@cloudreactor.io'
+        'email': 'jeff@cloudreactor.io',
+        'url': 'https://cloudreactor.io/'
     },
     'EXTERNAL_DOCS': {
         'url': 'https://docs.cloudreactor.io/',
         'description': 'CloudReactor Documentation Home',
     },
+    # Code generation has trouble with oneOf with BlankEnum choice
+    'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
     'PREPROCESSING_HOOKS': [
         'spectacular.preprocessing_hook'
     ],
