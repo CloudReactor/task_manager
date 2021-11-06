@@ -8,9 +8,9 @@ info:
     email: jeff@cloudreactor.io
     url: https://cloudreactor.io/
 paths:
-  /api/v1/alert_methods/:
+  /alert_methods/:
     get:
-      operationId: api_v1_alert_methods_list
+      operationId: alert_methods_list
       parameters:
       - in: query
         name: created_by_group__id
@@ -49,7 +49,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - alert_methods
       security:
       - tokenAuth: []
       responses:
@@ -60,9 +60,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedAlertMethodList'
           description: ''
     post:
-      operationId: api_v1_alert_methods_create
+      operationId: alert_methods_create
       tags:
-      - api
+      - alert_methods
       requestBody:
         content:
           application/json:
@@ -84,9 +84,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AlertMethod'
           description: ''
-  /api/v1/alert_methods/{uuid}/:
+  /alert_methods/{uuid}/:
     get:
-      operationId: api_v1_alert_methods_retrieve
+      operationId: alert_methods_retrieve
       parameters:
       - in: path
         name: uuid
@@ -95,7 +95,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - alert_methods
       security:
       - tokenAuth: []
       responses:
@@ -106,7 +106,7 @@ paths:
                 $ref: '#/components/schemas/AlertMethod'
           description: ''
     put:
-      operationId: api_v1_alert_methods_update
+      operationId: alert_methods_update
       parameters:
       - in: path
         name: uuid
@@ -115,7 +115,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - alert_methods
       requestBody:
         content:
           application/json:
@@ -138,7 +138,7 @@ paths:
                 $ref: '#/components/schemas/AlertMethod'
           description: ''
     patch:
-      operationId: api_v1_alert_methods_partial_update
+      operationId: alert_methods_partial_update
       parameters:
       - in: path
         name: uuid
@@ -147,7 +147,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - alert_methods
       requestBody:
         content:
           application/json:
@@ -169,7 +169,7 @@ paths:
                 $ref: '#/components/schemas/AlertMethod'
           description: ''
     delete:
-      operationId: api_v1_alert_methods_destroy
+      operationId: alert_methods_destroy
       parameters:
       - in: path
         name: uuid
@@ -178,15 +178,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - alert_methods
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/alert_methods/{uuid}/clone/:
+  /alert_methods/{uuid}/clone/:
     post:
-      operationId: api_v1_alert_methods_clone_create
+      operationId: alert_methods_clone_create
       parameters:
       - in: path
         name: uuid
@@ -195,7 +195,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - alert_methods
       requestBody:
         content:
           application/json:
@@ -217,9 +217,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AlertMethod'
           description: ''
-  /api/v1/email_notification_profiles/:
+  /email_notification_profiles/:
     get:
-      operationId: api_v1_email_notification_profiles_list
+      operationId: email_notification_profiles_list
       parameters:
       - in: query
         name: created_by_group__id
@@ -258,7 +258,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - email_notification_profiles
       security:
       - tokenAuth: []
       responses:
@@ -269,9 +269,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedEmailNotificationProfileList'
           description: ''
     post:
-      operationId: api_v1_email_notification_profiles_create
+      operationId: email_notification_profiles_create
       tags:
-      - api
+      - email_notification_profiles
       requestBody:
         content:
           application/json:
@@ -293,9 +293,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailNotificationProfile'
           description: ''
-  /api/v1/email_notification_profiles/{uuid}/:
+  /email_notification_profiles/{uuid}/:
     get:
-      operationId: api_v1_email_notification_profiles_retrieve
+      operationId: email_notification_profiles_retrieve
       parameters:
       - in: path
         name: uuid
@@ -304,7 +304,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - email_notification_profiles
       security:
       - tokenAuth: []
       responses:
@@ -315,7 +315,7 @@ paths:
                 $ref: '#/components/schemas/EmailNotificationProfile'
           description: ''
     put:
-      operationId: api_v1_email_notification_profiles_update
+      operationId: email_notification_profiles_update
       parameters:
       - in: path
         name: uuid
@@ -324,7 +324,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - email_notification_profiles
       requestBody:
         content:
           application/json:
@@ -347,7 +347,7 @@ paths:
                 $ref: '#/components/schemas/EmailNotificationProfile'
           description: ''
     patch:
-      operationId: api_v1_email_notification_profiles_partial_update
+      operationId: email_notification_profiles_partial_update
       parameters:
       - in: path
         name: uuid
@@ -356,7 +356,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - email_notification_profiles
       requestBody:
         content:
           application/json:
@@ -378,7 +378,7 @@ paths:
                 $ref: '#/components/schemas/EmailNotificationProfile'
           description: ''
     delete:
-      operationId: api_v1_email_notification_profiles_destroy
+      operationId: email_notification_profiles_destroy
       parameters:
       - in: path
         name: uuid
@@ -387,15 +387,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - email_notification_profiles
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/email_notification_profiles/{uuid}/clone/:
+  /email_notification_profiles/{uuid}/clone/:
     post:
-      operationId: api_v1_email_notification_profiles_clone_create
+      operationId: email_notification_profiles_clone_create
       parameters:
       - in: path
         name: uuid
@@ -404,7 +404,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - email_notification_profiles
       requestBody:
         content:
           application/json:
@@ -426,9 +426,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailNotificationProfile'
           description: ''
-  /api/v1/pagerduty_profiles/:
+  /pagerduty_profiles/:
     get:
-      operationId: api_v1_pagerduty_profiles_list
+      operationId: pagerduty_profiles_list
       parameters:
       - in: query
         name: created_by_group__id
@@ -467,7 +467,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - pagerduty_profiles
       security:
       - tokenAuth: []
       responses:
@@ -478,9 +478,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedPagerDutyProfileList'
           description: ''
     post:
-      operationId: api_v1_pagerduty_profiles_create
+      operationId: pagerduty_profiles_create
       tags:
-      - api
+      - pagerduty_profiles
       requestBody:
         content:
           application/json:
@@ -502,9 +502,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/PagerDutyProfile'
           description: ''
-  /api/v1/pagerduty_profiles/{uuid}/:
+  /pagerduty_profiles/{uuid}/:
     get:
-      operationId: api_v1_pagerduty_profiles_retrieve
+      operationId: pagerduty_profiles_retrieve
       parameters:
       - in: path
         name: uuid
@@ -513,7 +513,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - pagerduty_profiles
       security:
       - tokenAuth: []
       responses:
@@ -524,7 +524,7 @@ paths:
                 $ref: '#/components/schemas/PagerDutyProfile'
           description: ''
     put:
-      operationId: api_v1_pagerduty_profiles_update
+      operationId: pagerduty_profiles_update
       parameters:
       - in: path
         name: uuid
@@ -533,7 +533,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - pagerduty_profiles
       requestBody:
         content:
           application/json:
@@ -556,7 +556,7 @@ paths:
                 $ref: '#/components/schemas/PagerDutyProfile'
           description: ''
     patch:
-      operationId: api_v1_pagerduty_profiles_partial_update
+      operationId: pagerduty_profiles_partial_update
       parameters:
       - in: path
         name: uuid
@@ -565,7 +565,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - pagerduty_profiles
       requestBody:
         content:
           application/json:
@@ -587,7 +587,7 @@ paths:
                 $ref: '#/components/schemas/PagerDutyProfile'
           description: ''
     delete:
-      operationId: api_v1_pagerduty_profiles_destroy
+      operationId: pagerduty_profiles_destroy
       parameters:
       - in: path
         name: uuid
@@ -596,15 +596,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - pagerduty_profiles
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/pagerduty_profiles/{uuid}/clone/:
+  /pagerduty_profiles/{uuid}/clone/:
     post:
-      operationId: api_v1_pagerduty_profiles_clone_create
+      operationId: pagerduty_profiles_clone_create
       parameters:
       - in: path
         name: uuid
@@ -613,7 +613,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - pagerduty_profiles
       requestBody:
         content:
           application/json:
@@ -635,9 +635,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/PagerDutyProfile'
           description: ''
-  /api/v1/run_environments/:
+  /run_environments/:
     get:
-      operationId: api_v1_run_environments_list
+      operationId: run_environments_list
       parameters:
       - in: query
         name: created_by_group__id
@@ -672,7 +672,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - run_environments
       security:
       - tokenAuth: []
       responses:
@@ -683,9 +683,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedRunEnvironmentList'
           description: ''
     post:
-      operationId: api_v1_run_environments_create
+      operationId: run_environments_create
       tags:
-      - api
+      - run_environments
       requestBody:
         content:
           application/json:
@@ -707,9 +707,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/RunEnvironment'
           description: ''
-  /api/v1/run_environments/{uuid}/:
+  /run_environments/{uuid}/:
     get:
-      operationId: api_v1_run_environments_retrieve
+      operationId: run_environments_retrieve
       parameters:
       - in: path
         name: uuid
@@ -718,7 +718,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - run_environments
       security:
       - tokenAuth: []
       responses:
@@ -729,7 +729,7 @@ paths:
                 $ref: '#/components/schemas/RunEnvironment'
           description: ''
     put:
-      operationId: api_v1_run_environments_update
+      operationId: run_environments_update
       parameters:
       - in: path
         name: uuid
@@ -738,7 +738,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - run_environments
       requestBody:
         content:
           application/json:
@@ -761,7 +761,7 @@ paths:
                 $ref: '#/components/schemas/RunEnvironment'
           description: ''
     patch:
-      operationId: api_v1_run_environments_partial_update
+      operationId: run_environments_partial_update
       parameters:
       - in: path
         name: uuid
@@ -770,7 +770,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - run_environments
       requestBody:
         content:
           application/json:
@@ -792,7 +792,7 @@ paths:
                 $ref: '#/components/schemas/RunEnvironment'
           description: ''
     delete:
-      operationId: api_v1_run_environments_destroy
+      operationId: run_environments_destroy
       parameters:
       - in: path
         name: uuid
@@ -801,15 +801,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - run_environments
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/run_environments/{uuid}/clone/:
+  /run_environments/{uuid}/clone/:
     post:
-      operationId: api_v1_run_environments_clone_create
+      operationId: run_environments_clone_create
       parameters:
       - in: path
         name: uuid
@@ -818,7 +818,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - run_environments
       requestBody:
         content:
           application/json:
@@ -840,9 +840,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/RunEnvironment'
           description: ''
-  /api/v1/task_executions/:
+  /task_executions/:
     get:
-      operationId: api_v1_task_executions_list
+      operationId: task_executions_list
       parameters:
       - name: limit
         required: false
@@ -877,7 +877,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - task_executions
       security:
       - tokenAuth: []
       responses:
@@ -888,9 +888,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedTaskExecutionList'
           description: ''
     post:
-      operationId: api_v1_task_executions_create
+      operationId: task_executions_create
       tags:
-      - api
+      - task_executions
       requestBody:
         content:
           application/json:
@@ -912,9 +912,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/TaskExecution'
           description: ''
-  /api/v1/task_executions/{uuid}/:
+  /task_executions/{uuid}/:
     get:
-      operationId: api_v1_task_executions_retrieve
+      operationId: task_executions_retrieve
       parameters:
       - in: path
         name: uuid
@@ -923,7 +923,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - task_executions
       security:
       - tokenAuth: []
       responses:
@@ -934,7 +934,7 @@ paths:
                 $ref: '#/components/schemas/TaskExecution'
           description: ''
     put:
-      operationId: api_v1_task_executions_update
+      operationId: task_executions_update
       parameters:
       - in: path
         name: uuid
@@ -943,7 +943,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - task_executions
       requestBody:
         content:
           application/json:
@@ -966,7 +966,7 @@ paths:
                 $ref: '#/components/schemas/TaskExecution'
           description: ''
     patch:
-      operationId: api_v1_task_executions_partial_update
+      operationId: task_executions_partial_update
       parameters:
       - in: path
         name: uuid
@@ -975,7 +975,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - task_executions
       requestBody:
         content:
           application/json:
@@ -997,7 +997,7 @@ paths:
                 $ref: '#/components/schemas/TaskExecution'
           description: ''
     delete:
-      operationId: api_v1_task_executions_destroy
+      operationId: task_executions_destroy
       parameters:
       - in: path
         name: uuid
@@ -1006,15 +1006,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - task_executions
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/tasks/:
+  /tasks/:
     get:
-      operationId: api_v1_tasks_list
+      operationId: tasks_list
       parameters:
       - in: query
         name: description
@@ -1054,7 +1054,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - tasks
       security:
       - tokenAuth: []
       responses:
@@ -1065,9 +1065,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedTaskList'
           description: ''
     post:
-      operationId: api_v1_tasks_create
+      operationId: tasks_create
       tags:
-      - api
+      - tasks
       requestBody:
         content:
           application/json:
@@ -1089,9 +1089,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
-  /api/v1/tasks/{uuid}/:
+  /tasks/{uuid}/:
     get:
-      operationId: api_v1_tasks_retrieve
+      operationId: tasks_retrieve
       parameters:
       - in: path
         name: uuid
@@ -1100,7 +1100,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - tasks
       security:
       - tokenAuth: []
       responses:
@@ -1111,7 +1111,7 @@ paths:
                 $ref: '#/components/schemas/Task'
           description: ''
     put:
-      operationId: api_v1_tasks_update
+      operationId: tasks_update
       parameters:
       - in: path
         name: uuid
@@ -1120,7 +1120,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - tasks
       requestBody:
         content:
           application/json:
@@ -1143,7 +1143,7 @@ paths:
                 $ref: '#/components/schemas/Task'
           description: ''
     patch:
-      operationId: api_v1_tasks_partial_update
+      operationId: tasks_partial_update
       parameters:
       - in: path
         name: uuid
@@ -1152,7 +1152,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - tasks
       requestBody:
         content:
           application/json:
@@ -1174,7 +1174,7 @@ paths:
                 $ref: '#/components/schemas/Task'
           description: ''
     delete:
-      operationId: api_v1_tasks_destroy
+      operationId: tasks_destroy
       parameters:
       - in: path
         name: uuid
@@ -1183,15 +1183,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - tasks
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/workflow_executions/:
+  /workflow_executions/:
     get:
-      operationId: api_v1_workflow_executions_list
+      operationId: workflow_executions_list
       parameters:
       - name: limit
         required: false
@@ -1226,7 +1226,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - workflow_executions
       security:
       - tokenAuth: []
       responses:
@@ -1237,9 +1237,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedWorkflowExecutionSummaryList'
           description: ''
     post:
-      operationId: api_v1_workflow_executions_create
+      operationId: workflow_executions_create
       tags:
-      - api
+      - workflow_executions
       requestBody:
         content:
           application/json:
@@ -1261,9 +1261,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/WorkflowExecution'
           description: ''
-  /api/v1/workflow_executions/{uuid}/:
+  /workflow_executions/{uuid}/:
     get:
-      operationId: api_v1_workflow_executions_retrieve
+      operationId: workflow_executions_retrieve
       parameters:
       - in: path
         name: uuid
@@ -1272,7 +1272,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_executions
       security:
       - tokenAuth: []
       responses:
@@ -1283,7 +1283,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowExecution'
           description: ''
     put:
-      operationId: api_v1_workflow_executions_update
+      operationId: workflow_executions_update
       parameters:
       - in: path
         name: uuid
@@ -1292,7 +1292,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_executions
       requestBody:
         content:
           application/json:
@@ -1315,7 +1315,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowExecution'
           description: ''
     patch:
-      operationId: api_v1_workflow_executions_partial_update
+      operationId: workflow_executions_partial_update
       parameters:
       - in: path
         name: uuid
@@ -1324,7 +1324,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_executions
       requestBody:
         content:
           application/json:
@@ -1346,7 +1346,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowExecution'
           description: ''
     delete:
-      operationId: api_v1_workflow_executions_destroy
+      operationId: workflow_executions_destroy
       parameters:
       - in: path
         name: uuid
@@ -1355,15 +1355,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_executions
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/workflow_executions/{uuid}/retry/:
+  /workflow_executions/{uuid}/retry/:
     post:
-      operationId: api_v1_workflow_executions_retry_create
+      operationId: workflow_executions_retry_create
       parameters:
       - in: path
         name: uuid
@@ -1372,7 +1372,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_executions
       requestBody:
         content:
           application/json:
@@ -1394,9 +1394,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/WorkflowExecution'
           description: ''
-  /api/v1/workflow_executions/{uuid}/workflow_task_instance_executions/:
+  /workflow_executions/{uuid}/workflow_task_instance_executions/:
     post:
-      operationId: api_v1_workflow_executions_workflow_task_instance_executions_create
+      operationId: workflow_executions_workflow_task_instance_executions_create
       parameters:
       - in: path
         name: uuid
@@ -1405,7 +1405,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_executions
       requestBody:
         content:
           application/json:
@@ -1427,9 +1427,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/WorkflowExecution'
           description: ''
-  /api/v1/workflow_task_instances/:
+  /workflow_task_instances/:
     get:
-      operationId: api_v1_workflow_task_instances_list
+      operationId: workflow_task_instances_list
       parameters:
       - in: query
         name: description
@@ -1487,7 +1487,7 @@ paths:
           type: string
           format: uuid
       tags:
-      - api
+      - workflow_task_instances
       security:
       - tokenAuth: []
       responses:
@@ -1498,9 +1498,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedWorkflowTaskInstanceList'
           description: ''
     post:
-      operationId: api_v1_workflow_task_instances_create
+      operationId: workflow_task_instances_create
       tags:
-      - api
+      - workflow_task_instances
       requestBody:
         content:
           application/json:
@@ -1522,9 +1522,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/WorkflowTaskInstance'
           description: ''
-  /api/v1/workflow_task_instances/{uuid}/:
+  /workflow_task_instances/{uuid}/:
     get:
-      operationId: api_v1_workflow_task_instances_retrieve
+      operationId: workflow_task_instances_retrieve
       parameters:
       - in: path
         name: uuid
@@ -1533,7 +1533,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_task_instances
       security:
       - tokenAuth: []
       responses:
@@ -1544,7 +1544,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowTaskInstance'
           description: ''
     put:
-      operationId: api_v1_workflow_task_instances_update
+      operationId: workflow_task_instances_update
       parameters:
       - in: path
         name: uuid
@@ -1553,7 +1553,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_task_instances
       requestBody:
         content:
           application/json:
@@ -1576,7 +1576,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowTaskInstance'
           description: ''
     patch:
-      operationId: api_v1_workflow_task_instances_partial_update
+      operationId: workflow_task_instances_partial_update
       parameters:
       - in: path
         name: uuid
@@ -1585,7 +1585,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_task_instances
       requestBody:
         content:
           application/json:
@@ -1607,7 +1607,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowTaskInstance'
           description: ''
     delete:
-      operationId: api_v1_workflow_task_instances_destroy
+      operationId: workflow_task_instances_destroy
       parameters:
       - in: path
         name: uuid
@@ -1616,15 +1616,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_task_instances
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/workflow_transitions/:
+  /workflow_transitions/:
     get:
-      operationId: api_v1_workflow_transitions_list
+      operationId: workflow_transitions_list
       parameters:
       - in: query
         name: description
@@ -1655,7 +1655,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - workflow_transitions
       security:
       - tokenAuth: []
       responses:
@@ -1666,9 +1666,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedWorkflowTransitionList'
           description: ''
     post:
-      operationId: api_v1_workflow_transitions_create
+      operationId: workflow_transitions_create
       tags:
-      - api
+      - workflow_transitions
       requestBody:
         content:
           application/json:
@@ -1690,9 +1690,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/WorkflowTransition'
           description: ''
-  /api/v1/workflow_transitions/{uuid}/:
+  /workflow_transitions/{uuid}/:
     get:
-      operationId: api_v1_workflow_transitions_retrieve
+      operationId: workflow_transitions_retrieve
       parameters:
       - in: path
         name: uuid
@@ -1701,7 +1701,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_transitions
       security:
       - tokenAuth: []
       responses:
@@ -1712,7 +1712,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowTransition'
           description: ''
     put:
-      operationId: api_v1_workflow_transitions_update
+      operationId: workflow_transitions_update
       parameters:
       - in: path
         name: uuid
@@ -1721,7 +1721,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_transitions
       requestBody:
         content:
           application/json:
@@ -1744,7 +1744,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowTransition'
           description: ''
     patch:
-      operationId: api_v1_workflow_transitions_partial_update
+      operationId: workflow_transitions_partial_update
       parameters:
       - in: path
         name: uuid
@@ -1753,7 +1753,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_transitions
       requestBody:
         content:
           application/json:
@@ -1775,7 +1775,7 @@ paths:
                 $ref: '#/components/schemas/WorkflowTransition'
           description: ''
     delete:
-      operationId: api_v1_workflow_transitions_destroy
+      operationId: workflow_transitions_destroy
       parameters:
       - in: path
         name: uuid
@@ -1784,15 +1784,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflow_transitions
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/workflows/:
+  /workflows/:
     get:
-      operationId: api_v1_workflows_list
+      operationId: workflows_list
       parameters:
       - in: query
         name: description
@@ -1831,7 +1831,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - workflows
       security:
       - tokenAuth: []
       responses:
@@ -1842,9 +1842,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedWorkflowSummaryList'
           description: ''
     post:
-      operationId: api_v1_workflows_create
+      operationId: workflows_create
       tags:
-      - api
+      - workflows
       requestBody:
         content:
           application/json:
@@ -1866,9 +1866,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Workflow'
           description: ''
-  /api/v1/workflows/{uuid}/:
+  /workflows/{uuid}/:
     get:
-      operationId: api_v1_workflows_retrieve
+      operationId: workflows_retrieve
       parameters:
       - in: path
         name: uuid
@@ -1877,7 +1877,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflows
       security:
       - tokenAuth: []
       responses:
@@ -1888,7 +1888,7 @@ paths:
                 $ref: '#/components/schemas/Workflow'
           description: ''
     put:
-      operationId: api_v1_workflows_update
+      operationId: workflows_update
       parameters:
       - in: path
         name: uuid
@@ -1897,7 +1897,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflows
       requestBody:
         content:
           application/json:
@@ -1920,7 +1920,7 @@ paths:
                 $ref: '#/components/schemas/Workflow'
           description: ''
     patch:
-      operationId: api_v1_workflows_partial_update
+      operationId: workflows_partial_update
       parameters:
       - in: path
         name: uuid
@@ -1929,7 +1929,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflows
       requestBody:
         content:
           application/json:
@@ -1951,7 +1951,7 @@ paths:
                 $ref: '#/components/schemas/Workflow'
           description: ''
     delete:
-      operationId: api_v1_workflows_destroy
+      operationId: workflows_destroy
       parameters:
       - in: path
         name: uuid
@@ -1960,15 +1960,15 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflows
       security:
       - tokenAuth: []
       responses:
         '204':
           description: No response body
-  /api/v1/workflows/{uuid}/clone/:
+  /workflows/{uuid}/clone/:
     post:
-      operationId: api_v1_workflows_clone_create
+      operationId: workflows_clone_create
       parameters:
       - in: path
         name: uuid
@@ -1977,7 +1977,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - api
+      - workflows
       requestBody:
         content:
           application/json:
@@ -1999,91 +1999,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/Workflow'
           description: ''
-  /auth/jwt/create/:
-    post:
-      operationId: auth_jwt_create_create
-      description: |-
-        Takes a set of user credentials and returns an access and refresh JSON web
-        token pair to prove the authentication of those credentials.
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TokenObtainPair'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenObtainPair'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TokenObtainPair'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TokenObtainPair'
-          description: ''
-  /auth/jwt/refresh/:
-    post:
-      operationId: auth_jwt_refresh_create
-      description: |-
-        Takes a refresh type JSON web token and returns an access type JSON web
-        token if the refresh token is valid.
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TokenRefresh'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenRefresh'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TokenRefresh'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TokenRefresh'
-          description: ''
-  /auth/jwt/verify/:
-    post:
-      operationId: auth_jwt_verify_create
-      description: |-
-        Takes a token and indicates if it is valid.  This view provides no
-        information about a token's fitness for a particular use.
-      tags:
-      - auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TokenVerify'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TokenVerify'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TokenVerify'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TokenVerify'
-          description: ''
 components:
   schemas:
     AlertMethod:
       type: object
+      description: |-
+        An AlertMethod specifies one or more configured methods of notifying
+        users or external sources of events that trigger when one or more
+        conditions are satisfied.
       properties:
         url:
           type: string
@@ -2154,10 +2077,8 @@ components:
     AwsEcsExecutionMethod:
       type: object
       description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
+        AwsEcsExecutionMethods contain configuration for running Tasks in
+        AWS ECS.
       properties:
         type:
           type: string
@@ -2437,6 +2358,9 @@ components:
       - type
     AwsEcsServiceLoadBalancerDetails:
       type: object
+      description: |-
+        Configuration for a service AWS ECS Task that is behind an application load
+        balancer.
       properties:
         target_group_arn:
           type: string
@@ -2453,6 +2377,7 @@ components:
       - target_group_arn
     AwsEcsServiceOptions:
       type: object
+      description: Options for running a Task as a service in AWS ECS.
       properties:
         load_balancers:
           type: array
@@ -2515,6 +2440,7 @@ components:
       type: string
     EmailNotificationProfile:
       type: object
+      description: An EmailProfile contains settings for emailing notifications.
       properties:
         url:
           type: string
@@ -2645,6 +2571,7 @@ components:
       - url
     Link:
       type: object
+      description: Links represent a URL and associated metadata.
       properties:
         uuid:
           type: string
@@ -2673,6 +2600,11 @@ components:
       - uuid
     NameAndUuid:
       type: object
+      description: |-
+        Identifies an entity in three ways:
+        1) UUID
+        2) Name
+        3) URL
       properties:
         uuid:
           type: string
@@ -2689,6 +2621,9 @@ components:
       - uuid
     PagerDutyProfile:
       type: object
+      description: |-
+        A PagerDutyProfile contains user-specific configuration on how to notify
+        PagerDuty of events.
       properties:
         url:
           type: string
@@ -2954,6 +2889,10 @@ components:
             $ref: '#/components/schemas/WorkflowTransition'
     PatchedAlertMethod:
       type: object
+      description: |-
+        An AlertMethod specifies one or more configured methods of notifying
+        users or external sources of events that trigger when one or more
+        conditions are satisfied.
       properties:
         url:
           type: string
@@ -3013,6 +2952,7 @@ components:
           readOnly: true
     PatchedEmailNotificationProfile:
       type: object
+      description: An EmailProfile contains settings for emailing notifications.
       properties:
         url:
           type: string
@@ -3081,6 +3021,9 @@ components:
           maxLength: 10000
     PatchedPagerDutyProfile:
       type: object
+      description: |-
+        A PagerDutyProfile contains user-specific configuration on how to notify
+        PagerDuty of events.
       properties:
         url:
           type: string
@@ -3136,6 +3079,12 @@ components:
           readOnly: true
     PatchedRunEnvironment:
       type: object
+      description: |-
+        RunEnvironments contain common settings for running a set of
+        related Tasks. Usually RunEnvironments group Tasks in the same
+        deployment environment (e.g. staging or production).
+        Task and Workflows belong to a RunEnvironment but can override
+        the RunEnvironment's settings.
       properties:
         url:
           type: string
@@ -3204,10 +3153,8 @@ components:
     PatchedTask:
       type: object
       description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
+        A Task is a specification for a runnable job, including details on how to
+        run the task and how often the task is supposed to run.
       properties:
         url:
           type: string
@@ -3355,11 +3302,7 @@ components:
           readOnly: true
     PatchedTaskExecution:
       type: object
-      description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
+      description: A Task Execution is an execution / run instance of a Task.
       properties:
         url:
           type: string
@@ -3685,10 +3628,9 @@ components:
     PatchedWorkflow:
       type: object
       description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
+        Workflows are Tasks arranged in a directed graph. Configured Tasks
+        are held by WorkflowTaskInstances, and WorkflowTransitions connect
+        WorkflowTaskInstances together.
       properties:
         url:
           type: string
@@ -3869,6 +3811,9 @@ components:
           readOnly: true
     PatchedWorkflowTaskInstance:
       type: object
+      description: |-
+        A WorkflowTaskInstance contains a Task that is configured to run in
+        a Workflow.
       properties:
         url:
           type: string
@@ -3971,6 +3916,11 @@ components:
           readOnly: true
     PatchedWorkflowTransition:
       type: object
+      description: |-
+        A WorkflowTransition is a directed edge in a Worfklow, which is a directed
+        graph. It contains a source WorkflowTaskInstance, a destination
+        WorkflowTaskInstance, as well as conditions for triggering the destination
+        to execution.
       properties:
         url:
           type: string
@@ -4045,6 +3995,12 @@ components:
       type: string
     RunEnvironment:
       type: object
+      description: |-
+        RunEnvironments contain common settings for running a set of
+        related Tasks. Usually RunEnvironments group Tasks in the same
+        deployment environment (e.g. staging or production).
+        Task and Workflows belong to a RunEnvironment but can override
+        the RunEnvironment's settings.
       properties:
         url:
           type: string
@@ -4135,10 +4091,8 @@ components:
     Task:
       type: object
       description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
+        A Task is a specification for a runnable job, including details on how to
+        run the task and how often the task is supposed to run.
       properties:
         url:
           type: string
@@ -4303,11 +4257,7 @@ components:
       - uuid
     TaskExecution:
       type: object
-      description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
+      description: A Task Execution is an execution / run instance of a Task.
       properties:
         url:
           type: string
@@ -4661,46 +4611,6 @@ components:
       - timeout_workflow_if_unhandled
       - ignore
       type: string
-    TokenObtainPair:
-      type: object
-      properties:
-        username:
-          type: string
-          writeOnly: true
-        password:
-          type: string
-          writeOnly: true
-        access:
-          type: string
-          readOnly: true
-        refresh:
-          type: string
-          readOnly: true
-      required:
-      - access
-      - password
-      - refresh
-      - username
-    TokenRefresh:
-      type: object
-      properties:
-        access:
-          type: string
-          readOnly: true
-        refresh:
-          type: string
-          writeOnly: true
-      required:
-      - access
-      - refresh
-    TokenVerify:
-      type: object
-      properties:
-        token:
-          type: string
-          writeOnly: true
-      required:
-      - token
     UnknownExecutionMethodCapability:
       type: object
       description: |-
@@ -4723,10 +4633,9 @@ components:
     Workflow:
       type: object
       description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
+        Workflows are Tasks arranged in a directed graph. Configured Tasks
+        are held by WorkflowTaskInstances, and WorkflowTransitions connect
+        WorkflowTaskInstances together.
       properties:
         url:
           type: string
@@ -4933,6 +4842,8 @@ components:
       - workflow_transition_evaluations
     WorkflowExecutionSummary:
       type: object
+      description: A WorkflowExecution holds data on a specific execution (run) of
+        a Workflow.
       properties:
         url:
           type: string
@@ -5011,6 +4922,7 @@ components:
       - uuid
     WorkflowSummary:
       type: object
+      description: Selected properties of Workflows.
       properties:
         url:
           type: string
@@ -5082,6 +4994,9 @@ components:
       - uuid
     WorkflowTaskInstance:
       type: object
+      description: |-
+        A WorkflowTaskInstance contains a Task that is configured to run in
+        a Workflow.
       properties:
         url:
           type: string
@@ -5193,10 +5108,9 @@ components:
     WorkflowTaskInstanceExecution:
       type: object
       description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
+        WorkflowTaskInstanceExecutions hold the execution information
+        for a WorkflowTaskInstance (which holds a Task) for a specific
+        WorkflowExection (run of a Workflow).
       properties:
         uuid:
           type: string
@@ -5226,6 +5140,11 @@ components:
       - workflow_task_instance
     WorkflowTransition:
       type: object
+      description: |-
+        A WorkflowTransition is a directed edge in a Worfklow, which is a directed
+        graph. It contains a source WorkflowTaskInstance, a destination
+        WorkflowTaskInstance, as well as conditions for triggering the destination
+        to execution.
       properties:
         url:
           type: string
@@ -5292,6 +5211,9 @@ components:
       - uuid
     WorkflowTransitionEvaluation:
       type: object
+      description: |-
+        A WorkflowTransitionEvaluation is a saved evaluation of the conditions
+        in a WorkflowTransition during a WorkflowExecution.
       properties:
         uuid:
           type: string
@@ -5329,7 +5251,7 @@ components:
       name: Authorization
       description: Token-based authentication with required prefix "Token"
 servers:
-- url: https://api.cloudreactor.io
+- url: https://api.cloudreactor.io/api/v1
   description: CloudReactor API server
 externalDocs:
   url: https://docs.cloudreactor.io/

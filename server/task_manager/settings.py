@@ -359,9 +359,13 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'CloudReactor API',
     'DESCRIPTION': 'CloudReactor API Documentation',
     'VERSION': '0.2.0',
+    'SCHEMA_PATH_PREFIX': '/api/v1',
+    # Remove matching SCHEMA_PATH_PREFIX from operation path. Usually used in
+    # conjunction with appended prefixes in SERVERS.
+    'SCHEMA_PATH_PREFIX_TRIM': True,
     'SERVERS': [
         {
-            'url': 'https://api.cloudreactor.io',
+            'url': 'https://api.cloudreactor.io/api/v1',
             'description': 'CloudReactor API server',
         }
     ],
