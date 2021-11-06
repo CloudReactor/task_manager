@@ -1,4 +1,5 @@
 EXCLUDED_PATH_FRAGMENTS = [
+  '/auth',
   'process',
   'api_key',
   '/group',
