@@ -8,7 +8,12 @@ from .task_execution_serializer import TaskExecutionSerializer
 logger = logging.getLogger(__name__)
 
 
-class DelayedProcessStartDetectionEventSerializer(serializers.ModelSerializer):
+class DelayedTaskStartDetectionEventSerializer(serializers.ModelSerializer):
+    """
+    Represents an event that is created when a delay in a Task starting is
+    detected.
+    """
+
     class Meta:
         model = DelayedProcessStartDetectionEvent
         fields = ('uuid', 'task_execution', 'detected_at',

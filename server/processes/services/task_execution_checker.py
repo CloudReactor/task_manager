@@ -8,7 +8,7 @@ from ..common.request_helpers import context_with_request
 from ..models import *
 from ..serializers import (
     HeartbeatDetectionEventSerializer,
-    DelayedProcessStartDetectionEventSerializer
+    DelayedTaskStartDetectionEventSerializer
 )
 
 HEARTBEAT_DETECTION_INTERVAL_SECONDS = 60 * 60
@@ -226,7 +226,7 @@ class TaskExecutionChecker:
 
     def send_delayed_process_start_alerts(self,
             dpsde: DelayedProcessStartDetectionEvent):
-        details = DelayedProcessStartDetectionEventSerializer(dpsde,
+        details = DelayedTaskStartDetectionEventSerializer(dpsde,
             context=context_with_request()).data
 
         te = dpsde.task_execution

@@ -589,9 +589,9 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         from .alert import Alert
         from .alert_send_status import AlertSendStatus
         from .delayed_process_start_alert import DelayedProcessStartAlert
-        from processes.serializers import DelayedProcessStartDetectionEventSerializer
+        from processes.serializers import DelayedTaskStartDetectionEventSerializer
 
-        details = DelayedProcessStartDetectionEventSerializer(dpsde,
+        details = DelayedTaskStartDetectionEventSerializer(dpsde,
             context=context_with_request()).data
 
         details['max_manual_start_delay_before_alert_seconds'] = self.task.max_manual_start_delay_before_alert_seconds
