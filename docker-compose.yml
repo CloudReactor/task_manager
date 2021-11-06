@@ -86,7 +86,7 @@ services:
     command: shell_plus
 
   api-schema:
-    <<: *service-base
+    <<: *dev-base
     command: spectacular --file schema/cloudreactor-openapi3.yml
     environment:
       - DJANGO_IN_SCHEMA_GENERATION=TRUE
