@@ -26,6 +26,10 @@ class WorkflowExecutionStatusSerializer(serializers.BaseSerializer):
 
 class WorkflowExecutionSummarySerializer(serializers.HyperlinkedModelSerializer,
                                          SerializerHelpers):
+    """
+    A WorkflowExecution holds data on a specific execution (run) of a Workflow.
+    """
+
     class Meta:
         model = WorkflowExecution
         fields = ('url', 'uuid', 'dashboard_url',

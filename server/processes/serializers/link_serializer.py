@@ -2,6 +2,9 @@ from rest_framework import serializers
 
 
 class LinkSerializer(serializers.Serializer):
+    """
+    Links represent a URL and associated metadata.
+    """
     uuid = serializers.UUIDField()
     name = serializers.CharField()
     link_url_template = serializers.CharField()

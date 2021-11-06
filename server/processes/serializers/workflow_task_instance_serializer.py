@@ -28,6 +28,11 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
+    """
+    A WorkflowTaskInstance contains a Task that is configured to run in
+    a Workflow.
+    """
+    
     class Meta:
         model = WorkflowTaskInstance
         fields = ('url', 'uuid', 'name', 'description',

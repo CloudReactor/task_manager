@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 class WorkflowTaskInstanceExecutionSerializer(SerializerHelpers,
         FlexFieldsSerializerMixin, serializers.ModelSerializer):
+    """
+    WorkflowTaskInstanceExecutions hold the execution information
+    for a WorkflowTaskInstance (which holds a Task) for a specific
+    WorkflowExection (run of a Workflow).
+    """
+
     class Meta:
         model = WorkflowTaskInstanceExecution
         fields = ('uuid', 'workflow_execution',

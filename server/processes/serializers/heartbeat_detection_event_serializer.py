@@ -9,6 +9,11 @@ logger = logging.getLogger(__name__)
 
 
 class HeartbeatDetectionEventSerializer(serializers.ModelSerializer):
+    """
+    Represents an event that is created when a missing heartbeat from a
+    Task Execution is detected.
+    """
+
     class Meta:
         model = HeartbeatDetectionEvent
         fields = ('uuid', 'task_execution', 'detected_at',

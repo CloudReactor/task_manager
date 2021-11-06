@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowExecution(UuidModel):
+    """
+    A WorkflowExecution holds data on a specific execution (run) of a Workflow.
+    """
+
     @enum.unique
     class Status(enum.IntEnum):
         RUNNING = 0

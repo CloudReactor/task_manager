@@ -57,6 +57,10 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         FlexFieldsSerializerMixin,
         SerializerHelpers,
         serializers.HyperlinkedModelSerializer):
+    """
+    A Task Execution is an execution / run instance of a Task.
+    """
+
     class Meta:
         model = TaskExecution
         fields = ('url',

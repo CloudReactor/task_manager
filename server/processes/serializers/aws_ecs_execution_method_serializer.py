@@ -9,6 +9,11 @@ from .aws_ecs_task_definition_serializer import AwsEcsTaskDefinitionSerializer
 
 class AwsEcsExecutionMethodSerializer(BaseExecutionMethodSerializer,
         AwsEcsTaskDefinitionSerializer):
+    """
+    AwsEcsExecutionMethods contain configuration for running Tasks in
+    AWS ECS.
+    """
+
     tags = serializers.HStoreField(source='aws_tags', allow_null=True,
             allow_empty=True)
 

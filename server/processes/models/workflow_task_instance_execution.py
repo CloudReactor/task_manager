@@ -8,6 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowTaskInstanceExecution(models.Model):
+    """
+    WorkflowTaskInstanceExecutions hold the execution information
+    for a WorkflowTaskInstance (which holds a Task) for a specific
+    WorkflowExection (run of a Workflow).
+    """
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

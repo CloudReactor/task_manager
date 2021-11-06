@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 
 
 class Task(AwsEcsConfiguration, Schedulable):
+    """
+    The specification for a runnable task (job), including details on how to
+    run the task and how often the task is supposed to run.
+    """
+
     AWS_ECS_SCHEDULE_ATTRIBUTES = [
         'schedule',
         'aws_default_subnets',

@@ -9,6 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class InsufficientServiceInstancesEventSerializer(serializers.ModelSerializer):
+    """
+    Represents an event that is created when the number of running
+    Task Executions for a service Task goes below min_service_instance_count
+    of the Task.
+    """
+
     class Meta:
         model = InsufficientServiceInstancesEvent
         fields = ('uuid', 'task',
@@ -16,4 +22,4 @@ class InsufficientServiceInstancesEventSerializer(serializers.ModelSerializer):
                   'detected_concurrency', 'required_concurrency',
                   'detected_at', 'resolved_at',)
 
-    task = NameAndUuidSerializer(view_name='tasks-detail', read_only=True)
+    task = NameAndUuidSerializer(view_name='tasks-detail')

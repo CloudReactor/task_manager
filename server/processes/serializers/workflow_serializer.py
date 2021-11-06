@@ -32,6 +32,9 @@ COMMON_FIELDS = [
 
 class WorkflowSummarySerializer(GroupSettingSerializerMixin,
         serializers.HyperlinkedModelSerializer):
+    """
+    Selected properties of Workflows.
+    """
     class Meta:
         model = Workflow
         fields = COMMON_FIELDS
@@ -47,6 +50,12 @@ class WorkflowSerializer(
         EmbeddedIdValidatingSerializerMixin,
         FlexFieldsSerializerMixin,
         WorkflowSummarySerializer):
+    """
+    Workflows are Tasks arranged in a directed graph. Configured Tasks
+    are held by WorkflowTaskInstances, and WorkflowTransitions connect
+    WorkflowTaskInstances together.
+    """
+
     NEW_UUID_PREFIX = 'NEW_'
 
     class Meta:

@@ -16,6 +16,11 @@ logger = logging.getLogger(__name__)
 
 class WorkflowTransitionEvaluationSerializer(serializers.ModelSerializer,
                                              SerializerHelpers):
+    """
+    A WorkflowTransitionEvaluation is a saved evaluation of the conditions
+    in a WorkflowTransition during a WorkflowExecution.
+    """
+
     class Meta:
         model = WorkflowTransitionEvaluation
         fields = ('uuid', 'result',

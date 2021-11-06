@@ -6,6 +6,10 @@ from .aws_ecs_service_load_balancer_details_serializer import AwsEcsServiceLoadB
 from ..models import Task
 
 class AwsEcsServiceOptionsSerializer(serializers.Serializer):
+    """
+    Options for running a Task as a service in AWS ECS.
+    """
+
     load_balancers = AwsEcsServiceLoadBalancerDetailsSerializer(many=True, read_only=True,
             source='aws_ecs_service_load_balancer_details_set')
 

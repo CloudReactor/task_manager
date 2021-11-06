@@ -25,6 +25,13 @@ logger = logging.getLogger(__name__)
 
 class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
         serializers.HyperlinkedModelSerializer, SerializerHelpers):
+    """
+    A WorkflowTransition is a directed edge in a Worfklow, which is a directed
+    graph. It contains a source WorkflowTaskInstance, a destination
+    WorkflowTaskInstance, as well as conditions for triggering the destination
+    to execution.
+    """
+
     class Meta:
         model = WorkflowTransition
         fields = ('url', 'uuid', 'description',

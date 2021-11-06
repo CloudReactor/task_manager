@@ -35,6 +35,12 @@ logger = logging.getLogger(__name__)
 
 class SaasTokenSerializer(
         serializers.HyperlinkedModelSerializer, SerializerHelpers):
+    """
+    SaasTokens are API keys that belong to a user and a specific
+    group that the user is a member of. They have access levels
+    and may be scoped to RunEnvironments within a group.
+    """
+
     class Meta:
         model = SaasToken
         fields = [

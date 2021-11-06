@@ -71,6 +71,11 @@ class TaskSerializer(GroupSettingSerializerMixin,
         FlexFieldsSerializerMixin,
         serializers.HyperlinkedModelSerializer,
         SerializerHelpers):
+    """
+    A Task is a specification for a runnable job, including details on how to
+    run the task and how often the task is supposed to run.
+    """
+
     class Meta:
         model = Task
         fields = ['url',

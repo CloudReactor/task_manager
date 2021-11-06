@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowTaskInstance(UuidModel):
+    """
+    A WorkflowTaskInstance contains a Task that is configured to run in
+    a Workflow.
+    """
+
     START_TRANSITION_CONDITION_ALL = 'all'
     START_TRANSITION_CONDITION_ANY = 'any'
     START_TRANSITION_CONDITION_COUNT_AT_LEAST = 'count_at_least'

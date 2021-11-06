@@ -3,6 +3,13 @@ from typing import Optional
 from rest_framework import serializers
 
 class NameAndUuidSerializer(serializers.Serializer):
+    """
+    Identifies an entity in three ways:
+    1) UUID
+    2) Name
+    3) URL
+    """
+
     uuid = serializers.UUIDField()
     url = serializers.SerializerMethodField()
     name = serializers.CharField()

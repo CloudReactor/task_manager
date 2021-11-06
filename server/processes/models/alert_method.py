@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class AlertMethod(NamedWithUuidAndRunEnvironmentModel):
+    """
+    An AlertMethod specifies one or more configured methods of notifying
+    users or external sources of events that trigger when one or more
+    conditions are satisfied.
+    """
+
     class Meta:
         unique_together = (('name', 'created_by_group'),)
 

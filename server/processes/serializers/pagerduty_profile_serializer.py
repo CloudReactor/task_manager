@@ -10,6 +10,11 @@ from .group_setting_serializer_mixin import GroupSettingSerializerMixin
 class PagerDutyProfileSerializer(GroupSettingSerializerMixin,
         EmbeddedIdValidatingSerializerMixin,
         serializers.HyperlinkedModelSerializer):
+    """
+    A PagerDutyProfile contains user-specific configuration on how to notify
+    PagerDuty of events.
+    """
+
     class Meta:
         model = PagerDutyProfile
         fields = ['url', 'uuid', 'name', 'description', 'dashboard_url',
