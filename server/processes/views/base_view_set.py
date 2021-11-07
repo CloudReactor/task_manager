@@ -30,7 +30,7 @@ class BaseReadOnlyViewSetMixin(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self) -> QuerySet:
         # Prevents this problem in drf-spectacular:
         # failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, having an empty fallback in get_queryset() or by using @extend_schema. (Exception: No User found)
-        if settings.ENVIRON.bool('DJANGO_IN_SCHEMA_GENERATION', default=False):
+        if settings.IN_SCHEMA_GENERATION:
             return self.model_class.objects.none()
 
         if self.action != 'list':

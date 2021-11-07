@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Mapping, Optional, TYPE_CHECKING, cast
 
 import logging
 
@@ -113,7 +113,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                   'embedded_mode',
                   'created_at', 'updated_at',)
 
-    task = NameAndUuidSerializer(view_name='tasks-detail', read_only=True)
+    task = NameAndUuidSerializer(view_name='tasks-detail')
 
     started_by = serializers.ReadOnlyField(source='started_by.username')
     marked_done_by = serializers.ReadOnlyField(

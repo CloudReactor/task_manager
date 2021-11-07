@@ -235,7 +235,10 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-if env.bool('DJANGO_IN_SCHEMA_GENERATION', default=False):
+IN_SCHEMA_GENERATION = env.bool('DJANGO_IN_SCHEMA_GENERATION',
+    default=False)
+
+if IN_SCHEMA_GENERATION:
     print("In Schema Generation")
 
     # Remove SessionAuthentication, JWT might be documented later
@@ -381,6 +384,9 @@ SPECTACULAR_SETTINGS = {
     'AUTHENTICATION_WHITELIST': [
         'processes.authentication.SaasTokenAuthentication',
     ],
+    # 'COMPONENT_SPLIT_REQUEST': True,
+    # Aid client generator targets that have trouble with read-only properties.
+    # 'COMPONENT_NO_READ_ONLY_REQUIRED': True,
     # Code generation has trouble with oneOf with BlankEnum choice
     'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
     'PREPROCESSING_HOOKS': [

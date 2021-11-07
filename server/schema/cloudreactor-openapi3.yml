@@ -2601,10 +2601,10 @@ components:
     NameAndUuid:
       type: object
       description: |-
-        Identifies an entity in three ways:
-        1) UUID
-        2) Name
-        3) URL
+        Identifies an entity in three ways: 1. UUID; 2. Name; and 3. URL.
+        When used to indentify an entity in a request method body, only one of
+        uuid and name needs to be specified. If both are present, they must
+        refer to the same entity or else the response will be a 400 error.
       properties:
         uuid:
           type: string
@@ -2616,9 +2616,7 @@ components:
         name:
           type: string
       required:
-      - name
       - url
-      - uuid
     PagerDutyProfile:
       type: object
       description: |-
@@ -3320,9 +3318,7 @@ components:
           nullable: true
           readOnly: true
         task:
-          allOf:
-          - $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
+          $ref: '#/components/schemas/NameAndUuid'
         task_version_number:
           type: integer
           maximum: 9223372036854775807
@@ -3934,13 +3930,9 @@ components:
           type: string
           maxLength: 5000
         from_workflow_task_instance:
-          allOf:
-          - $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
+          $ref: '#/components/schemas/NameAndUuid'
         to_workflow_task_instance:
-          allOf:
-          - $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
+          $ref: '#/components/schemas/NameAndUuid'
         rule_type:
           $ref: '#/components/schemas/RuleTypeEnum'
         exit_codes:
@@ -4275,9 +4267,7 @@ components:
           nullable: true
           readOnly: true
         task:
-          allOf:
-          - $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
+          $ref: '#/components/schemas/NameAndUuid'
         task_version_number:
           type: integer
           maximum: 9223372036854775807
@@ -5158,13 +5148,9 @@ components:
           type: string
           maxLength: 5000
         from_workflow_task_instance:
-          allOf:
-          - $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
+          $ref: '#/components/schemas/NameAndUuid'
         to_workflow_task_instance:
-          allOf:
-          - $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
+          $ref: '#/components/schemas/NameAndUuid'
         rule_type:
           $ref: '#/components/schemas/RuleTypeEnum'
         exit_codes:

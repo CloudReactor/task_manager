@@ -6,9 +6,8 @@ from urllib.parse import quote
 from django.contrib.auth.models import User
 
 from processes.models import (
-  UserGroupAccessLevel, RunEnvironment,  WorkflowTransition,
+  RunEnvironment, Workflow, WorkflowTransition, UserGroupAccessLevel
 )
-from processes.models import run_environment
 
 from processes.serializers import (
     WorkflowTransitionSerializer
@@ -266,10 +265,11 @@ def test_workflow_transition_list(
 def common_setup(is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
         uuid_send_type: str, existing_has_run_environment: bool,
+        create_existing: bool,
         user, group_factory, run_environment_factory,
         workflow_factory, workflow_task_instance_factory, task_factory,
         workflow_transition_factory, api_client) \
-        -> Tuple[WorkflowTransition, Optional[RunEnvironment], APIClient, str]:
+        -> Tuple[Optional[WorkflowTransition], Workflow, Optional[RunEnvironment], APIClient, str]:
     group = user.groups.first()
 
     if group_access_level is not None:
@@ -291,9 +291,12 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
     from_wti = workflow_task_instance_factory(workflow=workflow)
     to_wti = workflow_task_instance_factory(workflow=workflow)
 
-    workflow_transition = workflow_transition_factory(
-          from_workflow_task_instance=from_wti,
-          to_workflow_task_instance=to_wti)
+    workflow_transition: Optional[WorkflowTransition] = None
+
+    if create_existing:
+        workflow_transition = workflow_transition_factory(
+              from_workflow_task_instance=from_wti,
+              to_workflow_task_instance=to_wti)
 
     api_key_run_environment = None
     if api_key_scope_type == SCOPE_TYPE_CORRECT:
@@ -311,7 +314,7 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
     if uuid_send_type != SEND_ID_NONE:
         workflow_transition_uuid = uuid.uuid4()
         if uuid_send_type == SEND_ID_CORRECT:
-            workflow_transition_uuid = workflow_transition.uuid
+            workflow_transition_uuid = cast(WorkflowTransition, workflow_transition).uuid
         elif uuid_send_type == SEND_ID_IN_WRONG_GROUP:
             another_group = group_factory()
             set_group_access_level(user=user, group=another_group,
@@ -334,14 +337,15 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 
         url += quote(str(workflow_transition_uuid)) + '/'
 
-    return (workflow_transition, api_key_run_environment, client, url)
+    return (workflow_transition, workflow, api_key_run_environment, client, url)
 
 def make_request_body(uuid_send_type: Optional[str],
         wti_send_type: Optional[str],
         for_from_wti: bool,
         user: User,
         api_key_run_environment: Optional[RunEnvironment],
-        workflow_transition: WorkflowTransition,
+        workflow_transition: Optional[WorkflowTransition],
+        workflow: Workflow,
         group_factory, run_environment_factory, workflow_factory,
         workflow_task_instance_factory, task_factory,
         workflow_transition_factory) -> Dict[str, Any]:
@@ -352,7 +356,7 @@ def make_request_body(uuid_send_type: Optional[str],
     if uuid_send_type == SEND_ID_NOT_FOUND:
         request_data['uuid'] = str(uuid.uuid4())
     elif uuid_send_type == SEND_ID_CORRECT:
-        request_data['uuid'] = str(workflow_transition.uuid)
+        request_data['uuid'] = str(cast(WorkflowTransition, workflow_transition).uuid)
     elif uuid_send_type == SEND_ID_WRONG:
         another_workflow_transition = workflow_transition_factory()
         request_data['uuid'] = str(another_workflow_transition.uuid)
@@ -362,7 +366,6 @@ def make_request_body(uuid_send_type: Optional[str],
 
     varying_task_run_environment: Optional[RunEnvironment] = None
 
-    workflow = workflow_transition.from_workflow_task_instance.workflow
     workflow_run_environment = workflow.run_environment
     varying_task_run_environment = workflow_run_environment
     group = workflow.created_by_group
@@ -415,6 +418,8 @@ def make_request_body(uuid_send_type: Optional[str],
         request_data[f'{varying_wti_prefix}_workflow_task_instance'] = {
             'uuid': str(varying_wti.uuid)
         }
+
+    print(f"{request_data=}")
 
     return request_data
 
@@ -518,13 +523,14 @@ def test_workflow_transition_fetch(
         workflow_task_instance_factory, task_factory,
         workflow_transition_factory, api_client) -> None:
     user = user_factory()
-    workflow_transition, api_key_run_environment, client, url = common_setup(
+    workflow_transition, _workflow, api_key_run_environment, client, url = common_setup(
             is_authenticated=is_authenticated,
             group_access_level=group_access_level,
             api_key_access_level=api_key_access_level,
             api_key_scope_type=api_key_scope_type,
             uuid_send_type=uuid_send_type,
             existing_has_run_environment=True,
+            create_existing=True,
             user=user,
             group_factory=group_factory,
             run_environment_factory=run_environment_factory,
@@ -541,7 +547,8 @@ def test_workflow_transition_fetch(
     if status_code == 200:
         assert group_access_level is not None
         ensure_serialized_workflow_transition_valid(response_workflow_transition=response.data,
-          workflow_transition=workflow_transition, user=user,
+          workflow_transition=cast(WorkflowTransition, workflow_transition),
+          user=user,
           group_access_level=group_access_level,
           api_key_access_level=api_key_access_level,
           api_key_run_environment=api_key_run_environment)
@@ -565,7 +572,7 @@ def test_workflow_transition_fetch(
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
    SEND_ID_NONE, SEND_ID_NONE,
-   400, 'from_workflow_task_instance', 'invalid'),
+   400, 'from_workflow_task_instance', 'null'),
 
   # Developer with unscoped API Key succeeds when Workflow Task Instance is specified
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
@@ -603,14 +610,14 @@ def test_workflow_transition_fetch(
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_NONE, None,
-   400, 'from_workflow_task_instance', 'missing'),
+   400, 'from_workflow_task_instance', 'required'),
 
    # Developer with scoped API Key cannot create Workflow Transition with no
    # Workflow Task Instance
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_NONE, SEND_ID_NONE,
-   400, 'from_workflow_task_instance', 'invalid'),
+   400, 'from_workflow_task_instance', 'null'),
 
    # Developer with scoped API Key cannot create Workflow Transition with a
    # Workflow in another Run Environment
@@ -668,13 +675,14 @@ def test_workflow_transition_create_access_control(
     for for_from_wti in [True, False]:
         user = user_factory()
 
-        workflow_transition, api_key_run_environment, client, url = common_setup(
+        workflow_transition, workflow, api_key_run_environment, client, url = common_setup(
                 is_authenticated=is_authenticated,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
                 api_key_scope_type=api_key_scope_type,
                 uuid_send_type=SEND_ID_NONE,
                 existing_has_run_environment=True,
+                create_existing=False,
                 user=user,
                 group_factory=group_factory,
                 run_environment_factory=run_environment_factory,
@@ -691,6 +699,7 @@ def test_workflow_transition_create_access_control(
                 group_factory=group_factory,
                 api_key_run_environment=api_key_run_environment,
                 workflow_transition=workflow_transition,
+                workflow=workflow,
                 run_environment_factory=run_environment_factory,
                 workflow_factory=workflow_factory,
                 workflow_task_instance_factory=workflow_task_instance_factory,
@@ -770,7 +779,7 @@ def test_workflow_transition_create_access_control(
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
    SEND_ID_CORRECT, None,
    SEND_ID_NONE,
-   400, 'from_workflow_task_instance', 'invalid'),
+   400, 'from_workflow_task_instance', 'null'),
 
   # Developer with unscoped API Key cannot attach a Workflow in the
   # wrong Group
@@ -898,13 +907,14 @@ def test_workflow_transition_update_access_control(
     for for_from_wti in [True, False]:
         user = user_factory()
 
-        workflow_transition, api_key_run_environment, client, url = common_setup(
+        workflow_transition, workflow, api_key_run_environment, client, url = common_setup(
                 is_authenticated=is_authenticated,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
                 api_key_scope_type=api_key_scope_type,
                 uuid_send_type=request_uuid_send_type,
                 existing_has_run_environment=True,
+                create_existing=True,
                 user=user,
                 group_factory=group_factory,
                 run_environment_factory=run_environment_factory,
@@ -920,6 +930,7 @@ def test_workflow_transition_update_access_control(
                 user=user,
                 api_key_run_environment=api_key_run_environment,
                 workflow_transition=workflow_transition,
+                workflow=workflow,
                 group_factory=group_factory,
                 run_environment_factory=run_environment_factory,
                 workflow_factory=workflow_factory,
@@ -1052,13 +1063,14 @@ def test_workflow_transition_delete(
         api_client) -> None:
     user = user_factory()
 
-    workflow_transition, api_key_run_environment, client, url = common_setup(
+    workflow_transition, _workflow, _api_key_run_environment, client, url = common_setup(
             is_authenticated=is_authenticated,
             group_access_level=group_access_level,
             api_key_access_level=api_key_access_level,
             api_key_scope_type=api_key_scope_type,
             uuid_send_type=uuid_send_type,
             existing_has_run_environment=True,
+            create_existing=True,
             user=user,
             group_factory=group_factory,
             run_environment_factory=run_environment_factory,
@@ -1072,7 +1084,8 @@ def test_workflow_transition_delete(
 
     assert response.status_code == status_code
 
-    exists = WorkflowTransition.objects.filter(pk=workflow_transition.pk).exists()
+    exists = WorkflowTransition.objects.filter(
+            pk=cast(WorkflowTransition, workflow_transition).pk).exists()
 
     if status_code == 204:
         assert not exists

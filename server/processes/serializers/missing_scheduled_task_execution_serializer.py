@@ -21,4 +21,4 @@ class MissingScheduledTaskExecutionSerializer(serializers.ModelSerializer,
         fields = ('uuid', 'task', 'schedule', 'expected_execution_at',
                   'detected_at', 'resolved_at')
 
-    task = NameAndUuidSerializer(view_name='tasks-detail', read_only=True)
+    task = NameAndUuidSerializer(view_name='tasks-detail')

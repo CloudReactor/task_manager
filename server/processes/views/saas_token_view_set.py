@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 class SaasTokenPermission(permissions.BasePermission):
     def has_object_permission(self, request: Request, view: View,
             obj: SaasToken) -> bool:
-        # User can't see or manipulate access tokens with higher access than themselves,
-        # at least Developer access is required
+        # User can't see or manipulate access tokens with higher access than
+        # themselves, at least Developer access is required
         min_access_level = max(obj.access_level, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
         try:
             ensure_group_access_level(group=obj.group,

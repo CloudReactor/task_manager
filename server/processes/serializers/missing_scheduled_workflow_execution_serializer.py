@@ -21,5 +21,4 @@ class MissingScheduledWorkflowExecutionSerializer(serializers.ModelSerializer,
         fields = ('uuid', 'workflow', 'schedule', 'expected_execution_at',
                   'detected_at', 'resolved_at')
 
-    workflow = NameAndUuidSerializer(view_name='workflows-detail',
-        read_only=True)
+    workflow = NameAndUuidSerializer(view_name='workflows-detail')

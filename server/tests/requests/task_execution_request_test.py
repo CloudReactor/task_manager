@@ -508,7 +508,7 @@ def test_task_execution_fetch(
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
    SEND_ID_NONE, SEND_ID_NONE,
-   400, 'task', 'invalid'),
+   400, 'task', 'null'),
 
   # Task with unscoped API Key succeeds when Task is specified
   (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
@@ -546,14 +546,14 @@ def test_task_execution_fetch(
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_NONE, None,
-   400, 'task', 'missing'),
+   400, 'task', 'required'),
 
    # Developer with scoped API Key cannot create Task Execution with no
    # Task
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_NONE, SEND_ID_NONE,
-   400, 'task', 'invalid'),
+   400, 'task', 'null'),
 
    # Developer with scoped API Key cannot create Task Execution with a
    # Task in another Run Environment
@@ -933,7 +933,7 @@ def test_task_execution_create_history_purging(subscription_plan,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    SEND_ID_NONE,
-   400, 'task', 'invalid'),
+   400, 'task', 'null'),
 
   # Developer with unscoped API Key cannot attach a Task in the
   # wrong Group

@@ -43,13 +43,10 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
                   'created_at', 'updated_at')
 
     from_workflow_task_instance = NameAndUuidSerializer(
-            view_name='workflow_task_instances-detail',
-            read_only=True)
+            view_name='workflow_task_instances-detail')
 
     to_workflow_task_instance = NameAndUuidSerializer(
-            view_name='workflow_task_instances-detail',
-            read_only=True)
-
+            view_name='workflow_task_instances-detail')
 
     url = serializers.HyperlinkedIdentityField(
         view_name='workflow_transitions-detail',

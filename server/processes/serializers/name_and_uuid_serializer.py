@@ -4,15 +4,15 @@ from rest_framework import serializers
 
 class NameAndUuidSerializer(serializers.Serializer):
     """
-    Identifies an entity in three ways:
-    1) UUID
-    2) Name
-    3) URL
+    Identifies an entity in three ways: 1. UUID; 2. Name; and 3. URL.
+    When used to indentify an entity in a request method body, only one of
+    uuid and name needs to be specified. If both are present, they must
+    refer to the same entity or else the response will be a 400 error.
     """
 
-    uuid = serializers.UUIDField()
+    uuid = serializers.UUIDField(required=False)
     url = serializers.SerializerMethodField()
-    name = serializers.CharField()
+    name = serializers.CharField(required=False)
 
     def __init__(self, include_name=True, view_name=None,
                  context=None, **kwargs):

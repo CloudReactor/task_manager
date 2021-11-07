@@ -54,9 +54,7 @@ class SaasTokenSerializer(
     group = GroupSerializer(include_users=False, read_only=True)
 
     run_environment = NameAndUuidSerializer(
-            view_name='run_environments-detail',
-            # FIXME
-            read_only=True)
+            view_name='run_environments-detail', required=False)
 
     url = serializers.HyperlinkedIdentityField(
             view_name='api_keys-detail',
