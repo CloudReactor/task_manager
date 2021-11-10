@@ -72,8 +72,8 @@ class WorkflowTransition(models.Model):
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     description = models.CharField(max_length=5000, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
 
     from_workflow_task_instance = models.ForeignKey(
         'WorkflowTaskInstance',
@@ -96,7 +96,7 @@ class WorkflowTransition(models.Model):
     threshold_comparator = models.CharField(max_length=2,
         choices=THRESHOLD_COMPARATOR_CHOICES, blank=True)
     custom_expression = models.CharField(max_length=5000, blank=True)
-    priority = models.IntegerField(blank=True, null=True)
+    priority = models.PositiveIntegerField(blank=True, null=True)
     ui_color = models.CharField(max_length=16, blank=True)
     ui_line_style = models.CharField(max_length=50, blank=True)
     ui_scale = models.FloatField(null=True, blank=True)

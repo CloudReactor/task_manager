@@ -15,20 +15,21 @@ class WorkflowTaskInstanceExecution(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_latest = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+    is_latest = models.BooleanField(default=True, editable=False)
 
     workflow_execution = models.ForeignKey('WorkflowExecution',
-            on_delete=models.CASCADE)
+            on_delete=models.CASCADE, editable=False)
 
     workflow_task_instance = models.ForeignKey(
             'WorkflowTaskInstance', on_delete=models.CASCADE,
-            db_column='workflow_process_type_instance_id')
+            db_column='workflow_process_type_instance_id',
+            editable=False)
 
     task_execution = models.OneToOneField('TaskExecution',
             on_delete=models.CASCADE,
-            db_column='process_execution_id')
+            db_column='process_execution_id', editable=False)
 
     class Meta:
         db_table = 'processes_workflowprocesstypeinstanceexecution'

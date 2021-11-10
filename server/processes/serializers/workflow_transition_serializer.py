@@ -50,7 +50,7 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
 
     url = serializers.HyperlinkedIdentityField(
         view_name='workflow_transitions-detail',
-        lookup_field='uuid'
+        lookup_field='uuid', read_only=True, required=False
     )
 
     def to_internal_value(self, data):

@@ -2,7 +2,6 @@ import logging
 
 from rest_framework import serializers
 
-from drf_spectacular.openapi import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 
 from ..models import WorkflowExecution
@@ -15,7 +14,9 @@ from .workflow_transition_evaluation_serializer import WorkflowTransitionEvaluat
 logger = logging.getLogger(__name__)
 
 
-@extend_schema_field(OpenApiTypes.STR)
+@extend_schema_field(serializers.ChoiceField(choices=[
+        status.name for status in list(WorkflowExecution.Status)]),
+        component_name='WorkflowExecutionStatus')
 class WorkflowExecutionStatusSerializer(serializers.BaseSerializer):
     def to_representation(self, instance):
         return WorkflowExecution.Status(instance).name

@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional, TYPE_CHECKING, cast
+from typing import Any, Mapping, Optional, cast
 
 import logging
 
@@ -10,7 +10,6 @@ from rest_framework.exceptions import ErrorDetail, NotFound
 
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
-from drf_spectacular.openapi import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 
 from ..models import TaskExecution, Task, WorkflowTaskInstanceExecution
@@ -30,12 +29,14 @@ from .embedded_id_validating_serializer_mixin import (
 from .serializer_helpers import SerializerHelpers
 from .aws_ecs_execution_method_serializer import AwsEcsExecutionMethodSerializer
 from .unknown_execution_method_serializer import UnknownExecutionMethodSerializer
-
+from .workflow_task_instance_execution_base_serializer import WorkflowTaskInstanceExecutionBaseSerializer
 
 logger = logging.getLogger(__name__)
 
 
-@extend_schema_field(OpenApiTypes.STR)
+@extend_schema_field(field=serializers.ChoiceField(choices=[
+        status.name for status in list(TaskExecution.Status)]),
+        component_name='TaskExecutionStatus')
 class TaskExecutionStatusSerializer(serializers.BaseSerializer):
     def to_representation(self, instance: TaskExecution.Status) -> str:
         return TaskExecution.Status(instance).name
@@ -44,7 +45,8 @@ class TaskExecutionStatusSerializer(serializers.BaseSerializer):
         return TaskExecution.Status[data.upper()].value
 
 
-@extend_schema_field(OpenApiTypes.STR)
+@extend_schema_field(serializers.ChoiceField(choices=[
+        reason.name for reason in list(TaskExecution.StopReason)]))
 class TaskExecutionStopReasonSerializer(serializers.BaseSerializer):
     def to_representation(self, instance: TaskExecution.StopReason) -> str:
         return TaskExecution.StopReason(instance).name
@@ -338,14 +340,12 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             return UnknownExecutionMethodSerializer(obj, source='*',
                     required=False).data
 
+    @extend_schema_field(WorkflowTaskInstanceExecutionBaseSerializer)
     def get_workflow_task_instance_execution(self, obj: TaskExecution):
-        from .workflow_task_instance_execution_serializer import WorkflowTaskInstanceExecutionSerializer
-
         try:
             wtie = obj.workflowtaskinstanceexecution
         except WorkflowTaskInstanceExecution.DoesNotExist:
             return None
 
-        return WorkflowTaskInstanceExecutionSerializer(wtie,
-                context=self.context, read_only=True,
-                omit=['task_execution']).data
+        return WorkflowTaskInstanceExecutionBaseSerializer(wtie,
+                context=self.context, read_only=True).data

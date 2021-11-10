@@ -20,8 +20,8 @@ class Subscription(models.Model):
     subscription_plan = models.ForeignKey(SubscriptionPlan, null=True,
             on_delete=models.SET_NULL)
     active = models.BooleanField(default=False, null=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
     start_at = models.DateTimeField(null=False)
     end_at = models.DateTimeField(null=True, blank=True)
 

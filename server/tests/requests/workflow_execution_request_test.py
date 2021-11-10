@@ -510,7 +510,7 @@ def test_workflow_execution_fetch(
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
    SEND_ID_NONE, SEND_ID_NONE,
-   400, 'workflow', 'invalid'),
+   400, 'workflow', 'null'),
 
   # Workflow Execution with unscoped API Key succeeds when Workflow is specified
   (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
@@ -548,14 +548,14 @@ def test_workflow_execution_fetch(
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_NONE, None,
-   400, 'workflow', 'missing'),
+   400, 'workflow', 'required'),
 
    # Developer with scoped API Key cannot create Workflow Execution with no
    # Workflow
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_NONE, SEND_ID_NONE,
-   400, 'workflow', 'invalid'),
+   400, 'workflow', 'null'),
 
    # Developer with scoped API Key cannot create Workflow Execution with a
    # Workflow in another Run Environment
@@ -772,7 +772,7 @@ def test_workflow_execution_create_history_purging(
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
    SEND_ID_CORRECT, None,
    SEND_ID_NONE,
-   400, 'workflow', 'invalid'),
+   400, 'workflow', 'null'),
 
   # Developer with unscoped API Key cannot attach a Workflow in the
   # wrong Group

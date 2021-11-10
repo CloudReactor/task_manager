@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 class EmbeddedWorkflowSerializer(EmbeddedIdValidatingSerializerMixin,
         SerializerHelpers, serializers.HyperlinkedModelSerializer):
-    workflow = NameAndUuidSerializer(view_name='workflows-detail',
-          read_only=True)
+    workflow = NameAndUuidSerializer(view_name='workflows-detail')
 
     def to_internal_value(self, data):
         validated = super().to_internal_value(data)

@@ -6,15 +6,15 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
 from ..models import WorkflowTaskInstanceExecution
 
-from .name_and_uuid_serializer import NameAndUuidSerializer
+from .workflow_task_instance_execution_base_serializer import WorkflowTaskInstanceExecutionBaseSerializer
 from .serializer_helpers import SerializerHelpers
-from .task_execution_serializer import  TaskExecutionSerializer
+from .task_execution_serializer import TaskExecutionSerializer
 
 logger = logging.getLogger(__name__)
 
 
 class WorkflowTaskInstanceExecutionSerializer(SerializerHelpers,
-        FlexFieldsSerializerMixin, serializers.ModelSerializer):
+        FlexFieldsSerializerMixin, WorkflowTaskInstanceExecutionBaseSerializer):
     """
     WorkflowTaskInstanceExecutions hold the execution information
     for a WorkflowTaskInstance (which holds a Task) for a specific
@@ -27,13 +27,4 @@ class WorkflowTaskInstanceExecutionSerializer(SerializerHelpers,
                   'workflow_task_instance', 'task_execution',
                   'is_latest', 'created_at')
 
-    workflow_execution = NameAndUuidSerializer(
-            view_name='workflow_executions-detail',
-            include_name=False,
-            read_only=True)
-
-    workflow_task_instance = NameAndUuidSerializer(
-            view_name='workflow_task_instances-detail',
-            read_only=True)
-
-    task_execution = TaskExecutionSerializer()
+    task_execution = TaskExecutionSerializer(read_only=True)

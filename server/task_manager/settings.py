@@ -389,6 +389,12 @@ SPECTACULAR_SETTINGS = {
     # 'COMPONENT_NO_READ_ONLY_REQUIRED': True,
     # Code generation has trouble with oneOf with BlankEnum choice
     'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
+    'ENUM_NAME_OVERRIDES': {
+        # Duplicated from AwsEcsExecutionMethod.ALL_LAUNCH_TYPES
+        'AwsEcsLaunchType': ['FARGATE', 'EC2'],
+        # Duplicated from NOTIFICATION_SEVERITIES in notification.py
+        'NotificationSeverity': ['critical', 'error', 'warning', 'info'],
+    },
     'PREPROCESSING_HOOKS': [
         'spectacular.preprocessing_hook'
     ],

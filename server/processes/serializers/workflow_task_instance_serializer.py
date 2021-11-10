@@ -22,6 +22,7 @@ from ..models import (
 from ..exception import UnprocessableEntity
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
+from .optional_modification_timestamp_serializer_mixin import OptionalModificationTimestampSerializerMixin
 from .embedded_workflow_serializer import EmbeddedWorkflowSerializer
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
     A WorkflowTaskInstance contains a Task that is configured to run in
     a Workflow.
     """
-    
+
     class Meta:
         model = WorkflowTaskInstance
         fields = ('url', 'uuid', 'name', 'description',
@@ -47,14 +48,13 @@ class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
                   'use_task_alert_methods',
                   'ui_color', 'ui_icon_type', 'ui_scale',
                   'ui_center_margin_top', 'ui_center_margin_left',
-                  'created_at', 'updated_at')
+                  'created_at', 'updated_at',)
 
-    task = NameAndUuidSerializer(view_name='tasks-detail', read_only=True)
+    task = NameAndUuidSerializer(view_name='tasks-detail')
 
     url = serializers.HyperlinkedIdentityField(
         view_name='workflow_task_instances-detail',
-        lookup_field='uuid'
-    )
+        lookup_field='uuid', read_only=True)
 
     def __init__(self, instance=None, data=empty, workflow: Optional[Workflow] = None,
             for_embedded_deserialization=False, **kwargs):

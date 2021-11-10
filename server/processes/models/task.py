@@ -72,22 +72,21 @@ class Task(AwsEcsConfiguration, Schedulable):
         unique_together = (('name', 'created_by_group'),)
 
     passive = models.BooleanField(default=False)
-    max_manual_start_delay_before_alert_seconds = models.IntegerField(
-        null=True, blank=True, validators=[MinValueValidator(0)], default=600)
-    max_manual_start_delay_before_abandonment_seconds = models.IntegerField(
-        null=True, blank=True, validators=[MinValueValidator(0)], default=1200)
+    max_manual_start_delay_before_alert_seconds = models.PositiveIntegerField(
+        null=True, blank=True, default=600)
+    max_manual_start_delay_before_abandonment_seconds = models.PositiveIntegerField(
+        null=True, blank=True, default=1200)
     heartbeat_interval_seconds = models.PositiveIntegerField(
         null=True, blank=True, validators=[MinValueValidator(10)])
-    max_heartbeat_lateness_before_alert_seconds = models.IntegerField(
-        null=True, blank=True, validators=[MinValueValidator(0)], default=120)
-    max_heartbeat_lateness_before_abandonment_seconds = models.IntegerField(
-        null=True, blank=True, validators=[MinValueValidator(0)], default=600)
+    max_heartbeat_lateness_before_alert_seconds = models.PositiveIntegerField(
+        null=True, blank=True, default=120)
+    max_heartbeat_lateness_before_abandonment_seconds = models.PositiveIntegerField(
+        null=True, blank=True, default=600)
     service_instance_count = models.PositiveIntegerField(null=True, blank=True)
-    min_service_instance_count = models.IntegerField(
-        null=True, blank=True, validators=[MinValueValidator(0)])
+    min_service_instance_count = models.PositiveIntegerField(
+        null=True, blank=True)
     max_age_seconds = models.PositiveIntegerField(null=True, blank=True)
-    default_max_retries = models.IntegerField(
-        validators=[MinValueValidator(0)], default=0)
+    default_max_retries = models.PositiveIntegerField(default=0)
 
     # TODO: use when running - might need to pass to process wrapper for
     # scheduled processes
