@@ -614,11 +614,11 @@ def test_task_create_access_control(
 
         response_task = cast(Dict[str, Any], response.data)
         task_uuid = response_task['uuid']
-        created_am = Task.objects.get(uuid=task_uuid)
+        created_task = Task.objects.get(uuid=task_uuid)
 
         assert group_access_level is not None
         ensure_serialized_task_valid(response_task=response_task,
-                task=created_am, user=user,
+                task=created_task, user=user,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
                 api_key_run_environment=api_key_run_environment)
@@ -702,6 +702,102 @@ def test_task_create_task_limit(max_tasks: int,
         assert new_count == old_count
         response_dict = cast(Dict[str, Any], response.data)
         assert response_dict['error_code'] == 'limit_exceeded'
+
+@pytest.mark.django_db
+@mock_ecs
+@mock_sts
+@mock_events
+def test_task_create_with_links(
+        user_factory, group_factory, run_environment_factory,
+        task_factory, api_client) -> None:
+    user = user_factory()
+
+    task, api_key_run_environment, client, url = common_setup(
+            is_authenticated=True,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_scope_type=SCOPE_TYPE_CORRECT,
+            uuid_send_type=SEND_ID_NONE,
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory,
+            api_client=api_client)
+
+    request_data, run_environment = make_request_body(
+            uuid_send_type=SEND_ID_NONE,
+            run_environment_send_type=SEND_ID_CORRECT,
+            user=user,
+            group_factory=group_factory,
+            api_key_run_environment=api_key_run_environment,
+            task=task,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory)
+
+    request_data['links'] = [
+        {
+            'name': 'Cool Saas',
+            'link_url_template': 'https://coolsaas.com/here',
+            'icon_url': 'https://coolsaas.com/favicon.ico',
+            'description': 'Cool link',
+            'rank': 1,
+        },
+        {
+            'name': 'Hot Saas',
+            'link_url_template': 'https://hotsaas.com/here',
+            'icon_url': 'https://hotsaas.com/favicon.ico',
+            'description': 'Hot link',
+            'rank': 2,
+        },
+    ]
+
+    old_count = Task.objects.count()
+
+    response = client.post(url, data=request_data)
+
+    assert response.status_code == 201
+
+    new_count = Task.objects.count()
+    assert new_count == old_count + 1
+
+    response_task = cast(Dict[str, Any], response.data)
+    task_uuid = response_task['uuid']
+    created_task = Task.objects.get(uuid=task_uuid)
+
+    ensure_serialized_task_valid(response_task=response_task,
+            task=created_task, user=user,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=api_key_run_environment)
+
+
+    links = created_task.tasklink_set.all()
+    assert len(links) == 2
+    link_0 = links[0]
+    assert link_0.task.uuid == created_task.uuid
+    assert link_0.name == 'Cool Saas'
+    assert link_0.link_url_template == 'https://coolsaas.com/here'
+    assert link_0.icon_url == 'https://coolsaas.com/favicon.ico'
+    assert link_0.rank == 1
+
+    link_1 = links[1]
+    assert link_1.task.uuid == created_task.uuid
+    assert link_1.name == 'Hot Saas'
+    assert link_1.link_url_template == 'https://hotsaas.com/here'
+    assert link_1.icon_url == 'https://hotsaas.com/favicon.ico'
+    assert link_1.rank == 2
+
+    print(response_task)
+
+    body_links = response_task['links']
+
+    for i in range(2):
+        model_link = links[i]
+        body_link = body_links[i]
+
+        assert body_link['name'] == model_link.name
+        assert body_link['icon_url'] == model_link.icon_url
+        assert body_link['rank'] == model_link.rank
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
@@ -816,7 +912,6 @@ def test_task_set_alert_methods(
 
         old_count = Task.objects.count()
 
-
         # Run Environment is required, so always send it for creation
         if is_post:
             run_environment_send_type = SEND_ID_CORRECT
@@ -887,11 +982,11 @@ def test_task_set_alert_methods(
 
             response_task = cast(Dict[str, Any], response.data)
             task_uuid = response_task['uuid']
-            created_am = Task.objects.get(uuid=task_uuid)
+            created_task = Task.objects.get(uuid=task_uuid)
 
             assert group_access_level is not None
             ensure_serialized_task_valid(response_task=response_task,
-                    task=created_am, user=user,
+                    task=created_task, user=user,
                     group_access_level=group_access_level,
                     api_key_access_level=api_key_access_level,
                     api_key_run_environment=api_key_run_environment)

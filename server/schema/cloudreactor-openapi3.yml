@@ -3285,9 +3285,9 @@ components:
           nullable: true
           readOnly: true
         links:
-          allOf:
-          - $ref: '#/components/schemas/Link'
-          readOnly: true
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
         run_environment:
           allOf:
           - $ref: '#/components/schemas/NameAndUuid'
@@ -4216,9 +4216,9 @@ components:
           nullable: true
           readOnly: true
         links:
-          allOf:
-          - $ref: '#/components/schemas/Link'
-          readOnly: true
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
         run_environment:
           allOf:
           - $ref: '#/components/schemas/NameAndUuid'

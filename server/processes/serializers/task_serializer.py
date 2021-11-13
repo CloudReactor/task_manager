@@ -119,7 +119,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             # FIXME: need read_only or else set_alert_methods tests fail
             read_only=True)
 
-    links = serializers.SerializerMethodField()
+    links = LinkSerializer(many=True, required=False)
 
     #Not sure why this doesn't work
     #logs_url = serializers.ReadOnlyField(source='get_logs_url')
@@ -160,11 +160,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
                     context=self.context).data
         return None
 
-    @extend_schema_field(LinkSerializer)
-    def get_links(self, obj: Task):
-        return LinkSerializer(instance=obj.tasklink_set.all(),
-                              many=True).data
-
     def get_logs_url(self, obj: Task) -> Optional[str]:
         return obj.logs_url()
 
@@ -193,6 +188,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
         return attrs
 
     def to_internal_value(self, data):
+        body_task_links = data.pop('links', None)
+
         validated = super().to_internal_value(data)
 
         user, group = required_user_and_group_from_request()
@@ -314,8 +311,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
         self.set_validated_alert_methods(data=data, validated=validated,
                 run_environment=run_environment)
 
-        body_task_links = data.get('links')
-
         if body_task_links is not None:
             updated_task_links = []
 
@@ -357,6 +352,12 @@ class TaskSerializer(GroupSettingSerializerMixin,
             validated['min_service_instance_count'] = None
 
         return validated
+
+    def to_representation(self, instance: Task) -> Any:
+        obj = super().to_representation(instance)
+        obj['links'] = LinkSerializer(instance=instance.tasklink_set,
+                many=True).data
+        return obj
 
     def create(self, validated_data):
         return self.create_or_update(None, validated_data)
