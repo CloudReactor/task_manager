@@ -110,6 +110,10 @@ print(f"settings.py: {CORS_ALLOWED_ORIGINS=}")
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Enable HSTS with a default expiration of 1 hour (change this to 1 year later).
+# Should be overridden in development and testing to 0 to disable HSTS.
+SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', 3600)
+
 ROOT_URLCONF = 'task_manager.urls'
 
 TEMPLATES = [
