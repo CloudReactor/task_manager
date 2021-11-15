@@ -122,6 +122,7 @@ CSP_STYLE_SRC = [
     "'self'",
     'https://*.fontawesome.com',
     'https://fonts.googleapis.com',
+    "'unsafe-inline'", # temporary until Create React App stops injecting styles
 ]
 CSP_FONT_SRC = [
     "'self'",
@@ -132,6 +133,8 @@ CSP_FONT_SRC = [
 # For now, we are allowing link icons to be loaded from external sites.
 # https://stackoverflow.com/questions/35776011/content-security-policy-allowing-all-external-images
 CSP_IMG_SRC = [ 'https:', 'data:']
+CSP_CONNECT_SRC = ["'self'"]
+CSP_MANIFEST_SRC = ["'self'"]
 
 ROOT_URLCONF = 'task_manager.urls'
 
