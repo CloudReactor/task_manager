@@ -133,7 +133,11 @@ CSP_FONT_SRC = [
 # For now, we are allowing link icons to be loaded from external sites.
 # https://stackoverflow.com/questions/35776011/content-security-policy-allowing-all-external-images
 CSP_IMG_SRC = [ 'https:', 'data:']
-CSP_CONNECT_SRC = ["'self'"]
+CSP_CONNECT_SRC = [
+    "'self'",
+    # The default is used when building the static site, and doesn't affect it
+    env.str('DJANGO_API_BASE_URL', default='https://api.cloudreactor.io')
+]
 CSP_MANIFEST_SRC = ["'self'"]
 
 ROOT_URLCONF = 'task_manager.urls'

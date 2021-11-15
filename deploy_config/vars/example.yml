@@ -59,14 +59,14 @@ cloudreactor:
 # Add task settings that apply to all tasks running in this deployment.
 # They will override the settings in common.yml.
 default_env_task_config:
-  #env:
-  #  Environment: example
-  #  VAR_1: FOO
-  # #  These will be resolved to DATABASE_USERNAME and DATABASE_PASSWORD by
-  # #  proc_wrapper, assuming you set a Task Role that has access to read the
-  # #  secret.
-  #  AWS_SM_DATABASE_USERNAME_FOR_PROC_WRAPPER_TO_RESOLVE: arn:aws:secretsmanager:us-west-2:123456789012:secret:app/example/db|JP:$.username
-  #  AWS_SM_DATABASE_PASWORD_FOR_PROC_WRAPPER_TO_RESOLVE: arn:aws:secretsmanager:us-west-2:123456789012:secret:app/example/db|JP:$.password
+  env:
+    DJANGO_API_BASE_URL: 'https://api.cloudreactor.io'
+    # VAR_1: FOO
+    # #  These will be resolved to DATABASE_USERNAME and DATABASE_PASSWORD by
+    # #  proc_wrapper, assuming you set a Task Role that has access to read the
+    # #  secret.
+    #  DATABASE_USERNAME_FOR_PROC_WRAPPER_TO_RESOLVE: arn:aws:secretsmanager:us-west-2:123456789012:secret:app/example/db|JP:$.username
+    #  DATABASE_PASWORD_FOR_PROC_WRAPPER_TO_RESOLVE: arn:aws:secretsmanager:us-west-2:123456789012:secret:app/example/db|JP:$.password
   ecs:
     extra_main_container_properties:
       # # Note that when ECS injects secrets into the environment, it uses the
