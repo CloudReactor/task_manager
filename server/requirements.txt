@@ -91,9 +91,9 @@ charset-normalizer==2.0.7 \
     --hash=sha256:e019de665e2bcf9c2b64e2e5aa025fa991da8720daa3c1138cadd2fd1856aed0 \
     --hash=sha256:f7af805c321bfa1ce6714c51f254e0d5bb5e5834039bc17db7ebe3a4cec9492b
     # via requests
-cloudreactor-procwrapper==3.0.1 \
-    --hash=sha256:b1714c96919dc8c725fae718f342b7b57b8872c2f5cb44f64175a628dbadaed7 \
-    --hash=sha256:b35c0273f2a023d8af99eb83e52bfa99e7eeff9d0d908e3c1ad68c21e60ae63d
+cloudreactor-procwrapper==3.1.2 \
+    --hash=sha256:5c13f37248dccdc7bc8d3b3cd9b68b027d7048b734c5b23e5150dda0361e33dc \
+    --hash=sha256:bbc63f51a06550d818a0586e832ec103e9042a9bb01c1d438c7ab758fe7170aa
     # via -r requirements.in
 coreapi==2.3.3 \
     --hash=sha256:46145fcc1f7017c076a2ef684969b641d18a2991051fddec9458ad3f78ffc1cb \
@@ -529,7 +529,7 @@ whitenoise==5.3.0 \
     # via -r requirements.in
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==59.0.1 \
-    --hash=sha256:899d27ec8104a68d4ba813b1afd66708a1a10e9391e79be92c8c60f9c77d05e5 \
-    --hash=sha256:dedb38ba61844d9df36072dad313cb79426fd50497aaac9c0da4cd50dbeeb110
+setuptools==59.1.0 \
+    --hash=sha256:03d8ad01799a10c6e867ff105fdd11335712be79a1b29d47d1d3b00132e78d5f \
+    --hash=sha256:17b9c0f82402081585e0a99343b563efa5eb2d0b958a172e1aa2c515fa47425b
     # via gunicorn
