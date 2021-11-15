@@ -8,6 +8,7 @@ cryptography==3.4.7
 Django==3.2.8
 django-anymail[amazon_ses]==7.2  # https://github.com/anymail/django-anymail
 django-cors-headers==3.8.0
+django-csp>=3.7
 django-dynamic-fixtures==0.2.1 # https://github.com/Peter-Slump/django-dynamic-fixtures
 django-environ==0.4.5  # https://github.com/joke2k/django-environ
 django-extensions==3.1.3

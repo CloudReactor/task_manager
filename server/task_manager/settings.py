@@ -80,6 +80,7 @@ AUTHENTICATION_BACKENDS = (
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'csp.middleware.CSPMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.http.ConditionalGetMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -113,6 +114,24 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Enable HSTS with a default expiration of 1 hour (change this to 1 year later).
 # Should be overridden in development and testing to 0 to disable HSTS.
 SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', 3600)
+
+# django-csf settings
+CSP_DEFAULT_SRC = ["'none'"]
+CSP_SCRIPT_SRC = ["'self'"]
+CSP_STYLE_SRC = [
+    "'self'",
+    'https://*.fontawesome.com',
+    'https://fonts.googleapis.com',
+]
+CSP_FONT_SRC = [
+    "'self'",
+    'https://*.fontawesome.com',
+    'https://fonts.gstatic.com',
+]
+
+# For now, we are allowing link icons to be loaded from external sites.
+# https://stackoverflow.com/questions/35776011/content-security-policy-allowing-all-external-images
+CSP_IMG_SRC = [ 'https:', 'data:']
 
 ROOT_URLCONF = 'task_manager.urls'
 
