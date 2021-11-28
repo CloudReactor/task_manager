@@ -113,7 +113,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Enable HSTS with a default expiration of 1 hour (change this to 1 year later).
 # Should be overridden in development and testing to 0 to disable HSTS.
-SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', 3600)
+SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', 60 * 60 * 24 * 365)
 
 # django-csf settings
 CSP_DEFAULT_SRC = ["'none'"]
