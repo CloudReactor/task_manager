@@ -287,12 +287,12 @@ class ApiKeyList extends Component<InnerProps, State> {
 
       this.setState({
         flashAlertVariant: 'success',
-        flashBody: `Successfully deleted API Key "${apiKey.key}."`
+        flashBody: `Successfully deleted API Key "${apiKey.key}".`
       }, () => this.loadApiKeys());
     } catch (e) {
       this.setState({
         flashAlertVariant: 'danger',
-        flashBody: `Failed to deleted API Key "${apiKey.key}."`
+        flashBody: `Failed to deleted API Key "${apiKey.key}".`
       });
     }
   }
