@@ -1,5 +1,9 @@
 # CloudReactor Task Manager
 
+![Website](https://img.shields.io/website?url=https%3A%2F%2Fdash.cloudreactor.io)
+![Security Headers](https://img.shields.io/security-headers?url=https%3A%2F%2Fapi.cloudreactor.io)
+![Swagger Validator](https://img.shields.io/swagger/valid/3.0?specUrl=https%3A%2F%2Fraw.githubusercontent.com%2FCloudReactor%2Fapi-docs%2Fmaster%2Fcloudreactor-openapi3.yml)
+
 API Server and Web Front-end for CloudReactor. Deployed to cloudreactor.io
 
 ## Requirements
