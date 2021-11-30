@@ -9,6 +9,6 @@ class LinkSerializer(serializers.Serializer):
     name = serializers.CharField()
     link_url_template = serializers.CharField()
     link_url = serializers.CharField(read_only=True)
-    icon_url = serializers.CharField(read_only=True)
-    description = serializers.CharField()
+    icon_url = serializers.CharField()
+    description = serializers.CharField(required=False)
     rank = serializers.IntegerField()

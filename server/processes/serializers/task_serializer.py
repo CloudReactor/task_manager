@@ -188,7 +188,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
         return attrs
 
     def to_internal_value(self, data):
-        body_task_links = data.pop('links', None)
+        body_task_links = data.pop('links', None) or \
+            data.pop('process_type_links', None)
 
         validated = super().to_internal_value(data)
 
@@ -389,8 +390,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
         load_balancer_details_list = defaults.pop('aws_ecs_load_balancer_details_set', None)
         alert_methods = defaults.pop('alert_methods', None)
 
-        # For compatibility
-        task_links = defaults.pop('task_links', None) or defaults.pop('process_type_links', None)
+        task_links = defaults.pop('task_links', None)
 
         group = validated_data.get('created_by_group')
 
