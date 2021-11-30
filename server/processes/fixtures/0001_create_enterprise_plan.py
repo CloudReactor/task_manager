@@ -10,7 +10,7 @@ class Fixture(BaseFixture):
             'duration_days': 365,
             'max_users': 100,
             'max_api_keys': 500,
-            'max_api_credits_per_month': 1000000,
+            'max_api_credits_per_month': 3000000,
             'max_tasks': 2000,
             'max_task_execution_concurrency': 50,
             'max_task_execution_history_items': 5000,
