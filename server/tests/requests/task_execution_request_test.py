@@ -311,7 +311,8 @@ def make_request_body(uuid_send_type: Optional[str],
         api_key_run_environment: Optional[RunEnvironment],
         task_execution: TaskExecution,
         group_factory, run_environment_factory, task_factory,
-        task_execution_factory) -> Dict[str, Any]:
+        task_execution_factory,
+        task_property_name: str = 'task') -> Dict[str, Any]:
     request_data: Dict[str, Any] = {
       'status': 'RUNNING',
       'extraprop': 'dummy',
@@ -332,7 +333,7 @@ def make_request_body(uuid_send_type: Optional[str],
     else:
         task: Optional[Task] = None
         if task_send_type == SEND_ID_NONE:
-            request_data['task'] = None
+            request_data[task_property_name] = None
         else:
           if task_send_type == SEND_ID_CORRECT:
               if api_key_run_environment:
@@ -359,7 +360,7 @@ def make_request_body(uuid_send_type: Optional[str],
                       run_environment=run_environment)
 
           assert task is not None # for mypy
-          request_data['task'] = {
+          request_data[task_property_name] = {
               'uuid': str(task.uuid)
           }
 
@@ -546,7 +547,7 @@ def test_task_execution_fetch(
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_NONE, None,
-   400, 'task', 'required'),
+   400, 'task', 'missing'),
 
    # Developer with scoped API Key cannot create Task Execution with no
    # Task
@@ -896,6 +897,64 @@ def test_task_execution_create_history_purging(subscription_plan,
             assert exists
         else:
             assert not exists
+
+@pytest.mark.django_db
+@mock_ecs
+@mock_sts
+@mock_events
+def test_task_execution_create_with_legacy_task_property(
+        user_factory, group_factory, run_environment_factory,
+        task_factory, task_execution_factory,
+        api_client) -> None:
+    """
+    Tests that the 'process_type' property sent by legacy clients is still
+    accepted.
+    """
+
+    user = user_factory()
+
+    task_execution, api_key_run_environment, client, url = common_setup(
+            is_authenticated=True,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+            api_key_scope_type=SCOPE_TYPE_CORRECT,
+            uuid_send_type=SEND_ID_NONE,
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory,
+            task_execution_factory=task_execution_factory,
+            api_client=api_client)
+
+    request_data = make_request_body(uuid_send_type=SEND_ID_NONE,
+            task_send_type=SEND_ID_CORRECT,
+            user=user,
+            group_factory=group_factory,
+            api_key_run_environment=api_key_run_environment,
+            task_execution=task_execution,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory,
+            task_execution_factory=task_execution_factory,
+            task_property_name='process_type')
+
+    old_count = TaskExecution.objects.count()
+
+    response = client.post(url, data=request_data)
+
+    assert response.status_code == 201
+
+    new_count = TaskExecution.objects.count()
+    assert new_count == old_count + 1
+
+    response_task_execution = cast(Dict[str, Any], response.data)
+    task_execution_uuid = response_task_execution['uuid']
+    created_task_execution = TaskExecution.objects.get(uuid=task_execution_uuid)
+
+    ensure_serialized_task_execution_valid(response_task_execution=response_task_execution,
+            task_execution=created_task_execution, user=user,
+            group_access_level= UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+            api_key_access_level= UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+            api_key_run_environment=api_key_run_environment)
 
 
 @pytest.mark.django_db

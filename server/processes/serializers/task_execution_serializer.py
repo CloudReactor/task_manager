@@ -115,7 +115,8 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                   'embedded_mode',
                   'created_at', 'updated_at',)
 
-    task = NameAndUuidSerializer(view_name='tasks-detail')
+    # required=False so that legacy proc_wrappers can use "process_type"
+    task = NameAndUuidSerializer(view_name='tasks-detail', required=False)
 
     started_by = serializers.ReadOnlyField(source='started_by.username')
     marked_done_by = serializers.ReadOnlyField(
