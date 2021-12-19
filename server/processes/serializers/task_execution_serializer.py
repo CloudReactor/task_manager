@@ -115,6 +115,12 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                   'embedded_mode',
                   'created_at', 'updated_at',)
 
+        read_only_fields = [
+            'url', 'uuid', 'dashboard_url', 'infrastructure_website_url',
+            'created_by_user', 'created_by_group',
+            'created_at', 'updated_at'
+        ]
+
     # required=False so that legacy proc_wrappers can use "process_type"
     task = NameAndUuidSerializer(view_name='tasks-detail', required=False)
 

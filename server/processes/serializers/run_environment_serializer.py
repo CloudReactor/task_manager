@@ -51,6 +51,12 @@ class RunEnvironmentSerializer(SerializerHelpers,
                   'default_alert_methods',
                   'execution_method_capabilities']
 
+        read_only_fields = [
+            'url', 'uuid', 'dashboard_url',
+            'created_by_user', 'created_by_group',
+            'created_at', 'updated_at'
+        ]
+
     created_by_user = serializers.ReadOnlyField(source='created_by_user.username')
     created_by_group = GroupSerializer(read_only=True, include_users=False)
     url = serializers.HyperlinkedIdentityField(

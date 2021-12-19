@@ -4,7 +4,7 @@ from django_filters import CharFilter
 from django_filters import rest_framework as filters
 from django_filters.filters import NumberFilter
 
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema
 
 from ..models import AlertMethod
 from ..serializers import AlertMethodSerializer

@@ -54,6 +54,12 @@ class AlertMethodSerializer(GroupSettingSerializerMixin,
                   'created_by_user', 'created_by_group', 'run_environment',
                   'created_at', 'updated_at']
 
+        read_only_fields = [
+            'url', 'uuid', 'dashboard_url',
+            'created_by_user', 'created_by_group',
+            'created_at', 'updated_at'
+        ]
+
     url = serializers.HyperlinkedIdentityField(
             view_name='alert_methods-detail',
             lookup_field='uuid'

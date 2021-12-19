@@ -42,6 +42,11 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
                   'ui_color', 'ui_line_style', 'ui_scale',
                   'created_at', 'updated_at')
 
+        read_only_fields = [
+            'url', 'uuid',
+            'created_at', 'updated_at'
+        ]
+
     from_workflow_task_instance = NameAndUuidSerializer(
             view_name='workflow_task_instances-detail')
 

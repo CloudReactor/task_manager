@@ -17,6 +17,7 @@ class PagerDutyProfileSerializer(GroupSettingSerializerMixin,
 
     class Meta:
         model = PagerDutyProfile
+        
         fields = ['url', 'uuid', 'name', 'description', 'dashboard_url',
                   'integration_key',
                   'default_event_severity',
@@ -25,6 +26,12 @@ class PagerDutyProfileSerializer(GroupSettingSerializerMixin,
                   'default_event_class_template',
                   'created_by_user', 'created_by_group', 'run_environment',
                   'created_at', 'updated_at']
+
+        read_only_fields = [
+            'url', 'uuid', 'dashboard_url',
+            'created_by_user', 'created_by_group',
+            'created_at', 'updated_at'
+        ]
 
     url = serializers.HyperlinkedIdentityField(
         view_name='pagerduty_profiles-detail',

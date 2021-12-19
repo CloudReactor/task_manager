@@ -11,7 +11,6 @@ paths:
   /alert_methods/:
     get:
       operationId: alert_methods_list
-      description: ''
       parameters:
       - in: query
         name: created_by_group__id
@@ -62,7 +61,6 @@ paths:
           description: ''
     post:
       operationId: alert_methods_create
-      description: ''
       tags:
       - alert_methods
       requestBody:
@@ -89,7 +87,6 @@ paths:
   /alert_methods/{uuid}/:
     get:
       operationId: alert_methods_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -110,7 +107,6 @@ paths:
           description: ''
     put:
       operationId: alert_methods_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -143,7 +139,6 @@ paths:
           description: ''
     patch:
       operationId: alert_methods_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -175,7 +170,6 @@ paths:
           description: ''
     delete:
       operationId: alert_methods_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -193,7 +187,6 @@ paths:
   /alert_methods/{uuid}/clone/:
     post:
       operationId: alert_methods_clone_create
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -227,7 +220,6 @@ paths:
   /email_notification_profiles/:
     get:
       operationId: email_notification_profiles_list
-      description: ''
       parameters:
       - in: query
         name: created_by_group__id
@@ -278,7 +270,6 @@ paths:
           description: ''
     post:
       operationId: email_notification_profiles_create
-      description: ''
       tags:
       - email_notification_profiles
       requestBody:
@@ -305,7 +296,6 @@ paths:
   /email_notification_profiles/{uuid}/:
     get:
       operationId: email_notification_profiles_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -326,7 +316,6 @@ paths:
           description: ''
     put:
       operationId: email_notification_profiles_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -359,7 +348,6 @@ paths:
           description: ''
     patch:
       operationId: email_notification_profiles_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -391,7 +379,6 @@ paths:
           description: ''
     delete:
       operationId: email_notification_profiles_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -409,7 +396,6 @@ paths:
   /email_notification_profiles/{uuid}/clone/:
     post:
       operationId: email_notification_profiles_clone_create
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -443,7 +429,6 @@ paths:
   /pagerduty_profiles/:
     get:
       operationId: pagerduty_profiles_list
-      description: ''
       parameters:
       - in: query
         name: created_by_group__id
@@ -494,7 +479,6 @@ paths:
           description: ''
     post:
       operationId: pagerduty_profiles_create
-      description: ''
       tags:
       - pagerduty_profiles
       requestBody:
@@ -521,7 +505,6 @@ paths:
   /pagerduty_profiles/{uuid}/:
     get:
       operationId: pagerduty_profiles_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -542,7 +525,6 @@ paths:
           description: ''
     put:
       operationId: pagerduty_profiles_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -575,7 +557,6 @@ paths:
           description: ''
     patch:
       operationId: pagerduty_profiles_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -607,7 +588,6 @@ paths:
           description: ''
     delete:
       operationId: pagerduty_profiles_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -625,7 +605,6 @@ paths:
   /pagerduty_profiles/{uuid}/clone/:
     post:
       operationId: pagerduty_profiles_clone_create
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -659,7 +638,6 @@ paths:
   /run_environments/:
     get:
       operationId: run_environments_list
-      description: ''
       parameters:
       - in: query
         name: created_by_group__id
@@ -706,7 +684,6 @@ paths:
           description: ''
     post:
       operationId: run_environments_create
-      description: ''
       tags:
       - run_environments
       requestBody:
@@ -733,7 +710,6 @@ paths:
   /run_environments/{uuid}/:
     get:
       operationId: run_environments_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -754,7 +730,6 @@ paths:
           description: ''
     put:
       operationId: run_environments_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -787,7 +762,6 @@ paths:
           description: ''
     patch:
       operationId: run_environments_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -819,7 +793,6 @@ paths:
           description: ''
     delete:
       operationId: run_environments_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -837,7 +810,6 @@ paths:
   /run_environments/{uuid}/clone/:
     post:
       operationId: run_environments_clone_create
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -871,7 +843,6 @@ paths:
   /task_executions/:
     get:
       operationId: task_executions_list
-      description: ''
       parameters:
       - name: limit
         required: false
@@ -918,7 +889,6 @@ paths:
           description: ''
     post:
       operationId: task_executions_create
-      description: ''
       tags:
       - task_executions
       requestBody:
@@ -945,7 +915,6 @@ paths:
   /task_executions/{uuid}/:
     get:
       operationId: task_executions_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -966,7 +935,6 @@ paths:
           description: ''
     put:
       operationId: task_executions_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -999,7 +967,6 @@ paths:
           description: ''
     patch:
       operationId: task_executions_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1031,7 +998,6 @@ paths:
           description: ''
     delete:
       operationId: task_executions_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1049,7 +1015,6 @@ paths:
   /tasks/:
     get:
       operationId: tasks_list
-      description: ''
       parameters:
       - in: query
         name: description
@@ -1101,7 +1066,6 @@ paths:
           description: ''
     post:
       operationId: tasks_create
-      description: ''
       tags:
       - tasks
       requestBody:
@@ -1128,7 +1092,6 @@ paths:
   /tasks/{uuid}/:
     get:
       operationId: tasks_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1149,7 +1112,6 @@ paths:
           description: ''
     put:
       operationId: tasks_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1182,7 +1144,6 @@ paths:
           description: ''
     patch:
       operationId: tasks_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1214,7 +1175,6 @@ paths:
           description: ''
     delete:
       operationId: tasks_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1232,7 +1192,6 @@ paths:
   /workflow_executions/:
     get:
       operationId: workflow_executions_list
-      description: ''
       parameters:
       - name: limit
         required: false
@@ -1279,7 +1238,6 @@ paths:
           description: ''
     post:
       operationId: workflow_executions_create
-      description: ''
       tags:
       - workflow_executions
       requestBody:
@@ -1306,7 +1264,6 @@ paths:
   /workflow_executions/{uuid}/:
     get:
       operationId: workflow_executions_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1327,7 +1284,6 @@ paths:
           description: ''
     put:
       operationId: workflow_executions_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1360,7 +1316,6 @@ paths:
           description: ''
     patch:
       operationId: workflow_executions_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1392,7 +1347,6 @@ paths:
           description: ''
     delete:
       operationId: workflow_executions_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1410,7 +1364,6 @@ paths:
   /workflow_executions/{uuid}/retry/:
     post:
       operationId: workflow_executions_retry_create
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1444,7 +1397,6 @@ paths:
   /workflow_executions/{uuid}/workflow_task_instance_executions/:
     post:
       operationId: workflow_executions_workflow_task_instance_executions_create
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1478,7 +1430,6 @@ paths:
   /workflow_task_instances/:
     get:
       operationId: workflow_task_instances_list
-      description: ''
       parameters:
       - in: query
         name: description
@@ -1548,7 +1499,6 @@ paths:
           description: ''
     post:
       operationId: workflow_task_instances_create
-      description: ''
       tags:
       - workflow_task_instances
       requestBody:
@@ -1575,7 +1525,6 @@ paths:
   /workflow_task_instances/{uuid}/:
     get:
       operationId: workflow_task_instances_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1596,7 +1545,6 @@ paths:
           description: ''
     put:
       operationId: workflow_task_instances_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1629,7 +1577,6 @@ paths:
           description: ''
     patch:
       operationId: workflow_task_instances_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1661,7 +1608,6 @@ paths:
           description: ''
     delete:
       operationId: workflow_task_instances_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1679,7 +1625,6 @@ paths:
   /workflow_transitions/:
     get:
       operationId: workflow_transitions_list
-      description: ''
       parameters:
       - in: query
         name: description
@@ -1722,7 +1667,6 @@ paths:
           description: ''
     post:
       operationId: workflow_transitions_create
-      description: ''
       tags:
       - workflow_transitions
       requestBody:
@@ -1749,7 +1693,6 @@ paths:
   /workflow_transitions/{uuid}/:
     get:
       operationId: workflow_transitions_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1770,7 +1713,6 @@ paths:
           description: ''
     put:
       operationId: workflow_transitions_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1803,7 +1745,6 @@ paths:
           description: ''
     patch:
       operationId: workflow_transitions_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1835,7 +1776,6 @@ paths:
           description: ''
     delete:
       operationId: workflow_transitions_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1853,7 +1793,6 @@ paths:
   /workflows/:
     get:
       operationId: workflows_list
-      description: ''
       parameters:
       - in: query
         name: description
@@ -1904,7 +1843,6 @@ paths:
           description: ''
     post:
       operationId: workflows_create
-      description: ''
       tags:
       - workflows
       requestBody:
@@ -1931,7 +1869,6 @@ paths:
   /workflows/{uuid}/:
     get:
       operationId: workflows_retrieve
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1952,7 +1889,6 @@ paths:
           description: ''
     put:
       operationId: workflows_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -1985,7 +1921,6 @@ paths:
           description: ''
     patch:
       operationId: workflows_partial_update
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -2017,7 +1952,6 @@ paths:
           description: ''
     delete:
       operationId: workflows_destroy
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -2035,7 +1969,6 @@ paths:
   /workflows/{uuid}/clone/:
     post:
       operationId: workflows_clone_create
-      description: ''
       parameters:
       - in: path
         name: uuid
@@ -2170,6 +2103,7 @@ components:
           type: array
           items:
             type: string
+            maxLength: 1000
         subnet_infrastructure_website_urls:
           type: array
           items:
@@ -2181,6 +2115,7 @@ components:
           type: array
           items:
             type: string
+            maxLength: 1000
         security_group_infrastructure_website_urls:
           type: array
           items:
@@ -2263,6 +2198,7 @@ components:
           type: array
           items:
             type: string
+            maxLength: 1000
           nullable: true
         default_subnet_infrastructure_website_urls:
           type: array
@@ -2291,6 +2227,7 @@ components:
           type: array
           items:
             type: string
+            maxLength: 1000
           nullable: true
         default_security_group_infrastructure_website_urls:
           type: array
@@ -2361,6 +2298,7 @@ components:
           type: array
           items:
             type: string
+            maxLength: 1000
           nullable: true
         default_subnet_infrastructure_website_urls:
           type: array
@@ -2389,6 +2327,7 @@ components:
           type: array
           items:
             type: string
+            maxLength: 1000
           nullable: true
         default_security_group_infrastructure_website_urls:
           type: array
@@ -2544,18 +2483,21 @@ components:
           items:
             type: string
             format: email
+            maxLength: 1000
           nullable: true
         cc_addresses:
           type: array
           items:
             type: string
             format: email
+            maxLength: 1000
           nullable: true
         bcc_addresses:
           type: array
           items:
             type: string
             format: email
+            maxLength: 1000
           nullable: true
         subject_template:
           type: string
@@ -2620,13 +2562,11 @@ components:
           readOnly: true
         icon_url:
           type: string
-          readOnly: true
         description:
           type: string
         rank:
           type: integer
       required:
-      - description
       - icon_url
       - link_url
       - link_url_template
@@ -3037,18 +2977,21 @@ components:
           items:
             type: string
             format: email
+            maxLength: 1000
           nullable: true
         cc_addresses:
           type: array
           items:
             type: string
             format: email
+            maxLength: 1000
           nullable: true
         bcc_addresses:
           type: array
           items:
             type: string
             format: email
+            maxLength: 1000
           nullable: true
         subject_template:
           type: string
@@ -3217,13 +3160,13 @@ components:
         max_manual_start_delay_before_alert_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_manual_start_delay_before_abandonment_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         heartbeat_interval_seconds:
           type: integer
           maximum: 2147483647
@@ -3232,34 +3175,34 @@ components:
         max_heartbeat_lateness_before_alert_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_heartbeat_lateness_before_abandonment_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         schedule:
           type: string
           maxLength: 1000
         scheduled_instance_count:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         is_service:
           type: boolean
           readOnly: true
         service_instance_count:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         min_service_instance_count:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_concurrency:
           type: integer
           maximum: 2147483647
@@ -3268,8 +3211,8 @@ components:
         max_age_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         default_max_retries:
           type: integer
           maximum: 2147483647
@@ -3300,7 +3243,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
         other_metadata:
           type: object
           additionalProperties: {}
@@ -3492,13 +3434,13 @@ components:
         current_cpu_units:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         mean_cpu_units:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_cpu_units:
           type: integer
           maximum: 2147483647
@@ -3507,13 +3449,13 @@ components:
         current_memory_mb:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         mean_memory_mb:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_memory_mb:
           type: integer
           maximum: 2147483647
@@ -3569,8 +3511,8 @@ components:
         process_retry_delay_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         schedule:
           type: string
           nullable: true
@@ -3595,13 +3537,13 @@ components:
         api_retry_delay_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         api_resume_delay_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         api_error_timeout_seconds:
           type: integer
           maximum: 2147483647
@@ -3620,8 +3562,8 @@ components:
         api_task_execution_creation_conflict_retry_delay_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         api_final_update_timeout_seconds:
           type: integer
           maximum: 2147483647
@@ -3731,7 +3673,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
         workflow_task_instances:
           type: array
           items:
@@ -3824,7 +3765,7 @@ components:
         workflow_snapshot:
           type: object
           additionalProperties: {}
-          nullable: true
+          readOnly: true
         workflow_task_instance_executions:
           type: array
           items:
@@ -3973,6 +3914,7 @@ components:
           type: array
           items:
             type: string
+            maxLength: 10
           nullable: true
         threshold_property:
           $ref: '#/components/schemas/ThresholdPropertyEnum'
@@ -3982,8 +3924,8 @@ components:
         priority:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         ui_color:
           type: string
           maxLength: 16
@@ -4148,13 +4090,13 @@ components:
         max_manual_start_delay_before_alert_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_manual_start_delay_before_abandonment_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         heartbeat_interval_seconds:
           type: integer
           maximum: 2147483647
@@ -4163,34 +4105,34 @@ components:
         max_heartbeat_lateness_before_alert_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_heartbeat_lateness_before_abandonment_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         schedule:
           type: string
           maxLength: 1000
         scheduled_instance_count:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         is_service:
           type: boolean
           readOnly: true
         service_instance_count:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         min_service_instance_count:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_concurrency:
           type: integer
           maximum: 2147483647
@@ -4199,8 +4141,8 @@ components:
         max_age_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         default_max_retries:
           type: integer
           maximum: 2147483647
@@ -4231,7 +4173,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
         other_metadata:
           type: object
           additionalProperties: {}
@@ -4269,7 +4210,6 @@ components:
           format: date-time
           readOnly: true
       required:
-      - alert_methods
       - created_at
       - created_by_group
       - created_by_user
@@ -4279,7 +4219,6 @@ components:
       - infrastructure_website_url
       - is_service
       - latest_task_execution
-      - links
       - logs_url
       - name
       - updated_at
@@ -4440,13 +4379,13 @@ components:
         current_cpu_units:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         mean_cpu_units:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_cpu_units:
           type: integer
           maximum: 2147483647
@@ -4455,13 +4394,13 @@ components:
         current_memory_mb:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         mean_memory_mb:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         max_memory_mb:
           type: integer
           maximum: 2147483647
@@ -4517,8 +4456,8 @@ components:
         process_retry_delay_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         schedule:
           type: string
           nullable: true
@@ -4543,13 +4482,13 @@ components:
         api_retry_delay_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         api_resume_delay_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         api_error_timeout_seconds:
           type: integer
           maximum: 2147483647
@@ -4568,8 +4507,8 @@ components:
         api_task_execution_creation_conflict_retry_delay_seconds:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         api_final_update_timeout_seconds:
           type: integer
           maximum: 2147483647
@@ -4620,7 +4559,6 @@ components:
       - started_at
       - started_by
       - status
-      - task
       - updated_at
       - url
       - uuid
@@ -4743,7 +4681,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
-          readOnly: true
         workflow_task_instances:
           type: array
           items:
@@ -4755,7 +4692,6 @@ components:
             $ref: '#/components/schemas/WorkflowTransition'
           readOnly: true
       required:
-      - alert_methods
       - created_at
       - created_by_group
       - created_by_user
@@ -4848,7 +4784,7 @@ components:
         workflow_snapshot:
           type: object
           additionalProperties: {}
-          nullable: true
+          readOnly: true
         workflow_task_instance_executions:
           type: array
           items:
@@ -4879,6 +4815,7 @@ components:
       - url
       - uuid
       - workflow
+      - workflow_snapshot
       - workflow_task_instance_executions
       - workflow_transition_evaluations
     WorkflowExecutionStatus:
@@ -5250,6 +5187,7 @@ components:
           type: array
           items:
             type: string
+            maxLength: 10
           nullable: true
         threshold_property:
           $ref: '#/components/schemas/ThresholdPropertyEnum'
@@ -5259,8 +5197,8 @@ components:
         priority:
           type: integer
           maximum: 2147483647
-          nullable: true
           minimum: 0
+          nullable: true
         ui_color:
           type: string
           maxLength: 16
@@ -5299,6 +5237,7 @@ components:
           readOnly: true
         result:
           type: boolean
+          readOnly: true
         workflow_transition:
           allOf:
           - $ref: '#/components/schemas/NameAndUuid'

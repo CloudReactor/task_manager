@@ -102,7 +102,15 @@ class TaskSerializer(GroupSettingSerializerMixin,
                   'created_by_user', 'created_by_group',
                   'was_auto_created', 'passive', 'enabled',
                   'created_at', 'updated_at',
-                  ]
+        ]
+
+        read_only_fields = [
+          'url', 'uuid',
+          'is_service',
+          'latest_task_execution', 'current_service_info',
+          'dashboard_url', 'infrastructure_website_url', 'logs_url',
+          'created_at', 'updated_at',
+        ]
 
     latest_task_execution = serializers.SerializerMethodField()
     url = serializers.HyperlinkedIdentityField(
@@ -115,9 +123,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
     alert_methods = NameAndUuidSerializer(
             include_name=True,
             view_name='alert_methods-detail',
-            many=True, required=False,
-            # FIXME: need read_only or else set_alert_methods tests fail
-            read_only=True)
+            many=True, required=False)
 
     links = LinkSerializer(many=True, required=False)
 

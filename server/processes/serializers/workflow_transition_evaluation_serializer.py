@@ -28,6 +28,11 @@ class WorkflowTransitionEvaluationSerializer(serializers.ModelSerializer,
                   'from_workflow_task_instance_execution',
                   'evaluated_at')
 
+        read_only_fields = ('uuid', 'result',
+                'workflow_transition', 'workflow_execution',
+                'from_workflow_task_instance_execution',
+                'evaluated_at')
+
     workflow_transition = NameAndUuidSerializer(
           view_name='workflow_transitions-detail', read_only=True,
           include_name=False)

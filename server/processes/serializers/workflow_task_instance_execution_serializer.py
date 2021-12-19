@@ -27,4 +27,11 @@ class WorkflowTaskInstanceExecutionSerializer(SerializerHelpers,
                   'workflow_task_instance', 'task_execution',
                   'is_latest', 'created_at')
 
+        read_only_fields = [
+            'uuid', 'workflow_execution',
+            'workflow_task_instance', 'task_execution',
+            'is_latest', 'created_at',
+        ]
+
+
     task_execution = TaskExecutionSerializer(read_only=True)

@@ -75,6 +75,15 @@ class WorkflowExecutionSerializer(EmbeddedWorkflowSerializer):
                   'workflow_transition_evaluations',
                   'created_at', 'updated_at')
 
+        read_only_fields = [
+            'url', 'uuid', 'dashboard_url',
+            'created_by_user', 'created_by_group',
+            'workflow_snapshot',
+            'workflow_task_instance_executions',
+            'workflow_transition_evaluations',
+            'created_at', 'updated_at'
+        ]
+
     started_by = serializers.ReadOnlyField(source='started_by.username')
     marked_done_by = serializers.ReadOnlyField(
         source='marked_done_by.username')

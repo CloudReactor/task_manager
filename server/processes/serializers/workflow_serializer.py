@@ -65,15 +65,20 @@ class WorkflowSerializer(
             'workflow_transitions',
         ]
 
+        read_only_fields = [
+            'url', 'uuid', 'dashboard_url',
+            'latest_workflow_execution',
+            'created_by_user', 'created_by_group',
+            'created_at', 'updated_at'
+        ]
+
     workflow_task_instances = WorkflowTaskInstanceSerializer(
             many=True, read_only=True)
 
     workflow_transitions = WorkflowTransitionSerializer(many=True, read_only=True)
 
     alert_methods = NameAndUuidSerializer(include_name=True,
-            view_name='alert_methods-detail', many=True, required=False,
-            # FIXME: need read_only or else set_alert_methods tests fail
-            read_only=True)
+            view_name='alert_methods-detail', many=True, required=False)
 
     def to_internal_value(self, data):
         logger.info(f"wfs: to_internal value, data = {data}")

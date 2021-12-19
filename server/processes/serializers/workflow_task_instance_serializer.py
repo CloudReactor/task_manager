@@ -50,6 +50,11 @@ class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
                   'ui_center_margin_top', 'ui_center_margin_left',
                   'created_at', 'updated_at',)
 
+        read_only_fields = [
+            'url', 'uuid',
+            'created_at', 'updated_at'
+        ]
+
     task = NameAndUuidSerializer(view_name='tasks-detail')
 
     url = serializers.HyperlinkedIdentityField(
