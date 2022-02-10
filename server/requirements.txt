@@ -134,6 +134,24 @@ defusedxml==0.7.1 \
     # via
     #   python3-openid
     #   social-auth-core
+django==3.2.12 \
+    --hash=sha256:9772e6935703e59e993960832d66a614cf0233a1c5123bc6224ecc6ad69e41e2 \
+    --hash=sha256:9b06c289f9ba3a8abea16c9c9505f25107809fb933676f6c891ded270039d965
+    # via
+    #   -r requirements.in
+    #   django-anymail
+    #   django-cors-headers
+    #   django-csp
+    #   django-dynamic-fixtures
+    #   django-extensions
+    #   django-filter
+    #   django-guardian
+    #   django-middleware-global-request
+    #   django-model-utils
+    #   django-render-block
+    #   djangorestframework
+    #   djangorestframework-simplejwt
+    #   drf-spectacular
 django-anymail[amazon_ses]==7.2 \
     --hash=sha256:2b71c10d7e735b23da92be2d35afa47eb05e7e16c9a377086426bc4e71c138e9 \
     --hash=sha256:3a58dc174f75b89b524adb1173391d8069b3bc77d87bfbba378e86158749eee0
@@ -185,22 +203,11 @@ django-templated-mail==1.1.1 \
     --hash=sha256:8db807effebb42a532622e2d142dfd453dafcd0d7794c4c3332acb90656315f9 \
     --hash=sha256:f7127e1e31d7cad4e6c4b4801d25814d4b8782627ead76f4a75b3b7650687556
     # via djoser
-django==3.2.8 \
-    --hash=sha256:42573831292029639b798fe4d3812996bfe4ff3275f04566da90764daec011a5 \
-    --hash=sha256:f6d2c4069c9b9bfac03bedff927ea1f9e0d29e34525cec8a68fd28eb2a8df7af
+djangorestframework==3.12.4 \
+    --hash=sha256:6d1d59f623a5ad0509fe0d6bfe93cbdfe17b8116ebc8eda86d45f6e16e819aaf \
+    --hash=sha256:f747949a8ddac876e879190df194b925c177cdeb725a099db1460872f7c0a7f2
     # via
     #   -r requirements.in
-    #   django-anymail
-    #   django-cors-headers
-    #   django-csp
-    #   django-dynamic-fixtures
-    #   django-extensions
-    #   django-filter
-    #   django-guardian
-    #   django-middleware-global-request
-    #   django-model-utils
-    #   django-render-block
-    #   djangorestframework
     #   djangorestframework-simplejwt
     #   drf-spectacular
 djangorestframework-simplejwt==4.7.2 \
@@ -209,13 +216,6 @@ djangorestframework-simplejwt==4.7.2 \
     # via
     #   -r requirements.in
     #   djoser
-djangorestframework==3.12.4 \
-    --hash=sha256:6d1d59f623a5ad0509fe0d6bfe93cbdfe17b8116ebc8eda86d45f6e16e819aaf \
-    --hash=sha256:f747949a8ddac876e879190df194b925c177cdeb725a099db1460872f7c0a7f2
-    # via
-    #   -r requirements.in
-    #   djangorestframework-simplejwt
-    #   drf-spectacular
 djoser==2.1.0 \
     --hash=sha256:3299073aa5822f9ad02bc872b87e719051c07d36cdc87a05b2afdb2c3bad46d1 \
     --hash=sha256:9590378d59eb3243572bcb6b0a45268a3e31bedddc15235ca248a18c7bc0ffe6
@@ -460,10 +460,6 @@ pyyaml==5.4.1 \
     # via
     #   -r requirements.in
     #   drf-spectacular
-requests-oauthlib==1.3.0 \
-    --hash=sha256:7f71572defaecd16372f9006f33c2ec8c077c3cfa6f5911a9a90202beb513f3d \
-    --hash=sha256:b4261601a71fd721a8bd6d7aa1cc1d6a8a93b4a9f5e96626f8e4d91e8beeaa6a
-    # via social-auth-core
 requests==2.26.0 \
     --hash=sha256:6c1246513ecd5ecd4528a0906f910e8f0f9c6b8ec72030dc9fd154dc1a6efd24 \
     --hash=sha256:b8aa58f8cf793ffd8782d3d8cb19e66ef36f7aba4353eec859e74678b01b07a7
@@ -474,6 +470,10 @@ requests==2.26.0 \
     #   pypd
     #   requests-oauthlib
     #   social-auth-core
+requests-oauthlib==1.3.0 \
+    --hash=sha256:7f71572defaecd16372f9006f33c2ec8c077c3cfa6f5911a9a90202beb513f3d \
+    --hash=sha256:b4261601a71fd721a8bd6d7aa1cc1d6a8a93b4a9f5e96626f8e4d91e8beeaa6a
+    # via social-auth-core
 s3transfer==0.3.7 \
     --hash=sha256:35627b86af8ff97e7ac27975fe0a98a312814b46c6333d8a6b889627bcd80994 \
     --hash=sha256:efa5bd92a897b6a8d5c1383828dca3d52d0790e0756d49740563a3fb6ed03246

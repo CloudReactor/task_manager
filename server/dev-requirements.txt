@@ -20,10 +20,6 @@ attrs==21.2.0 \
     # via
     #   -c requirements.txt
     #   pytest
-boto3-stubs==1.17.40.0 \
-    --hash=sha256:13d782829eb49b71824ca8fdf30de0089c42cfb2c4baf3903d29b2e167ec2aaf \
-    --hash=sha256:565941d80eab233f9db3d53569c57dc96a98855a66f49c29b175f8231fa66c92
-    # via -r dev-requirements.in
 boto3==1.17.41 \
     --hash=sha256:8544878fa8c9cad6972d9c9aae1db1d8fa7a3bb0adabe2fa39e4842d182bb4d7 \
     --hash=sha256:d85b0e05d7de96169b0024b76b292be62b01ef6f5ca853a512506346b82d2abb
@@ -31,6 +27,10 @@ boto3==1.17.41 \
     #   -c requirements.txt
     #   moto
     #   mypy-boto3
+boto3-stubs==1.17.40.0 \
+    --hash=sha256:13d782829eb49b71824ca8fdf30de0089c42cfb2c4baf3903d29b2e167ec2aaf \
+    --hash=sha256:565941d80eab233f9db3d53569c57dc96a98855a66f49c29b175f8231fa66c92
+    # via -r dev-requirements.in
 botocore==1.20.41 \
     --hash=sha256:5e88d19a1406ff92d52518ac70a1531582d7af537dc18c8ebc7ab54282c2fa23 \
     --hash=sha256:63f650fc96bce141e8194a761e6890fea2fba6e01253aefa31ae69f145015c21
@@ -188,24 +188,24 @@ cryptography==3.4.7 \
     # via
     #   -c requirements.txt
     #   moto
-django-stubs-ext==0.3.1 \
-    --hash=sha256:783c198d7e39a41be0b90fd843fa2770243a642922af679be4b19e03b82c8c28 \
-    --hash=sha256:a51a3e9e844d4e1cacaaedbb33bf3def78a3956eed5d9575a640bd97ccd99cec
-    # via django-stubs
+django==3.2.12 \
+    --hash=sha256:9772e6935703e59e993960832d66a614cf0233a1c5123bc6224ecc6ad69e41e2 \
+    --hash=sha256:9b06c289f9ba3a8abea16c9c9505f25107809fb933676f6c891ded270039d965
+    # via
+    #   -c requirements.txt
+    #   django-stubs
+    #   django-stubs-ext
+    #   model-bakery
 django-stubs==1.8.0 \
     --hash=sha256:717967d7fee0a6af0746724a0be80d72831a982a40fa8f245a6a46f4cafd157b \
     --hash=sha256:bde9e44e3c4574c2454e74a3e607cc3bc23b0441bb7d1312cd677d5e30984b74
     # via
     #   -r dev-requirements.in
     #   djangorestframework-stubs
-django==3.2.8 \
-    --hash=sha256:42573831292029639b798fe4d3812996bfe4ff3275f04566da90764daec011a5 \
-    --hash=sha256:f6d2c4069c9b9bfac03bedff927ea1f9e0d29e34525cec8a68fd28eb2a8df7af
-    # via
-    #   -c requirements.txt
-    #   django-stubs
-    #   django-stubs-ext
-    #   model-bakery
+django-stubs-ext==0.3.1 \
+    --hash=sha256:783c198d7e39a41be0b90fd843fa2770243a642922af679be4b19e03b82c8c28 \
+    --hash=sha256:a51a3e9e844d4e1cacaaedbb33bf3def78a3956eed5d9575a640bd97ccd99cec
+    # via django-stubs
 djangorestframework-stubs==1.4.0 \
     --hash=sha256:037f0582b1e6c79366b6a839da861474d59210c4bfa1d36291545cb6ede6a0da \
     --hash=sha256:f6ed5fb19c12aa752288ddc6ad28d4ca7c81681ca7f28a19aba9064b2a69489c
@@ -366,7 +366,7 @@ mccabe==0.6.1 \
     --hash=sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42 \
     --hash=sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f
     # via pylint
-model_bakery==1.3.2 \
+model-bakery==1.3.2 \
     --hash=sha256:7e06071c7ba5c58f9c1d7245b4b80cc5240806f30c4561f5c04a652d67626725 \
     --hash=sha256:bebde0d4f895f55a8cf26706275a238fecdf0fddd227214675b7351598c99ce5
     # via -r dev-requirements.in
@@ -378,24 +378,6 @@ moto==2.0.8 \
     --hash=sha256:812dcfdb460e6d43236f2c0f7774ede038716daef6db8a09dc5c16ea7e4de931 \
     --hash=sha256:b5b4c596d6f44fe1f658429d0313a649d0861d7df91b2dbdb5cc20d1bb8daf39
     # via -r dev-requirements.in
-mypy-boto3-cloudformation==1.17.41.0 \
-    --hash=sha256:0cf78afd58ef5ceaf74a51427ea697e2b75cc0c48fad19335ba605a327a6756a \
-    --hash=sha256:a1dbee27f21b202ffab8677c250914415f5efc747742bd23e9750c9d4c13e276
-    # via -r dev-requirements.in
-mypy-boto3-lambda===1.17.41.0 \
-    --hash=sha256:a29ad80ccbe1c2b3bf890b14bbd48ecd33186aa4f073f4caf6b3f6867453d610 \
-    --hash=sha256:d4e9c5cb9b045bf89e8fa830a276b71d25b9fb17e5c286ea133a588caf9351aa
-    # via -r dev-requirements.in
-mypy-boto3==1.17.40.0 \
-    --hash=sha256:111e3422522a9faf4afc1380c774e24f895179f5f64806a170479574febc4521 \
-    --hash=sha256:8c94b21161c43aa159afe745f1d5f9fa4cc9d964c14ab54dfbf08a86b9a40d3a
-    # via -r dev-requirements.in
-mypy-extensions==0.4.3 \
-    --hash=sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d \
-    --hash=sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8
-    # via
-    #   -r dev-requirements.in
-    #   mypy
 mypy==0.910 \
     --hash=sha256:088cd9c7904b4ad80bec811053272986611b84221835e079be5bcad029e79dd9 \
     --hash=sha256:0aadfb2d3935988ec3815952e44058a3100499f5be5b28c34ac9d79f002a4a9a \
@@ -424,6 +406,24 @@ mypy==0.910 \
     #   -r dev-requirements.in
     #   django-stubs
     #   djangorestframework-stubs
+mypy-boto3==1.17.40.0 \
+    --hash=sha256:111e3422522a9faf4afc1380c774e24f895179f5f64806a170479574febc4521 \
+    --hash=sha256:8c94b21161c43aa159afe745f1d5f9fa4cc9d964c14ab54dfbf08a86b9a40d3a
+    # via -r dev-requirements.in
+mypy-boto3-cloudformation==1.17.41.0 \
+    --hash=sha256:0cf78afd58ef5ceaf74a51427ea697e2b75cc0c48fad19335ba605a327a6756a \
+    --hash=sha256:a1dbee27f21b202ffab8677c250914415f5efc747742bd23e9750c9d4c13e276
+    # via -r dev-requirements.in
+mypy-boto3-lambda===1.17.41.0 \
+    --hash=sha256:a29ad80ccbe1c2b3bf890b14bbd48ecd33186aa4f073f4caf6b3f6867453d610 \
+    --hash=sha256:d4e9c5cb9b045bf89e8fa830a276b71d25b9fb17e5c286ea133a588caf9351aa
+    # via -r dev-requirements.in
+mypy-extensions==0.4.3 \
+    --hash=sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d \
+    --hash=sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8
+    # via
+    #   -r dev-requirements.in
+    #   mypy
 packaging==21.2 \
     --hash=sha256:096d689d78ca690e4cd8a89568ba06d07ca097e3306a4381635073ca91479966 \
     --hash=sha256:14317396d1e8cdb122989b916fa2c7e9ca8e2be9e8060a6eff75b6b7b4d8a7e0
@@ -449,6 +449,13 @@ pycparser==2.21 \
     # via
     #   -c requirements.txt
     #   cffi
+pylint==2.10.2 \
+    --hash=sha256:6758cce3ddbab60c52b57dcc07f0c5d779e5daf0cf50f6faacbef1d3ea62d2a1 \
+    --hash=sha256:e178e96b6ba171f8ef51fbce9ca30931e6acbea4a155074d80cc081596c9e852
+    # via
+    #   -r dev-requirements.in
+    #   pylint-django
+    #   pylint-plugin-utils
 pylint-django==2.4.4 \
     --hash=sha256:aff49d9602a39c027b4ed7521a041438893205918f405800063b7ff692b7371b \
     --hash=sha256:f63f717169b0c2e4e19c28f1c32c28290647330184fcb7427805ae9b6994f3fc
@@ -457,17 +464,19 @@ pylint-plugin-utils==0.6 \
     --hash=sha256:2f30510e1c46edf268d3a195b2849bd98a1b9433229bb2ba63b8d776e1fc4d0a \
     --hash=sha256:57625dcca20140f43731311cd8fd879318bf45a8b0fd17020717a8781714a25a
     # via pylint-django
-pylint==2.10.2 \
-    --hash=sha256:6758cce3ddbab60c52b57dcc07f0c5d779e5daf0cf50f6faacbef1d3ea62d2a1 \
-    --hash=sha256:e178e96b6ba171f8ef51fbce9ca30931e6acbea4a155074d80cc081596c9e852
-    # via
-    #   -r dev-requirements.in
-    #   pylint-django
-    #   pylint-plugin-utils
 pyparsing==2.4.7 \
     --hash=sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1 \
     --hash=sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b
     # via packaging
+pytest==6.2.4 \
+    --hash=sha256:50bcad0a0b9c5a72c8e4e7c9855a3ad496ca6a881a3641b4260605450772c54b \
+    --hash=sha256:91ef2131a9bd6be8f76f1f08eac5c5317221d6ad1e143ae03894b862e8976890
+    # via
+    #   -r dev-requirements.in
+    #   pytest-cov
+    #   pytest-django
+    #   pytest-env
+    #   pytest-factoryboy
 pytest-cov==2.12.1 \
     --hash=sha256:261bb9e47e65bd099c89c3edf92972865210c36813f80ede5277dceb77a4a62a \
     --hash=sha256:261ceeb8c227b726249b376b8526b600f38667ee314f910353fa318caa01f4d7
@@ -483,15 +492,6 @@ pytest-factoryboy==2.1.0 \
     --hash=sha256:10c02d2736cb52c7af28065db9617e7f50634e95eaa07eeb9a007026aa3dc0a8 \
     --hash=sha256:23bc562ab32cc39eddfbbbf70e618a1b30e834a4cfa451c4bedc36216f0a7b19
     # via -r dev-requirements.in
-pytest==6.2.4 \
-    --hash=sha256:50bcad0a0b9c5a72c8e4e7c9855a3ad496ca6a881a3641b4260605450772c54b \
-    --hash=sha256:91ef2131a9bd6be8f76f1f08eac5c5317221d6ad1e143ae03894b862e8976890
-    # via
-    #   -r dev-requirements.in
-    #   pytest-cov
-    #   pytest-django
-    #   pytest-env
-    #   pytest-factoryboy
 python-dateutil==2.8.1 \
     --hash=sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c \
     --hash=sha256:75bb3f31ea686f1197762692a9ee6a7550b59fc6ca3a1f4b5d7e32fb98e2da2a
