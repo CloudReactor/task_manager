@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import React, { Fragment } from 'react';
+import React from 'react';
 
 import {
   AlertMethod
@@ -159,7 +159,7 @@ class AlertMethodSelector extends React.Component<InnerProps, State> {
     while (!done) {
       try {
         const page = await fetchAlertMethods({
-          runEnvironmentUuid,
+          optionalRunEnvironmentUuid: runEnvironmentUuid,
           offset,
           maxResults,
           groupId: currentGroup?.id,

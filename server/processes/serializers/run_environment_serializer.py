@@ -137,21 +137,9 @@ class RunEnvironmentSerializer(SerializerHelpers,
             self.handle_to_internal_value_exception(validation_error,
                                                     field_name='execution_environment_capabilities')
 
-        # self.instance is None when creating a new Run Environment. In that
-        # case, no Alert Methods can be attached
-        if self.instance:
-            self.set_validated_alert_methods(data=data, validated=validated,
-                run_environment=cast(RunEnvironment, self.instance),
-                property_name='default_alert_methods')
-        else:
-            default_alert_methods = data.pop('default_alert_methods', None)
-            if default_alert_methods and (len(default_alert_methods) > 0) :
-                raise serializers.ValidationError({
-                    'default_alert_methods': [
-                        ErrorDetail("Can't set default_alert_methods of new Run Environment",
-                                code='not_allowed')
-                    ]
-                })
+        self.set_validated_alert_methods(data=data, validated=validated,
+            run_environment=cast(Optional[RunEnvironment], self.instance),
+            property_name='default_alert_methods')
 
         return validated
 
@@ -181,8 +169,6 @@ class RunEnvironmentSerializer(SerializerHelpers,
             request=request)
 
         validated_data['created_by_group'] = group
-
-        alert_methods = validated_data.pop('default_alert_methods', None)
 
         run_environment = RunEnvironment.objects.create(**validated_data)
 

@@ -1,4 +1,7 @@
-import { ACCESS_LEVEL_DEVELOPER, EXECUTION_METHOD_TYPE_AWS_ECS } from '../../utils/constants';
+import {
+  ACCESS_LEVEL_DEVELOPER,
+  EXECUTION_METHOD_TYPE_AWS_ECS
+} from '../../utils/constants';
 
 import {
   AlertMethod,
@@ -313,7 +316,7 @@ const RunEnvironmentEditor = ({
                                   removed = arrayHelpers.remove(0);
                                 } while (removed);
                                 alertMethods.forEach(am => {
-                                  arrayHelpers.push({uuid: am.uuid});
+                                  arrayHelpers.push({ uuid: am.uuid });
                                 });
                               }}
                             />

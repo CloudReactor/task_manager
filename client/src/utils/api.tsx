@@ -72,6 +72,11 @@ extends PageFetchWithGroupIdOptions {
   runEnvironmentUuid?: string | null;
 }
 
+export interface PageFetchWithGroupIdAndScopedRunEnvironmentOptions
+extends PageFetchWithGroupIdAndRunEnvironmentOptions {
+  optionalRunEnvironmentUuid?: string | null;
+}
+
 function makePageFetchParams(pageFetchOptions?: PageFetchOptions,
     defaultOptions?: PageFetchOptions): { [key: string]: any } {
   if (defaultOptions) {
@@ -127,6 +132,21 @@ function makePageFetchWithGroupAndRunEnvironmentParams(pageFetchOptions?: PageFe
 
   return params;
 }
+
+function makePageFetchWithGroupAndScopedRunEnvironmentParams(pageFetchOptions?: PageFetchWithGroupIdAndScopedRunEnvironmentOptions,
+    defaultOptions?: PageFetchWithGroupIdAndScopedRunEnvironmentOptions): { [key: string]: any } {
+  const params = makePageFetchWithGroupAndRunEnvironmentParams(pageFetchOptions, defaultOptions);
+
+  const optionalRunEnvironmentUuid = pageFetchOptions?.optionalRunEnvironmentUuid ??
+    defaultOptions?.optionalRunEnvironmentUuid;
+
+  if (optionalRunEnvironmentUuid) {
+    params['optional_run_environment__uuid'] = '' + optionalRunEnvironmentUuid;
+  }
+
+  return params;
+}
+
 
 
 export const itemsPerPageOptions: Array<{ value: number; text: number }> = [
@@ -435,14 +455,14 @@ export async function saveRunEnvironment(uuid: string,
 }
 
 export async function fetchAlertMethods(
-  opts? :  PageFetchWithGroupIdAndRunEnvironmentOptions): Promise<ResultsPage<AlertMethod>> {
+  opts? :  PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<AlertMethod>> {
   opts = opts ?? {};
 
   const {
     cancelToken
   } = opts;
 
-  const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
+  const params = makePageFetchWithGroupAndScopedRunEnvironmentParams(opts);
   const response = await makeAuthenticatedClient().get(
     'api/v1/alert_methods/', {
       cancelToken,

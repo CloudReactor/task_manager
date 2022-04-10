@@ -682,11 +682,11 @@ def test_alert_method_create_access_control(
   (None, None,
    SEND_ID_OTHER, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    422, 'method_details'),
-  # Developer authenticated with JWT gets 422 with a specific Run Environment
+  # Developer authenticated with JWT succeeds with a specific Run Environment
   # where Profile is unscoped
   (None, None,
    SEND_ID_OTHER, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
-   422, 'method_details'),
+   201, None),
   # Developer with unscoped API Key succeeds
   # where Alert Method and Profile are also unscoped
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
@@ -727,16 +727,16 @@ def test_alert_method_create_access_control(
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    422, 'method_details'),
-  # Developer with scoped API Key fails using matching Run Environment
-  # but unscoped Profile
+  # Developer with scoped API Key succeeds using matching Run Environment
+  # and unscoped Profile
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
-   422, 'method_details'),
-  # Developer with scoped API Key fails using no explicit Run Environment
+   201, None),
+  # Developer with scoped API Key succeeds using no explicit Run Environment
   # but unscoped Profile
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
-   422, 'method_details'),
+   201, None),
 ])
 def test_alert_method_set_method_details(
         api_key_access_level: Optional[int], api_key_scope_type: str,

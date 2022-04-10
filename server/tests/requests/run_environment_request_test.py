@@ -574,62 +574,62 @@ def test_run_environment_update_access_control(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  api_key_access_level, api_key_scope_type,
+  is_post, api_key_access_level, api_key_scope_type,
   alert_method_send_type,
   status_code, validation_error_attribute
 """, [
-  # Developer authenticated with JWT succeeds with no Run Environment
+  # POST - Developer authenticated with JWT succeeds with no Run Environment
   # where Alert Method is also unscoped
-  (None, None,
-   SEND_ID_CORRECT,
+  (True, None, None,
+   SEND_ID_WITHOUT_RUN_ENVIRONMENT,
+   201, None),
+  # PUT - Developer authenticated with JWT succeeds with no Run Environment
+  # where Alert Method is also unscoped
+  (False, None, None,
+   SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    200, None),
-  # Developer authenticated with JWT succeeds with a specific Run Environment
+  # PUT - Developer authenticated with JWT succeeds with a specific Run Environment
   # where Alert Method is scoped correctly
-  (None, None,
+  (False, None, None,
    SEND_ID_CORRECT,
    200, None),
-  # Developer authenticated with JWT gets 422
+  # POST - Developer authenticated with JWT fails
   # where Alert Method is scoped to a different Run Environment
-  (None, None,
+  (True, None, None,
    SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    422, 'default_alert_methods'),
-  # Developer with unscoped API Key succeeds
-  # where Task and Alert Method are also unscoped
-  (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
-   SEND_ID_CORRECT,
+  # PUT - Developer authenticated with JWT succeeds
+  # where Alert Method is scoped to a different Run Environment
+  (False, None, None,
+   SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
+   422, 'default_alert_methods'),
+  # POST - Developer with unscoped API Key succeeds
+  # where Alert Method is also unscoped
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
+   SEND_ID_WITHOUT_RUN_ENVIRONMENT,
+   201, None),
+  # PUT - Developer with unscoped API Key succeeds
+  # where Alert Method is also unscoped
+  (False, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
+   SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    200, None),
-  # Developer with scoped API Key succeeds with correct Run Environment
-  # and an Alert Method that scoped to the same Run Environment
-  (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
-   SEND_ID_CORRECT,
-   200, None),
-  # Developer with scoped API Key succeeds with no explicit Run Environment
+  # PUT - Developer with scoped API Key succeeds with no explicit Run Environment
   # and an Alert Method that scoped to the API Key's Run Environment
-  (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
+  (False, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT,
    200, None),
-  # Developer with scoped API Key fails using with Task Run Environment and
+  # PUT - Developer with scoped API Key fails using with no explicit Run Environment
   # Alert Method with different Run Environment
-  (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
+  (False, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    422, 'default_alert_methods'),
-  # Developer with scoped API Key fails using with no explicit Run Environment
-  # Alert Method with different Run Environment
-  (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
-   SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'default_alert_methods'),
-  # Developer with scoped API Key fails using matching Run Environment
+  # PUT - Developer with scoped API Key fails using matching Run Environment
   # but unscoped Alert Method
-  (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
+  (False, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_WITHOUT_RUN_ENVIRONMENT,
-   422, 'default_alert_methods'),
-  # Developer with scoped API Key fails using no explicit Run Environment
-  # but unscoped Alert Method
-  (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
-   SEND_ID_WITHOUT_RUN_ENVIRONMENT,
-   422, 'default_alert_methods'),
+   200, None),
 ])
-def test_run_environment_set_alert_methods(
+def test_run_environment_set_alert_methods(is_post: bool,
         api_key_access_level: Optional[int], api_key_scope_type: str,
         alert_method_send_type: Optional[str],
         status_code: int, validation_error_attribute: Optional[str],
@@ -643,90 +643,94 @@ def test_run_environment_set_alert_methods(
 
     user = user_factory()
 
-    for is_post in [True, False]:
-        if is_post and (api_key_access_level is not None) and (api_key_scope_type != SCOPE_TYPE_NONE):
-            continue
+    uuid_send_type = SEND_ID_NONE if is_post else SEND_ID_CORRECT
 
-        uuid_send_type = SEND_ID_NONE if is_post else SEND_ID_CORRECT
+    run_environment, api_key_run_environment, client, url = common_setup(
+            is_authenticated=True,
+            group_access_level=group_access_level,
+            api_key_access_level=api_key_access_level,
+            api_key_scope_type=api_key_scope_type,
+            uuid_send_type=uuid_send_type,
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            api_client=api_client)
 
-        run_environment, api_key_run_environment, client, url = common_setup(
-                is_authenticated=True,
+    # Prevent conflict with previous iteration's created entity
+    request_data: Dict[str, Any] = {
+      'name': f'Some RE with POST {is_post}'
+    }
+
+    am_group = user.groups.first()
+    am_run_environment: Optional[RunEnvironment] = None
+    if alert_method_send_type == SEND_ID_CORRECT:
+        am_run_environment = run_environment
+    if alert_method_send_type == SEND_ID_WRONG:
+        am_group = group_factory()
+    elif alert_method_send_type == SEND_ID_IN_WRONG_GROUP:
+        am_group = group_factory()
+        set_group_access_level(user=user, group=am_group,
+                access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
+    elif alert_method_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
+        am_run_environment = run_environment_factory(created_by_group=am_group)
+    elif alert_method_send_type == SEND_ID_WITHOUT_RUN_ENVIRONMENT:
+        am_run_environment = None
+
+    alert_method = alert_method_factory(created_by_group=am_group,
+        run_environment=am_run_environment)
+
+    print(f"am_run_environment = {am_run_environment}, alert_method = {alert_method}")
+
+    if alert_method_send_type:
+        am_uuid = alert_method.uuid
+        if alert_method_send_type == SEND_ID_NOT_FOUND:
+            am_uuid = uuid.uuid4()
+
+        body_alert_methods = [{
+            'uuid': str(am_uuid)
+        }]
+
+        request_data['default_alert_methods'] = body_alert_methods
+
+    old_count = RunEnvironment.objects.count()
+
+    print(f"request data = {request_data}")
+
+    if is_post:
+        response = client.post(url, data=request_data)
+    else:
+        response = client.patch(url, data=request_data)
+
+    new_count = RunEnvironment.objects.count()
+
+    expected_status_code = status_code
+
+    assert response.status_code == expected_status_code
+
+    if (status_code >= 200) and (status_code < 300):
+        if is_post:
+            assert new_count == old_count + 1
+        else:
+            assert new_count == old_count
+
+        response_re = cast(Dict[str, Any], response.data)
+        re_uuid = response_re['uuid']
+        run_environment = RunEnvironment.objects.get(uuid=re_uuid)
+
+        assert group_access_level is not None
+        ensure_serialized_run_environment_valid(response_re=response_re,
+                run_environment=run_environment,
+                user=user,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
-                api_key_scope_type=api_key_scope_type,
-                uuid_send_type=uuid_send_type,
-                user=user,
-                group_factory=group_factory,
-                run_environment_factory=run_environment_factory,
-                api_client=api_client)
+                api_key_run_environment=api_key_run_environment)
 
-        # Prevent conflict with previous iteration's created entity
-        request_data: Dict[str, Any] = {
-          'name': f'Some RE with POST {is_post}'
-        }
+        print(f"response = {response_re}")
 
-        am_group = user.groups.first()
-        am_run_environment = None
-        if alert_method_send_type == SEND_ID_CORRECT:
-            if not is_post:
-                am_run_environment = run_environment
-        if alert_method_send_type == SEND_ID_WRONG:
-            am_group = group_factory()
-        elif alert_method_send_type == SEND_ID_IN_WRONG_GROUP:
-            am_group = group_factory()
-            set_group_access_level(user=user, group=am_group,
-                    access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
-        elif alert_method_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
-            am_run_environment = run_environment_factory(created_by_group=am_group)
-
-        alert_method = alert_method_factory(created_by_group=am_group,
-            run_environment=am_run_environment)
-
-        if alert_method_send_type:
-            am_uuid = alert_method.uuid
-            if alert_method_send_type == SEND_ID_NOT_FOUND:
-                am_uuid = uuid.uuid4()
-
-            body_alert_methods = [{
-                'uuid': str(am_uuid)
-            }]
-
-            request_data['default_alert_methods'] = body_alert_methods
-
-        old_count = RunEnvironment.objects.count()
-
-        if is_post:
-            response = client.post(url, data=request_data)
-        else:
-            response = client.patch(url, data=request_data)
-
-        new_count = RunEnvironment.objects.count()
-
+        assert(response_re['default_alert_methods'][0]['uuid'] == str(alert_method.uuid))
+    else:
         assert new_count == old_count
-
-        if is_post:
-            assert response.status_code == 400
-            response_dict = cast(Dict[str, Any], response.data)
-            assert('default_alert_methods' in response_dict)
-        else:
-            assert response.status_code == status_code
-
-            if status_code == 200:
-                response_re = cast(Dict[str, Any], response.data)
-                re_uuid = response_re['uuid']
-                run_environment = RunEnvironment.objects.get(uuid=re_uuid)
-
-                assert group_access_level is not None
-                ensure_serialized_run_environment_valid(response_re=response_re,
-                        run_environment=run_environment,
-                        user=user,
-                        group_access_level=group_access_level,
-                        api_key_access_level=api_key_access_level,
-                        api_key_run_environment=api_key_run_environment)
-
-                assert(response_re['default_alert_methods'][0]['uuid'] == str(alert_method.uuid))
-            else:
-                check_validation_error(response, validation_error_attribute)
+        check_validation_error(response, validation_error_attribute)
 
 
 @pytest.mark.django_db

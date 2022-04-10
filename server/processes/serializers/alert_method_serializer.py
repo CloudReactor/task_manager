@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import logging
 
@@ -99,7 +99,12 @@ class AlertMethodSerializer(GroupSettingSerializerMixin,
         validated = super().to_internal_value(data)
 
         group = validated['created_by_group']
-        run_environment = validated.get('run_environment')
+
+        alert_method: Optional[AlertMethod] = cast(AlertMethod, self.instance) \
+            if self.instance else None
+
+        run_environment = validated.get('run_environment',
+            alert_method.run_environment if alert_method else None)
 
         method_type: Optional[str] = None
         if method_details_dict:
@@ -122,7 +127,8 @@ class AlertMethodSerializer(GroupSettingSerializerMixin,
                     if method_type == AlertMethodSerializer.METHOD_TYPE_PAGERDUTY:
                         validated['pagerduty_profile'] = PagerDutyProfile.find_by_uuid_or_name(
                             profile_dict, required_group=group,
-                            required_run_environment=run_environment)
+                            allowed_run_environment=run_environment,
+                            allow_any_run_environment=(run_environment is None))
 
                         for prop_name in ['event_severity', 'event_component_template', 'event_group_template', 'event_class_template']:
                             v = method_details_dict.get(prop_name)
@@ -134,7 +140,8 @@ class AlertMethodSerializer(GroupSettingSerializerMixin,
                     elif method_type == AlertMethodSerializer.METHOD_TYPE_EMAIL:
                         validated['email_notification_profile'] = EmailNotificationProfile.find_by_uuid_or_name(
                             profile_dict, required_group=group,
-                            required_run_environment=run_environment)
+                            allowed_run_environment=run_environment,
+                            allow_any_run_environment=(run_environment is None))
 
                         validated['pagerduty_profile'] = None
                 except NotFound as nfe:

@@ -1,5 +1,8 @@
 #import ipdb
 import logging
+
+from typing import Optional, cast
+
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ErrorDetail, ValidationError
 
@@ -83,6 +86,8 @@ class WorkflowSerializer(
     def to_internal_value(self, data):
         logger.info(f"wfs: to_internal value, data = {data}")
 
+        workflow: Optional[Workflow] = cast(Workflow, self.instance) if self.instance else None
+
         data['description'] = data.get('description') or ''
         data['schedule'] = data.get('schedule') or ''
         data.pop('latest_workflow_execution', None)
@@ -93,9 +98,12 @@ class WorkflowSerializer(
 
         logger.debug(f"wfs: to_internal value, validated = {validated}")
 
-        self.set_validated_alert_methods(data=data, validated=validated,
-                run_environment=validated['run_environment'])
+        run_environment = validated.get('run_environment',
+          workflow.run_environment if workflow else None)
 
+        self.set_validated_alert_methods(data=data, validated=validated,
+                run_environment=run_environment,
+                allow_any_run_environment=(run_environment is None))
 
         return validated
 

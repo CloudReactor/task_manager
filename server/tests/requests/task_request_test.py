@@ -810,21 +810,21 @@ def test_task_create_with_links(
   (None, None,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    201, None),
-  # Developer authenticated with JWT succeeds with a specific Run Environment
-  # where Alert Method is scoped correctly
+  # Developer authenticated with JWT succeeds where Alert Method is scoped
+  # correctly
   (None, None,
    SEND_ID_OTHER, SEND_ID_CORRECT,
    201, None),
-  # Developer authenticated with JWT gets 422 with a specific Run Environment
-  # where Alert Method is scoped to a different run environment
+  # Developer authenticated with JWT gets 422 where Alert Method is
+  # scoped to a different Run Environment
   (None, None,
    SEND_ID_CORRECT, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    422, 'alert_methods'),
-  # Developer authenticated with JWT gets 422 with a specific Run Environment
+  # Developer authenticated with JWT gets succeeds a specific Run Environment
   # where Alert Method is unscoped
   (None, None,
    SEND_ID_OTHER, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
-   422, 'alert_methods'),
+   201, None),
   # Developer with unscoped API Key succeeds
   # where Task and Alert Method are also unscoped
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
@@ -865,16 +865,16 @@ def test_task_create_with_links(
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    422, 'alert_methods'),
-  # Developer with scoped API Key fails using matching Run Environment
+  # Developer with scoped API Key succeeds using matching Run Environment
   # but unscoped Alert Method
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
-   422, 'alert_methods'),
+   201, None),
   # Developer with scoped API Key fails using no explicit Run Environment
   # but unscoped Alert Method
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
-   422, 'alert_methods'),
+   201, None),
 ])
 @mock_ecs
 @mock_sts
@@ -908,7 +908,6 @@ def test_task_set_alert_methods(
                 run_environment_factory=run_environment_factory,
                 task_factory=task_factory,
                 api_client=api_client)
-
 
         old_count = Task.objects.count()
 

@@ -769,7 +769,7 @@ def test_task_create_workflow_limit(max_workflows: int,
   (None, None,
    SEND_ID_OTHER, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    True,
-   422, 'alert_methods'),
+   201, None),
 
   # Developer with unscoped API Key succeeds
   # where Workflow and Alert Method are both unscoped
@@ -848,14 +848,14 @@ def test_task_create_workflow_limit(max_workflows: int,
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    True,
-   422, 'alert_methods'),
+   201, None),
 
   # Developer with scoped API Key fails using no explicit Run Environment
   # but unscoped Alert Method
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    True,
-   422, 'alert_methods'),
+   201, None),
 ])
 def test_workflow_set_alert_methods(
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -1508,7 +1508,7 @@ def test_workflow_set_task_instances(
         else:
             assert new_count == old_count
             check_validation_error(response, validation_error_attribute)
-          
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""

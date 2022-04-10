@@ -25,6 +25,20 @@ class AlertMethodFilter(filters.FilterSet):
         model = AlertMethod
         fields = ['name', 'created_by_group__id', 'run_environment__uuid']
 
+    @property
+    def qs(self):
+        parent = super().qs
+
+        optional_run_environment_uuid = self.request.query_params.get(
+            'optional_run_environment__uuid')
+
+        if optional_run_environment_uuid is None:
+            return parent
+        else:
+            return parent.filter(
+              run_environment__uuid=optional_run_environment_uuid) | \
+              parent.filter(run_environment__uuid__isnull=True)
+
 @extend_schema(responses=AlertMethodSerializer)
 class AlertMethodViewSet(AtomicModelViewSet, CloningMixin, BaseViewSet):
     model_class = AlertMethod

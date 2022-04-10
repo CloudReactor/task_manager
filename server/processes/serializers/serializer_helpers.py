@@ -43,7 +43,8 @@ class SerializerHelpers(serializers.BaseSerializer):
             data: Mapping[str, Any],
             validated: Dict[str, Any],
             run_environment: Optional[RunEnvironment],
-            property_name: str = 'alert_methods'):
+            property_name: str = 'alert_methods',
+            allow_any_run_environment: bool = False):
         from processes.models import AlertMethod
 
         group = validated['created_by_group']
@@ -57,7 +58,8 @@ class SerializerHelpers(serializers.BaseSerializer):
                 try:
                     am = AlertMethod.find_by_uuid_or_name(body_alert_method,
                             required_group=group,
-                            required_run_environment=run_environment)
+                            allowed_run_environment=run_environment,
+                            allow_any_run_environment=allow_any_run_environment)
                 except serializers.ValidationError as validation_error:
                     self.handle_to_internal_value_exception(validation_error, field_name='alert_methods')
                 except NotFound as nfe:

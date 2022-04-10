@@ -29,7 +29,9 @@ class NamedWithUuidModel(UuidModel):
     def find_by_uuid_or_name(cls, obj_dict,
             required_group: Optional[Group] = None,
             required_run_environment: 'Optional[RunEnvironment]' = None,
-            check_conflict: bool = True):
+            check_conflict: bool = True,
+            allowed_run_environment: 'Optional[RunEnvironment]' = None,
+            allow_any_run_environment: Optional[bool] = None):
         uuid = obj_dict.get('uuid')
         name = obj_dict.get('name')
 
@@ -51,6 +53,24 @@ class NamedWithUuidModel(UuidModel):
         if required_run_environment and (
                 entity.run_environment != required_run_environment):
             raise NotFound()
+
+        # So that allowed_run_environment can be omitted if
+        # required_run_environment is set
+        allowed_run_environment = allowed_run_environment or \
+                required_run_environment
+
+        if allow_any_run_environment is None:
+            allow_any_run_environment = (allowed_run_environment is None)
+
+        if (not allow_any_run_environment) and \
+                hasattr(entity, 'run_environment') and \
+                entity.run_environment:
+
+            if allowed_run_environment:
+                if entity.run_environment != allowed_run_environment:
+                    raise NotFound()
+            else:
+                raise NotFound()
 
         return entity
 
