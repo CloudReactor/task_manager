@@ -195,15 +195,15 @@ class WorkflowTaskInstance(UuidModel):
 
             if task_execution.is_in_progress():
                 logger.info(
-                    f"retry_if_unsuccessful() on wti {self.uuid} : existing process execution {task_execution.uuid} in progress, not starting")
+                    f"retry_if_unsuccessful() on wti {self.uuid} : existing Task Execution {task_execution.uuid} in progress, not starting")
             elif task_execution.is_successful():
                 logger.info(
-                    f"retry_if_unsuccessful() on wti {self.uuid} : existing process execution {task_execution.uuid} was successful, transitioning out ...")
+                    f"retry_if_unsuccessful() on wti {self.uuid} : existing Task Execution {task_execution.uuid} was successful, transitioning out ...")
                 workflow_execution.handle_workflow_task_instance_execution_finished(
                     latest_execution, retry_mode=True)
             else:
                 logger.info(
-                    f"retry_if_unsuccessful() on wti {self.uuid} : existing process execution {task_execution.uuid} was unsuccessful, starting ...")
+                    f"retry_if_unsuccessful() on wti {self.uuid} : existing Task Execution {task_execution.uuid} was unsuccessful, starting ...")
                 self.start(workflow_execution)
 
     def find_executions(self, workflow_execution):

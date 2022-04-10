@@ -475,7 +475,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         task = self.task
 
         if not task.enabled:
-            logger.info(f"Skipping alerting since process type {task.uuid} is disabled")
+            logger.info(f"Skipping alerting since Task {task.uuid} is disabled")
             return
 
         run_env = task.run_environment
@@ -494,7 +494,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
 
                 # TODO: retry
                 try:
-                    logger.info(f"Sending alert for process {task.uuid} with status {self.status} ...")
+                    logger.info(f"Sending alert for Task {task.uuid} with status {self.status} ...")
 
                     tea.send_result = am.send(severity=severity, source=source,
                         task_execution=self) or ''
@@ -502,20 +502,20 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
                     if tea.send_result:
                         tea.send_result = tea.send_result[:Alert.MAX_SEND_RESULT_LENGTH]
 
-                    logger.info(f"Done sending alert for process {task.uuid} with status {self.status}")
+                    logger.info(f"Done sending alert for Task {task.uuid} with status {self.status}")
 
                     tea.send_status = AlertSendStatus.SUCCEEDED
                     tea.completed_at = timezone.now()
 
                 except Exception as ex:
-                    logger.exception(f"Can't send using alert method {am.uuid} / {am.name} for task execution UUID {self.uuid}")
+                    logger.exception(f"Can't send using Alert Method {am.uuid} / {am.name} for task execution UUID {self.uuid}")
 
                     tea.send_status = AlertSendStatus.FAILED
                     tea.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
 
                 tea.save()
             else:
-                logger.debug(f"Skipping alert method {am.uuid} / {am.name}")
+                logger.debug(f"Skipping Alert Method {am.uuid} / {am.name}")
 
     def clear_missing_scheduled_execution_alerts(self, mspe):
         from .alert import Alert
@@ -545,7 +545,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
                 mha.completed_at = timezone.now()
             except Exception as ex:
                 logger.exception(
-                    f"Failed to clear alert for missing scheduled execution of process type {mspe.task.uuid}")
+                    f"Failed to clear alert for missing scheduled execution of Task {mspe.task.uuid}")
                 mha.send_result = ''
                 mha.send_status = AlertSendStatus.FAILED
                 mha.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
@@ -585,7 +585,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
 
             mha.save()
 
-    def clear_delayed_process_start_alerts(self, dpsde):
+    def clear_delayed_task_start_alerts(self, dpsde):
         from .alert import Alert
         from .alert_send_status import AlertSendStatus
         from .delayed_process_start_alert import DelayedProcessStartAlert
@@ -606,7 +606,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
                 # task_execution is already in details
                 result = am.send(details=details,
                                  summary_template=self.CLEARED_DELAYED_PROCESS_START_EVENT_SUMMARY_TEMPLATE,
-                                 grouping_key=f"delayed_process_start-{self.uuid}",
+                                 grouping_key=f"delayed_task_start-{self.uuid}",
                                  is_resolution=True)
                 dpsa.send_result = result
                 dpsa.send_status = AlertSendStatus.SUCCEEDED
@@ -639,7 +639,7 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
         if existing_dpsde and (existing_dpsde.resolved_at is None):
             existing_dpsde.resolved_at = timezone.now()
             existing_dpsde.save()
-            instance.clear_delayed_process_start_alerts(existing_dpsde)
+            instance.clear_delayed_task_start_alerts(existing_dpsde)
 
     current_user = None
 
@@ -693,7 +693,7 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
                 instance.clear_missing_scheduled_execution_alerts(mspe)
             else:
                 logger.info(
-                    f"Task execution {instance.uuid} is too far ({lateness_seconds} seconds) after scheduled time of {mspe.expected_execution_at}, not clearing alerts")
+                    f"Task Execution {instance.uuid} is too far ({lateness_seconds} seconds) after scheduled time of {mspe.expected_execution_at}, not clearing alerts")
 
     heartbeat_interval_seconds = task.heartbeat_interval_seconds
     max_heartbeat_lateness_before_alert_seconds = task.max_heartbeat_lateness_before_alert_seconds
@@ -708,7 +708,7 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
                 task_execution=instance).order_by('-detected_at', '-id').first()
 
             if last_heartbeat_detection_event and (last_heartbeat_detection_event.resolved_at is None):
-                logger.info(f"Found last heartbeat detection event {last_heartbeat_detection_event.uuid} to resolve for process type {task.uuid}")
+                logger.info(f"Found last heartbeat detection event {last_heartbeat_detection_event.uuid} to resolve for Task {task.uuid}")
                 last_heartbeat_detection_event.resolved_at = utc_now
                 last_heartbeat_detection_event.save()
                 instance.clear_heartbeat_detection_alerts(last_heartbeat_detection_event)

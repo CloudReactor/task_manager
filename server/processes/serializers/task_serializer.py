@@ -133,7 +133,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
     @extend_schema_field(TaskExecutionSerializer)
     def get_latest_task_execution(self, obj: Task):
-        # Set the process type so we don't get N+1 queries looking back
+        # Set the Task so we don't get N+1 queries looking back
         # Seems to slow down in ECS even though it stops N+1 queries
         if obj.latest_task_execution:
             obj.latest_task_execution.task = obj

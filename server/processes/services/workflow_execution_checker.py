@@ -16,7 +16,7 @@ class WorkflowExecutionChecker:
             try:
                 self.check_workflow_execution(we)
             except Exception:
-                logger.exception(f"Failed checking Workflow execution {we.uuid} of process type {we.workflow}")
+                logger.exception(f"Failed checking Workflow Execution {we.uuid} of Workflow {we.workflow}")
 
     def check_workflow_execution(self, we: WorkflowExecution):
         if we.finished_at:
@@ -34,15 +34,15 @@ class WorkflowExecutionChecker:
         workflow = we.workflow
         utc_now = timezone.now()
         run_duration = (utc_now - (we.started_at or we.created_at)).total_seconds()
-        logger.info(f"Run duration of workflow execution {we.uuid} is {run_duration} seconds")
+        logger.info(f"Run duration of Workflow Execution {we.uuid} is {run_duration} seconds")
 
         if workflow.max_age_seconds is not None:
             if run_duration > workflow.max_age_seconds:
                 logger.info(
-                    f"Run duration of workflow execution {we.uuid} {run_duration} seconds > max age {workflow.max_age_seconds} seconds, stopping")
+                    f"Run duration of Workflow Execution {we.uuid} {run_duration} seconds > max age {workflow.max_age_seconds} seconds, stopping")
                 we.handle_timeout()
                 return True
 
-            logger.debug(f"Run duration of workflow execution {we.uuid} is within max age")
+            logger.debug(f"Run duration of Workflow Execution {we.uuid} is within max age")
 
         return False

@@ -110,8 +110,8 @@ class WorkflowExecution(UuidModel):
 
     def is_execution_continuation_allowed(self) -> bool:
         """
-        Execution can continue as long as no manual intervention happened. A workflow
-        may fail (status = FAILED), but failure handlers may trigger another process type
+        Execution can continue as long as no manual intervention happened. A Workflow
+        may fail (status = FAILED), but failure handlers may trigger another Task
         to run.
         """
         return self.status in WorkflowExecution.STATUSES_WITHOUT_MANUAL_INTERVENTION
@@ -228,7 +228,7 @@ class WorkflowExecution(UuidModel):
 
             for transition in transitions:
                 if skipped:
-                    # CHECKME: should we use the last process execution's properties?
+                    # CHECKME: should we use the last Task Execution's properties?
                     should_activate = transition.should_activate(
                         task_execution_status=TaskExecution.Status.SUCCEEDED,
                         exit_code=0)
@@ -493,20 +493,20 @@ class WorkflowExecution(UuidModel):
 
                 # TODO: put the sending in a job queue to allow for retries
                 try:
-                    logger.info(f"Sending alert for process {workflow.uuid} with status {self.status} ...")
+                    logger.info(f"Sending alert for Workflow {workflow.uuid} with status {self.status} ...")
 
                     wea.send_result = am.send(severity=severity, workflow_execution=self) or ''
 
                     if wea.send_result:
                         wea.send_result = wea.send_result[:Alert.MAX_SEND_RESULT_LENGTH]
 
-                    logger.info(f"Done sending alert for process {workflow.uuid} with status {self.status}")
+                    logger.info(f"Done sending alert for Workflow {workflow.uuid} with status {self.status}")
 
                     wea.send_status = AlertSendStatus.SUCCEEDED
                     wea.completed_at = timezone.now()
 
                 except Exception as ex:
-                    logger.exception(f"Can't send using alert method {am.uuid} / {am.name} for process execution UUID {self.uuid}")
+                    logger.exception(f"Can't send using Alert Method {am.uuid} / {am.name} for Workflow Execution Alert {self.uuid}")
 
                     wea.send_status = AlertSendStatus.FAILED
                     wea.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
@@ -547,7 +547,7 @@ class WorkflowExecution(UuidModel):
                 mha.completed_at = timezone.now()
             except Exception as ex:
                 logger.exception(
-                    f"Failed to clear alert for missing scheduled execution of process type {mswe.workflow.uuid}")
+                    f"Failed to clear alert for missing scheduled execution of Workflow {mswe.workflow.uuid}")
                 mha.send_result = ''
                 mha.send_status = AlertSendStatus.FAILED
                 mha.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]

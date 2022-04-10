@@ -4,14 +4,14 @@ from processes.models import *
 from .schedule_checker import ScheduleChecker
 
 SUMMARY_TEMPLATE = \
-    """Process '{{task.name}}' did not execute as scheduled at {{expected_execution_at}}"""
+    """Task '{{task.name}}' did not execute as scheduled at {{expected_execution_at}}"""
 
 logger = logging.getLogger(__name__)
 
 
 class TaskScheduleChecker(ScheduleChecker):
     def model_name(self):
-        return 'process type'
+        return 'Task'
 
     def manager(self):
         return Task.objects

@@ -21,7 +21,7 @@ class TaskExecutionChecker:
     MISSING_HEARTBEAT_EVENT_SUMMARY_TEMPLATE = \
         """Task '{{task_execution.task.name}}' has not sent a heartbeat for more than {{heartbeat_interval_seconds}} seconds after the previous heartbeat at {{last_heartbeat_at}}"""
 
-    DELAYED_PROCESS_START_EVENT_SUMMARY_TEMPLATE = \
+    DELAYED_TASK_START_EVENT_SUMMARY_TEMPLATE = \
         """Task '{{task_execution.task.name}}' was initiated at {{task_execution.started_at}} but not started yet after {{max_manual_start_delay_before_alert_seconds}} seconds"""
 
     def check_all(self):
@@ -31,7 +31,7 @@ class TaskExecutionChecker:
             try:
                 self.check_task_execution(te)
             except Exception:
-                logger.exception(f"Failed checking Task Execution {te.uuid} of process type {te.task}")
+                logger.exception(f"Failed checking Task Execution {te.uuid} of Task {te.task}")
 
     def check_task_execution(self, te: TaskExecution):
         if te.finished_at:
@@ -71,14 +71,14 @@ class TaskExecutionChecker:
             ).first()
 
             if existing_dpde:
-                logger.debug(f"Found existing delayed process start event {existing_dpde.uuid}, not creating another")
+                logger.debug(f"Found existing delayed Task start event {existing_dpde.uuid}, not creating another")
             else:
                 expected_started_before = (te.started_at + timedelta(seconds=max_delay_seconds)).replace(microsecond=0)
                 dpsde = DelayedProcessStartDetectionEvent(task_execution=te,
                                                           resolved_at=None,
                                                           expected_started_before=expected_started_before)
                 dpsde.save()
-                self.send_delayed_process_start_alerts(dpsde)
+                self.send_delayed_task_start_alerts(dpsde)
 
         max_delay_seconds = te.task.max_manual_start_delay_before_abandonment_seconds
 
@@ -114,7 +114,7 @@ class TaskExecutionChecker:
                 te.status = TaskExecution.Status.STOPPING
                 te.marked_done_at = utc_now
                 te.stop_reason = TaskExecution.StopReason.MAX_EXECUTION_TIME_EXCEEDED
-                # This will send alerts if configured by the process type
+                # This will send alerts if configured by the Task
                 te.save()
                 return True
 
@@ -224,7 +224,7 @@ class TaskExecutionChecker:
 
             mha.save()
 
-    def send_delayed_process_start_alerts(self,
+    def send_delayed_task_start_alerts(self,
             dpsde: DelayedProcessStartDetectionEvent):
         details = DelayedTaskStartDetectionEventSerializer(dpsde,
             context=context_with_request()).data
@@ -247,8 +247,8 @@ class TaskExecutionChecker:
             try:
                 # task_execution is already in details
                 result = am.send(details=details, severity=severity,
-                        summary_template=self.DELAYED_PROCESS_START_EVENT_SUMMARY_TEMPLATE,
-                        grouping_key=f"delayed_process_start-{te.uuid}")
+                        summary_template=self.DELAYED_TASK_START_EVENT_SUMMARY_TEMPLATE,
+                        grouping_key=f"delayed_task_start-{te.uuid}")
                 dpsa.send_result = result
                 dpsa.send_status = AlertSendStatus.SUCCEEDED
                 dpsa.completed_at = timezone.now()

@@ -59,7 +59,7 @@ class ServiceConcurrencyChecker:
         interval_start_timestamp = start_dt.timestamp()
 
         if interval_start_timestamp >= utc_timestamp:
-            logger.info(f"First expected start time {start_dt} is after current time, skipping process {service.uuid}")
+            logger.info(f"First expected start time {start_dt} is after current time, skipping service {service.uuid}")
             return
 
         qs = TaskExecution.objects.filter(
@@ -114,7 +114,7 @@ class ServiceConcurrencyChecker:
         if (min_concurrency_found is None) or (min_concurrency_found_interval is None):
             logger.error(f'Unexpected state: {min_concurrency_found=}, {min_concurrency_found_interval=}')
         elif (service.min_service_instance_count is not None) and (min_concurrency_found < service.min_service_instance_count):
-            logger.info(f"Found insufficient min concurrency {min_concurrency_found} for process type {service.uuid}")
+            logger.info(f"Found insufficient min concurrency {min_concurrency_found} for service {service.uuid}")
 
             event = InsufficientServiceInstancesEvent.objects.filter(
                     task=service).order_by('-detected_at', '-id').first()

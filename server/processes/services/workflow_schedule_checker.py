@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowScheduleChecker(ScheduleChecker):
     def model_name(self):
-        return 'workflow'
+        return 'Workflow'
 
     def manager(self):
         return Workflow.objects
