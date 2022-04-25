@@ -9,7 +9,7 @@ API Server and Web Front-end for CloudReactor. Deployed to dash.cloudreactor.io
 ## Requirements
 
 * Docker (with Compose built-in)
-* Python 3.9.6+ if running outside of Docker
+* Python 3.9+ if running outside of Docker
 * Node JS v12.22.5
 * Postgres 13.4+
 
