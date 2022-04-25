@@ -9,6 +9,8 @@ from processes.models import SaasToken
 
 
 class SaasTokenAuthentication(TokenAuthentication):
+    # More standard keyword that most API client generators default to
+    keyword = 'Bearer'
 
     model = SaasToken
 

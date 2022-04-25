@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: CloudReactor API
-  version: 0.2.0
+  version: 0.2.1
   description: CloudReactor API Documentation
   contact:
     name: Jeff Tsay
@@ -68,12 +68,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AlertMethod'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AlertMethod'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AlertMethod'
         required: true
       security:
       - tokenAuth: []
@@ -121,12 +115,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AlertMethod'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AlertMethod'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AlertMethod'
         required: true
       security:
       - tokenAuth: []
@@ -151,12 +139,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedAlertMethod'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedAlertMethod'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedAlertMethod'
       security:
@@ -199,12 +181,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/AlertMethod'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AlertMethod'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/AlertMethod'
         required: true
@@ -277,12 +253,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EmailNotificationProfile'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/EmailNotificationProfile'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/EmailNotificationProfile'
         required: true
       security:
       - tokenAuth: []
@@ -330,12 +300,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EmailNotificationProfile'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/EmailNotificationProfile'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/EmailNotificationProfile'
         required: true
       security:
       - tokenAuth: []
@@ -360,12 +324,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedEmailNotificationProfile'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedEmailNotificationProfile'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedEmailNotificationProfile'
       security:
@@ -408,12 +366,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/EmailNotificationProfile'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/EmailNotificationProfile'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/EmailNotificationProfile'
         required: true
@@ -486,12 +438,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PagerDutyProfile'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PagerDutyProfile'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PagerDutyProfile'
         required: true
       security:
       - tokenAuth: []
@@ -539,12 +485,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PagerDutyProfile'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PagerDutyProfile'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PagerDutyProfile'
         required: true
       security:
       - tokenAuth: []
@@ -569,12 +509,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedPagerDutyProfile'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedPagerDutyProfile'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedPagerDutyProfile'
       security:
@@ -617,12 +551,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PagerDutyProfile'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PagerDutyProfile'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PagerDutyProfile'
         required: true
@@ -691,12 +619,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RunEnvironment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/RunEnvironment'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/RunEnvironment'
         required: true
       security:
       - tokenAuth: []
@@ -744,12 +666,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RunEnvironment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/RunEnvironment'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/RunEnvironment'
         required: true
       security:
       - tokenAuth: []
@@ -774,12 +690,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedRunEnvironment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedRunEnvironment'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedRunEnvironment'
       security:
@@ -822,12 +732,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/RunEnvironment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/RunEnvironment'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/RunEnvironment'
         required: true
@@ -896,12 +800,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TaskExecution'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TaskExecution'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TaskExecution'
         required: true
       security:
       - tokenAuth: []
@@ -949,12 +847,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TaskExecution'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TaskExecution'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TaskExecution'
         required: true
       security:
       - tokenAuth: []
@@ -979,12 +871,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedTaskExecution'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedTaskExecution'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedTaskExecution'
       security:
@@ -1073,12 +959,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Task'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Task'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Task'
         required: true
       security:
       - tokenAuth: []
@@ -1126,12 +1006,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Task'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Task'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Task'
         required: true
       security:
       - tokenAuth: []
@@ -1156,12 +1030,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedTask'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedTask'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedTask'
       security:
@@ -1245,12 +1113,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowExecution'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkflowExecution'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkflowExecution'
         required: true
       security:
       - tokenAuth: []
@@ -1298,12 +1160,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowExecution'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkflowExecution'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkflowExecution'
         required: true
       security:
       - tokenAuth: []
@@ -1328,12 +1184,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkflowExecution'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkflowExecution'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedWorkflowExecution'
       security:
@@ -1378,12 +1228,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowExecution'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkflowExecution'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkflowExecution'
         required: true
       security:
       - tokenAuth: []
@@ -1409,12 +1253,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/WorkflowExecution'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkflowExecution'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/WorkflowExecution'
         required: true
@@ -1506,12 +1344,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowTaskInstance'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkflowTaskInstance'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkflowTaskInstance'
         required: true
       security:
       - tokenAuth: []
@@ -1559,12 +1391,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowTaskInstance'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkflowTaskInstance'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkflowTaskInstance'
         required: true
       security:
       - tokenAuth: []
@@ -1589,12 +1415,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkflowTaskInstance'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkflowTaskInstance'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedWorkflowTaskInstance'
       security:
@@ -1674,12 +1494,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowTransition'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkflowTransition'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkflowTransition'
         required: true
       security:
       - tokenAuth: []
@@ -1727,12 +1541,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/WorkflowTransition'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkflowTransition'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkflowTransition'
         required: true
       security:
       - tokenAuth: []
@@ -1757,12 +1565,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkflowTransition'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkflowTransition'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedWorkflowTransition'
       security:
@@ -1850,12 +1652,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Workflow'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Workflow'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Workflow'
         required: true
       security:
       - tokenAuth: []
@@ -1903,12 +1699,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Workflow'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Workflow'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Workflow'
         required: true
       security:
       - tokenAuth: []
@@ -1933,12 +1723,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkflow'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedWorkflow'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedWorkflow'
       security:
@@ -1981,12 +1765,6 @@ paths:
       requestBody:
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Workflow'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Workflow'
-          multipart/form-data:
             schema:
               $ref: '#/components/schemas/Workflow'
         required: true
@@ -2065,15 +1843,7 @@ components:
           format: date-time
           readOnly: true
       required:
-      - created_at
-      - created_by_group
-      - created_by_user
-      - dashboard_url
-      - method_details
       - name
-      - updated_at
-      - url
-      - uuid
     AwsEcsExecutionMethod:
       type: object
       description: |-
@@ -2154,14 +1924,7 @@ components:
           type: string
           maxLength: 10
       required:
-      - cluster_infrastructure_website_url
-      - execution_role_infrastructure_website_url
-      - security_group_infrastructure_website_urls
-      - subnet_infrastructure_website_urls
       - tags
-      - task_definition_infrastructure_website_url
-      - task_role_infrastructure_website_url
-      - type
     AwsEcsExecutionMethodCapability:
       type: object
       description: |-
@@ -2258,15 +2021,7 @@ components:
         service_options:
           $ref: '#/components/schemas/AwsEcsServiceOptions'
       required:
-      - capabilities
-      - default_cluster_infrastructure_website_url
-      - default_execution_role_infrastructure_website_url
-      - default_security_group_infrastructure_website_urls
-      - default_subnet_infrastructure_website_urls
-      - default_task_role_infrastructure_website_url
       - tags
-      - task_definition_infrastructure_website_url
-      - type
     AwsEcsLaunchType:
       enum:
       - FARGATE
@@ -2353,14 +2108,7 @@ components:
           type: string
           maxLength: 10
       required:
-      - capabilities
-      - default_cluster_infrastructure_website_url
-      - default_execution_role_infrastructure_website_url
-      - default_security_group_infrastructure_website_urls
-      - default_subnet_infrastructure_website_urls
-      - default_task_role_infrastructure_website_url
       - tags
-      - type
     AwsEcsServiceLoadBalancerDetails:
       type: object
       description: |-
@@ -2411,8 +2159,6 @@ components:
             type: string
             nullable: true
           nullable: true
-      required:
-      - load_balancers
     CurrentServiceInfo:
       type: object
       properties:
@@ -2431,11 +2177,6 @@ components:
           format: date-time
           nullable: true
           readOnly: true
-      required:
-      - service_arn
-      - service_arn_updated_at
-      - service_infrastructure_website_url
-      - type
     EmailNotificationProfile:
       type: object
       description: An EmailProfile contains settings for emailing notifications.
@@ -2506,14 +2247,7 @@ components:
           type: string
           maxLength: 10000
       required:
-      - created_at
-      - created_by_group
-      - created_by_user
-      - dashboard_url
       - name
-      - updated_at
-      - url
-      - uuid
     ExecutionMethodCapability:
       oneOf:
       - $ref: '#/components/schemas/AwsEcsExecutionMethodCapability'
@@ -2543,9 +2277,7 @@ components:
           format: uri
           readOnly: true
       required:
-      - id
       - name
-      - url
     Link:
       type: object
       description: Links represent a URL and associated metadata.
@@ -2568,7 +2300,6 @@ components:
           type: integer
       required:
       - icon_url
-      - link_url
       - link_url_template
       - name
       - rank
@@ -2590,8 +2321,6 @@ components:
           readOnly: true
         name:
           type: string
-      required:
-      - url
     NotificationSeverity:
       enum:
       - critical
@@ -2658,15 +2387,8 @@ components:
           format: date-time
           readOnly: true
       required:
-      - created_at
-      - created_by_group
-      - created_by_user
-      - dashboard_url
       - integration_key
       - name
-      - updated_at
-      - url
-      - uuid
     PaginatedAlertMethodList:
       type: object
       properties:
@@ -3381,7 +3103,9 @@ components:
           minimum: -2147483648
           nullable: true
         stop_reason:
-          $ref: '#/components/schemas/StopReasonEnum'
+          allOf:
+          - $ref: '#/components/schemas/StopReasonEnum'
+          nullable: true
         last_heartbeat_at:
           type: string
           format: date-time
@@ -3526,6 +3250,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/WorkflowTaskInstanceExecutionBase'
           readOnly: true
+          nullable: true
         api_base_url:
           type: string
           maxLength: 200
@@ -3824,7 +3549,7 @@ components:
           nullable: true
         condition_ratio_threshold:
           type: number
-          format: float
+          format: double
           nullable: true
         max_age_seconds:
           type: integer
@@ -3867,15 +3592,15 @@ components:
           maxLength: 50
         ui_scale:
           type: number
-          format: float
+          format: double
           nullable: true
         ui_center_margin_top:
           type: number
-          format: float
+          format: double
           nullable: true
         ui_center_margin_left:
           type: number
-          format: float
+          format: double
           nullable: true
         created_at:
           type: string
@@ -3934,7 +3659,7 @@ components:
           maxLength: 50
         ui_scale:
           type: number
-          format: float
+          format: double
           nullable: true
         created_at:
           type: string
@@ -4034,15 +3759,7 @@ components:
             $ref: '#/components/schemas/AwsEcsRunEnvironmentExecutionMethodCapability'
           readOnly: true
       required:
-      - created_at
-      - created_by_group
-      - created_by_user
-      - dashboard_url
-      - execution_method_capabilities
       - name
-      - updated_at
-      - url
-      - uuid
     StartTransitionConditionEnum:
       enum:
       - all
@@ -4210,20 +3927,7 @@ components:
           format: date-time
           readOnly: true
       required:
-      - created_at
-      - created_by_group
-      - created_by_user
-      - current_service_info
-      - dashboard_url
-      - execution_method_capability
-      - infrastructure_website_url
-      - is_service
-      - latest_task_execution
-      - logs_url
       - name
-      - updated_at
-      - url
-      - uuid
     TaskExecution:
       type: object
       description: A Task Execution is an execution / run instance of a Task.
@@ -4326,7 +4030,9 @@ components:
           minimum: -2147483648
           nullable: true
         stop_reason:
-          $ref: '#/components/schemas/StopReasonEnum'
+          allOf:
+          - $ref: '#/components/schemas/StopReasonEnum'
+          nullable: true
         last_heartbeat_at:
           type: string
           format: date-time
@@ -4471,6 +4177,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/WorkflowTaskInstanceExecutionBase'
           readOnly: true
+          nullable: true
         api_base_url:
           type: string
           maxLength: 200
@@ -4549,20 +4256,7 @@ components:
           format: date-time
           readOnly: true
       required:
-      - commit_url
-      - created_at
-      - dashboard_url
-      - execution_method
-      - infrastructure_website_url
-      - killed_by
-      - marked_done_by
-      - started_at
-      - started_by
       - status
-      - updated_at
-      - url
-      - uuid
-      - workflow_task_instance_execution
     TaskExecutionStatus:
       enum:
       - RUNNING
@@ -4608,9 +4302,6 @@ components:
           items:
             type: string
           readOnly: true
-      required:
-      - capabilities
-      - type
     Workflow:
       type: object
       description: |-
@@ -4692,16 +4383,7 @@ components:
             $ref: '#/components/schemas/WorkflowTransition'
           readOnly: true
       required:
-      - created_at
-      - created_by_group
-      - created_by_user
-      - dashboard_url
       - name
-      - updated_at
-      - url
-      - uuid
-      - workflow_task_instances
-      - workflow_transitions
     WorkflowExecution:
       type: object
       properties:
@@ -4804,20 +4486,8 @@ components:
           format: date-time
           readOnly: true
       required:
-      - created_at
-      - dashboard_url
-      - killed_by
-      - marked_done_by
-      - started_at
-      - started_by
       - status
-      - updated_at
-      - url
-      - uuid
       - workflow
-      - workflow_snapshot
-      - workflow_task_instance_executions
-      - workflow_transition_evaluations
     WorkflowExecutionStatus:
       enum:
       - RUNNING
@@ -4901,13 +4571,7 @@ components:
           format: date-time
           readOnly: true
       required:
-      - created_at
-      - dashboard_url
-      - started_at
       - status
-      - updated_at
-      - url
-      - uuid
     WorkflowSummary:
       type: object
       description: Selected properties of Workflows.
@@ -4972,14 +4636,7 @@ components:
           format: date-time
           readOnly: true
       required:
-      - created_at
-      - created_by_group
-      - created_by_user
-      - dashboard_url
       - name
-      - updated_at
-      - url
-      - uuid
     WorkflowTaskInstance:
       type: object
       description: |-
@@ -5020,7 +4677,7 @@ components:
           nullable: true
         condition_ratio_threshold:
           type: number
-          format: float
+          format: double
           nullable: true
         max_age_seconds:
           type: integer
@@ -5063,15 +4720,15 @@ components:
           maxLength: 50
         ui_scale:
           type: number
-          format: float
+          format: double
           nullable: true
         ui_center_margin_top:
           type: number
-          format: float
+          format: double
           nullable: true
         ui_center_margin_left:
           type: number
-          format: float
+          format: double
           nullable: true
         created_at:
           type: string
@@ -5082,12 +4739,8 @@ components:
           format: date-time
           readOnly: true
       required:
-      - created_at
       - name
       - task
-      - updated_at
-      - url
-      - uuid
       - workflow
     WorkflowTaskInstanceExecution:
       type: object
@@ -5119,13 +4772,6 @@ components:
           type: string
           format: date-time
           readOnly: true
-      required:
-      - created_at
-      - is_latest
-      - task_execution
-      - uuid
-      - workflow_execution
-      - workflow_task_instance
     WorkflowTaskInstanceExecutionBase:
       type: object
       description: |-
@@ -5152,12 +4798,6 @@ components:
           type: string
           format: date-time
           readOnly: true
-      required:
-      - created_at
-      - is_latest
-      - uuid
-      - workflow_execution
-      - workflow_task_instance
     WorkflowTransition:
       type: object
       description: |-
@@ -5207,7 +4847,7 @@ components:
           maxLength: 50
         ui_scale:
           type: number
-          format: float
+          format: double
           nullable: true
         created_at:
           type: string
@@ -5218,13 +4858,9 @@ components:
           format: date-time
           readOnly: true
       required:
-      - created_at
       - from_workflow_task_instance
       - rule_type
       - to_workflow_task_instance
-      - updated_at
-      - url
-      - uuid
     WorkflowTransitionEvaluation:
       type: object
       description: |-
@@ -5254,19 +4890,10 @@ components:
           type: string
           format: date-time
           readOnly: true
-      required:
-      - evaluated_at
-      - from_workflow_task_instance_execution
-      - result
-      - uuid
-      - workflow_execution
-      - workflow_transition
   securitySchemes:
     tokenAuth:
-      type: apiKey
-      in: header
-      name: Authorization
-      description: Token-based authentication with required prefix "Token"
+      type: http
+      scheme: bearer
 servers:
 - url: https://api.cloudreactor.io/api/v1
   description: CloudReactor API server

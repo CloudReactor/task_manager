@@ -240,6 +240,7 @@ WHITENOISE_ROOT = env.str('WHITENOISE_ROOT', default=CRA_ROOT)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'processes.authentication.SaasTokenAuthentication',
+        'processes.authentication.LegacySaasTokenAuthentication',
         'processes.authentication.AllowBadJwtTokenAuthentication',
         # Required for API Browser
         'rest_framework.authentication.SessionAuthentication',
@@ -391,7 +392,7 @@ CACHE_INVALIDATE_ON_CREATE = 'whole-model'
 SPECTACULAR_SETTINGS = {
     'TITLE': 'CloudReactor API',
     'DESCRIPTION': 'CloudReactor API Documentation',
-    'VERSION': '0.2.0',
+    'VERSION': '0.2.1',
     'SCHEMA_PATH_PREFIX': '/api/v1',
     # Remove matching SCHEMA_PATH_PREFIX from operation path. Usually used in
     # conjunction with appended prefixes in SERVERS.
@@ -414,9 +415,12 @@ SPECTACULAR_SETTINGS = {
     'AUTHENTICATION_WHITELIST': [
         'processes.authentication.SaasTokenAuthentication',
     ],
+    'PARSER_WHITELIST': [
+        'rest_framework.parsers.JSONParser'
+    ],
     # 'COMPONENT_SPLIT_REQUEST': True,
     # Aid client generator targets that have trouble with read-only properties.
-    # 'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
     # Code generation has trouble with oneOf with BlankEnum choice
     'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
     'ENUM_NAME_OVERRIDES': {

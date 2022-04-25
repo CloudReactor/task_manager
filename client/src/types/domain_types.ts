@@ -437,7 +437,7 @@ export interface TaskExecution {
   status_update_interval_seconds: number | null,
   status_update_message_max_bytes: number | null,
   status_update_port: number | null,
-  stop_reason: string;
+  stop_reason: string | null;
   success_count: number;
   timed_out_attempts: number;
   updated_at: Date;

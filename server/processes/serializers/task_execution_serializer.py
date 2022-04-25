@@ -134,9 +134,11 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
     )
     execution_method = serializers.SerializerMethodField()
     status = TaskExecutionStatusSerializer()
-    stop_reason = TaskExecutionStopReasonSerializer(required=False)
+    stop_reason = TaskExecutionStopReasonSerializer(required=False,
+        allow_null=True)
     commit_url = serializers.ReadOnlyField()
-    workflow_task_instance_execution = serializers.SerializerMethodField()
+    workflow_task_instance_execution = serializers.SerializerMethodField(
+        allow_null=True)
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         status = attrs.get('status')
