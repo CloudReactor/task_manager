@@ -14,20 +14,27 @@ class NameAndUuidSerializer(serializers.Serializer):
     url = serializers.SerializerMethodField()
     name = serializers.CharField(required=False)
 
-    def __init__(self, include_name=True, view_name=None,
+    def __init__(self, instance=None, include_name=True, view_name=None,
                  context=None, **kwargs):
         self.view_name = view_name
         self.caller_context = context or {'request': None}
-        super().__init__(**kwargs)
+        super().__init__(instance=instance, **kwargs)
 
         if not include_name:
             self.fields.pop('name')
 
-        self.url_field = serializers.HyperlinkedIdentityField(
-                view_name=self.view_name,
-                lookup_field='uuid')
+        if view_name is None:
+            self.url_field = None
+            self.fields.pop('url')
+        else:
+            self.url_field = serializers.HyperlinkedIdentityField(
+                    view_name=self.view_name,
+                    lookup_field='uuid')
 
     def get_url(self, obj) -> Optional[str]:
+        if self.url_field is None:
+            return None
+
         # Doesn't work due to missing context, but can't find a way to inject it.
         # return self.url_field.to_representation(obj)
         return self.url_field.get_url(obj=obj, view_name=self.view_name,

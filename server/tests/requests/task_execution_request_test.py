@@ -1,5 +1,4 @@
-from sys import api_version
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, List, Optional, Tuple, cast
 
 from datetime import timedelta
 import random
@@ -28,9 +27,9 @@ from moto import mock_ecs, mock_sts, mock_events
 from conftest import *
 
 
-def ensure_serialized_task_execution_valid(response_task_execution: Dict[str, Any],
-        task_execution: TaskExecution, user: User,
-        group_access_level: int,
+def ensure_serialized_task_execution_valid(
+        response_task_execution: dict[str, Any], task_execution: TaskExecution,
+        user: User, group_access_level: int,
         api_key_access_level: Optional[int] = None,
         api_key_run_environment: Optional[RunEnvironment] = None) -> None:
     context = context_with_authenticated_request(user=user,
@@ -42,8 +41,8 @@ def ensure_serialized_task_execution_valid(response_task_execution: Dict[str, An
     if api_key_access_level is not None:
         access_level = min(access_level, api_key_access_level)
 
-    assert response_task_execution == TaskExecutionSerializer(task_execution,
-            context=context).data
+    validate_serialized_task_execution(response_task_execution,
+            task_execution, context=context)
 
     if api_key_run_environment:
         assert api_key_run_environment.pk == task_execution.task.run_environment.pk
@@ -312,8 +311,8 @@ def make_request_body(uuid_send_type: Optional[str],
         task_execution: TaskExecution,
         group_factory, run_environment_factory, task_factory,
         task_execution_factory,
-        task_property_name: str = 'task') -> Dict[str, Any]:
-    request_data: Dict[str, Any] = {
+        task_property_name: str = 'task') -> dict[str, Any]:
+    request_data: dict[str, Any] = {
       'status': 'RUNNING',
       'extraprop': 'dummy',
     }
@@ -651,7 +650,7 @@ def test_task_execution_create_access_control(
     if status_code == 201:
         assert new_count == old_count + 1
 
-        response_task_execution = cast(Dict[str, Any], response.data)
+        response_task_execution = cast(dict[str, Any], response.data)
         task_execution_uuid = response_task_execution['uuid']
         created_am = TaskExecution.objects.get(uuid=task_execution_uuid)
 
@@ -724,7 +723,7 @@ def test_task_execution_with_unknown_method_auto_creation(
     response = client.post(url, request_dict)
 
     assert response.status_code == status_code
-    response_dict = cast(Dict[str, Any], response.data)
+    response_dict = cast(dict[str, Any], response.data)
 
     if status_code == 201:
         task_execution_uuid = response_dict['uuid']
@@ -810,7 +809,7 @@ def test_task_execution_of_passive_task_creation(
     response = client.post(url, request_dict)
 
     assert response.status_code == status_code
-    response_dict = cast(Dict[str, Any], response.data)
+    response_dict = cast(dict[str, Any], response.data)
 
     if status_code == 201:
         task_execution_uuid = response_dict['uuid']
@@ -946,7 +945,7 @@ def test_task_execution_create_with_legacy_task_property(
     new_count = TaskExecution.objects.count()
     assert new_count == old_count + 1
 
-    response_task_execution = cast(Dict[str, Any], response.data)
+    response_task_execution = cast(dict[str, Any], response.data)
     task_execution_uuid = response_task_execution['uuid']
     created_task_execution = TaskExecution.objects.get(uuid=task_execution_uuid)
 
@@ -1169,7 +1168,7 @@ def test_task_execution_update_access_control(
         assert group_access_level is not None
 
         ensure_serialized_task_execution_valid(
-                response_task_execution=cast(Dict[str, Any], response.data),
+                response_task_execution=cast(dict[str, Any], response.data),
                 task_execution=task_execution, user=user,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
@@ -1211,7 +1210,7 @@ def test_task_execution_update_conflict(
     })
 
     assert response.status_code == 409
-    response_dict = cast(Dict[str, Any], response.data)
+    response_dict = cast(dict[str, Any], response.data)
     assert response_dict['status'] == TaskExecution.Status.STOPPED.name
 
 
@@ -1267,7 +1266,7 @@ def test_task_execution_update_unmodifiable_properties(
     })
 
     assert response.status_code == 200
-    response_dict = cast(Dict[str, Any], response.data)
+    response_dict = cast(dict[str, Any], response.data)
     assert response_dict['status'] == TaskExecution.Status.STOPPED.name
     assert response_dict['started_by'] == user.username
     assert response_dict['started_at'] == iso8601_with_z(started_at)

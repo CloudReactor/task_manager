@@ -57,13 +57,15 @@ class CurrentServiceInfoSerializer(serializers.Serializer):
         return self.SERVICE_INFO_TYPE_AWS_ECS
 
     service_arn = serializers.ReadOnlyField(
-            source='aws_ecs_service_arn')
+        source='aws_ecs_service_arn', allow_null=True)
 
     service_infrastructure_website_url = serializers.ReadOnlyField(
-            source='aws_ecs_service_infrastructure_website_url')
+        source='aws_ecs_service_infrastructure_website_url',
+        allow_null=True)
 
     service_arn_updated_at = serializers.ReadOnlyField(
-            source='aws_ecs_service_updated_at')
+        source='aws_ecs_service_updated_at',
+        allow_null=True)
 
 # TODO: validate size of other_metadata, allowed ECS launch types
 class TaskSerializer(GroupSettingSerializerMixin,
@@ -105,11 +107,11 @@ class TaskSerializer(GroupSettingSerializerMixin,
         ]
 
         read_only_fields = [
-          'url', 'uuid',
-          'is_service',
-          'latest_task_execution', 'current_service_info',
-          'dashboard_url', 'infrastructure_website_url', 'logs_url',
-          'created_at', 'updated_at',
+            'url', 'uuid',
+            'is_service',
+            'latest_task_execution', 'current_service_info',
+            'dashboard_url', 'infrastructure_website_url', 'logs_url',
+            'created_at', 'updated_at',
         ]
 
     latest_task_execution = serializers.SerializerMethodField()
@@ -127,16 +129,14 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
     links = LinkSerializer(many=True, required=False)
 
-    #Not sure why this doesn't work
-    #logs_url = serializers.ReadOnlyField(source='get_logs_url')
-    logs_url = serializers.SerializerMethodField()
-
     @extend_schema_field(TaskExecutionSerializer)
     def get_latest_task_execution(self, obj: Task):
+        if obj.latest_task_execution is None:
+            return None
+
         # Set the Task so we don't get N+1 queries looking back
         # Seems to slow down in ECS even though it stops N+1 queries
-        if obj.latest_task_execution:
-            obj.latest_task_execution.task = obj
+        obj.latest_task_execution.task = obj
 
         return TaskExecutionSerializer(instance=obj.latest_task_execution,
                 context=self.context, required=False,
@@ -165,9 +165,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             return CurrentServiceInfoSerializer(instance=obj,
                     context=self.context).data
         return None
-
-    def get_logs_url(self, obj: Task) -> Optional[str]:
-        return obj.logs_url()
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         task: Optional[Task] = None

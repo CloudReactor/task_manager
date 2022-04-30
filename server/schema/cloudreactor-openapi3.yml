@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: CloudReactor API
-  version: 0.2.1
+  version: 0.3.0
   description: CloudReactor API Documentation
   contact:
     name: Jeff Tsay
@@ -2168,6 +2168,7 @@ components:
         service_arn:
           type: string
           readOnly: true
+          nullable: true
         service_infrastructure_website_url:
           type: string
           nullable: true
@@ -3076,6 +3077,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         marked_done_at:
           type: string
           format: date-time
@@ -3089,6 +3091,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         kill_started_at:
           type: string
           format: date-time
@@ -3370,7 +3373,10 @@ components:
           maximum: 2147483647
           minimum: -2147483648
         latest_workflow_execution:
-          $ref: '#/components/schemas/WorkflowExecutionSummary'
+          allOf:
+          - $ref: '#/components/schemas/WorkflowExecutionSummary'
+          readOnly: true
+          nullable: true
         created_by_user:
           type: string
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
@@ -3410,6 +3416,8 @@ components:
           readOnly: true
     PatchedWorkflowExecution:
       type: object
+      description: A WorkflowExecution holds data on a specific execution (run) of
+        a Workflow.
       properties:
         url:
           type: string
@@ -3427,9 +3435,7 @@ components:
         status:
           $ref: '#/components/schemas/WorkflowExecutionStatus'
         run_reason:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
+          $ref: '#/components/schemas/WorkflowExecutionRunReason'
         started_at:
           type: string
           format: date-time
@@ -3439,6 +3445,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         finished_at:
           type: string
           format: date-time
@@ -3448,10 +3455,7 @@ components:
           format: date-time
           nullable: true
         stop_reason:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
+          $ref: '#/components/schemas/WorkflowExecutionStopReason'
         marked_done_at:
           type: string
           format: date-time
@@ -3461,6 +3465,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         kill_started_at:
           type: string
           format: date-time
@@ -3470,6 +3475,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         kill_finished_at:
           type: string
           format: date-time
@@ -4003,6 +4009,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         marked_done_at:
           type: string
           format: date-time
@@ -4016,6 +4023,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         kill_started_at:
           type: string
           format: date-time
@@ -4344,7 +4352,10 @@ components:
           maximum: 2147483647
           minimum: -2147483648
         latest_workflow_execution:
-          $ref: '#/components/schemas/WorkflowExecutionSummary'
+          allOf:
+          - $ref: '#/components/schemas/WorkflowExecutionSummary'
+          readOnly: true
+          nullable: true
         created_by_user:
           type: string
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
@@ -4386,6 +4397,8 @@ components:
       - name
     WorkflowExecution:
       type: object
+      description: A WorkflowExecution holds data on a specific execution (run) of
+        a Workflow.
       properties:
         url:
           type: string
@@ -4403,9 +4416,7 @@ components:
         status:
           $ref: '#/components/schemas/WorkflowExecutionStatus'
         run_reason:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
+          $ref: '#/components/schemas/WorkflowExecutionRunReason'
         started_at:
           type: string
           format: date-time
@@ -4415,6 +4426,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         finished_at:
           type: string
           format: date-time
@@ -4424,10 +4436,7 @@ components:
           format: date-time
           nullable: true
         stop_reason:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
+          $ref: '#/components/schemas/WorkflowExecutionStopReason'
         marked_done_at:
           type: string
           format: date-time
@@ -4437,6 +4446,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         kill_started_at:
           type: string
           format: date-time
@@ -4446,6 +4456,7 @@ components:
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           readOnly: true
+          nullable: true
         kill_finished_at:
           type: string
           format: date-time
@@ -4488,6 +4499,12 @@ components:
       required:
       - status
       - workflow
+    WorkflowExecutionRunReason:
+      enum:
+      - EXPLICIT_START
+      - SCHEDULED_START
+      - EXPLICIT_RETRY
+      type: string
     WorkflowExecutionStatus:
       enum:
       - RUNNING
@@ -4498,10 +4515,16 @@ components:
       - STOPPED
       - MANUALLY_STARTED
       type: string
+    WorkflowExecutionStopReason:
+      enum:
+      - MANUAL
+      - MAX_EXECUTION_TIME_EXCEEDED
+      type: string
     WorkflowExecutionSummary:
       type: object
-      description: A WorkflowExecution holds data on a specific execution (run) of
-        a Workflow.
+      description: |-
+        A WorkflowExecutionSummary contains a subset of the data inside of a
+        WorkflowExecution.
       properties:
         url:
           type: string
@@ -4517,9 +4540,7 @@ components:
         status:
           $ref: '#/components/schemas/WorkflowExecutionStatus'
         run_reason:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
+          $ref: '#/components/schemas/WorkflowExecutionRunReason'
         started_at:
           type: string
           format: date-time
@@ -4533,10 +4554,7 @@ components:
           format: date-time
           nullable: true
         stop_reason:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
+          $ref: '#/components/schemas/WorkflowExecutionStopReason'
         marked_done_at:
           type: string
           format: date-time
@@ -4611,7 +4629,10 @@ components:
           maximum: 2147483647
           minimum: -2147483648
         latest_workflow_execution:
-          $ref: '#/components/schemas/WorkflowExecutionSummary'
+          allOf:
+          - $ref: '#/components/schemas/WorkflowExecutionSummary'
+          readOnly: true
+          nullable: true
         created_by_user:
           type: string
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_

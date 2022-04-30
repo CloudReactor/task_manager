@@ -1,5 +1,3 @@
-from django.utils import timezone
-
 from processes.models import TaskExecution
 
 import factory

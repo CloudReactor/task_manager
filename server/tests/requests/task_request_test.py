@@ -13,8 +13,6 @@ from processes.models import (
   Task, RunEnvironment
 )
 
-from processes.serializers import TaskSerializer
-
 import pytest
 
 from rest_framework.test import APIClient
@@ -24,7 +22,7 @@ from moto import mock_ecs, mock_sts, mock_events
 from conftest import *
 
 
-def ensure_serialized_task_valid(response_task: Dict[str, Any],
+def ensure_serialized_task_valid(response_task: dict[str, Any],
         task: Task, user: User,
         group_access_level: int,
         api_key_access_level: Optional[int] = None,
@@ -38,17 +36,10 @@ def ensure_serialized_task_valid(response_task: Dict[str, Any],
     if api_key_access_level is not None:
         access_level = min(access_level, api_key_access_level)
 
-    assert response_task== TaskSerializer(task,
-            context=context).data
-
-    assert response_task['run_environment']['uuid'] == str(task.run_environment.uuid)
+    validate_serialized_task(response_task, task, context=context)
 
     if api_key_run_environment:
         assert api_key_run_environment.pk == task.run_environment.pk
-
-    assert response_task['created_by_group']['id'] == task.created_by_group.id
-    assert task.created_by_user is not None # for mypy
-    assert response_task['created_by_user'] == task.created_by_user.username
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""

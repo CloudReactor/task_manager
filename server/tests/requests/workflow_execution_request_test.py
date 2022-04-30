@@ -14,11 +14,6 @@ from processes.models import (
   WorkflowExecution, Workflow,
 )
 
-from processes.serializers import (
-    WorkflowExecutionSerializer,
-    WorkflowExecutionSummarySerializer
-)
-
 import pytest
 
 from rest_framework.test import APIClient
@@ -44,11 +39,12 @@ def ensure_serialized_workflow_execution_valid(response_workflow_execution: Dict
         access_level = min(access_level, api_key_access_level)
 
     if is_list:
-        assert response_workflow_execution == WorkflowExecutionSummarySerializer(
-                workflow_execution, context=context).data
+        validate_serialized_workflow_execution_summary(
+                response_workflow_execution, workflow_execution,
+                context=context)
     else:
-      assert response_workflow_execution == WorkflowExecutionSerializer(
-                workflow_execution, context=context).data
+        validate_serialized_workflow_execution(response_workflow_execution,
+                workflow_execution, context=context)
 
     if api_key_run_environment:
         assert workflow_execution.workflow.run_environment is not None

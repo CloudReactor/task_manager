@@ -392,7 +392,7 @@ CACHE_INVALIDATE_ON_CREATE = 'whole-model'
 SPECTACULAR_SETTINGS = {
     'TITLE': 'CloudReactor API',
     'DESCRIPTION': 'CloudReactor API Documentation',
-    'VERSION': '0.2.1',
+    'VERSION': '0.3.0',
     'SCHEMA_PATH_PREFIX': '/api/v1',
     # Remove matching SCHEMA_PATH_PREFIX from operation path. Usually used in
     # conjunction with appended prefixes in SERVERS.

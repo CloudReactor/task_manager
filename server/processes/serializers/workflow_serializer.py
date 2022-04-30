@@ -27,8 +27,16 @@ COMMON_FIELDS = [
     'schedule', 'max_concurrency',
     'max_age_seconds', 'default_max_retries',
     'latest_workflow_execution',
-    'created_by_user', 'created_by_group', 'run_environment',
+    'created_by_user', 'created_by_group',
+    'run_environment',
     'enabled',
+    'created_at', 'updated_at'
+]
+
+COMMON_READ_ONLY_FIELDS = [
+    'url', 'uuid', 'dashboard_url',
+    'latest_workflow_execution',
+    'created_by_user', 'created_by_group',
     'created_at', 'updated_at'
 ]
 
@@ -41,8 +49,10 @@ class WorkflowSummarySerializer(GroupSettingSerializerMixin,
     class Meta:
         model = Workflow
         fields = COMMON_FIELDS
+        read_only_fields = COMMON_READ_ONLY_FIELDS
 
-    latest_workflow_execution = WorkflowExecutionSummarySerializer(required=False)
+    latest_workflow_execution = WorkflowExecutionSummarySerializer(
+            required=False, allow_null=True, read_only=True)
     url = serializers.HyperlinkedIdentityField(
             view_name='workflows-detail',
             lookup_field='uuid'
@@ -67,13 +77,7 @@ class WorkflowSerializer(
             'alert_methods', 'workflow_task_instances',
             'workflow_transitions',
         ]
-
-        read_only_fields = [
-            'url', 'uuid', 'dashboard_url',
-            'latest_workflow_execution',
-            'created_by_user', 'created_by_group',
-            'created_at', 'updated_at'
-        ]
+        read_only_fields = COMMON_READ_ONLY_FIELDS
 
     workflow_task_instances = WorkflowTaskInstanceSerializer(
             many=True, read_only=True)

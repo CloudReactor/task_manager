@@ -126,8 +126,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
     started_by = serializers.ReadOnlyField(source='started_by.username')
     marked_done_by = serializers.ReadOnlyField(
-        source='marked_done_by.username')
-    killed_by = serializers.ReadOnlyField(source='killed_by.username')
+        source='marked_done_by.username', allow_null=True)
+    killed_by = serializers.ReadOnlyField(source='killed_by.username',
+        allow_null=True)
     url = serializers.HyperlinkedIdentityField(
         view_name='task_executions-detail',
         lookup_field='uuid'
@@ -136,7 +137,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
     status = TaskExecutionStatusSerializer()
     stop_reason = TaskExecutionStopReasonSerializer(required=False,
         allow_null=True)
-    commit_url = serializers.ReadOnlyField()
+    commit_url = serializers.ReadOnlyField(allow_null=True)
     workflow_task_instance_execution = serializers.SerializerMethodField(
         allow_null=True)
 

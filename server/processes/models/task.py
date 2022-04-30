@@ -208,6 +208,7 @@ class Task(AwsEcsConfiguration, Schedulable):
 
         return True
 
+    @property
     def logs_url(self) -> Optional[str]:
         lq = self.log_query
         if lq:

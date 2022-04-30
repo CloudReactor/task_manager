@@ -14,3 +14,4 @@ from .workflow_factory import WorkflowFactory
 from .workflow_task_instance_factory import WorkflowTaskInstanceFactory
 from .workflow_transition_factory import WorkflowTransitionFactory
 from .workflow_execution_factory import WorkflowExecutionFactory
+from .workflow_task_instance_execution_factory import WorkflowTaskInstanceExecutionFactory
