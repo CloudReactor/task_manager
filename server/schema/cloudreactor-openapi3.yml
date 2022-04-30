@@ -2974,10 +2974,12 @@ components:
           allOf:
           - $ref: '#/components/schemas/TaskExecution'
           readOnly: true
+          nullable: true
         current_service_info:
           allOf:
           - $ref: '#/components/schemas/CurrentServiceInfo'
           readOnly: true
+          nullable: true
         created_by_user:
           type: string
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
@@ -3904,10 +3906,12 @@ components:
           allOf:
           - $ref: '#/components/schemas/TaskExecution'
           readOnly: true
+          nullable: true
         current_service_info:
           allOf:
           - $ref: '#/components/schemas/CurrentServiceInfo'
           readOnly: true
+          nullable: true
         created_by_user:
           type: string
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_

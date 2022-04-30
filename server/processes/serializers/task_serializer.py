@@ -114,13 +114,17 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'created_at', 'updated_at',
         ]
 
-    latest_task_execution = serializers.SerializerMethodField()
+    latest_task_execution = serializers.SerializerMethodField(
+            allow_null=True)
+
     url = serializers.HyperlinkedIdentityField(
-        view_name='tasks-detail',
-        lookup_field='uuid'
-    )
+            view_name='tasks-detail',
+            lookup_field='uuid')
+
     execution_method_capability = serializers.SerializerMethodField()
-    current_service_info = serializers.SerializerMethodField()
+
+    current_service_info = serializers.SerializerMethodField(
+            allow_null=True)
 
     alert_methods = NameAndUuidSerializer(
             include_name=True,
