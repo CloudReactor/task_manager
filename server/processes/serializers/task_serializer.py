@@ -67,6 +67,17 @@ class CurrentServiceInfoSerializer(serializers.Serializer):
         source='aws_ecs_service_updated_at',
         allow_null=True)
 
+SUPPORTED_EXECUTION_METHODS = [
+    AwsEcsExecutionMethod,
+    UnknownExecutionMethod,
+]
+
+UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME = {
+    getattr(method, 'NAME').upper() :
+        getattr(method, 'NAME') for method in SUPPORTED_EXECUTION_METHODS
+}
+
+
 # TODO: validate size of other_metadata, allowed ECS launch types
 class TaskSerializer(GroupSettingSerializerMixin,
         EmbeddedIdValidatingSerializerMixin,
@@ -290,13 +301,26 @@ class TaskSerializer(GroupSettingSerializerMixin,
         validated['is_service'] = is_service
 
         execution_method_dict = data.get('execution_method_capability')
+        execution_method_type = UnknownExecutionMethod.NAME
 
-        execution_method_type = task.execution_method_type if task else \
-                UnknownExecutionMethod.NAME
+        if task:
+            execution_method_type = task.execution_method_type
+        else:
+            execution_method_dict = execution_method_dict or {}
 
-        if execution_method_dict:
+        if execution_method_dict is not None:
             execution_method_type = execution_method_dict.get('type',
+                    execution_method_type).upper()
+
+            execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
                     execution_method_type)
+
+            if not execution_method_type:
+                raise serializers.ValidationError({
+                    'execution_method.type': [
+                        f"Invalid type: '{execution_method_type}'"
+                    ]
+                })
 
             validated['execution_method_type'] = execution_method_type
 
@@ -511,8 +535,14 @@ class TaskSerializer(GroupSettingSerializerMixin,
                     required=False, is_service=is_service,
                     run_environment=run_environment,
                     omit_details=omit_details)
+        elif method_name == UnknownExecutionMethod.NAME:
+            return UnknownExecutionMethodCapabilitySerializer(task,
+                    required=False)
+        else:
+            raise serializers.ValidationError({
+                'execution_method.type': [f"Invalid type: '{method_name}'"]
+            })
 
-        return UnknownExecutionMethodCapabilitySerializer(task, required=False)
 
     def update_aws_ecs_service_load_balancer_details_set(self, task: Task,
             load_balancer_details_list: Optional[list[AwsEcsServiceLoadBalancerDetails]]):

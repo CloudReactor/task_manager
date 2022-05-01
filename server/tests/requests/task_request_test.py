@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, List, Optional, Tuple, cast
 
 from datetime import timedelta
 import uuid
@@ -8,10 +8,14 @@ from django.utils import timezone
 
 from django.contrib.auth.models import User
 
+from processes.execution_methods.unknown_execution_method import (
+    UnknownExecutionMethod
+)
 from processes.models import (
   UserGroupAccessLevel, Subscription,
   Task, RunEnvironment
 )
+
 
 import pytest
 
@@ -276,8 +280,8 @@ def make_request_body(uuid_send_type: Optional[str],
         api_key_run_environment: Optional[RunEnvironment],
         task: Task,
         group_factory, run_environment_factory,
-        task_factory) -> Tuple[Dict[str, Any], Optional[RunEnvironment]]:
-    request_data: Dict[str, Any] = {
+        task_factory) -> Tuple[dict[str, Any], Optional[RunEnvironment]]:
+    request_data: dict[str, Any] = {
       'name': 'Some Task',
       'passive': False,
       'execution_method_capability': {
@@ -603,7 +607,7 @@ def test_task_create_access_control(
     if status_code == 201:
         assert new_count == old_count + 1
 
-        response_task = cast(Dict[str, Any], response.data)
+        response_task = cast(dict[str, Any], response.data)
         task_uuid = response_task['uuid']
         created_task = Task.objects.get(uuid=task_uuid)
 
@@ -616,6 +620,65 @@ def test_task_create_access_control(
     else:
         assert new_count == old_count
         check_validation_error(response, validation_error_attribute)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+  emc
+""", [
+  (None),
+  ({}),
+  ({ 'type': 'Unknown' }),
+  ({ 'type': 'unknown' }),
+  ({ 'type': 'UNKNOWN' }),
+])
+def test_task_create_passive_task(emc: dict[str, Any],
+        user_factory, group_factory,
+        run_environment_factory, task_factory,
+        api_client) -> None:
+    """
+    Test execution method fallback to Unknown type.
+    """
+
+    user = user_factory()
+    group = user.groups.first()
+
+    task, api_key_run_environment, client, url = common_setup(
+            is_authenticated=True,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_scope_type=SCOPE_TYPE_CORRECT,
+            uuid_send_type=SEND_ID_NONE,
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory,
+            api_client=api_client)
+
+    request_data = {
+      'name': 'Some Task',
+      'passive': True,
+      'execution_method_capability': emc
+    }
+
+    response = client.post(url, data=request_data)
+
+    assert response.status_code == 201
+
+    response_task = cast(dict[str, Any], response.data)
+    task_uuid = response_task['uuid']
+    created_task = Task.objects.get(uuid=task_uuid)
+
+    assert created_task.execution_method_type == UnknownExecutionMethod.NAME
+    assert created_task.passive
+
+    ensure_serialized_task_valid(response_task=response_task,
+            task=created_task, user=user,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=api_key_run_environment)
+
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
@@ -689,9 +752,19 @@ def test_task_create_task_limit(max_tasks: int,
 
     if status_code == 201:
         assert new_count == old_count + 1
+
+        response_task = cast(dict[str, Any], response.data)
+        task_uuid = response_task['uuid']
+        created_task = Task.objects.get(uuid=task_uuid)
+
+        ensure_serialized_task_valid(response_task=response_task,
+                task=created_task, user=user,
+                group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+                api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+                api_key_run_environment=api_key_run_environment)
     else:
         assert new_count == old_count
-        response_dict = cast(Dict[str, Any], response.data)
+        response_dict = cast(dict[str, Any], response.data)
         assert response_dict['error_code'] == 'limit_exceeded'
 
 @pytest.mark.django_db
@@ -751,7 +824,7 @@ def test_task_create_with_links(
     new_count = Task.objects.count()
     assert new_count == old_count + 1
 
-    response_task = cast(Dict[str, Any], response.data)
+    response_task = cast(dict[str, Any], response.data)
     task_uuid = response_task['uuid']
     created_task = Task.objects.get(uuid=task_uuid)
 
@@ -777,8 +850,6 @@ def test_task_create_with_links(
     assert link_1.link_url_template == 'https://hotsaas.com/here'
     assert link_1.icon_url == 'https://hotsaas.com/favicon.ico'
     assert link_1.rank == 2
-
-    print(response_task)
 
     body_links = response_task['links']
 
@@ -970,7 +1041,7 @@ def test_task_set_alert_methods(
             else:
                 assert new_count == old_count
 
-            response_task = cast(Dict[str, Any], response.data)
+            response_task = cast(dict[str, Any], response.data)
             task_uuid = response_task['uuid']
             created_task = Task.objects.get(uuid=task_uuid)
 
@@ -1211,7 +1282,7 @@ def test_task_update_access_control(
         assert group_access_level is not None
 
         ensure_serialized_task_valid(
-                response_task=cast(Dict[str, Any], response.data),
+                response_task=cast(dict[str, Any], response.data),
                 task=task, user=user,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
