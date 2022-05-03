@@ -48,7 +48,7 @@ def request_for_context(request: Optional[Union[HttpRequest, Request]] = None) -
 
         if wsgi_request.user:
             auth = getattr(wsgi_request, 'auth')
-            logger.info(f"request_for_context(): Found {wsgi_request.user=}, {auth=}")
+            logger.info(f"request_for_context(): Found {wsgi_request.user=}")
             authenticators = [cast(BaseAuthentication,
                     ForcedAuthentication(wsgi_request.user, auth)),]
 
