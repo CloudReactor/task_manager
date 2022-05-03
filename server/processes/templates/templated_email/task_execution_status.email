@@ -20,7 +20,7 @@ CloudReactor Task '{{ task.name }}' finished with status {{ task_execution.statu
   in unknown Run Environment.
   {% endif %}
   See this <a href="{{ task_execution.dashboard_url }}">Task Execution</a> in the CloudReactor Dashboard.
-</p>./
+</p>
 <table class="table table-sm table-striped table-bordered table-hover">
   <tbody>
     <tr>
@@ -92,15 +92,15 @@ CloudReactor Task '{{ task.name }}' finished with status {{ task_execution.statu
     </tr>
     <tr>
       <td style="font-weight: bold;">Deployment</td>
-      <td align="left">>{{ task_execution.deployment | default:"N/A"}}</td>
+      <td align="left">{{ task_execution.deployment | default:"N/A"}}</td>
     </tr>
     <tr>
       <td style="font-weight: bold;">Command</td>
-      <td align="left">>{{ task_execution.command | default:"N/A"}}</td>
+      <td align="left">{{ task_execution.command | default:"N/A"}}</td>
     </tr>
     <tr>
       <td style="font-weight: bold;">Exit code</td>
-      <td align="left">>{{ task_execution.exit_code | default:"N/A"}}</td>
+      <td align="left">{{ task_execution.exit_code | default:"N/A"}}</td>
     </tr>
     <tr>
       <td style="font-weight: bold;">Stop reason</td>

@@ -15,7 +15,7 @@ CloudReactor Workflow '{{ workflow.name | default:"N/A"}}' finished with status 
   {% endif %}
   finished with status {{ workflow_execution.status }}.
   See this <a href="{{ workflow_execution.dashboard_url }}">Workflow Execution</a> in the CloudReactor Dashboard.
-</p>./
+</p>
 <table class="table table-sm table-striped table-bordered table-hover">
   <tbody>
     <tr>
