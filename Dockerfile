@@ -72,4 +72,4 @@ COPY ${asset_path}/static $CRA_ROOT/static
 
 RUN python manage.py collectstatic --no-input
 
-CMD python -m proc_wrapper $TASK_COMMAND
+ENTRYPOINT python -m proc_wrapper $TASK_COMMAND
