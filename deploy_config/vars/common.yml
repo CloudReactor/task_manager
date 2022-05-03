@@ -247,7 +247,7 @@ task_name_to_config:
 
   task_schedule_checker:
     description: 'Ensure Tasks and Workflows run on time'
-    command: "python manage.py task_schedule_checker"
+    command: "./check_task_schedules.sh"
     max_concurrency: 1
     service_instance_count: 1
     min_service_instance_count: 1
@@ -256,7 +256,7 @@ task_name_to_config:
 
   usage_limit_enforcer:
     description: 'Enforce usage limits'
-    command: "python manage.py usage_limit_enforcer"
+    command: "./enforce_usage_limits.sh"
     max_concurrency: 1
     schedule: rate(1 hour)
     ecs:
