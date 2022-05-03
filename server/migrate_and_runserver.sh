@@ -4,4 +4,4 @@ set -Eeuxo pipefail
 
 python manage.py migrate
 python manage.py load_dynamic_fixtures
-gunicorn task_manager.wsgi --threads=3 --bind 0.0.0.0:8000
+exec gunicorn task_manager.wsgi --threads=3 --bind 0.0.0.0:8000
