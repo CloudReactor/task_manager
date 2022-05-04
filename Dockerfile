@@ -64,8 +64,6 @@ COPY ${asset_path}/images $WHITENOISE_ROOT/images
 
 WORKDIR $INSTALL_PATH
 
-# TODO: move earlier once settled
-COPY ./server/docker-entrypoint.sh .
 COPY ./server/manage.py .
 COPY ./server/migrate_and_runserver.sh .
 COPY ./server/task_manager task_manager
@@ -76,4 +74,5 @@ COPY ${asset_path}/static $CRA_ROOT/static
 
 RUN python manage.py collectstatic --no-input
 
-ENTRYPOINT ["/usr/local/bin/python", "-m", "proc_wrapper", "./docker-entrypoint.sh"]
+ENTRYPOINT ["python", "-m", "proc_wrapper"]
+CMD $TASK_COMMAND

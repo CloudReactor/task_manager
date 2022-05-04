@@ -246,7 +246,7 @@ task_name_to_config:
             protocol: tcp
 
   task_schedule_checker:
-    description: 'Ensure Tasks and Workflows run on time'
+    description: "Ensure Tasks and Workflows run on time"
     command: "python manage.py task_schedule_checker"
     max_concurrency: 1
     service_instance_count: 1
@@ -255,7 +255,7 @@ task_name_to_config:
       enable_status_updates: true
 
   usage_limit_enforcer:
-    description: 'Enforce usage limits'
+    description: "Enforce usage limits"
     command: "python manage.py usage_limit_enforcer"
     max_concurrency: 1
     schedule: rate(1 hour)
