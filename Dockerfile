@@ -62,10 +62,10 @@ COPY ${asset_path}/*.ico $WHITENOISE_ROOT/
 COPY ${asset_path}/*.js* $WHITENOISE_ROOT/
 COPY ${asset_path}/images $WHITENOISE_ROOT/images
 
+# TODO: move earlier once settled
+COPY ./server/docker-entrypoint.sh .
+
 COPY ./server/migrate_and_runserver.sh .
-COPY ./server/check_task_schedules.sh .
-COPY ./server/enforce_usage_limits.sh .
-COPY ./server/manage.py .
 COPY ./server/task_manager task_manager
 COPY ./server/spectacular spectacular
 COPY ./server/processes processes
@@ -74,5 +74,4 @@ COPY ${asset_path}/static $CRA_ROOT/static
 
 RUN python manage.py collectstatic --no-input
 
-ENTRYPOINT ["/usr/local/bin/python", "-m", "proc_wrapper"]
-CMD $TASK_COMMAND
+ENTRYPOINT ["/usr/local/bin/python", "-m", "proc_wrapper", "./docker-entrypoint.sh"]
