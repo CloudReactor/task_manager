@@ -244,7 +244,7 @@ if [ -z "$DEPLOY_COMMAND" ]
     fi
 fi
 
-docker run --rm \
+exec docker run --rm \
   -e CLOUDREACTOR_TASK_VERSION_SIGNATURE=$CLOUDREACTOR_TASK_VERSION_SIGNATURE \
   -e HOST_PWD=$PWD \
   -e CONTAINER_DOCKER_CONTEXT_DIR=/work/docker_context \
