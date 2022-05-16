@@ -1,7 +1,6 @@
 import * as C from '../../utils/constants';
 
 import {
-  Workflow,
   AlertMethod
 } from '../../types/domain_types';
 

@@ -65,7 +65,7 @@ const ConfigModalBody = ({
       data.schedule = schedule;
       data.service_instance_count = null;
       data.min_service_instance_count = null;
-    } else if (taskScheduleType == TASK_TYPE_SERVICE) {
+    } else if (taskScheduleType === TASK_TYPE_SERVICE) {
       data.is_service = true;
       data.schedule = ''
       data.service_instance_count = serviceInstanceCount || 1;
