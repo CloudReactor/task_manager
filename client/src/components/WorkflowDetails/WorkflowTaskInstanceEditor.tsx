@@ -302,7 +302,8 @@ export default class WorkflowTaskInstanceEditor extends React.Component<Props, S
         groupId: currentGroup?.id,
         isService: false,
         otherParams: {
-          fields: 'uuid,name'
+          fields: 'uuid,name',
+          passive: false
         }
       });
       tasks = tasks.concat(page.results);

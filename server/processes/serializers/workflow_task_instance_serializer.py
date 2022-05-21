@@ -121,8 +121,17 @@ class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
         task_dict = data.get('task', None)
         if task_dict:
             try:
-                validated['task'] = Task.find_by_uuid_or_name(task_dict, group,
+                task = Task.find_by_uuid_or_name(task_dict, group,
                     required_run_environment=workflow.run_environment)
+
+                if task.passive:
+                    raise UnprocessableEntity({
+                        'task': [
+                            ErrorDetail('A passive Task cannot be added to a Workflow', code='invalid')
+                        ]
+                    })
+
+                validated['task'] = task
             except NotFound as nfe:
                 raise UnprocessableEntity({
                     'task': [

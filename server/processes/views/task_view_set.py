@@ -25,7 +25,7 @@ class TaskFilter(filters.FilterSet):
 
     class Meta:
         model = Task
-        fields = ['name', 'description', 'run_environment__uuid']
+        fields = ['name', 'description', 'passive', 'run_environment__uuid']
 
     @property
     def qs(self):
@@ -50,7 +50,7 @@ class TaskViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
     ordering_fields = (
         'uuid', 'name', 'enabled', 'is_service', 'schedule',
         'heartbeat_interval_seconds', 'max_concurrency', 'max_age_seconds',
-        'default_max_retries',
+        'default_max_retries', 'passive',
         'run_environment__name',
         'latest_task_execution__started_at',
         'latest_task_execution__finished_at',
