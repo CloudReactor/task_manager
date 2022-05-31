@@ -1,6 +1,6 @@
 # Alpine base image can lead to long compilation times and errors.
 # https://pythonspeed.com/articles/base-image-python-docker-images/
-FROM python:3.9.12-slim-buster
+FROM python:3.9.13-slim-buster
 
 LABEL maintainer="jeff@cloudreactor.io"
 
