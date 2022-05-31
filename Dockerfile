@@ -7,6 +7,7 @@ LABEL maintainer="jeff@cloudreactor.io"
 EXPOSE 8000
 
 RUN apt-get update \
+  && apt-get upgrade -y \
   && apt-get install binutils=2.31.1-16 libproj-dev=5.2.0-1 \
   gdal-bin=2.4.0+dfsg-1+b1 git=1:2.20.1-2+deb10u3 \
   libpq-dev build-essential=12.6 \
