@@ -412,6 +412,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         if escalate:
             ensure_group_access_level(
+                group=task.created_by_group,
                 min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
                 run_environment=task.run_environment,
                 allow_api_key=True)
