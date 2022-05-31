@@ -346,6 +346,11 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             if getattr(instance, attr) is not None:
                 validated_data.pop(attr, None)
 
+        task_execution = cast(TaskExecution, self.instance)
+        self.protect_attributes(validated_data=validated_data,
+            existing_task_execution=task_execution,
+            task=task_execution.task)
+
         return super().update(instance, validated_data)
 
     # TODO: output raw JSON
@@ -369,3 +374,44 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         return WorkflowTaskInstanceExecutionBaseSerializer(wtie,
                 context=self.context, read_only=True).data
+
+    def protect_attributes(self, validated_data: Mapping[str, Any],
+            existing_task_execution: Optional[TaskExecution],
+            task: Task) -> None:
+        if task.was_auto_created and task.passive:
+            return
+
+        # It's ok to update protected attributes after the Task Execution
+        # has started, since they won't be re-used.
+        status = validated_data.get('status')
+        if (status is None) and existing_task_execution:
+            status = existing_task_execution.status
+
+        if status != TaskExecution.Status.MANUALLY_STARTED:
+            return
+
+        escalate = False
+        for attr in TaskExecution.ATTRIBUTES_REQUIRING_DEVELOPER_ACCESS_FOR_UPDATE:
+            if attr in validated_data:
+                if existing_task_execution:
+                    escalate = (getattr(existing_task_execution, attr) != validated_data[attr])
+                else:
+                    escalate = True
+
+                if escalate:
+                    break
+
+        if not escalate:
+            env_override = validated_data.get('environment_variables_overrides')
+
+            if env_override:
+                for name in env_override.keys():
+                    if name.startswith("PROC_WRAPPER_"):
+                        escalate = True
+                        break
+
+        if escalate:
+            ensure_group_access_level(
+                min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+                run_environment=task.run_environment,
+                allow_api_key=True)
