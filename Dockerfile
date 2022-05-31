@@ -44,7 +44,8 @@ RUN mkdir -p $WHITENOISE_ROOT
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN pip install --no-input --no-cache-dir pip-tools==6.6.0 requests==2.27.1
+RUN pip install pip==22.0.4
+RUN pip install --no-input --no-cache-dir pip-tools==6.6.1 click==8.1.2 requests==2.27.1
 
 WORKDIR /tmp
 COPY server/requirements.in .
