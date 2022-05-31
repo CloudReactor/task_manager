@@ -12,11 +12,15 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
 from drf_spectacular.utils import extend_schema_field
 
-from ..models import TaskExecution, Task, WorkflowTaskInstanceExecution
+from ..models import (
+    RunEnvironment, Task, TaskExecution, UserGroupAccessLevel,
+    WorkflowTaskInstanceExecution
+)
 
 from ..common import (
-  extract_authenticated_run_environment
+    extract_authenticated_run_environment
 )
+from ..common.request_helpers import ensure_group_access_level
 from ..exception import UnprocessableEntity
 from ..execution_methods import *
 
@@ -142,6 +146,8 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         allow_null=True)
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
+        attrs = super().validate(attrs)
+
         status = attrs.get('status')
 
         if status == TaskExecution.Status.MANUALLY_STARTED:
@@ -158,20 +164,20 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                         ]
                     })
             else:
+                # checkme: dict to Task?
                 task = cast(Task, data_task)
 
-            if task.passive and \
-                    (status == TaskExecution.Status.MANUALLY_STARTED):
+            if task.passive:
                 raise serializers.ValidationError({
                     'status': [
                         ErrorDetail('Passive Tasks may be not manually started',
-                              code='invalid')
+                                code='invalid')
                     ]
                 })
 
         return attrs
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Mapping[str, Any]):
         # Remove process_version and process_hash once all process wrapper scripts < 1.2.0 are extinct
         process_version_number = data.get('process_version_number',
                                    data.get('process_version'))
@@ -198,7 +204,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         group = self.get_request_group()
 
-        # Support task for backward compatibility with wrapper scripts
+        # Support process_type for backward compatibility with wrapper scripts
         # less than 2.0.0
         task_dict = data.get('task') or data.get('process_type')
 
@@ -216,19 +222,16 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                     task_dict, required_group=group,
                     required_run_environment=authenticated_run_environment)
             except (Task.DoesNotExist, NotFound) as e:
-                if not was_auto_created:
+                if was_auto_created:
+                    from .task_serializer import TaskSerializer
+                    task_serializer = TaskSerializer(task, data=task_dict,
+                            context=self.context)
+                    task_serializer.is_valid(raise_exception=True)
+                    task = task_serializer.save()
+                else:
                     raise UnprocessableEntity({
                         'task': [ErrorDetail('Task does not exist', code='not_found')]
                     }) from e
-
-            logger.debug(f"to_internal_value(): Found task {task}")
-
-            if was_auto_created:
-                from .task_serializer import TaskSerializer
-                task_serializer = TaskSerializer(task, data=task_dict,
-                        context=self.context)
-                task_serializer.is_valid(raise_exception=True)
-                task = task_serializer.save()
 
             logger.debug(f"to_internal_value(): validated task {task}")
 
@@ -252,7 +255,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         return validated
 
-    def create(self, validated_data):
+    def create(self, validated_data: Mapping[str, Any]):
         now = timezone.now()
 
         request_status = TaskExecution.Status(validated_data.get(
@@ -270,9 +273,13 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             if 'finished_at' not in validated_data:
                 validated_data['finished_at'] = now
 
+        self.protect_attributes(validated_data=validated_data,
+                existing_task_execution=None,
+                task=cast(Task, validated_data['task']))
+
         return super().create(validated_data)
 
-    def update(self, instance, validated_data):
+    def update(self, instance, validated_data: Mapping[str, Any]):
         now = timezone.now()
 
         logger.info(
@@ -312,7 +319,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             if 'last_heartbeat_at' not in validated_data:
                 validated_data['last_heartbeat_at'] = now
         elif request_status in (TaskExecution.Status.SUCCEEDED,
-                TaskExecution.Status.FAILED, TaskExecution.Status.ABORTED):
+                TaskExecution.Status.FAILED,
+                TaskExecution.Status.TERMINATED_AFTER_TIME_OUT,
+                TaskExecution.Status.ABORTED):
             logger.info(f"old status = {existing_status.name}")
 
             if existing_status not in (request_status,
@@ -339,6 +348,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         return super().update(instance, validated_data)
 
+    # TODO: output raw JSON
     @extend_schema_field(AwsEcsExecutionMethodSerializer)
     def get_execution_method(self, obj: TaskExecution):
         method_type = obj.task.execution_method_type

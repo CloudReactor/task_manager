@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowExecutionChecker:
-    def check_all(self):
+    def check_all(self) -> None:
         # TODO: optimize query to only fetch problematic executions
         for we in WorkflowExecution.objects.select_related(
                 'workflow').filter(status__in=WorkflowExecution.IN_PROGRESS_STATUSES):
@@ -18,7 +18,7 @@ class WorkflowExecutionChecker:
             except Exception:
                 logger.exception(f"Failed checking Workflow Execution {we.uuid} of Workflow {we.workflow}")
 
-    def check_workflow_execution(self, we: WorkflowExecution):
+    def check_workflow_execution(self, we: WorkflowExecution) -> None:
         if we.finished_at:
             logger.error(f"Workflow Execution {we.uuid} has an in progress status but finished_at is not NULL")
             return
@@ -30,7 +30,7 @@ class WorkflowExecutionChecker:
                 if self.check_timeout(we):
                     return
 
-    def check_timeout(self, we: WorkflowExecution):
+    def check_timeout(self, we: WorkflowExecution) -> bool:
         workflow = we.workflow
         utc_now = timezone.now()
         run_duration = (utc_now - (we.started_at or we.created_at)).total_seconds()

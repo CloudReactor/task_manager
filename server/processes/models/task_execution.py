@@ -73,6 +73,22 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         'kill_started_at', 'kill_finished_at', 'kill_error_code', 'killed_by',
         'marked_outdated_at', 'marked_done_at', 'marked_done_by',]
 
+    ATTRIBUTES_REQUIRING_DEVELOPER_ACCESS_FOR_UPDATE = [
+        'execution_method',
+        'process_command',
+        'task_max_concurrency',
+        'prevent_offline_execution',
+        'api_base_url', 'api_key',
+        'api_request_timeout_seconds',
+        'api_retry_delay_seconds',
+        'api_resume_delay_seconds',
+        'api_error_timeout_seconds',
+        'api_task_execution_creation_error_timeout_seconds',
+        'api_task_execution_creation_conflict_timeout_seconds',
+        'api_task_execution_creation_conflict_retry_delay_seconds',
+        'api_final_update_timeout_seconds',
+    ]
+
     task = models.ForeignKey(Task, on_delete=models.CASCADE,
             db_column='process_type_id')
     task_version_number = models.BigIntegerField(null=True, blank=True,
@@ -282,7 +298,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         exec_method = self.task.execution_method()
 
         if ExecutionMethod.ExecutionCapability.MANUAL_START not in exec_method.capabilities():
-            raise APIException()
+            raise APIException("Execution method does not support manual start")
 
         exec_method.manually_start(task_execution=self)
 
@@ -300,10 +316,8 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         if self.deployment:
             env['PROC_WRAPPER_DEPLOYMENT'] = self.deployment
 
-        # TODO: not implemented in wrapper,
-        # secure this before allowing command override
         if self.process_command:
-            env['PROC_WRAPPER_PROCESS_COMMAND'] = self.process_command
+            env['PROC_WRAPPER_TASK_COMMAND'] = self.process_command
 
         if self.is_service is not None:
             env['PROC_WRAPPER_TASK_IS_SERVICE'] = str(self.is_service).upper()
@@ -477,6 +491,10 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         if not task.enabled:
             logger.info(f"Skipping alerting since Task {task.uuid} is disabled")
             return
+
+        # if self.should_postpone_alerts():
+        #     logger.info(f"Postponing alerts on Task {task.uuid} after execution status = {self.status}")
+        #     return
 
         run_env = task.run_environment
         alert_methods = task.alert_methods.filter(enabled=True)
@@ -675,8 +693,11 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
 
     if task.schedule:
         from .missing_scheduled_task_execution import MissingScheduledTaskExecution
+        # TODO: clear multiple?
+        # FIXME: does schedule have to match?
         mspe = MissingScheduledTaskExecution.objects.filter(
             task=task, schedule=task.schedule).order_by(
+            # use this instead of check below? ) resolved_at__isnull=True
             '-expected_execution_at', '-id').first()
 
         if mspe and (not mspe.resolved_at):

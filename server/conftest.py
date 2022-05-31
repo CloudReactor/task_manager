@@ -220,6 +220,22 @@ def ensure_attributes_match(body_dict: dict[str, Any], model,
 
         assert body_dict[attr] == x
 
+EXECUTABLE_ATTRIBUTES = [
+    'schedule', 'scheduled_instance_count',
+    'max_concurrency',
+    'max_age_seconds', 'default_max_retries',
+    'enabled',
+    'postponed_failure_before_success_seconds',
+    'max_postponed_failure_count',
+    'max_postponed_timeout_count',
+    'min_missing_execution_delay_seconds',
+    'postponed_missing_execution_before_start_seconds',
+    'max_postponed_missing_execution_count',
+    'min_missing_execution_delay_seconds',
+    'should_clear_failure_alerts_on_success',
+    'should_clear_timeout_alerts_on_success',
+]
+
 
 def validate_serialized_task(body_task: dict[str, Any], model_task: Task,
         context: Optional[dict[str, Any]] = None) -> None:
@@ -233,15 +249,12 @@ def validate_serialized_task(body_task: dict[str, Any], model_task: Task,
         'heartbeat_interval_seconds',
         'max_heartbeat_lateness_before_alert_seconds',
         'max_heartbeat_lateness_before_abandonment_seconds',
-        'schedule', 'scheduled_instance_count',
         'is_service', 'service_instance_count',
         'min_service_instance_count',
-        'max_concurrency',
-        'max_age_seconds', 'default_max_retries',
         'project_url', 'log_query', 'logs_url',
-        'was_auto_created', 'passive', 'enabled',
+        'was_auto_created', 'passive',
         'created_at', 'updated_at',
-    ])
+    ] + EXECUTABLE_ATTRIBUTES)
 
     assert body_task['created_by_group'] == GroupSerializer(
             model_task.created_by_group,
@@ -366,7 +379,7 @@ def validate_serialized_workflow(body_workflow: dict[str, Any],
         'latest_workflow_execution',
         'enabled',
         'created_at', 'updated_at'
-    ])
+    ] + EXECUTABLE_ATTRIBUTES)
 
     assert body_workflow['created_by_group'] == GroupSerializer(
             model_workflow.created_by_group,

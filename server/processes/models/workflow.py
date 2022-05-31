@@ -42,8 +42,6 @@ class Workflow(Schedulable):
         ordering = ['name']
         unique_together = (('name', 'created_by_group'),)
 
-    max_age_seconds = models.IntegerField(null=True, blank=True)
-    default_max_retries = models.IntegerField(default=0)
     latest_workflow_execution = models.OneToOneField('WorkflowExecution',
         # Don't backreference, since WorkflowExecutions already point to Workflows
         related_name='+',

@@ -1,5 +1,7 @@
+from typing import Generic, Optional, TypeVar
+
 from abc import ABCMeta, abstractmethod
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 
 from crontab import CronTab
@@ -11,7 +13,7 @@ from django.utils import timezone
 
 from processes.common.request_helpers import context_with_request
 from processes.models import (
-        Alert, AlertSendStatus, AlertMethod,
+        Alert, AlertSendStatus, AlertMethod, MissingScheduledExecution,
         Schedulable
 )
 
@@ -23,8 +25,11 @@ MAX_SCHEDULED_LATENESS_SECONDS = 30 * 60
 logger = logging.getLogger(__name__)
 
 
-class ScheduleChecker(metaclass=ABCMeta):
-    def check_all(self):
+BoundSchedulable = TypeVar('BoundSchedulable', bound=Schedulable)
+
+
+class ScheduleChecker(Generic[BoundSchedulable], metaclass=ABCMeta):
+    def check_all(self) -> None:
         model_name = self.model_name()
         for schedulable in self.manager().filter(enabled=True).exclude(schedule='').all():
             logger.info(f"Found {model_name} {schedulable} with schedule {schedulable.schedule}")
@@ -33,13 +38,16 @@ class ScheduleChecker(metaclass=ABCMeta):
             except Exception:
                 logger.exception(f"check_all() failed on {model_name} {schedulable.uuid}")
 
-    def check_execution_on_time(self, schedulable: Schedulable):
+    def check_execution_on_time(self, schedulable: BoundSchedulable) \
+            -> Optional[MissingScheduledExecution]:
         model_name = self.model_name()
         schedule = schedulable.schedule.strip()
 
         if not schedule:
             logger.warning(f"For schedulable entity {schedulable.uuid}, schedule '{schedule}' is blank, skipping")
             return None
+
+        mse: Optional[MissingScheduledExecution] = None
 
         m = Schedulable.CRON_REGEX.match(schedule)
 
@@ -80,7 +88,7 @@ class ScheduleChecker(metaclass=ABCMeta):
                 f"check_execution_on_time(): Previous execution was supposed to start {previous_execution_seconds_ago / 60} minutes ago at {expected_datetime}")
 
             with transaction.atomic():
-                mspe = self.check_executed_at(schedulable, expected_datetime)
+                mse = self.check_executed_at(schedulable, expected_datetime)
         else:
             m = Schedulable.RATE_REGEX.match(schedule)
 
@@ -104,17 +112,18 @@ class ScheduleChecker(metaclass=ABCMeta):
                     f"check_execution_on_time(): Previous execution was supposed to start executed after {expected_datetime}")
 
                 with transaction.atomic():
-                    mspe = self.check_executed_after(schedulable,
+                    mse = self.check_executed_after(schedulable,
                         expected_datetime, relative_delta, utc_now)
             else:
                 raise Exception(f"Schedule '{schedule}' is not a cron or rate expression")
 
-        if mspe:
-            self.send_alerts(mspe)
+        if mse:
+            self.send_alerts(mse)
 
-        return mspe
+        return mse
 
-    def check_executed_at(self, schedulable: Schedulable, expected_datetime):
+    def check_executed_at(self, schedulable: BoundSchedulable,
+            expected_datetime: datetime) -> Optional[MissingScheduledExecution]:
         model_name = self.model_name()
         mse = self.missing_scheduled_executions_of(schedulable).filter(
             expected_execution_at=expected_datetime).first()
@@ -151,7 +160,9 @@ class ScheduleChecker(metaclass=ABCMeta):
         mse.save()
         return mse
 
-    def check_executed_after(self, schedulable, expected_datetime, relative_delta, utc_now):
+    def check_executed_after(self, schedulable: BoundSchedulable,
+            expected_datetime: datetime, relative_delta: relativedelta,
+            utc_now: datetime):
         model_name = self.model_name()
         mse = self.missing_scheduled_executions_of(schedulable).order_by('-expected_execution_at').first()
 
@@ -193,7 +204,7 @@ class ScheduleChecker(metaclass=ABCMeta):
 
 
     @staticmethod
-    def make_relative_delta(n, time_unit) -> relativedelta:
+    def make_relative_delta(n: int, time_unit: str) -> relativedelta:
         if time_unit == 'second':
             return relativedelta(seconds=n)
         if time_unit == 'minute':
@@ -208,7 +219,7 @@ class ScheduleChecker(metaclass=ABCMeta):
             return relativedelta(years=n)
         raise Exception(f"Unknown time unit '{time_unit}'")
 
-    def send_alerts(self, mse):
+    def send_alerts(self, mse) -> None:
         details = self.missing_scheduled_execution_to_details(mse, context_with_request())
 
         for am in mse.schedulable_instance.alert_methods.filter(
@@ -236,7 +247,7 @@ class ScheduleChecker(metaclass=ABCMeta):
             mspea.save()
 
     @abstractmethod
-    def model_name(self):
+    def model_name(self) -> str:
         pass
 
     @abstractmethod
@@ -244,26 +255,28 @@ class ScheduleChecker(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def missing_scheduled_executions_of(self, schedulable: Schedulable):
+    def missing_scheduled_executions_of(self, schedulable: BoundSchedulable):
         pass
 
     @abstractmethod
-    def executions_of(self, schedulable: Schedulable):
+    def executions_of(self, schedulable: BoundSchedulable):
         pass
 
     @abstractmethod
-    def make_missing_scheduled_execution(self, schedulable: Schedulable,
-            expected_execution_at):
+    def make_missing_scheduled_execution(self, schedulable: BoundSchedulable,
+            expected_execution_at: datetime) -> MissingScheduledExecution:
         pass
 
     @abstractmethod
-    def missing_scheduled_execution_to_details(self, mse, context):
+    def missing_scheduled_execution_to_details(self,
+            mse: MissingScheduledExecution, context) -> dict:
         pass
 
     @abstractmethod
-    def make_missing_execution_alert(self, mse, alert_method: AlertMethod):
+    def make_missing_execution_alert(self, mse: MissingScheduledExecution,
+            alert_method: AlertMethod) -> Alert:
         pass
 
     @abstractmethod
-    def alert_summary_template(self):
+    def alert_summary_template(self) -> str:
         pass

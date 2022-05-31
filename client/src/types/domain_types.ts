@@ -260,6 +260,24 @@ export function makeNewRunEnvironment(): RunEnvironment {
   });
 }
 
+export interface Executable {
+  default_max_retries: number;
+  enabled: boolean;
+  max_age_seconds: number | null;
+  max_concurrency: number | null;
+  max_postponed_failure_count: number | null;
+  max_postponed_missing_execution_count: number | null;
+  max_postponed_timeout_count: number | null;
+  min_missing_execution_delay_seconds: number | null;
+  postponed_failure_before_success_seconds: number | null;
+  postponed_missing_execution_before_start_seconds: number | null;
+  postponed_timeout_before_success_seconds: number | null;
+  schedule: string;
+  scheduled_instance_count: number | null;
+  should_clear_failure_alerts_on_success: boolean;
+  should_clear_timeout_alerts_on_success: boolean;
+}
+
 export interface AwsLoadBalancer {
   target_group_arn: string;
   container_name: string | null;
@@ -281,14 +299,12 @@ export interface CurrentServiceInfo {
   service_infrastructure_website_url: string | null;
 }
 
-export interface Task extends EntityReferenceWithDates {
+export interface Task extends EntityReferenceWithDates, Executable {
   alert_methods: EntityReference[];
   created_by_group: GroupReference;
   created_by_user?: string;
   current_service_info: CurrentServiceInfo | null;
-  default_max_retries: number;
   description: string;
-  enabled: boolean;
   execution_method_capability: ExecutionMethodCapability;
   heartbeat_interval_seconds: number;
   is_service: boolean;
@@ -296,7 +312,6 @@ export interface Task extends EntityReferenceWithDates {
   links: ExternalLink[];
   log_query: string;
   logs_url: string;
-  max_age_seconds: number | null;
   max_concurrency: number | null;
   max_heartbeat_lateness_before_abandonment_seconds: number | null;
   max_heartbeat_lateness_before_alert_seconds: number | null;
@@ -307,8 +322,6 @@ export interface Task extends EntityReferenceWithDates {
   passive: boolean;
   project_url: string;
   run_environment: EntityReference;
-  schedule: string;
-  scheduled_instance_count: number | null;
   service_instance_count: number;
   was_auto_created: boolean;
 }
@@ -336,14 +349,23 @@ implements Task {
   max_heartbeat_lateness_before_alert_seconds = null;
   max_manual_start_delay_before_abandonment_seconds = null;
   max_manual_start_delay_before_alert_seconds = null;
+  max_postponed_failure_count = null;
+  max_postponed_missing_execution_count = null;
+  max_postponed_timeout_count = null;
+  min_missing_execution_delay_seconds = null;
   min_service_instance_count = null;
   other_metadata = null;
   passive = false;
+  postponed_failure_before_success_seconds = null;
+  postponed_missing_execution_before_start_seconds = null;
+  postponed_timeout_before_success_seconds = null;
   project_url = '';
   run_environment = new EntityReferenceImpl();
   schedule = '';
   scheduled_instance_count = null;
   service_instance_count = 0;
+  should_clear_failure_alerts_on_success = false;
+  should_clear_timeout_alerts_on_success = false;
   was_auto_created = false;
 
   canManuallyStart(): boolean {
@@ -549,15 +571,12 @@ export interface WorkflowExecution extends WorkflowExecutionSummary {
   workflow_transition_evaluations: WorkflowTransitionEvaluation[];
 }
 
-export interface WorkflowSummary extends EntityReferenceWithDates {
+export interface WorkflowSummary extends EntityReferenceWithDates,
+    Executable {
   created_at: Date;
   created_by_group: GroupReference;
   created_by_user?: string;
   description: string;
-  enabled: boolean;
-  max_age_seconds: number | null;
-  max_concurrency: number | null;
-  schedule: string;
   latest_workflow_execution: WorkflowExecutionSummary | null;
   [propName: string]: any;
 }
@@ -582,11 +601,22 @@ export function makeNewWorkflow(): Workflow {
     updated_at: new Date(),
     created_by_group: makeEmptyGroupReference(),
     created_by_user: '',
+    default_max_retries: 0,
     description: '',
     enabled: true,
     max_age_seconds: null,
     max_concurrency: null,
+    max_postponed_failure_count: null,
+    max_postponed_missing_execution_count: null,
+    max_postponed_timeout_count: null,
+    min_missing_execution_delay_seconds: null,
+    postponed_failure_before_success_seconds: null,
+    postponed_missing_execution_before_start_seconds: null,
+    postponed_timeout_before_success_seconds: null,
     schedule: '',
+    scheduled_instance_count: null,
+    should_clear_failure_alerts_on_success: false,
+    should_clear_timeout_alerts_on_success: false,
     workflow_task_instances: [],
     workflow_transitions: [],
     latest_workflow_execution: null,

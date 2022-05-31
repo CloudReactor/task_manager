@@ -85,8 +85,6 @@ class Task(AwsEcsConfiguration, Schedulable):
     service_instance_count = models.PositiveIntegerField(null=True, blank=True)
     min_service_instance_count = models.PositiveIntegerField(
         null=True, blank=True)
-    max_age_seconds = models.PositiveIntegerField(null=True, blank=True)
-    default_max_retries = models.PositiveIntegerField(default=0)
 
     # TODO: use when running - might need to pass to process wrapper for
     # scheduled processes
@@ -97,9 +95,11 @@ class Task(AwsEcsConfiguration, Schedulable):
     run_environment = models.ForeignKey(RunEnvironment,
             on_delete=models.CASCADE, blank=True)
 
-    # 2021-03-14 : Change default to Unknown after next production deployment
     execution_method_type = models.CharField(max_length=100, null=False,
-            blank=False, default='AWS ECS')
+            blank=False, default='Unknown')
+
+    execution_method_capability = models.JSONField(null=True, blank=True)
+
     aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_load_balancer_health_check_grace_period_seconds = \
             models.IntegerField(null=True, blank=True)

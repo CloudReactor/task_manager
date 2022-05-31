@@ -173,7 +173,7 @@ def extract_filtered_group(request: Request,
 
     return group
 
-def ensure_group_access_level(group: Optional[Group],
+def ensure_group_access_level(group: Optional[Group] = None,
         min_access_level: Optional[int] = -1,
         run_environment: 'Optional[RunEnvironment]' = None,
         allow_api_key: bool = True,
@@ -188,13 +188,13 @@ def ensure_group_access_level(group: Optional[Group],
         return (request_user, group or request_group,
                 UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
 
-    if request_group and (request_group != group):
-        raise PermissionDenied('Non-matching Group')
-
     group = group or request_group
 
     if group is None:
         raise NotAuthenticated('Group required')
+
+    if request_group and (request_group != group):
+        raise PermissionDenied('Non-matching Group')
 
     if min_access_level == -1:
         min_access_level = UserGroupAccessLevel.ACCESS_LEVEL_ADMIN
