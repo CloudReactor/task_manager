@@ -296,6 +296,12 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('JWT',),
+
+     # Otherwise we get "BlackListedToken has no attribute 'objects'"
+     # See https://github.com/jazzband/djangorestframework-simplejwt/pull/455/files
+     # djangorestframework-simplejwt fixes the issue but we are constrained to
+     # <5.0.0 by djoser.
+    'BLACKLIST_AFTER_ROTATION': False,
 }
 
 if env.bool('DJANGO_USE_CONSOLE_EMAIL_BACKEND', False):
