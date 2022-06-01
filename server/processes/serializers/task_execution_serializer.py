@@ -250,8 +250,12 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             self.copy_props_with_prefix(dest_dict=validated,
                   src_dict=execution_method_dict,
                   dest_prefix='aws_ecs_',
-                  except_keys=['type', 'allocated_cpu_units',
-                      'allocated_memory_mb'])
+                  included_keys=[
+                      'task_definition_arn', 'task_arn', 'launch_type',
+                      'cluster_arn', 'security_groups',
+                      'assign_public_ip', 'execution_role',
+                      'task_role', 'platform_version',
+                  ])
 
         return validated
 
