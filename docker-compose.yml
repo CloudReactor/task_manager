@@ -59,7 +59,7 @@ services:
       - ./server/.env:/home/appuser/src/.env
     ports:
       - "$SERVER_PORT:$SERVER_PORT"
-    entrypoint: gunicorn task_manager.wsgi --threads=3 --bind 0.0.0.0:$SERVER_PORT
+    entrypoint: gunicorn task_manager.wsgi --bind 0.0.0.0:$SERVER_PORT --workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir /dev/shm
 
   checker:
     <<: *service-base
@@ -136,7 +136,7 @@ services:
 
   client-shell:
     <<: *client-base
-    container_name: client-shell
+    container_name: client-shellF
     entrypoint: bash
 
   client-npm:
