@@ -2,7 +2,7 @@
 
 # BSD 2-Clause License
 
-# Copyright (c) 2021, CloudReactor
+# Copyright (c) 2021 to present, CloudReactor
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@
 #   - Computing a commit signature and using it to set
 #     CLOUDREACTOR_TASK_VERSION_SIGNATURE
 
-set -e
+set -eo pipefail
 
 if [ -z "$1" ]
   then
@@ -80,7 +80,7 @@ if [ -z "$1" ]
         exit 1
     fi
   else
-    export DEPLOYMENT_ENVIRONMENT=$1
+    DEPLOYMENT_ENVIRONMENT=$1
     shift
 fi
 
@@ -112,7 +112,7 @@ if [[ ! -f $VAR_FILENAME ]]
     exit 1
 fi
 
-ENV_FILE_OPTIONS="-e WORK_DIR=/work"
+ENV_FILE_OPTIONS="-e WORK_DIR=/home/appuser/work"
 
 if [[ -f "deploy.env" ]]
   then
@@ -151,7 +151,7 @@ fi
 
 echo "Docker context dir = $DOCKER_CONTEXT_DIR"
 
-# The default Dockerfile location is /work/Dockerfile
+# The default Dockerfile location is /home/appuser/work/Dockerfile
 # (in the container's filesystem).
 # Override by setting DOCKERFILE_PATH to an absolute path in the
 # container's filesystem, or a path relative to the Docker context directory.
@@ -167,14 +167,14 @@ fi
 
 echo "Docker image name = $DOCKER_IMAGE_NAME"
 
-# By default, the Docker image tag is 2, since this project uses
+# By default, the Docker image tag is 3, since this project uses
 # semantic versioning and non-compatible changes will increment the
 # major version number.
 # For repeatable builds, pin the DOCKER_IMAGE_TAG to a version that is
 # known to work.
 if [ -z "$DOCKER_IMAGE_TAG" ]
   then
-    DOCKER_IMAGE_TAG="2"
+    DOCKER_IMAGE_TAG="3"
 fi
 
 echo "Docker image tag = $DOCKER_IMAGE_TAG"
@@ -189,9 +189,13 @@ if [ "$PASS_AWS_ACCESS_KEY" == "TRUE" ]
     EXTRA_DOCKER_RUN_OPTIONS="-e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY $EXTRA_DOCKER_RUN_OPTIONS"
 fi
 
+# GitHub Actions must be run as root, but keep this as a variable in case
+# we publish another Docker image that runs as appuser.
+DOCKER_USER_HOME=/root
+
 if [ "$USE_USER_AWS_CONFIG" == "TRUE" ]
   then
-    EXTRA_DOCKER_RUN_OPTIONS="-v $HOME/.aws:/root/.aws $EXTRA_DOCKER_RUN_OPTIONS"
+    EXTRA_DOCKER_RUN_OPTIONS="-v $HOME/.aws:$DOCKER_USER_HOME/.aws $EXTRA_DOCKER_RUN_OPTIONS"
     if [ -n "$AWS_PROFILE" ]
       then
         EXTRA_DOCKER_RUN_OPTIONS="-e AWS_PROFILE $EXTRA_DOCKER_RUN_OPTIONS"
@@ -247,11 +251,11 @@ fi
 exec docker run --rm \
   -e CLOUDREACTOR_TASK_VERSION_SIGNATURE=$CLOUDREACTOR_TASK_VERSION_SIGNATURE \
   -e HOST_PWD=$PWD \
-  -e CONTAINER_DOCKER_CONTEXT_DIR=/work/docker_context \
+  -e CONTAINER_DOCKER_CONTEXT_DIR=/home/appuser/work/docker_context \
   $ENV_FILE_OPTIONS \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v $PWD/deploy_config:/work/deploy_config \
-  -v $DOCKER_CONTEXT_DIR:/work/docker_context \
+  -v $PWD/deploy_config:/home/appuser/work/deploy_config \
+  -v $DOCKER_CONTEXT_DIR:/home/appuser/work/docker_context \
   $EXTRA_DOCKER_RUN_OPTIONS \
   $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG \
   $DEPLOY_COMMAND "$@"
