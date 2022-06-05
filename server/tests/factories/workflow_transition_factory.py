@@ -6,7 +6,7 @@ from faker import Factory as FakerFactory
 from processes.models import WorkflowTransition
 
 from .workflow_task_instance_factory import WorkflowTaskInstanceFactory
-from .workflow_factory import WorkflowFactory
+
 
 faker = FakerFactory.create()
 
