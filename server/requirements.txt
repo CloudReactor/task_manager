@@ -91,9 +91,9 @@ charset-normalizer==2.0.12 \
     --hash=sha256:2857e29ff0d34db842cd7ca3230549d1a697f96ee6d3fb071cfa6c7393832597 \
     --hash=sha256:6881edbebdb17b39b4eaaa821b438bf6eddffb4468cf344f09f89def34a8b1df
     # via requests
-cloudreactor-procwrapper==3.1.2 \
-    --hash=sha256:5c13f37248dccdc7bc8d3b3cd9b68b027d7048b734c5b23e5150dda0361e33dc \
-    --hash=sha256:bbc63f51a06550d818a0586e832ec103e9042a9bb01c1d438c7ab758fe7170aa
+cloudreactor-procwrapper==4.0.0 \
+    --hash=sha256:0dfd91bd27d2c1ca2742c746c97531f2fc4481bb6152e51ce356e391d32568da \
+    --hash=sha256:5e01d27f401b50c6f2f91e444c5c66719a6fa781e073e5baa8ba99db4c1c03ea
     # via -r requirements.in
 coreapi==2.3.3 \
     --hash=sha256:46145fcc1f7017c076a2ef684969b641d18a2991051fddec9458ad3f78ffc1cb \
@@ -251,11 +251,12 @@ itypes==1.2.0 \
     --hash=sha256:03da6872ca89d29aef62773672b2d408f490f80db48b23079a4b194c86dd04c6 \
     --hash=sha256:af886f129dea4a2a1e3d36595a2d139589e4dd287f5cab0b40e799ee81570ff1
     # via coreapi
-jinja2==3.1.1 \
-    --hash=sha256:539835f51a74a69f41b848a9645dbdc35b4f20a3b601e2d9a7e22947b15ff119 \
-    --hash=sha256:640bed4bb501cbd17194b3cace1dc2126f5b619cf068a726b98192a0fde74ae9
+jinja2==3.0.3 \
+    --hash=sha256:077ce6014f7b40d03b47d1f1ca4b0fc8328a692bd284016f806ed0eaca390ad8 \
+    --hash=sha256:611bb273cd68f3b993fabdc4064fc858c5b47a973cb5aa7999ec1ba405c87cd7
     # via
     #   -r requirements.in
+    #   cloudreactor-procwrapper
     #   coreschema
 jmespath==0.10.0 \
     --hash=sha256:b85d0567b8666149a93172712e68920734333c0ce7e89b78b3e987f71e5ed4f9 \
