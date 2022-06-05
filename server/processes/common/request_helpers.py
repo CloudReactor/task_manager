@@ -202,7 +202,7 @@ def ensure_group_access_level(group: Optional[Group] = None,
         min_access_level = UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER
 
     access_level = UserGroupAccessLevel.access_level_for_user_in_group(
-      user=request_user, group=group)
+            user=request_user, group=group)
 
     if access_level is None:
         raise PermissionDenied('User has no access to Group')
