@@ -6,6 +6,7 @@ from .subscription import Subscription
 from .saas_token import SaasToken
 from .run_environment import RunEnvironment
 from .user_run_environment_access_level import UserRunEnvironmentAccessLevel
+from .named_with_uuid_model import NamedWithUuidModel
 from .named_with_uuid_and_run_environment_model import NamedWithUuidAndRunEnvironmentModel
 from .invitation import Invitation
 from .schedulable import Schedulable

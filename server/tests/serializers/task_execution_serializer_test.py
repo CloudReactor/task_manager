@@ -9,8 +9,6 @@ import pytest
 
 @pytest.mark.django_db
 def test_basic_task_execution_serialization(task_execution_factory):
-
-
     task_execution = cast(TaskExecution, task_execution_factory())
     context = context_with_request()
     data = TaskExecutionSerializer(task_execution, context=context).data

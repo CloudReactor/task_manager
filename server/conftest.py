@@ -16,6 +16,8 @@ from rest_framework.test import APIClient
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from pytest_assert_utils import *
+
 from processes.common.request_helpers import (
     context_with_request, make_fake_request
 )
@@ -255,6 +257,11 @@ def validate_serialized_task(body_task: dict[str, Any], model_task: Task,
         'was_auto_created', 'passive',
         'created_at', 'updated_at',
     ] + EXECUTABLE_ATTRIBUTES)
+
+    model_emc = model_task.execution_method_capability
+    body_emc = body_task['execution_method_capability']
+    if model_task.execution_method_capability:
+         assert_dict_is_subset(model_emc, body_emc, recursive=True)
 
     assert body_task['created_by_group'] == GroupSerializer(
             model_task.created_by_group,

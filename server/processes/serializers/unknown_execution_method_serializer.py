@@ -11,4 +11,7 @@ class UnknownExecutionMethodSerializer(BaseExecutionMethodSerializer):
         return UnknownExecutionMethod.NAME
 
     def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {}
+        return {
+            'execution_method_capability': data
+        }
+

@@ -106,7 +106,8 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
 
         ensure_group_access_level(group=group,
                 min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-                run_environment=run_environment)
+                run_environment=run_environment,
+                request=self.context.get('request'))
 
         validated['created_by_group'] = group
         validated['run_environment'] = run_environment

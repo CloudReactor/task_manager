@@ -224,9 +224,9 @@ dparse==0.5.1 \
     --hash=sha256:a1b5f169102e1c894f9a7d5ccf6f9402a836a5d24be80a986c7ce9eaed78f367 \
     --hash=sha256:e953a25e44ebb60a5c6efc2add4420c177f1d8404509da88da9729202f306994
     # via safety
-factory-boy==3.2.0 \
-    --hash=sha256:1d3db4b44b8c8c54cdd8b83ae4bdb9aeb121e464400035f1f03ae0e1eade56a4 \
-    --hash=sha256:401cc00ff339a022f84d64a4339503d1689e8263a4478d876e58a3295b155c5b
+factory-boy==3.2.1 \
+    --hash=sha256:a98d277b0c047c75eb6e4ab8508a7f81fb03d2cb21986f627913546ef7a2a55e \
+    --hash=sha256:eb02a7dd1b577ef606b75a253b9818e6f9eaf996d94449c9d5ebb124f90dc795
     # via
     #   -r dev-requirements.in
     #   pytest-factoryboy
@@ -441,9 +441,9 @@ pycparser==2.21 \
     # via
     #   -c requirements.txt
     #   cffi
-pylint==2.13.9 \
-    --hash=sha256:095567c96e19e6f57b5b907e67d265ff535e588fe26b12b5ebe1fc5645b2c731 \
-    --hash=sha256:705c620d388035bdd9ff8b44c5bcdd235bfb49d276d488dd2c8ff1736aa42526
+pylint==2.14.0 \
+    --hash=sha256:10d291ea5133645f73fc1b51ca137ad6531223c1461a5632a1db029a9bc033b5 \
+    --hash=sha256:ef64ce5d4c17b8906caeaf2c2914ef3036a3a1b7f4a86f5fbf6caff9067c5f63
     # via
     #   -r dev-requirements.in
     #   pylint-django
@@ -469,6 +469,10 @@ pytest==6.2.4 \
     #   pytest-django
     #   pytest-env
     #   pytest-factoryboy
+pytest-assert-utils==0.3.1 \
+    --hash=sha256:a8600b666430764eb7a486de3b21af5542425eb5bd211f6eb1ea30930691812b \
+    --hash=sha256:f4d7fa44506c1ed65eb5369100476d74d5d8a86400c4862eab3ea0e9521a22dd
+    # via -r dev-requirements.in
 pytest-cov==2.12.1 \
     --hash=sha256:261bb9e47e65bd099c89c3edf92972865210c36813f80ede5277dceb77a4a62a \
     --hash=sha256:261ceeb8c227b726249b376b8526b600f38667ee314f910353fa318caa01f4d7
@@ -582,6 +586,10 @@ tomli==2.0.1 \
     #   django-stubs
     #   mypy
     #   pylint
+tomlkit==0.11.0 \
+    --hash=sha256:0f4050db66fd445b885778900ce4dd9aea8c90c4721141fde0d6ade893820ef1 \
+    --hash=sha256:71ceb10c0eefd8b8f11fe34e8a51ad07812cb1dc3de23247425fbc9ddc47b9dd
+    # via pylint
 types-markdown==3.3.21 \
     --hash=sha256:6187ae73db1d914806558e69d190ee657103bf715d21222d6bf4235a2baa967e \
     --hash=sha256:bcf3154678e53540b0aefcbf4c9e16e9f8e1b8cd8190b1f9ceb6bfb98dda1f3a

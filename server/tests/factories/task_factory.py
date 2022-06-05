@@ -6,21 +6,17 @@ from processes.models import Task
 import factory
 from faker import Factory as FakerFactory
 
-from .group_factory import GroupFactory
-from .user_factory import UserFactory
+from .owned_model_factory import OwnedModelFactory
 from .run_environment_factory import RunEnvironmentFactory
 
 faker = FakerFactory.create()
 
 
-class TaskFactory(factory.django.DjangoModelFactory):
+class TaskFactory(OwnedModelFactory):
     class Meta:
         model = Task
 
     name = factory.Sequence(lambda n: f'task_{n}')
-
-    created_by_group = factory.SubFactory(GroupFactory)
-    created_by_user = factory.SubFactory(UserFactory)
 
     max_manual_start_delay_before_alert_seconds = 600
     max_manual_start_delay_before_abandonment_seconds = 1200
@@ -35,7 +31,9 @@ class TaskFactory(factory.django.DjangoModelFactory):
     environment_variables_overrides = None
     project_url = 'https://github.com/cloudreactor/coolproj'
     log_query = '/aws/fargate/coolproj-production'
-    run_environment = factory.SubFactory(RunEnvironmentFactory)
+    run_environment = factory.SubFactory(RunEnvironmentFactory,
+        created_by_user=factory.SelfAttribute("..created_by_user"),
+        created_by_group=factory.SelfAttribute("..created_by_group"))
 
     other_metadata = None
     latest_task_execution = None
@@ -64,3 +62,34 @@ class TaskFactory(factory.django.DjangoModelFactory):
 
     allocated_cpu_units: Optional[int] = 512
     allocated_memory_mb: Optional[int] = 2048
+
+    @factory.post_generation
+    def sanitize_emc(task: Task, create: bool, extracted, **kwargs):
+        if task.execution_method_capability:
+            return
+
+        emc = {
+            'type': task.execution_method_type
+        }
+
+        common_attr_names = [
+            'allocated_cpu_units', 'allocated_memory_mb'
+        ]
+
+        for attr_name in common_attr_names:
+            emc[attr_name] = getattr(task, attr_name)
+
+        if task.execution_method_type == AwsEcsExecutionMethod.NAME:
+            aws_ecs_attr_names = ['task_definition_arn', 'main_container_name',
+                'default_launch_type', 'supported_launch_types',
+                'default_cluster_arn', 'default_execution_role',
+                'default_task_role',
+                'default_security_groups',
+                'default_assign_public_ip', 'default_execution_role',
+                'default_task_role', 'default_platform_version',
+            ]
+
+            for attr_name in aws_ecs_attr_names:
+                emc[attr_name] = getattr(task, 'aws_ecs_' + attr_name)
+
+            task.execution_method_capability = emc

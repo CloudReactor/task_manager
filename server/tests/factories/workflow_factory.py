@@ -3,23 +3,21 @@ from processes.models import Workflow
 import factory
 from faker import Factory as FakerFactory
 
-from .group_factory import GroupFactory
-from .user_factory import UserFactory
+from .owned_model_factory import OwnedModelFactory
 from .run_environment_factory import RunEnvironmentFactory
 
 faker = FakerFactory.create()
 
 
-class WorkflowFactory(factory.django.DjangoModelFactory):
+class WorkflowFactory(OwnedModelFactory):
     class Meta:
         model = Workflow
 
     name = factory.Sequence(lambda n: f'workflow_{n}')
 
-    created_by_group = factory.SubFactory(GroupFactory)
-    created_by_user = factory.SubFactory(UserFactory)
-
-    run_environment = factory.SubFactory(RunEnvironmentFactory)
+    run_environment = factory.SubFactory(RunEnvironmentFactory,
+        created_by_user=factory.SelfAttribute("..created_by_user"),
+        created_by_group=factory.SelfAttribute("..created_by_group"))
 
     max_age_seconds = 3600
     default_max_retries = 0

@@ -22,6 +22,9 @@ from drf_spectacular.utils import (
 from .aws_ecs_execution_method_capability_serializer import (
     AwsEcsExecutionMethodCapabilitySerializer
 )
+from .generic_execution_method_capability_serializer import (
+    GenericExecutionMethodCapabilitySerializer
+)
 from .unknown_execution_method_capability_serializer import (
     UnknownExecutionMethodCapabilitySerializer
 )
@@ -219,7 +222,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         validated = super().to_internal_value(data)
 
-        user, group = required_user_and_group_from_request()
+        user, group = required_user_and_group_from_request(
+            self.context.get('request'))
 
         task: Optional[Task] = cast(Task, self.instance) if self.instance else None
 
@@ -318,17 +322,16 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         if execution_method_dict is not None:
             execution_method_type = execution_method_dict.get('type',
-                    execution_method_type).upper()
-
-            execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
                     execution_method_type)
 
-            if not execution_method_type:
-                raise serializers.ValidationError({
-                    'execution_method.type': [
-                        f"Invalid type: '{execution_method_type}'"
-                    ]
-                })
+            if execution_method_type:
+                known_execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
+                    execution_method_type.upper())
+
+                if known_execution_method_type:
+                    execution_method_type = known_execution_method_type
+                else:
+                    logger.warning(f"Unsupported execution method type: '{execution_method_type}")
 
             validated['execution_method_type'] = execution_method_type
 
@@ -547,9 +550,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
             return UnknownExecutionMethodCapabilitySerializer(task,
                     required=False)
         else:
-            raise serializers.ValidationError({
-                'execution_method.type': [f"Invalid type: '{method_name}'"]
-            })
+            return GenericExecutionMethodCapabilitySerializer(task,
+                    required=False)
 
 
     def update_aws_ecs_service_load_balancer_details_set(self, task: Task,

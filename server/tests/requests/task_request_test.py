@@ -284,10 +284,7 @@ def make_request_body(uuid_send_type: Optional[str],
     request_data: dict[str, Any] = {
       'name': 'Some Task',
       'passive': False,
-      'execution_method_capability': {
-          'type': 'AWS ECS',
-          #'task_definition_arn': 'blah',
-      }
+      'execution_method_capability': task.execution_method_capability
     }
 
     if uuid_send_type == SEND_ID_NOT_FOUND:

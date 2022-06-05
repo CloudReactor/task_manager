@@ -3,22 +3,15 @@ from typing import List
 from processes.models import EmailNotificationProfile
 
 import factory
-from faker import Factory as FakerFactory
 
-from .group_factory import GroupFactory
-from .user_factory import UserFactory
-
-faker = FakerFactory.create()
+from .owned_model_factory import OwnedModelFactory
 
 
-class EmailNotificationProfileFactory(factory.django.DjangoModelFactory):
+class EmailNotificationProfileFactory(OwnedModelFactory):
     class Meta:
         model = EmailNotificationProfile
 
     name = factory.Sequence(lambda n: f'pdp_{n}')
-
-    created_by_group = factory.SubFactory(GroupFactory)
-    created_by_user = factory.SubFactory(UserFactory)
 
     subject_template = factory.Faker('random_letters')
     body_template = factory.Faker('random_letters')

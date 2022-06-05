@@ -40,11 +40,11 @@ class AwsEcsExecutionMethodCapabilitySerializer(
         self.is_service = is_service
 
     def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
-        validated: dict[str, Any] = {}
+        validated: dict[str, Any] = {
+            'execution_method_capability': data
+        }
 
         included_keys = self.get_fields().keys()
-
-        logger.info(f"Included keys = {included_keys}")
 
         validated = self.copy_props_with_prefix(dest_dict=validated,
                 src_dict=data, included_keys=[
