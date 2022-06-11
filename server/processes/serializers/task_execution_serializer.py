@@ -13,7 +13,7 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from drf_spectacular.utils import extend_schema_field
 
 from ..models import (
-    RunEnvironment, Task, TaskExecution, UserGroupAccessLevel,
+    Task, TaskExecution, UserGroupAccessLevel,
     WorkflowTaskInstanceExecution
 )
 

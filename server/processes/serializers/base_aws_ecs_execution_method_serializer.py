@@ -11,7 +11,7 @@ from .base_execution_method_capability_serializer import (
 class BaseAwsEcsExecutionMethodSerializer(
         BaseExecutionMethodCapabilitySerializer):
     tags = serializers.HStoreField(source='aws_tags', allow_null=True,
-            allow_empty=True)
+            allow_empty=True, required=False)
 
     default_subnets = serializers.ListField(
             source='aws_default_subnets',
@@ -25,7 +25,7 @@ class BaseAwsEcsExecutionMethodSerializer(
             source='aws_ecs_default_launch_type',
             choices=AwsEcsExecutionMethod.ALL_LAUNCH_TYPES,
             default=AwsEcsExecutionMethod.DEFAULT_LAUNCH_TYPE,
-            allow_null=True)
+            allow_blank=True)
 
     supported_launch_types = serializers.ListField(
             source='aws_ecs_supported_launch_types',

@@ -427,11 +427,13 @@ SPECTACULAR_SETTINGS = {
     # 'COMPONENT_SPLIT_REQUEST': True,
     # Aid client generator targets that have trouble with read-only properties.
     'COMPONENT_NO_READ_ONLY_REQUIRED': True,
-    # Code generation has trouble with oneOf with BlankEnum choice
+    # Code generation has trouble with oneOf with BlankEnum choice,
+    # but we do want the empty string as a choice, so we need to
+    # postprocess.
     'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
     'ENUM_NAME_OVERRIDES': {
         # Duplicated from AwsEcsExecutionMethod.ALL_LAUNCH_TYPES
-        'AwsEcsLaunchType': ['FARGATE', 'EC2'],
+        'AwsEcsLaunchType': ['FARGATE', 'EC2',],
         # Duplicated from NOTIFICATION_SEVERITIES in notification.py
         'NotificationSeverity': ['critical', 'error', 'warning', 'info'],
     },
