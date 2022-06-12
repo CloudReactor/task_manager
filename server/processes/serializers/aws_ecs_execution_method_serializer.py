@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 from rest_framework import serializers
@@ -15,7 +16,7 @@ class AwsEcsExecutionMethodSerializer(BaseExecutionMethodSerializer,
     """
 
     tags = serializers.HStoreField(source='aws_tags', allow_null=True,
-            allow_empty=True)
+            allow_empty=True, required=False)
 
     subnets = serializers.ListField(
             source='aws_subnets',
@@ -38,7 +39,8 @@ class AwsEcsExecutionMethodSerializer(BaseExecutionMethodSerializer,
     launch_type = serializers.ChoiceField(
             source='aws_ecs_launch_type',
             choices=AwsEcsExecutionMethod.ALL_LAUNCH_TYPES,
-            default=AwsEcsExecutionMethod.DEFAULT_LAUNCH_TYPE)
+            default=AwsEcsExecutionMethod.DEFAULT_LAUNCH_TYPE,
+            allow_blank=True)
 
     cluster_arn = serializers.CharField(
             source='aws_ecs_cluster_arn',

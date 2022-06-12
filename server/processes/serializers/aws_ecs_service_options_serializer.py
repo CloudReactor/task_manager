@@ -42,7 +42,7 @@ class AwsEcsServiceOptionsSerializer(serializers.Serializer):
     propagate_tags = serializers.ChoiceField(
             source='aws_ecs_service_propagate_tags',
             choices=AwsEcsExecutionMethod.SERVICE_PROPAGATE_TAGS_CHOICES,
-            required=False)
+            required=False, allow_blank=True)
 
     tags = serializers.HStoreField(source='aws_ecs_service_tags',
             allow_null=True, allow_empty=True, required=False)
