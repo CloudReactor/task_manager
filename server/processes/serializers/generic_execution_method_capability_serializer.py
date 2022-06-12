@@ -17,7 +17,7 @@ class GenericExecutionMethodCapabilitySerializer(BaseExecutionMethodCapabilitySe
         return rv
 
     def to_representation(self, instance: Task):
-        return instance.execution_method_capability
+        return instance.execution_method_capability_details
 
     def get_capabilities(self, obj) -> list[str]:
         return []

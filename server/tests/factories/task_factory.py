@@ -65,7 +65,7 @@ class TaskFactory(OwnedModelFactory):
 
     @factory.post_generation
     def sanitize_emc(task: Task, create: bool, extracted, **kwargs):
-        if task.execution_method_capability:
+        if task.execution_method_capability_details:
             return
 
         emc = {
@@ -92,4 +92,4 @@ class TaskFactory(OwnedModelFactory):
             for attr_name in aws_ecs_attr_names:
                 emc[attr_name] = getattr(task, 'aws_ecs_' + attr_name)
 
-            task.execution_method_capability = emc
+            task.execution_method_capability_details = emc

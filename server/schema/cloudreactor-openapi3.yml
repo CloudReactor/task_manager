@@ -2997,6 +2997,34 @@ components:
           allOf:
           - $ref: '#/components/schemas/ExecutionMethodCapability'
           readOnly: true
+        execution_method_type:
+          type: string
+          maxLength: 100
+        execution_method_capability_details:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        infrastructure_type:
+          type: string
+          maxLength: 100
+        infrastructure_settings:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        scheduling_provider_type:
+          type: string
+          maxLength: 10
+        scheduling_settings:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        service_provider_type:
+          type: string
+          maxLength: 10
+        service_settings:
+          type: object
+          additionalProperties: {}
+          nullable: true
         alert_methods:
           type: array
           items:
@@ -4013,6 +4041,34 @@ components:
           allOf:
           - $ref: '#/components/schemas/ExecutionMethodCapability'
           readOnly: true
+        execution_method_type:
+          type: string
+          maxLength: 100
+        execution_method_capability_details:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        infrastructure_type:
+          type: string
+          maxLength: 100
+        infrastructure_settings:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        scheduling_provider_type:
+          type: string
+          maxLength: 10
+        scheduling_settings:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        service_provider_type:
+          type: string
+          maxLength: 10
+        service_settings:
+          type: object
+          additionalProperties: {}
+          nullable: true
         alert_methods:
           type: array
           items:

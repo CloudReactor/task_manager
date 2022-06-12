@@ -21,12 +21,13 @@ from ..exception.unprocessable_entity import UnprocessableEntity
 from .subscription import Subscription
 from .aws_ecs_configuration import AwsEcsConfiguration
 from .schedulable import Schedulable
+from .infrastructure_configuration import InfrastructureConfiguration
 from .run_environment import RunEnvironment
 
 logger = logging.getLogger(__name__)
 
 
-class Task(AwsEcsConfiguration, Schedulable):
+class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     """
     The specification for a runnable task (job), including details on how to
     run the task and how often the task is supposed to run.
@@ -98,7 +99,13 @@ class Task(AwsEcsConfiguration, Schedulable):
     execution_method_type = models.CharField(max_length=100, null=False,
             blank=False, default='Unknown')
 
-    execution_method_capability = models.JSONField(null=True, blank=True)
+    execution_method_capability_details = models.JSONField(null=True, blank=True)
+
+    scheduling_provider_type = models.CharField(max_length=10, blank=True)
+    scheduling_settings = models.JSONField(null=True, blank=True)
+
+    service_provider_type = models.CharField(max_length=10, blank=True)
+    service_settings = models.JSONField(null=True, blank=True)
 
     aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_load_balancer_health_check_grace_period_seconds = \

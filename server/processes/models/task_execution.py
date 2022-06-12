@@ -22,6 +22,7 @@ from ..common.pagerduty import *
 from .uuid_model import UuidModel
 from .task import Task
 from .aws_tagged_entity import AwsTaggedEntity
+from .infrastructure_configuration import InfrastructureConfiguration
 
 
 logger = logging.getLogger(__name__)
