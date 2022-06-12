@@ -296,7 +296,7 @@ def make_request_body(uuid_send_type: Optional[str],
         task_for_emc = task
         if task_for_emc is None:
             task_for_emc = task_factory()
-        emc = task_for_emc.execution_method_capability
+        emc = task_for_emc.execution_method_capability_details
 
         # Remove extra Task so we don't mess up counts
         if task is None:

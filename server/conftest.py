@@ -255,12 +255,16 @@ def validate_serialized_task(body_task: dict[str, Any], model_task: Task,
         'min_service_instance_count',
         'project_url', 'log_query', 'logs_url',
         'was_auto_created', 'passive',
+        'execution_method_type',
+        'execution_method_capability_details',
+        'scheduling_provider_type', 'scheduling_settings',
+        'service_provider_type', 'service_settings',
         'created_at', 'updated_at',
     ] + EXECUTABLE_ATTRIBUTES)
 
-    model_emc = model_task.execution_method_capability
-    body_emc = body_task['execution_method_capability']
-    if model_task.execution_method_capability:
+    model_emc = model_task.execution_method_capability_details
+    body_emc = body_task['execution_method_capability_details']
+    if model_task.execution_method_capability_details:
          assert_dict_is_subset(model_emc, body_emc, recursive=True)
 
     assert body_task['created_by_group'] == GroupSerializer(

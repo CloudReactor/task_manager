@@ -27,7 +27,7 @@ def test_basic_task_serialization(task_factory):
 def test_task_serialization_with_unsupported_emc(task_factory):
     task = cast(Task, task_factory())
     task.execution_method_type = 'Voodoo'
-    task.execution_method_capability = {
+    task.execution_method_capability_details = {
         'type': 'Voodoo',
         'witch_id': 'DOLLY76'
     }
@@ -47,4 +47,4 @@ def test_task_serialization_with_unsupported_emc(task_factory):
     assert ser.is_valid() is True
     assert not ser.errors
     validated = ser.validated_data
-    assert validated['execution_method_capability'] == task.execution_method_capability
+    assert validated['execution_method_capability_details'] == task.execution_method_capability_details
