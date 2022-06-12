@@ -37,7 +37,8 @@ class WorkflowExecutionRunReasonSerializer(serializers.BaseSerializer):
 
 
 @extend_schema_field(serializers.ChoiceField(choices=[
-        reason.name for reason in list(WorkflowExecution.StopReason)]),
+        reason.name for reason in list(WorkflowExecution.StopReason)],
+        allow_blank=True),
         component_name='WorkflowExecutionStopReason')
 class WorkflowExecutionStopReasonSerializer(serializers.BaseSerializer):
     def to_representation(self, instance):

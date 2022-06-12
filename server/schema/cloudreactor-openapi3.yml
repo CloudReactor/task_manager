@@ -4687,6 +4687,7 @@ components:
       enum:
       - MANUAL
       - MAX_EXECUTION_TIME_EXCEEDED
+      - ''
       type: string
     WorkflowExecutionSummary:
       type: object
