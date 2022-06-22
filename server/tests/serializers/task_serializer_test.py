@@ -6,8 +6,13 @@ from processes.serializers import TaskSerializer
 
 import pytest
 
+from moto import mock_ecs, mock_sts, mock_events
+
 
 @pytest.mark.django_db
+@mock_ecs
+@mock_sts
+@mock_events
 def test_basic_task_serialization(task_factory):
     task = cast(Task, task_factory())
     context = context_with_request()
@@ -16,6 +21,9 @@ def test_basic_task_serialization(task_factory):
 
 
 @pytest.mark.django_db
+@mock_ecs
+@mock_sts
+@mock_events
 def test_task_serialization_with_unsupported_emc(task_factory):
     task = cast(Task, task_factory())
     task.execution_method_type = 'Voodoo'

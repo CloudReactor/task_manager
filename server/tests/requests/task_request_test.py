@@ -227,8 +227,9 @@ def test_task_list(
 def common_setup(is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
         uuid_send_type: str,
-        user, group_factory, run_environment_factory, task_factory, api_client) \
-        -> Tuple[Task, Optional[RunEnvironment], APIClient, str]:
+        user: User,
+        group_factory, run_environment_factory, task_factory, api_client) \
+        -> Tuple[Optional[Task], Optional[RunEnvironment], APIClient, str]:
     group = user.groups.first()
 
     if group_access_level is not None:
@@ -241,9 +242,6 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
     another_run_environment = run_environment_factory(created_by_group=task_group)
 
     task_run_environment = run_environment
-
-    task = task_factory(created_by_group=task_group,
-      run_environment=task_run_environment)
 
     api_key_run_environment = None
     if api_key_scope_type == SCOPE_TYPE_CORRECT:
@@ -258,7 +256,11 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 
     url = '/api/v1/tasks/'
 
+    task: Optional[Task] = None
     if uuid_send_type != SEND_ID_NONE:
+        task = task_factory(created_by_group=task_group,
+                            run_environment=task_run_environment)
+
         task_uuid = uuid.uuid4()
         if uuid_send_type == SEND_ID_CORRECT:
             task_uuid = task.uuid
@@ -272,53 +274,73 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 
         url += quote(str(task_uuid)) + '/'
 
-    return (task, api_key_run_environment, client, url)
+    return (task, api_key_run_environment, client, url,)
+
 
 def make_request_body(uuid_send_type: Optional[str],
         run_environment_send_type: Optional[str],
         user: User,
-        api_key_run_environment: Optional[RunEnvironment],
-        task: Task,
         group_factory, run_environment_factory,
-        task_factory) -> Tuple[dict[str, Any], Optional[RunEnvironment]]:
+        task_factory,
+        api_key_run_environment: Optional[RunEnvironment] = None,
+        task: Optional[Task] = None,
+        emc: Optional[dict[str, Any]] = None) \
+        -> Tuple[dict[str, Any], Optional[RunEnvironment]]:
     request_data: dict[str, Any] = {
       'name': 'Some Task',
       'passive': False,
-      'execution_method_capability': task.execution_method_capability
     }
+
+    if emc is None:
+        # Use task factory to generate execution_method_capability
+        task_for_emc = task
+        if task_for_emc is None:
+            task_for_emc = task_factory()
+        emc = task_for_emc.execution_method_capability
+
+        # Remove extra Task so we don't mess up counts
+        if task is None:
+            task_for_emc.delete()
+
+    request_data['execution_method_capability'] = emc
+
+    group = user.groups.first()
+    run_environment: Optional[RunEnvironment] = None
+
+    if run_environment_send_type == SEND_ID_CORRECT:
+        if api_key_run_environment:
+            run_environment = api_key_run_environment
+        elif task and task.run_environment:
+            run_environment = task.run_environment
+    elif run_environment_send_type == SEND_ID_OTHER:
+        run_environment = run_environment_factory(created_by_group=group)
+    elif run_environment_send_type == SEND_ID_IN_WRONG_GROUP:
+        wrong_group = group_factory()
+        set_group_access_level(user=user, group=group,
+                access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
+        run_environment = run_environment_factory(created_by_group=wrong_group)
+
+    if run_environment is None:
+        run_environment = run_environment_factory(created_by_group=group)
+
+    if run_environment_send_type is not None:
+        if run_environment_send_type == SEND_ID_NONE:
+            request_data['run_environment'] = None
+        else:
+            request_data['run_environment'] = {
+                'uuid': str(run_environment.uuid)
+            }
 
     if uuid_send_type == SEND_ID_NOT_FOUND:
         request_data['uuid'] = str(uuid.uuid4())
     elif uuid_send_type == SEND_ID_CORRECT:
+        assert task is not None
         request_data['uuid'] = str(task.uuid)
     elif uuid_send_type == SEND_ID_WRONG:
-        another_task = task_factory(created_by_group=task.created_by_group,
-                run_environment=task.run_environment)
+        assert run_environment is not None
+        another_task = task_factory(created_by_group=group,
+                run_environment=run_environment)
         request_data['uuid'] = str(another_task.uuid)
-
-    run_environment: Optional[RunEnvironment] = None
-    if run_environment_send_type is None:
-        run_environment = task.run_environment
-    else:
-        if run_environment_send_type == SEND_ID_CORRECT:
-            if api_key_run_environment:
-                run_environment = api_key_run_environment
-            elif task and task.run_environment:
-                run_environment = task.run_environment
-        elif run_environment_send_type == SEND_ID_OTHER:
-            run_environment = run_environment_factory(created_by_group=user.groups.first())
-        elif run_environment_send_type == SEND_ID_IN_WRONG_GROUP:
-            group = group_factory()
-            set_group_access_level(user=user, group=group,
-                    access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
-            run_environment = run_environment_factory(created_by_group=group)
-        elif run_environment_send_type == SEND_ID_NONE:
-            request_data['run_environment'] = None
-
-        if run_environment:
-            request_data['run_environment'] = {
-                'uuid': str(run_environment.uuid)
-            }
 
     return (request_data, run_environment,)
 
@@ -638,9 +660,8 @@ def test_task_create_passive_task(emc: dict[str, Any],
     """
 
     user = user_factory()
-    group = user.groups.first()
 
-    task, api_key_run_environment, client, url = common_setup(
+    _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=True,
             group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
@@ -711,20 +732,18 @@ def test_task_create_task_limit(max_tasks: int,
             task_factory=task_factory,
             api_client=api_client)
 
+    assert task is None
+
     request_data, run_environment = make_request_body(
             uuid_send_type=SEND_ID_NONE,
             run_environment_send_type=SEND_ID_CORRECT,
             user=user,
             group_factory=group_factory,
             api_key_run_environment=api_key_run_environment,
-            task=task,
+            task=None,
             run_environment_factory=run_environment_factory,
             task_factory=task_factory)
 
-    # Remove extra Task which messes up limit calculations
-    task.delete()
-
-    utc_now = timezone.now()
     for i in range(3):
         task = task_factory(created_by_group=group)
         task.save()
@@ -968,8 +987,6 @@ def test_task_set_alert_methods(
                 task_factory=task_factory,
                 api_client=api_client)
 
-        old_count = Task.objects.count()
-
         # Run Environment is required, so always send it for creation
         if is_post:
             run_environment_send_type = SEND_ID_CORRECT
@@ -983,6 +1000,8 @@ def test_task_set_alert_methods(
                 task=task,
                 run_environment_factory=run_environment_factory,
                 task_factory=task_factory)
+
+        old_count = Task.objects.count()
 
         am_group = user.groups.first()
         am_run_environment = run_environment
@@ -1014,7 +1033,6 @@ def test_task_set_alert_methods(
             }]
 
             request_data['alert_methods'] = body_alert_methods
-
 
         if is_post:
             response = client.post(url, data=request_data)

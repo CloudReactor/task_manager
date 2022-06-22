@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from django_middleware_global_request.middleware import get_request
 
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import ValidationError
 
 from ..common.aws import *
 from ..common.request_helpers import context_with_request
@@ -289,16 +289,16 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         logger.info("TaskExecution.manually_start()")
 
         if self.status != TaskExecution.Status.MANUALLY_STARTED:
-            raise APIException(
+            raise ValidationError(
                     detail=f"Task execution has status {self.status}, can't manually start")
 
         if self.task.passive:
-            raise APIException("Can't manually start a passive Task")
+            raise ValidationError(detail="Can't manually start a passive Task")
 
         exec_method = self.task.execution_method()
 
         if ExecutionMethod.ExecutionCapability.MANUAL_START not in exec_method.capabilities():
-            raise APIException("Execution method does not support manual start")
+            raise ValidationError(detail="Execution method does not support manual start")
 
         exec_method.manually_start(task_execution=self)
 

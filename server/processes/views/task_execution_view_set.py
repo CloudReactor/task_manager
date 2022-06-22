@@ -2,7 +2,6 @@ from typing import cast, Any, Optional
 
 import logging
 
-from django.conf import settings
 from django.db import transaction
 from django.db.models.query import QuerySet
 from django.views import View
@@ -147,10 +146,6 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
 
         if not requested_task.can_start_execution():
             return Response(status=status.HTTP_409_CONFLICT)
-
-        validated_data['api_base_url'] = settings.EXTERNAL_BASE_URL.rstrip('/')
-        if request.auth and hasattr(request.auth, 'key'):
-            validated_data['api_key'] = request.auth.key
 
         saved = serializer.save()
 
