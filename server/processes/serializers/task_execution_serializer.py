@@ -2,6 +2,7 @@ from typing import Any, Mapping, Optional, cast
 
 import logging
 
+from django.conf import settings
 from django.utils import timezone
 
 from rest_framework import serializers
@@ -281,6 +282,8 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                 existing_task_execution=None,
                 task=cast(Task, validated_data['task']))
 
+        self.update_api_client_implicit_info(validated_data=validated_data)
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data: Mapping[str, Any]):
@@ -355,6 +358,8 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             existing_task_execution=task_execution,
             task=task_execution.task)
 
+        self.update_api_client_implicit_info(validated_data=validated_data)
+
         return super().update(instance, validated_data)
 
     # TODO: output raw JSON
@@ -398,9 +403,15 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         for attr in TaskExecution.ATTRIBUTES_REQUIRING_DEVELOPER_ACCESS_FOR_UPDATE:
             if attr in validated_data:
                 if existing_task_execution:
-                    escalate = (getattr(existing_task_execution, attr) != validated_data[attr])
+                    existing_value = getattr(existing_task_execution, attr)
+                    updated_value = validated_data[attr]
+                    escalate = (existing_value != updated_value)
+
+                    if escalate:
+                        logger.info(f"Escalating access required because attribute '{attr}' changed from '{existing_value}' to '{updated_value}'")
                 else:
                     escalate = True
+                    logger.info(f"Escalating access required because attribute '{attr}' was present during Task Execution creation")
 
                 if escalate:
                     break
@@ -412,6 +423,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                 for name in env_override.keys():
                     if name.startswith("PROC_WRAPPER_"):
                         escalate = True
+                        logger.info(f"Escalating access required because environment variable '{name}' found in environment.")
                         break
 
         if escalate:
@@ -420,3 +432,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                 min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
                 run_environment=task.run_environment,
                 allow_api_key=True)
+
+    def update_api_client_implicit_info(self, validated_data: dict[str, Any]) -> None:
+        validated_data['api_base_url'] = settings.EXTERNAL_BASE_URL.rstrip('/')
+        request = self.context['request']
+        if request.auth and hasattr(request.auth, 'key'):
+            validated_data['api_key'] = request.auth.key

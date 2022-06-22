@@ -16,8 +16,6 @@ from processes.models import (
     Task, TaskExecution
 )
 
-from processes.serializers import TaskExecutionSerializer
-
 import pytest
 
 from rest_framework.test import APIClient
@@ -257,7 +255,7 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
         uuid_send_type: str,
         user, group_factory, run_environment_factory,
         task_factory, task_execution_factory, api_client) \
-        -> Tuple[TaskExecution, Optional[RunEnvironment], APIClient, str]:
+        -> Tuple[Optional[TaskExecution], Task, Optional[RunEnvironment], APIClient, str]:
     group = user.groups.first()
 
     if group_access_level is not None:
@@ -272,7 +270,10 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
     task = task_factory(created_by_group=group, run_environment=run_environment)
 
     task_execution_run_environment = run_environment
-    task_execution = task_execution_factory(task=task)
+
+    task_execution: Optional[TaskExecution] = None
+    if uuid_send_type != SEND_ID_NONE:
+        task_execution = task_execution_factory(task=task)
 
     api_key_run_environment = None
     if api_key_scope_type == SCOPE_TYPE_CORRECT:
@@ -288,6 +289,7 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
     url = '/api/v1/task_executions/'
 
     if uuid_send_type != SEND_ID_NONE:
+        assert task_execution is not None
         task_execution_uuid = uuid.uuid4()
         if uuid_send_type == SEND_ID_CORRECT:
             task_execution_uuid = task_execution.uuid
@@ -302,66 +304,71 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 
         url += quote(str(task_execution_uuid)) + '/'
 
-    return (task_execution, api_key_run_environment, client, url)
+    return (task_execution, task, api_key_run_environment, client, url)
+
 
 def make_request_body(uuid_send_type: Optional[str],
         task_send_type: Optional[str],
         user: User,
         api_key_run_environment: Optional[RunEnvironment],
-        task_execution: TaskExecution,
+        task_execution: Optional[TaskExecution],
         group_factory, run_environment_factory, task_factory,
         task_execution_factory,
-        task_property_name: str = 'task') -> dict[str, Any]:
+        task_execution_status: str = 'RUNNING',
+        task_property_name: str = 'task',
+        task: Optional[Task] = None) -> dict[str, Any]:
     request_data: dict[str, Any] = {
-      'status': 'RUNNING',
+      'status': task_execution_status,
       'extraprop': 'dummy',
     }
+
+    run_environment: Optional[RunEnvironment] = None
+
+    if task_send_type == SEND_ID_CORRECT:
+        if (task is None) and task_execution:
+            task = task_execution.task
+    elif task_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
+        run_environment = run_environment_factory(created_by_group=user.groups.first())
+    elif task_send_type == SEND_ID_IN_WRONG_GROUP:
+        group = group_factory()
+        set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
+        run_environment = run_environment_factory(created_by_group=group)
+
+    # TODO set created by group from run_environment
+    if task is None:
+        if run_environment is None:
+            if api_key_run_environment:
+                run_environment = api_key_run_environment
+            elif task_execution:
+                run_environment = task_execution.task.run_environment
+            else:
+                run_environment = run_environment_factory(created_by_group=user.groups.first())
+
+        assert run_environment is not None
+        task = task_factory(
+            created_by_group=run_environment.created_by_group,
+            run_environment=run_environment)
+
+    if task_send_type:
+        if task_send_type == SEND_ID_NONE:
+            request_data[task_property_name] = None
+        else:
+            assert task is not None  # for mypy
+            request_data[task_property_name] = {
+                'uuid': str(task.uuid)
+            }
 
     if uuid_send_type == SEND_ID_NOT_FOUND:
         request_data['uuid'] = str(uuid.uuid4())
     elif uuid_send_type == SEND_ID_CORRECT:
+        assert task_execution is not None
         request_data['uuid'] = str(task_execution.uuid)
     elif uuid_send_type == SEND_ID_WRONG:
+        assert task is not None
         another_task_execution = task_execution_factory(
-                task=task_execution.task)
+                task=task)
         request_data['uuid'] = str(another_task_execution.uuid)
-
-    run_environment: Optional[RunEnvironment] = None
-    if task_send_type is None:
-        run_environment = task_execution.task.run_environment
-    else:
-        task: Optional[Task] = None
-        if task_send_type == SEND_ID_NONE:
-            request_data[task_property_name] = None
-        else:
-          if task_send_type == SEND_ID_CORRECT:
-              if api_key_run_environment:
-                  run_environment = api_key_run_environment
-              else:
-                  run_environment = task_execution.task.run_environment
-
-              task = task_execution.task
-          elif task_send_type == SEND_ID_OTHER:
-              run_environment = task_execution.task.run_environment
-          elif task_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
-              run_environment = run_environment_factory(created_by_group=user.groups.first())
-          elif task_send_type == SEND_ID_IN_WRONG_GROUP:
-              group = group_factory()
-              set_group_access_level(user=user, group=group,
-                      access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
-              run_environment = run_environment_factory(created_by_group=group)
-
-          # TODO set created by group from run_environment
-          if not task:
-              assert run_environment is not None
-              task = task_factory(
-                      created_by_group=run_environment.created_by_group,
-                      run_environment=run_environment)
-
-          assert task is not None # for mypy
-          request_data[task_property_name] = {
-              'uuid': str(task.uuid)
-          }
 
     return request_data
 
@@ -464,7 +471,7 @@ def test_task_execution_fetch(
         user_factory, group_factory, run_environment_factory, task_factory,
         task_execution_factory, api_client) -> None:
     user = user_factory()
-    task_execution, api_key_run_environment, client, url = common_setup(
+    task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=is_authenticated,
             group_access_level=group_access_level,
             api_key_access_level=api_key_access_level,
@@ -494,117 +501,136 @@ def test_task_execution_fetch(
 @pytest.mark.parametrize("""
     is_authenticated, group_access_level,
     api_key_access_level, api_key_scope_type,
-    body_uuid_type, task_send_type,
+    body_uuid_type, task_send_type, task_execution_status,
     status_code, validation_error_attribute, error_code
 """, [
-  # Task with API Key succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-   UserGroupAccessLevel.ACCESS_LEVEL_TASK, None,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   201, None, None),
+    # Task with API Key succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+    UserGroupAccessLevel.ACCESS_LEVEL_TASK, None,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'RUNNING',
+    201, None, None),
 
-  # Developer with unscoped API Key fails with 400 when Task is
-  # specifically empty
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-   UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
-   SEND_ID_NONE, SEND_ID_NONE,
-   400, 'task', 'null'),
+    # Developer with unscoped API Key fails with 400 when Task is
+    # specifically empty
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
+    SEND_ID_NONE, SEND_ID_NONE, 'RUNNING',
+    400, 'task', 'null'),
 
-  # Task with unscoped API Key succeeds when Task is specified
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-   UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_NONE,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   201, None, None),
+    # Task with unscoped API Key succeeds when Task is specified, status is RUNNING
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+    UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_NONE,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'RUNNING',
+    201, None, None),
 
-  # non-existent uuid is present in request body
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
-   SEND_ID_NOT_FOUND, SEND_ID_CORRECT,
-   400, 'uuid', 'not_allowed'),
+    # Task with unscoped API Key succeeds when Task is specified, status is MANUALLY_STARTED
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+    UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_NONE,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'MANUALLY_STARTED',
+    201, None, None),
 
-  # uuid of existing Task Execution is present in request body
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
-   SEND_ID_WRONG, SEND_ID_CORRECT,
-   400, 'uuid', 'not_allowed'),
+    # non-existent uuid is present in request body, status is RUNNING
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+    SEND_ID_NOT_FOUND, SEND_ID_CORRECT, 'RUNNING',
+    400, 'uuid', 'not_allowed'),
 
-   # Developer with unscoped API Key cannot attach a Task in the
-   # wrong Group
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-   UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
-   SEND_ID_NONE, SEND_ID_IN_WRONG_GROUP,
-   422, 'task', 'not_found'),
+    # uuid of existing Task Execution is present in request body
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+    SEND_ID_WRONG, SEND_ID_CORRECT, 'RUNNING',
+    400, 'uuid', 'not_allowed'),
 
-   # Task with scoped API Key succeeds when Task is scoped
-   # with the same Run Environment
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-   UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_CORRECT,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   201, None, None),
+    # Developer with unscoped API Key cannot attach a Task in the
+    # wrong Group
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
+    SEND_ID_NONE, SEND_ID_IN_WRONG_GROUP, 'RUNNING',
+    422, 'task', 'not_found'),
 
-   # Developer with scoped API Key fails when Task is omitted
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-   UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
-   SEND_ID_NONE, None,
-   400, 'task', 'missing'),
+    # Task with scoped API Key succeeds when Task is scoped
+    # with the same Run Environment
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+    UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_CORRECT,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'MANUALLY_STARTED',
+    201, None, None),
 
-   # Developer with scoped API Key cannot create Task Execution with no
-   # Task
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-   UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
-   SEND_ID_NONE, SEND_ID_NONE,
-   400, 'task', 'null'),
+    # Developer with scoped API Key fails when Task is omitted, status is MANUALLY_STARTED
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
+    SEND_ID_NONE, None, 'MANUALLY_STARTED',
+    400, 'task', 'missing'),
 
-   # Developer with scoped API Key cannot create Task Execution with a
-   # Task in another Run Environment
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-   UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
-   SEND_ID_NONE, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'task', 'not_found'),
+    # Developer with scoped API Key fails when Task is omitted, status is RUNNING
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+     UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
+     SEND_ID_NONE, None, 'RUNNING',
+     400, 'task', 'missing'),
 
-  # Support user with API Key with Observer access level fails with 403
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT,
-   UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   403, None, None),
+    # Developer with scoped API Key cannot create Task Execution with no
+    # Task, status is MANUALLY_STARTED
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
+    SEND_ID_NONE, SEND_ID_NONE, 'MANUALLY_STARTED',
+    400, 'task', 'null'),
 
-  # Admin with API Key with support access fails with 403
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   403, None, None),
+    # Developer with scoped API Key cannot create Task Execution with no
+    # Task, status is RUNNING
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+     UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
+     SEND_ID_NONE, SEND_ID_NONE, 'RUNNING',
+     400, 'task', 'null'),
 
-  # Task with JWT token succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-   None, None,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   201, None, None),
+    # Developer with scoped API Key cannot create Task Execution with a
+    # Task in another Run Environment, status is MANUALLY_STARTED
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
+    SEND_ID_NONE, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT, 'MANUALLY_STARTED',
+    422, 'task', 'not_found'),
 
-  # Support user with JWT token succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT,
-   None, None,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   201, None, None),
+    # Admin with API Key with support access fails with 403
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'RUNNING',
+    403, None, None),
 
-  # Observer with JWT token fails with 403
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
-   None, None,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   403, None, None),
+    # Support user with API Key with Observer access level fails with 403
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT,
+     UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
+     SEND_ID_NONE, SEND_ID_CORRECT, 'MANUALLY_STARTED',
+     403, None, None),
 
-  # No authentication yields 401
-  (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   None, None,
-   SEND_ID_NONE, SEND_ID_CORRECT,
-   401, None, None),
-])
+    # Task with JWT token succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+    None, None,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'MANUALLY_STARTED',
+    201, None, None),
+
+    # Support user with JWT token succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT,
+    None, None,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'MANUALLY_STARTED',
+    201, None, None),
+
+    # Observer with JWT token fails with 403
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
+    None, None,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'MANUALLY_STARTED',
+    403, None, None),
+
+    # No authentication yields 401
+    (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    None, None,
+    SEND_ID_NONE, SEND_ID_CORRECT, 'MANUALLY_STARTED',
+    401, None, None),
+    ])
 @mock_ecs
 @mock_sts
 @mock_events
 def test_task_execution_create_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
-        body_uuid_type: str, task_send_type: str,
+        body_uuid_type: str, task_send_type: str, task_execution_status: str,
         status_code: int, validation_error_attribute: Optional[str],
         error_code: Optional[str],
         user_factory, group_factory, run_environment_factory,
@@ -616,7 +642,7 @@ def test_task_execution_create_access_control(
 
     user = user_factory()
 
-    task_execution, api_key_run_environment, client, url = common_setup(
+    task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=is_authenticated,
             group_access_level=group_access_level,
             api_key_access_level=api_key_access_level,
@@ -631,6 +657,7 @@ def test_task_execution_create_access_control(
 
     request_data = make_request_body(uuid_send_type=body_uuid_type,
             task_send_type=task_send_type,
+            task_execution_status=task_execution_status,
             user=user,
             group_factory=group_factory,
             api_key_run_environment=api_key_run_environment,
@@ -665,6 +692,7 @@ def test_task_execution_create_access_control(
         check_validation_error(response, validation_error_attribute,
                 error_code)
 
+
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
     was_auto_created, passive,
@@ -686,7 +714,7 @@ def test_task_execution_with_unknown_method_auto_creation(
 
     user = user_factory()
 
-    _task_execution, api_key_run_environment, client, url = common_setup(
+    _task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=True,
             group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
@@ -779,7 +807,7 @@ def test_task_execution_of_passive_task_creation(
 
     user = user_factory()
 
-    _task_execution, api_key_run_environment, client, url = common_setup(
+    _task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=True,
             group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
@@ -838,7 +866,7 @@ def test_task_execution_create_history_purging(subscription_plan,
     user = user_factory()
     group = user.groups.first()
 
-    task_execution, api_key_run_environment, client, url = common_setup(
+    task_execution, task, api_key_run_environment, client, url = common_setup(
             is_authenticated=True,
             group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
@@ -851,17 +879,20 @@ def test_task_execution_create_history_purging(subscription_plan,
             task_execution_factory=task_execution_factory,
             api_client=api_client)
 
+    assert task_execution is None
+
     request_data = make_request_body(uuid_send_type=SEND_ID_NONE,
             task_send_type=SEND_ID_CORRECT,
             user=user,
             group_factory=group_factory,
             api_key_run_environment=None,
-            task_execution=task_execution,
+            task_execution=None,
             run_environment_factory=run_environment_factory,
             task_factory=task_factory,
-            task_execution_factory=task_execution_factory)
+            task_execution_factory=task_execution_factory,
+            task=task)
 
-    task = task_execution.task
+    assert TaskExecution.objects.count() == 0
 
     utc_now = timezone.now()
     completed_task_execution_ids: List[int] = []
@@ -892,10 +923,11 @@ def test_task_execution_create_history_purging(subscription_plan,
     for i in range(3):
         id = completed_task_execution_ids[i]
         exists = (TaskExecution.objects.filter(id=id).count() == 1)
-        if i < 1:
+        if i < 2:
             assert exists
         else:
             assert not exists
+
 
 @pytest.mark.django_db
 @mock_ecs
@@ -912,7 +944,7 @@ def test_task_execution_create_with_legacy_task_property(
 
     user = user_factory()
 
-    task_execution, api_key_run_environment, client, url = common_setup(
+    task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=True,
             group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
@@ -1132,7 +1164,7 @@ def test_task_execution_update_access_control(
 
     user = user_factory()
 
-    task_execution, api_key_run_environment, client, url = common_setup(
+    task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=is_authenticated,
             group_access_level=group_access_level,
             api_key_access_level=api_key_access_level,
@@ -1189,7 +1221,7 @@ def test_task_execution_update_conflict(
     Test status code if response Task Execution status does not match request.
     """
 
-    task_execution, api_key_run_environment, client, url = common_setup(
+    task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=True,
             group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
@@ -1225,7 +1257,7 @@ def test_task_execution_update_unmodifiable_properties(
 
     user = user_factory()
 
-    task_execution, api_key_run_environment, client, url = common_setup(
+    task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=True,
             group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
@@ -1369,7 +1401,7 @@ def test_task_execution_delete(
         task_factory, task_execution_factory, api_client) -> None:
     user = user_factory()
 
-    task_execution, api_key_run_environment, client, url = common_setup(
+    task_execution, _task, api_key_run_environment, client, url = common_setup(
             is_authenticated=is_authenticated,
             group_access_level=group_access_level,
             api_key_access_level=api_key_access_level,

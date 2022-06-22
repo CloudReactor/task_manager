@@ -4,6 +4,8 @@ from typing import FrozenSet, TYPE_CHECKING
 import logging
 import enum
 
+from rest_framework.exceptions import ValidationError
+
 from ..exception import UnprocessableEntity
 
 if TYPE_CHECKING:
@@ -52,5 +54,4 @@ class ExecutionMethod:
         logger.info('teardown_service(): execution method does not support services, no-op')
 
     def manually_start(self, task_execution: 'TaskExecution') -> None:
-        raise UnprocessableEntity(
-                detail='Execution method does not support manual start.')
+        raise ValidationError(detail='Execution method does not support manual start.')
