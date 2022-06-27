@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, TYPE_CHECKING
+from typing import Any, FrozenSet, Optional, TYPE_CHECKING
 
 import logging
 import random
@@ -8,9 +8,16 @@ from django.utils import timezone
 
 from rest_framework.exceptions import APIException
 
+from pydantic import BaseModel
+from mergedeep import merge
+
 from botocore.exceptions import ClientError
 
 from ..common.aws import *
+from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
+from .aws_cloudwatch_scheduling_settings import (
+    AwsCloudwatchSchedulingSettings
+)
 
 if TYPE_CHECKING:
     from ..models import (
@@ -22,6 +29,65 @@ from .execution_method import ExecutionMethod
 
 logger = logging.getLogger(__name__)
 
+
+class AwsEcsExecutionMethodSettings(BaseModel):
+    default_launch_type: Optional[str] = None
+    supported_launch_types: Optional[list[str]] = None
+    cluster_arn: Optional[str] = None
+    cluster_infrastructure_website_url: Optional[str] = None
+    task_definition_arn: Optional[str] = None
+    task_definition_infrastructure_website_url: Optional[str] = None
+    main_container_name: Optional[str] = None
+    execution_role: Optional[str] = None
+    task_role: Optional[str] = None
+    platform_version: Optional[str] = None
+    infrastructure_website_url: Optional[str] = None
+
+    def update_derived_attrs(self):
+        if self.task_definition_arn:
+            self.task_definition_infrastructure_website_url = \
+                  make_aws_console_ecs_task_definition_url(self.task_definition_arn)
+
+class AwsEcsServiceDeploymentCircuitBreaker(BaseModel):
+    enable: Optional[bool] = None
+    rollback_on_failure: Optional[bool] = None
+
+
+class AwsEcsServiceDeploymentConfiguration(BaseModel):
+    maximum_percent: Optional[int] = None
+    minimum_healthy_percent: Optional[int] = None
+    deployment_circuit_breaker: Optional[AwsEcsServiceDeploymentCircuitBreaker] = None
+
+
+class AwsApplicationLoadBalancer(BaseModel):
+    target_group_arn: Optional[str] = None
+    container_name: Optional[str] = None
+    container_port: Optional[int] = None
+
+
+class AwsApplicationLoadBalancerSettings(BaseModel):
+    health_check_grace_period_seconds: Optional[int] = None
+    load_balancers: Optional[list[AwsApplicationLoadBalancer]] = None
+
+
+class AwsEcsServiceSettings(BaseModel):
+    deployment_configuration: Optional[AwsEcsServiceDeploymentConfiguration] = None
+    scheduling_strategy: Optional[str] = None
+    force_new_deployment: Optional[bool] = None
+    load_balancer_settings: Optional[AwsApplicationLoadBalancerSettings] = None
+    enable_ecs_managed_tags: Optional[bool] = None
+    propagate_tags: Optional[bool] = None
+    tags: Optional[dict[str, str]] = None
+    service_arn: Optional[str] = None
+    infrastructure_website_url: Optional[str] = None
+
+    def update_derived_attrs(self, aws_ecs_settings: AwsEcsExecutionMethodSettings):
+        cluster_name = extract_cluster_name(aws_ecs_settings.cluster_arn)
+
+        if cluster_name and self.service_arn:
+            self.infrastructure_website_url = make_aws_console_ecs_service_url(
+                ecs_service_arn=self.service_arn,
+                cluster_name=cluster_name)
 
 class AwsEcsExecutionMethod(ExecutionMethod):
     NAME = 'AWS ECS'
@@ -50,6 +116,23 @@ class AwsEcsExecutionMethod(ExecutionMethod):
 
     def __init__(self, task: 'Task'):
         super().__init__(self.NAME, task)
+
+        self.settings = AwsEcsExecutionMethodSettings.parse_obj(task.execution_method_capability_details)
+        self.aws_settings: Optional[AwsSettings] = None
+
+        if task.infrastructure_settings and \
+                (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
+            self.aws_settings = AwsSettings.parse_obj(task.infrastructure_settings)
+
+        self.service_settings: Optional[AwsEcsServiceSettings] = None
+
+        if task.service_settings:
+            self.service_settings = AwsEcsServiceSettings.parse_obj(task.service_settings)
+
+        if task.scheduling_settings:
+            self.scheduling_settings = AwsCloudwatchSchedulingSettings.parse_obj(
+                task.scheduling_settings)
+
 
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
         task = self.task
@@ -656,3 +739,17 @@ class AwsEcsExecutionMethod(ExecutionMethod):
             args['enableECSManagedTags'] = managed
 
         return args
+
+    def enrich_task_settings(self) -> None:
+        self.settings.update_derived_attrs()
+        self.task.execution_method_capability_details = merge(
+            self.task.execution_method_capability_details, self.settings.dict())
+
+        if self.aws_settings:
+            self.aws_settings.update_derived_attrs(
+                    run_environment=self.task.run_environment)
+
+        if self.service_settings:
+            self.service_settings.update_derived_attrs(self.settings)
+            self.task.service_settings = merge(
+                self.task.service_settings, self.service_settings.dict())

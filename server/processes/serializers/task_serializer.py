@@ -19,6 +19,7 @@ from drf_spectacular.utils import (
     PolymorphicProxySerializer,
 )
 
+# Legacy
 from .aws_ecs_execution_method_capability_serializer import (
     AwsEcsExecutionMethodCapabilitySerializer
 )
@@ -27,6 +28,17 @@ from .generic_execution_method_capability_serializer import (
 )
 from .unknown_execution_method_capability_serializer import (
     UnknownExecutionMethodCapabilitySerializer
+)
+
+# Stopgap
+from .generic_execution_method_capability_stopgap_serializer import (
+    GenericExecutionMethodCapabilityStopgapSerializer
+)
+from .aws_ecs_execution_method_capability_stopgap_serializer import (
+    AwsEcsExecutionMethodCapabilityStopgapSerializer
+)
+from .aws_ecs_service_options_serializer import (
+    AwsEcsServiceOptionsSerializer
 )
 
 from ..common.request_helpers import required_user_and_group_from_request
@@ -118,9 +130,12 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'project_url', 'log_query', 'logs_url',
             'links',
             'run_environment',
+            'allocated_cpu_units',
+            'allocated_memory_mb',
             'execution_method_capability', # Deprecated
             'execution_method_type',
             'execution_method_capability_details',
+            'capabilities',
             'infrastructure_type',
             'infrastructure_settings',
             'scheduling_provider_type',
@@ -130,7 +145,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'alert_methods',
             'other_metadata',
             'latest_task_execution',
-            'current_service_info',
+            'current_service_info', # Deprecated
             'created_by_user', 'created_by_group',
             'was_auto_created', 'passive', 'enabled',
             'created_at', 'updated_at',
@@ -138,7 +153,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         read_only_fields = [
             'url', 'uuid',
-            'is_service',
+            'is_service', 'capabilities',
             'latest_task_execution', 'current_service_info',
             'dashboard_url', 'infrastructure_website_url', 'logs_url',
             'created_at', 'updated_at',
@@ -151,10 +166,14 @@ class TaskSerializer(GroupSettingSerializerMixin,
             view_name='tasks-detail',
             lookup_field='uuid')
 
+    # Deprecated
     execution_method_capability = serializers.SerializerMethodField()
 
+    # Deprecated
     current_service_info = serializers.SerializerMethodField(
             allow_null=True)
+
+    capabilities = serializers.SerializerMethodField()
 
     alert_methods = NameAndUuidSerializer(
             include_name=True,
@@ -187,7 +206,10 @@ class TaskSerializer(GroupSettingSerializerMixin,
     def get_execution_method_capability(self, obj: Task):
         method_name = obj.execution_method_type
         return self.execution_method_capability_serializer_for_type(
-                method_name=method_name, task=obj).data
+                method_name=method_name, task=obj, is_legacy_schema=True).data
+
+    def get_capabilities(self, task: Task) -> list[str]:
+        return list(task.execution_method().capabilities())
 
     @extend_schema_field(CurrentServiceInfoSerializer(required=False,
             read_only=True))
@@ -320,35 +342,48 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         validated['is_service'] = is_service
 
-        execution_method_dict = data.get('execution_method_capability')
-        execution_method_type = UnknownExecutionMethod.NAME
+        is_legacy_schema = ('execution_method_capability' in data) and \
+            ('execution_method_capability_details' not in data)
+
+        logger.debug(f"{is_legacy_schema=}")
+
+        execution_method_dict = data.get('execution_method_capability_details',
+            data.get('execution_method_capability')) # deprecated
+
+        execution_method_type: Optional[str] = None
 
         if task:
             execution_method_type = task.execution_method_type
-        else:
-            execution_method_dict = execution_method_dict or {}
+
+        execution_method_type = data.get('execution_method_type',
+            execution_method_type)
 
         if execution_method_dict is not None:
-            execution_method_type = execution_method_dict.get('type',
-                    execution_method_type)
-
-            if execution_method_type:
-                known_execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
-                    execution_method_type.upper())
-
-                if known_execution_method_type:
-                    execution_method_type = known_execution_method_type
-                else:
-                    logger.warning(f"Unsupported execution method type: '{execution_method_type}")
-
-            validated['execution_method_type'] = execution_method_type
-
             logger.debug(f"{execution_method_dict=}")
-            logger.debug(f"{execution_method_type=}")
+            if is_legacy_schema:
+                execution_method_type = execution_method_dict.get('type',
+                        execution_method_type)
 
+        if execution_method_type:
+            known_execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
+                execution_method_type.upper())
+
+            if known_execution_method_type:
+                execution_method_type = known_execution_method_type
+            else:
+                logger.warning(f"Unsupported execution method type: '{execution_method_type}")
+        else:
+            execution_method_type = UnknownExecutionMethod.NAME
+
+        logger.debug(f"{execution_method_type=}")
+
+        validated['execution_method_type'] = execution_method_type
+
+        if execution_method_dict is not None:
             ems = self.execution_method_capability_serializer_for_type(
                     method_name=execution_method_type, task=task,
-                    is_service=is_service, run_environment=run_environment)
+                    is_service=is_service, run_environment=run_environment,
+                    is_legacy_schema=is_legacy_schema)
 
             em_validated = ems.to_internal_value(execution_method_dict)
 
@@ -357,7 +392,36 @@ class TaskSerializer(GroupSettingSerializerMixin,
             validated |= em_validated
 
             # Execution method serializer may set is_service if it was None
-            is_service = validated['is_service']
+            if 'is_service' in validated:
+                is_service = validated['is_service']
+
+        if execution_method_type == AwsEcsExecutionMethod.NAME:
+            infrastructure_settings = data.get('infrastructure_settings')
+
+            if infrastructure_settings:
+                self.copy_props_with_prefix(dest_dict=validated,
+                    src_dict=infrastructure_settings,
+                    dest_prefix='aws_',
+                    included_keys=['tags'])
+
+                network_settings = infrastructure_settings.get('network')
+                if network_settings:
+                    self.copy_props_with_prefix(dest_dict=validated,
+                        src_dict=network_settings,
+                        dest_prefix='aws_default_',
+                        included_keys=['subnets'])
+                    self.copy_props_with_prefix(dest_dict=validated,
+                        src_dict=network_settings,
+                        dest_prefix='aws_ecs_default_',
+                        included_keys=['security_groups', 'assign_public_ip'])
+
+            service_settings = data.get('service_settings')
+            if service_settings:
+                ser = AwsEcsServiceOptionsSerializer(data=service_settings)
+                ser.is_valid()
+                validated_service_data = ser.validated_data
+                logger.debug(f"{validated_service_data=}")
+                validated |= validated_service_data
 
         self.set_validated_alert_methods(data=data, validated=validated,
                 run_environment=run_environment)
@@ -542,25 +606,35 @@ class TaskSerializer(GroupSettingSerializerMixin,
     def execution_method_capability_serializer_for_type(self,
             method_name: str,
             task: Optional[Task] = None, is_service: Optional[bool] = None,
-            run_environment: Optional[RunEnvironment] = None) \
+            run_environment: Optional[RunEnvironment] = None,
+            is_legacy_schema: bool = False) \
             -> serializers.Serializer:
         #print(f"request = {self.context['request']}")
         request = self.context['request']
         omitted = (request.query_params.get('omit') or '').split(',')
-        omit_details = 'execution_method_capability.details' in omitted
 
-        if method_name == AwsEcsExecutionMethod.NAME:
-            return AwsEcsExecutionMethodCapabilitySerializer(task,
-                    required=False, is_service=is_service,
-                    run_environment=run_environment,
-                    omit_details=omit_details)
-        elif method_name == UnknownExecutionMethod.NAME:
-            return UnknownExecutionMethodCapabilitySerializer(task,
-                    required=False)
+        if is_legacy_schema:
+            omit_details = 'execution_method_capability.details' in omitted
+
+            if method_name == AwsEcsExecutionMethod.NAME:
+                return AwsEcsExecutionMethodCapabilitySerializer(task,
+                        required=False, is_service=is_service,
+                        run_environment=run_environment,
+                        omit_details=omit_details)
+            elif method_name == UnknownExecutionMethod.NAME:
+                return UnknownExecutionMethodCapabilitySerializer(task,
+                        required=False)
+            else:
+                return GenericExecutionMethodCapabilitySerializer(task,
+                        required=False)
         else:
-            return GenericExecutionMethodCapabilitySerializer(task,
-                    required=False)
+            if method_name == AwsEcsExecutionMethod.NAME:
+                return AwsEcsExecutionMethodCapabilityStopgapSerializer(task,
+                        required=False,
+                        run_environment=run_environment)
 
+            return GenericExecutionMethodCapabilityStopgapSerializer(task,
+                        required=False)
 
     def update_aws_ecs_service_load_balancer_details_set(self, task: Task,
             load_balancer_details_list: Optional[list[AwsEcsServiceLoadBalancerDetails]]):

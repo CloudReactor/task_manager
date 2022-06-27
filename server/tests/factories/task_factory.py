@@ -2,6 +2,7 @@ from typing import Optional
 
 from processes.execution_methods.aws_ecs_execution_method import AwsEcsExecutionMethod
 from processes.models import Task
+from processes.models.convert_legacy_em_and_infra import populate_task_emc_and_infra
 
 import factory
 from faker import Factory as FakerFactory
@@ -68,28 +69,4 @@ class TaskFactory(OwnedModelFactory):
         if task.execution_method_capability_details:
             return
 
-        emc = {
-            'type': task.execution_method_type
-        }
-
-        common_attr_names = [
-            'allocated_cpu_units', 'allocated_memory_mb'
-        ]
-
-        for attr_name in common_attr_names:
-            emc[attr_name] = getattr(task, attr_name)
-
-        if task.execution_method_type == AwsEcsExecutionMethod.NAME:
-            aws_ecs_attr_names = ['task_definition_arn', 'main_container_name',
-                'default_launch_type', 'supported_launch_types',
-                'default_cluster_arn', 'default_execution_role',
-                'default_task_role',
-                'default_security_groups',
-                'default_assign_public_ip', 'default_execution_role',
-                'default_task_role', 'default_platform_version',
-            ]
-
-            for attr_name in aws_ecs_attr_names:
-                emc[attr_name] = getattr(task, 'aws_ecs_' + attr_name)
-
-            task.execution_method_capability_details = emc
+        populate_task_emc_and_infra(task)

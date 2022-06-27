@@ -1,4 +1,3 @@
-
 from typing import FrozenSet, TYPE_CHECKING
 
 import logging
@@ -55,3 +54,6 @@ class ExecutionMethod:
 
     def manually_start(self, task_execution: 'TaskExecution') -> None:
         raise ValidationError(detail='Execution method does not support manual start.')
+
+    def enrich_task_settings(self) -> None:
+        pass

@@ -2,14 +2,17 @@ import logging
 
 from typing import Any, Optional
 
+from ..execution_methods import AwsEcsExecutionMethod
+
 from .task import Task
 from .aws_ecs_service_load_balancer_details import AwsEcsServiceLoadBalancerDetails
+
 
 logger = logging.getLogger(__name__)
 
 
 def convert_empty_to_none_values(d: dict[str, Any]) -> dict[str, Any]:
-    return { k: (None if v == '' else v) for (k, v) in d }
+    return { k: (None if v == '' else v) for (k, v) in d.items() }
 
 
 def compute_region_from_ecs_cluster_arn(
@@ -38,7 +41,7 @@ def extract_emc(task) -> dict[str, Any]:
         'main_container_name': task.aws_ecs_main_container_name,
     } )
 
-def extract_infra(task) -> dict[str, Any]:
+def extract_infra(task: Task) -> dict[str, Any]:
     region = compute_region_from_ecs_cluster_arn(
             task.aws_ecs_default_cluster_arn)
     return {
@@ -66,7 +69,7 @@ def extract_load_balancer(lb) -> dict[str, Any]:
         'container_port': lb.container_port,
     })
 
-def extract_service_settings(task) -> dict[str, Any]:
+def extract_service_settings(task: Task) -> dict[str, Any]:
     load_balancer_settings = None
 
     load_balancers = [lb for lb in AwsEcsServiceLoadBalancerDetails.objects.raw("""
@@ -90,7 +93,7 @@ def extract_service_settings(task) -> dict[str, Any]:
             'minimum_healthy_percent': mhp,
             'deployment_circuit_breaker': {
                 'enable': task.aws_ecs_service_deploy_enable_circuit_breaker or False,
-                'rollback': task.aws_ecs_service_deploy_rollback_on_failure or False,
+                'rollback_on_failure': task.aws_ecs_service_deploy_rollback_on_failure or False,
             }
         },
         'load_balancer_settings': load_balancer_settings,
@@ -103,19 +106,26 @@ def extract_service_settings(task) -> dict[str, Any]:
     })
 
 
-def populate_task_emc_and_infra(apps, schema_editor):
-    for task in Task.objects.all():
-        if task.execution_method_type == 'AWS ECS':
-            task.execution_method_capability = extract_emc(task)
-            task.infrastructure_provider_type = 'AWS'
-            task.infrastructure_settings = extract_infra(task)
+def populate_task_emc_and_infra(task: Task) -> bool:
+    if task.execution_method_type == AwsEcsExecutionMethod.NAME:
+        task.execution_method_capability_details = extract_emc(task)
+        task.infrastructure_provider_type = 'AWS'
+        task.infrastructure_settings = extract_infra(task)
 
-            if task.aws_scheduled_execution_rule_name:
-                task.scheduling_provider_type = 'AWS CloudWatch'
-                task.scheduling_settings = extract_scheduling_settings(task)
+        if task.aws_scheduled_execution_rule_name:
+            task.scheduling_provider_type = 'AWS CloudWatch'
+            task.scheduling_settings = extract_scheduling_settings(task)
+        else:
+            task.scheduling_provider_type = ''
+            task.scheduling_settings = None
 
-            if task.aws_ecs_service_arn:
-                task.service_provider_type = 'AWS ECS'
-                task.service_settings = extract_service_settings(task)
+        if task.aws_ecs_service_arn:
+            task.service_provider_type = 'AWS ECS'
+            task.service_settings = extract_service_settings(task)
+        else:
+            task.service_provider_type = ''
+            task.service_settings = None
 
-            task.save()
+        return True
+    else:
+        return False

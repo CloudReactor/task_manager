@@ -1,11 +1,14 @@
+from typing import Any
+
 from rest_framework import serializers
 
 from ..execution_methods import AwsEcsExecutionMethod
+from ..models import Task, AwsEcsServiceLoadBalancerDetails
 
+from .serializer_helpers import SerializerHelpers
 from .aws_ecs_service_load_balancer_details_serializer import AwsEcsServiceLoadBalancerDetailsSerializer
-from ..models import Task
 
-class AwsEcsServiceOptionsSerializer(serializers.Serializer):
+class AwsEcsServiceOptionsSerializer(SerializerHelpers, serializers.Serializer):
     """
     Options for running a Task as a service in AWS ECS.
     """
@@ -52,3 +55,54 @@ class AwsEcsServiceOptionsSerializer(serializers.Serializer):
             return super().to_representation(instance)
 
         return None
+
+    def to_internal_value(self, data):
+        validated: dict[str, Any] = {}
+
+        self.copy_props_with_prefix(dest_dict=validated,
+                src_dict=data,
+                dest_prefix='aws_ecs_service_',
+                included_keys=['force_new_deployment',
+                    'enable_ecs_managed_tags', 'propagate_tags', 'tags'])
+
+        deployment_configuration = data.get('deployment_configuration')
+        if deployment_configuration is not None:
+            self.copy_props_with_prefix(dest_dict=validated,
+                    src_dict=deployment_configuration,
+                    dest_prefix='aws_ecs_service_deploy_',
+                    included_keys=['maximum_percent', 'minimum_healthy_percent'])
+
+            dcb = deployment_configuration.get('deployment_circuit_breaker')
+            if dcb is not None:
+                self.copy_props_with_prefix(dest_dict=validated,
+                    src_dict=dcb,
+                    dest_prefix='aws_ecs_service_deploy_',
+                    included_keys=['rollback_on_failure'])
+
+                enable_dcb = dcb.get('enable')
+                if enable_dcb is not None:
+                    validated['aws_ecs_service_deploy_enable_circuit_breaker'] = enable_dcb
+
+        load_balancer_settings = data.get('load_balancer_settings')
+
+        if load_balancer_settings is not None:
+            self.copy_props_with_prefix(dest_dict=validated,
+                    src_dict=load_balancer_settings,
+                    dest_prefix='aws_ecs_service_load_balancer_',
+                    included_keys=['health_check_grace_period_seconds'])
+
+            load_balancer_dicts = load_balancer_settings.get('load_balancers')
+
+            if load_balancer_dicts is not None:
+                load_balancer_details_list = []
+                for load_balancer_dict in load_balancer_dicts:
+                    load_balancer_details_list.append(AwsEcsServiceLoadBalancerDetails(
+                        task=None,
+                        target_group_arn=load_balancer_dict['target_group_arn'],
+                        container_name=load_balancer_dict.get('container_name', ''),
+                        container_port=load_balancer_dict['container_port'],
+                    ))
+
+                validated['aws_ecs_load_balancer_details_set'] = load_balancer_details_list
+
+        return validated

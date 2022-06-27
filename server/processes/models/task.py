@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional, Type, cast
 
 from datetime import datetime
 import logging
@@ -137,6 +137,15 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     aws_ecs_service_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_updated_at = models.DateTimeField(null=True, blank=True)
 
+    infrastructure_type = models.CharField(max_length=20, blank=True)
+    infrastructure_settings = models.JSONField(null=True, blank=True)
+
+    schedule_provider_type = models.CharField(max_length=20, blank=True)
+    schedule_settings = models.JSONField(null=True, blank=True)
+
+    service_provider_type = models.CharField(max_length=20, blank=True)
+    service_settings = models.JSONField(null=True, blank=True)
+
     allocated_cpu_units = models.PositiveIntegerField(null=True, blank=True)
     allocated_memory_mb = models.PositiveIntegerField(null=True, blank=True)
     alert_methods = models.ManyToManyField('AlertMethod', blank=True)
@@ -151,6 +160,7 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
 
     should_skip_synchronize_with_run_environment = False
     aws_ecs_should_force_service_creation = False
+    should_skip_emcd_population = False
 
     def get_aws_region(self) -> str:
         return self.run_environment.get_aws_region()
@@ -308,25 +318,25 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
 
         return UnknownExecutionMethod(task=self)
 
-    def setup_scheduled_execution(self) -> None:
-        logger.info(f"Task.setup_scheduled_execution() for task #{self.uuid}")
-        self.execution_method().setup_scheduled_execution()
+    # def setup_scheduled_execution(self) -> None:
+    #     logger.info(f"Task.setup_scheduled_execution() for task #{self.uuid}")
+    #     self.execution_method().setup_scheduled_execution()
 
-    def teardown_scheduled_execution(self) -> None:
-        logger.info(f"Task.teardown_scheduled_execution() for task #{self.uuid}")
-        self.execution_method().teardown_scheduled_execution()
+    # def teardown_scheduled_execution(self) -> None:
+    #     logger.info(f"Task.teardown_scheduled_execution() for task #{self.uuid}")
+    #     self.execution_method().teardown_scheduled_execution()
 
-    def setup_service(self, force_creation=False):
-        logger.info(f"Task.setup_service() for task #{self.uuid}")
-        return self.execution_method().setup_service(force_creation=force_creation)
+    # def setup_service(self, force_creation=False):
+    #     logger.info(f"Task.setup_service() for task #{self.uuid}")
+    #     return self.execution_method().setup_service(force_creation=force_creation)
 
-    def teardown_service(self) -> None:
-        logger.info(f'Task.teardown_service() for task #{self.uuid}')
-        self.execution_method().teardown_service()
+    # def teardown_service(self) -> None:
+    #     logger.info(f'Task.teardown_service() for task #{self.uuid}')
+    #     self.execution_method().teardown_service()
 
-    def synchronize_with_run_environment(self, old_self=None, is_saving=False) -> None:
+    def synchronize_with_run_environment(self, old_self=None, is_saving=False) -> bool:
         if self.passive:
-            return
+            return False
 
         should_update_schedule = False
         should_force_create_service = self.aws_ecs_should_force_service_creation
@@ -368,9 +378,9 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         if should_update_schedule:
             logger.info("pre_save_task(): Updating schedule params ...")
             if self.schedule and self.enabled:
-                self.setup_scheduled_execution()
+                execution_method.setup_scheduled_execution()
             else:
-                self.teardown_scheduled_execution()
+                execution_method.teardown_scheduled_execution()
             logger.info("Done updating schedule params ...")
         else:
             logger.debug("Not updating schedule params")
@@ -378,9 +388,9 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         if should_update_service:
             logger.info("synchronize_with_run_environment(): Updating service...")
             if self.is_service and self.enabled:
-                self.setup_service(force_creation=should_force_create_service)
+                execution_method.setup_service(force_creation=should_force_create_service)
             else:
-                self.teardown_service()
+                execution_method.teardown_service()
         else:
             logger.debug("Not updating service params")
 
@@ -392,6 +402,11 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                 self.should_skip_synchronize_with_run_environment = False
 
         self.aws_ecs_should_force_service_creation = False
+
+        return should_update_schedule or should_update_service
+
+    def enrich_settings(self) -> None:
+        self.execution_method().enrich_task_settings()
 
 
 @receiver(pre_save, sender=Task)
@@ -412,20 +427,33 @@ def pre_save_task(sender: Type[Task], **kwargs):
     else:
         old_self = Task.objects.filter(id=instance.id).first()
 
+    from .convert_legacy_em_and_infra import populate_task_emc_and_infra
+
+    if (not instance.should_skip_emcd_population) and \
+            (instance.execution_method_type == AwsEcsExecutionMethod.NAME):
+        populate_task_emc_and_infra(instance)
+
     if instance.should_skip_synchronize_with_run_environment:
         logger.info(f"skipping synchronize_with_run_environment with Task {instance}")
-        return
+    else:
+        changed = instance.synchronize_with_run_environment(old_self=old_self,
+                is_saving=True)
 
-    instance.synchronize_with_run_environment(old_self=old_self,
-                                              is_saving=True)
+        if changed:
+            populate_task_emc_and_infra(instance)
+
+    instance.enrich_settings()
+
 
 @receiver(pre_delete, sender=Task)
 def pre_delete_task(sender: Type[Task], **kwargs) -> None:
-    instance = kwargs['instance']
-    logger.info(f"pre-save with instance {instance}")
+    task = cast(kwargs['instance'], Task)
+    logger.info(f"pre-save with instance {task}")
 
-    if instance.schedule:
-        instance.teardown_scheduled_execution()
+    execution_method = task.execution_method()
 
-    if instance.is_service:
-        instance.teardown_service()
+    if task.schedule:
+        execution_method.teardown_scheduled_execution()
+
+    if task.is_service:
+        execution_method.teardown_service()
