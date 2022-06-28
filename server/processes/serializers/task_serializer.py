@@ -211,6 +211,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
     def get_capabilities(self, task: Task) -> list[str]:
         return list(task.execution_method().capabilities())
 
+    # Deprecated
     @extend_schema_field(CurrentServiceInfoSerializer(required=False,
             read_only=True))
     def get_current_service_info(self, obj: Task):

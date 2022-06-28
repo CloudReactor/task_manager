@@ -447,7 +447,7 @@ def pre_save_task(sender: Type[Task], **kwargs):
 
 @receiver(pre_delete, sender=Task)
 def pre_delete_task(sender: Type[Task], **kwargs) -> None:
-    task = cast(kwargs['instance'], Task)
+    task = cast(Task, kwargs['instance'])
     logger.info(f"pre-save with instance {task}")
 
     execution_method = task.execution_method()

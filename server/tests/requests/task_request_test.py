@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from django.contrib.auth.models import User
 
-from processes.execution_methods.unknown_execution_method import (
-    UnknownExecutionMethod
+from processes.execution_methods import (
+    AwsEcsExecutionMethod, UnknownExecutionMethod
 )
 from processes.models import (
   UserGroupAccessLevel, Subscription,
@@ -284,25 +284,33 @@ def make_request_body(uuid_send_type: Optional[str],
         task_factory,
         api_key_run_environment: Optional[RunEnvironment] = None,
         task: Optional[Task] = None,
-        emc: Optional[dict[str, Any]] = None) \
+        execution_method_type: Optional[str] = None,
+        emcd: Optional[dict[str, Any]] = None) \
         -> Tuple[dict[str, Any], Optional[RunEnvironment]]:
     request_data: dict[str, Any] = {
       'name': 'Some Task',
       'passive': False,
     }
 
-    if emc is None:
+    if emcd is None:
         # Use task factory to generate execution_method_capability
         task_for_emc = task
         if task_for_emc is None:
             task_for_emc = task_factory()
-        emc = task_for_emc.execution_method_capability_details
+        emcd = task_for_emc.execution_method_capability_details
 
         # Remove extra Task so we don't mess up counts
         if task is None:
             task_for_emc.delete()
 
-    request_data['execution_method_capability'] = emc
+    if not execution_method_type:
+        if task:
+            execution_method_type = task.execution_method_type
+        else:
+            execution_method_type = AwsEcsExecutionMethod.NAME
+
+    request_data['execution_method_type'] = execution_method_type
+    request_data['execution_method_capability_details'] = emcd
 
     group = user.groups.first()
     run_environment: Optional[RunEnvironment] = None

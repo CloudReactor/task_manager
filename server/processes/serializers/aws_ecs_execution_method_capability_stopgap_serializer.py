@@ -61,7 +61,18 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
             'execution_method_capability_details': data
         }
 
-        included_keys = self.get_fields().keys()
+        included_keys = []
+        string_valued_columns = []
+
+        for field_name, field_instance in self.get_fields().items():
+            if not field_instance.read_only:
+                included_keys.append(field_name)
+
+                if (not field_instance.allow_null) and \
+                        isinstance(field_instance, serializers.CharField):
+                    string_valued_columns.append(field_instance.source or field_name)
+
+        print(f"{string_valued_columns=}")
 
         default_prefixed_keys = ['execution_role', 'task_role', 'platform_version']
 
@@ -76,27 +87,30 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
                 dest_prefix='aws_ecs_default_',
                 included_keys=default_prefixed_keys)
 
+        for column_name in string_valued_columns:
+            if column_name in validated:
+                validated[column_name] = validated[column_name] or ''
+
         logger.info(f"After copy {validated=}")
 
         cluster = data.get('cluster_arn')
 
-        if cluster is not None:
-            if cluster == '':
-                pass
-            elif not cluster.startswith('arn:'):
-                if self.run_environment and \
-                        self.run_environment.aws_default_region and  \
-                        self.run_environment.aws_account_id:
-                    cluster = 'arn:aws:ecs:' \
-                            + self.run_environment.aws_default_region + ':' \
-                            + self.run_environment.aws_account_id + ':cluster/' + cluster
-                else:
-                    raise serializers.ValidationError({
-                        'aws_ecs_default_cluster_arn': [
-                            ErrorDetail('AWS ECS cluster ARN must be fully qualified', code='invalid')
-                        ]
-                    })
+        if 'cluster_arn' in data:
+            if cluster:
+                if not cluster.startswith('arn:'):
+                    if self.run_environment and \
+                            self.run_environment.aws_default_region and  \
+                            self.run_environment.aws_account_id:
+                        cluster = 'arn:aws:ecs:' \
+                                + self.run_environment.aws_default_region + ':' \
+                                + self.run_environment.aws_account_id + ':cluster/' + cluster
+                    else:
+                        raise serializers.ValidationError({
+                            'aws_ecs_default_cluster_arn': [
+                                ErrorDetail('AWS ECS cluster ARN must be fully qualified', code='invalid')
+                            ]
+                        })
 
-            validated['aws_ecs_default_cluster_arn'] = cluster
+            validated['aws_ecs_default_cluster_arn'] = cluster or ''
 
         return validated
