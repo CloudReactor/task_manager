@@ -235,9 +235,19 @@ class TaskSerializer(GroupSettingSerializerMixin,
         if passive is None:
             passive = False
 
-        execution_method_type = attrs.get('execution_method_type',
-                task.execution_method_type if task \
-                else UnknownExecutionMethod.NAME)
+        execution_method_type = attrs.get('execution_method_type')
+
+        # Legacy support
+        if execution_method_type is None:
+            legacy_emc = attrs.get('execution_method_capability')
+
+            if legacy_emc:
+                execution_method_type = legacy_emc.get('type')
+
+
+        if not execution_method_type:
+            execution_method_type = task.execution_method_type if task \
+                else UnknownExecutionMethod.NAME
 
         if (not passive) and (execution_method_type == UnknownExecutionMethod.NAME):
             raise ValidationError({
@@ -343,27 +353,29 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         validated['is_service'] = is_service
 
-        is_legacy_schema = ('execution_method_capability' in data) and \
-            ('execution_method_capability_details' not in data)
+        execution_method_dict = validated.get('execution_method_capability_details')
 
+        # deprecated
+        legacy_emc = data.pop('execution_method_capability', None)
+        is_legacy_schema = (legacy_emc is not None) and \
+            (execution_method_dict is None)
         logger.debug(f"{is_legacy_schema=}")
 
-        execution_method_dict = data.get('execution_method_capability_details',
-            data.get('execution_method_capability')) # deprecated
+        execution_method_dict = execution_method_dict or legacy_emc
+
+        logger.debug(f"{execution_method_dict=}")
 
         execution_method_type: Optional[str] = None
 
         if task:
             execution_method_type = task.execution_method_type
 
-        execution_method_type = data.get('execution_method_type',
+        execution_method_type = validated.get('execution_method_type',
             execution_method_type)
 
-        if execution_method_dict is not None:
-            logger.debug(f"{execution_method_dict=}")
-            if is_legacy_schema:
-                execution_method_type = execution_method_dict.get('type',
-                        execution_method_type)
+        if legacy_emc is not None:
+            execution_method_type = legacy_emc.get('type',
+                    execution_method_type)
 
         if execution_method_type:
             known_execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
@@ -484,8 +496,9 @@ class TaskSerializer(GroupSettingSerializerMixin,
     def create_or_update(self, instance, validated_data):
         #print(f"request = {self.context['request']}")
         #print(f"validated data = {validated_data}")
+        request = self.context['request']
 
-        user, _group = required_user_and_group_from_request()
+        user, _group = required_user_and_group_from_request(request=request)
 
         defaults = validated_data
 

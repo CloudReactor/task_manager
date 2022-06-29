@@ -83,7 +83,7 @@ def context_with_request() -> Dict[str, Any]:
         'request': request_for_context()
     }
 
-def user_and_group_from_request(request: Request = None) -> \
+def user_and_group_from_request(request: Optional[Request] = None) -> \
         Tuple[Optional[User], Optional[Group]]:
     r = request or request_for_context()
 
