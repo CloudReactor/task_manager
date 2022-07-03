@@ -264,3 +264,13 @@ task_name_to_config:
       memory_mb: 2048
     wrapper:
       enable_status_updates: true
+
+  task_emc_migrator:
+    description: "Migrate Tasks created with legacy execution method schema"
+    command: "python manage.py task_emc_migrator"
+    max_concurrency: 1
+    ecs:
+      cpu_units: 1024
+      memory_mb: 2048
+    wrapper:
+      enable_status_updates: true

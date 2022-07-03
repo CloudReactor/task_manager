@@ -45,7 +45,7 @@ def make_regioned_aws_console_base_url(region: str) -> str:
 def make_region_parameter(region: str) -> str:
     return 'region=' + quote(region)
 
-def make_aws_console_role_url(role_arn: str) -> Optional[str]:
+def make_aws_console_role_url(role_arn: Optional[str]) -> Optional[str]:
     if not role_arn:
         return None
 

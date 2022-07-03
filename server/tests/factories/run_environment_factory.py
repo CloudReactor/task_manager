@@ -20,6 +20,6 @@ class RunEnvironmentFactory(OwnedModelFactory):
     aws_events_role_arn = 'arn:aws:iam::123456789012:role/cloudreactor_assumable'
     aws_assumed_role_external_id = 'DEADBEEF'
     aws_ecs_default_execution_role = 'arn:aws:iam::123456789012:role/execution'
-    aws_ecs_default_cluster_arn = 'arn:aws:ecs:us-east-2:123456789012:cluster/MyECSCluster'
+    aws_ecs_default_cluster_arn = 'arn:aws:ecs:us-west-1:123456789012:cluster/MyECSCluster'
     aws_default_subnets = ['subnet-123456']
     aws_ecs_default_security_groups = ['sg-123456']

@@ -72,8 +72,6 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
                         isinstance(field_instance, serializers.CharField):
                     string_valued_columns.append(field_instance.source or field_name)
 
-        print(f"{string_valued_columns=}")
-
         default_prefixed_keys = ['execution_role', 'task_role', 'platform_version']
 
         validated = self.copy_props_with_prefix(dest_dict=validated,

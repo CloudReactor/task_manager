@@ -9,11 +9,11 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException
 
 from pydantic import BaseModel
-from mergedeep import merge
 
 from botocore.exceptions import ClientError
 
 from ..common.aws import *
+from ..common.utils import deepmerge_with_lists, deepmerge_with_lists_pair
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 from .aws_cloudwatch_scheduling_settings import (
     AwsCloudwatchSchedulingSettings
@@ -39,14 +39,21 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     task_definition_infrastructure_website_url: Optional[str] = None
     main_container_name: Optional[str] = None
     execution_role: Optional[str] = None
+    execution_role_infrastructure_website_url: Optional[str] = None
     task_role: Optional[str] = None
+    task_role_infrastructure_website_url: Optional[str] = None
     platform_version: Optional[str] = None
     infrastructure_website_url: Optional[str] = None
 
     def update_derived_attrs(self):
-        if self.task_definition_arn:
-            self.task_definition_infrastructure_website_url = \
-                  make_aws_console_ecs_task_definition_url(self.task_definition_arn)
+        self.task_definition_infrastructure_website_url = \
+            make_aws_console_ecs_task_definition_url(self.task_definition_arn)
+
+        self.execution_role_infrastructure_website_url = \
+            make_aws_console_role_url(self.execution_role)
+
+        self.task_role_infrastructure_website_url = \
+            make_aws_console_role_url(self.task_role)
 
 class AwsEcsServiceDeploymentCircuitBreaker(BaseModel):
     enable: Optional[bool] = None
@@ -61,13 +68,36 @@ class AwsEcsServiceDeploymentConfiguration(BaseModel):
 
 class AwsApplicationLoadBalancer(BaseModel):
     target_group_arn: Optional[str] = None
+    target_group_infrastructure_website_url: Optional[str] = None
     container_name: Optional[str] = None
     container_port: Optional[int] = None
 
+    def update_derived_attrs(self, task: 'Task',
+            aws_settings: Optional[AwsSettings]) -> None:
+      self.target_group_infrastructure_website_url = None
+
+      if self.target_group_arn:
+          region = task.run_environment.aws_default_region
+
+          if aws_settings and aws_settings.network:
+              region = aws_settings.network.region or region
+
+          if region:
+              self.target_group_infrastructure_website_url = \
+                  f"https://{region}.console.aws.amazon.com/ec2/v2/home?" \
+                  + f"region={region}#TargetGroup:targetGroupArn=" \
+                  + self.target_group_arn
 
 class AwsApplicationLoadBalancerSettings(BaseModel):
     health_check_grace_period_seconds: Optional[int] = None
     load_balancers: Optional[list[AwsApplicationLoadBalancer]] = None
+
+    def update_derived_attrs(self, task: 'Task',
+            aws_settings: Optional[AwsSettings]) -> None:
+        if self.load_balancers:
+            for load_balancer in self.load_balancers:
+                load_balancer.update_derived_attrs(task=task,
+                    aws_settings=aws_settings)
 
 
 class AwsEcsServiceSettings(BaseModel):
@@ -76,18 +106,28 @@ class AwsEcsServiceSettings(BaseModel):
     force_new_deployment: Optional[bool] = None
     load_balancer_settings: Optional[AwsApplicationLoadBalancerSettings] = None
     enable_ecs_managed_tags: Optional[bool] = None
-    propagate_tags: Optional[bool] = None
+    propagate_tags: Optional[str] = None
     tags: Optional[dict[str, str]] = None
     service_arn: Optional[str] = None
     infrastructure_website_url: Optional[str] = None
 
-    def update_derived_attrs(self, aws_ecs_settings: AwsEcsExecutionMethodSettings):
-        cluster_name = extract_cluster_name(aws_ecs_settings.cluster_arn)
+    def update_derived_attrs(self, task: 'Task',
+            aws_ecs_settings: AwsEcsExecutionMethodSettings,
+            aws_settings: Optional[AwsSettings]):
+        cluster_name = extract_cluster_name(aws_ecs_settings.cluster_arn or \
+              task.run_environment.aws_ecs_default_cluster_arn)
 
         if cluster_name and self.service_arn:
             self.infrastructure_website_url = make_aws_console_ecs_service_url(
                 ecs_service_arn=self.service_arn,
                 cluster_name=cluster_name)
+        else:
+            self.infrastructure_website_url = None
+
+        if self.load_balancer_settings:
+            self.load_balancer_settings.update_derived_attrs(task=task,
+                aws_settings=aws_settings)
+
 
 class AwsEcsExecutionMethod(ExecutionMethod):
     NAME = 'AWS ECS'
@@ -584,6 +624,9 @@ class AwsEcsExecutionMethod(ExecutionMethod):
                 self.make_aws_ecs_service_name()
         cluster = task.aws_ecs_default_cluster_arn or \
                 run_env.aws_ecs_default_cluster_arn
+
+        logger.debug(f"describe_services() with {service_arn_or_name=}, {cluster=}")
+
         try:
             response_dict = ecs_client.describe_services(
                 cluster=cluster,
@@ -742,14 +785,18 @@ class AwsEcsExecutionMethod(ExecutionMethod):
 
     def enrich_task_settings(self) -> None:
         self.settings.update_derived_attrs()
-        self.task.execution_method_capability_details = merge(
+        self.task.execution_method_capability_details = deepmerge_with_lists_pair(
             self.task.execution_method_capability_details, self.settings.dict())
 
         if self.aws_settings:
             self.aws_settings.update_derived_attrs(
-                    run_environment=self.task.run_environment)
+                run_environment=self.task.run_environment)
+            self.task.infrastructure_settings = deepmerge_with_lists_pair(
+                self.task.infrastructure_settings, self.aws_settings.dict())
 
         if self.service_settings:
-            self.service_settings.update_derived_attrs(self.settings)
-            self.task.service_settings = merge(
-                self.task.service_settings, self.service_settings.dict())
+            self.service_settings.update_derived_attrs(task=self.task,
+                aws_ecs_settings=self.settings,
+                aws_settings=self.aws_settings)
+            self.task.service_settings = deepmerge_with_lists_pair(self.task.service_settings,
+                self.service_settings.dict())

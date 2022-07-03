@@ -285,32 +285,36 @@ def make_request_body(uuid_send_type: Optional[str],
         api_key_run_environment: Optional[RunEnvironment] = None,
         task: Optional[Task] = None,
         execution_method_type: Optional[str] = None,
-        emcd: Optional[dict[str, Any]] = None) \
+        emcd: Optional[dict[str, Any]] = None,
+        legacy_emc: Optional[dict[str, Any]] = None) \
         -> Tuple[dict[str, Any], Optional[RunEnvironment]]:
     request_data: dict[str, Any] = {
       'name': 'Some Task',
       'passive': False,
     }
 
-    if emcd is None:
-        # Use task factory to generate execution_method_capability
-        task_for_emc = task
-        if task_for_emc is None:
-            task_for_emc = task_factory()
-        emcd = task_for_emc.execution_method_capability_details
+    if legacy_emc is None:
+        if emcd is None:
+            # Use task factory to generate execution_method_capability
+            task_for_emcd = task
+            if task_for_emcd is None:
+                task_for_emcd = task_factory()
+            emcd = task_for_emcd.execution_method_capability_details
 
-        # Remove extra Task so we don't mess up counts
-        if task is None:
-            task_for_emc.delete()
+            # Remove extra Task so we don't mess up counts
+            if task is None:
+                task_for_emcd.delete()
 
-    if not execution_method_type:
-        if task:
-            execution_method_type = task.execution_method_type
-        else:
-            execution_method_type = AwsEcsExecutionMethod.NAME
+        if not execution_method_type:
+            if task:
+                execution_method_type = task.execution_method_type
+            else:
+                execution_method_type = AwsEcsExecutionMethod.NAME
 
-    request_data['execution_method_type'] = execution_method_type
-    request_data['execution_method_capability_details'] = emcd
+        request_data['execution_method_type'] = execution_method_type
+        request_data['execution_method_capability_details'] = emcd
+    else:
+        request_data['execution_method_capability'] = legacy_emc
 
     group = user.groups.first()
     run_environment: Optional[RunEnvironment] = None
@@ -474,6 +478,77 @@ def test_task_fetch(
           group_access_level=group_access_level,
           api_key_access_level=api_key_access_level,
           api_key_run_environment=api_key_run_environment)
+
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+  is_legacy_schema, is_service, is_scheduled
+""", [
+  (True, False, False),
+  (True, True, False),
+  (True, False, True),
+  (False, False, False),
+  (False, True, False),
+  (False, False, True),
+])
+@mock_ecs
+@mock_sts
+@mock_events
+def test_task_create_aws_ecs_task(is_legacy_schema: bool,
+        is_service: bool, is_scheduled: bool,
+        user_factory, group_factory,
+        run_environment_factory, task_factory,
+        api_client) -> None:
+    """
+    Test Task created with AWS ECS execution method.
+    """
+
+    user = user_factory()
+
+    _task, api_key_run_environment, client, url = common_setup(
+            is_authenticated=True,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_scope_type=SCOPE_TYPE_CORRECT,
+            uuid_send_type=SEND_ID_NONE,
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory,
+            api_client=api_client)
+
+    aws_ecs_setup = setup_aws_ecs(run_environment=api_key_run_environment)
+
+    schedule = ''
+    if is_scheduled:
+        schedule = 'cron(9 0 * * ? *)'
+
+    request_data = make_aws_ecs_task_request_body(
+        run_environment=api_key_run_environment,
+        task_definition_arn=aws_ecs_setup.task_definition_arn,
+        is_service=is_service, schedule=schedule,
+        is_legacy_schema=is_legacy_schema)
+
+    old_count = Task.objects.count()
+
+    response = client.post(url, data=request_data)
+
+    assert response.status_code == 201
+
+    new_count = Task.objects.count()
+
+    assert new_count == old_count + 1
+
+    response_task = cast(dict[str, Any], response.data)
+    task_uuid = response_task['uuid']
+    created_task = Task.objects.get(uuid=task_uuid)
+
+    ensure_serialized_task_valid(response_task=response_task,
+            task=created_task, user=user,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=api_key_run_environment)
 
 
 @pytest.mark.django_db
@@ -651,15 +726,20 @@ def test_task_create_access_control(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  emc
+  em_type, is_legacy_schema
 """, [
-  (None),
-  ({}),
-  ({ 'type': 'Unknown' }),
-  ({ 'type': 'unknown' }),
-  ({ 'type': 'UNKNOWN' }),
+  (None, False),
+  ('', False),
+  ('Unknown', False),
+  ('unknown', False),
+  ('UNKNOWN', False),
+  (None, True),
+  ('', True),
+  ('Unknown', True),
+  ('unknown', True),
+  ('UNKNOWN', True),
 ])
-def test_task_create_passive_task(emc: dict[str, Any],
+def test_task_create_passive_task(em_type: str, is_legacy_schema,
         user_factory, group_factory,
         run_environment_factory, task_factory,
         api_client) -> None:
@@ -682,10 +762,19 @@ def test_task_create_passive_task(emc: dict[str, Any],
             api_client=api_client)
 
     request_data = {
-      'name': 'Some Task',
-      'passive': True,
-      'execution_method_capability': emc
+        'name': 'Some Task',
+        'passive': True
     }
+
+    if is_legacy_schema:
+        emc = {}
+
+        if em_type is not None:
+            emc['type'] = em_type
+
+        request_data['execution_method_capability'] = emc
+    else:
+        request_data['execution_method_capability_type'] = em_type
 
     response = client.post(url, data=request_data)
 
@@ -696,6 +785,8 @@ def test_task_create_passive_task(emc: dict[str, Any],
     created_task = Task.objects.get(uuid=task_uuid)
 
     assert created_task.execution_method_type == UnknownExecutionMethod.NAME
+    assert created_task.execution_method_capability_details is None
+    assert len(created_task.execution_method().capabilities()) == 0
     assert created_task.passive
 
     ensure_serialized_task_valid(response_task=response_task,

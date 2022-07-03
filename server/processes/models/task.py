@@ -101,10 +101,10 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
 
     execution_method_capability_details = models.JSONField(null=True, blank=True)
 
-    scheduling_provider_type = models.CharField(max_length=10, blank=True)
+    scheduling_provider_type = models.CharField(max_length=100, blank=True)
     scheduling_settings = models.JSONField(null=True, blank=True)
 
-    service_provider_type = models.CharField(max_length=10, blank=True)
+    service_provider_type = models.CharField(max_length=100, blank=True)
     service_settings = models.JSONField(null=True, blank=True)
 
     aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
@@ -137,13 +137,13 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     aws_ecs_service_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_updated_at = models.DateTimeField(null=True, blank=True)
 
-    infrastructure_type = models.CharField(max_length=20, blank=True)
+    infrastructure_type = models.CharField(max_length=100, blank=True)
     infrastructure_settings = models.JSONField(null=True, blank=True)
 
-    schedule_provider_type = models.CharField(max_length=20, blank=True)
-    schedule_settings = models.JSONField(null=True, blank=True)
+    scheduling_provider_type = models.CharField(max_length=100, blank=True)
+    scheduling_settings = models.JSONField(null=True, blank=True)
 
-    service_provider_type = models.CharField(max_length=20, blank=True)
+    service_provider_type = models.CharField(max_length=100, blank=True)
     service_settings = models.JSONField(null=True, blank=True)
 
     allocated_cpu_units = models.PositiveIntegerField(null=True, blank=True)
@@ -160,7 +160,6 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
 
     should_skip_synchronize_with_run_environment = False
     aws_ecs_should_force_service_creation = False
-    should_skip_emcd_population = False
 
     def get_aws_region(self) -> str:
         return self.run_environment.get_aws_region()
@@ -429,8 +428,7 @@ def pre_save_task(sender: Type[Task], **kwargs):
 
     from .convert_legacy_em_and_infra import populate_task_emc_and_infra
 
-    if (not instance.should_skip_emcd_population) and \
-            (instance.execution_method_type == AwsEcsExecutionMethod.NAME):
+    if instance.execution_method_type == AwsEcsExecutionMethod.NAME:
         populate_task_emc_and_infra(instance)
 
     if instance.should_skip_synchronize_with_run_environment:

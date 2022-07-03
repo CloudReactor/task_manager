@@ -1,6 +1,8 @@
 
 from typing import Optional, TYPE_CHECKING
 
+from urllib.parse import quote
+
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
@@ -49,25 +51,52 @@ class AwsNetworkSettings(BaseModel):
                     for subnet_name in self.subnets]
 
             if self.security_groups is None:
+                self.security_group_infrastructure_website_urls = None
+            else:
                 self.security_group_infrastructure_website_urls = [
                     make_aws_console_security_group_url(security_group_name, region) \
                     for security_group_name in self.security_groups]
-            else:
-                self.security_group_infrastructure_website_urls = None
         else:
             self.subnet_infrastructure_website_urls = None
             self.security_group_infrastructure_website_urls = None
 
+
 class AwsLogOptions(BaseModel):
-    group: Optional[str] = None
     region: Optional[str] = None
+    group: Optional[str] = None
+    create_group: Optional[str] = None
+    stream_prefix: Optional[str] = None
     stream: Optional[str] = None
+    datetime_format: Optional[str] = None
+    multiline_pattern: Optional[str] = None
+    mode: Optional[str] = None
+    max_buffer_size: Optional[str] = None
 
 
 class AwsLoggingSettings(BaseModel):
     driver: Optional[str] = None
     options: Optional[AwsLogOptions] = None
+    infrastructure_website_url: Optional[str] = None
 
+    def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
+        self.infrastructure_website_url = None
+
+        options = self.options
+        if not (options and options.group):
+            return
+
+        region = options.region or run_environment.aws_default_region
+        if region and (self.driver == 'awslogs'):
+            limit = 2000 # TODO: make configurable
+            lq = options.group
+
+            # FIXME: does not handle queries with capital letters
+            self.infrastructure_website_url = \
+                f"https://{region}.console.aws.amazon.com/cloudwatch/home?" \
+                + f"region={region}#logs-insights:queryDetail=" \
+                + "~(end~0~start~-86400~timeType~'RELATIVE~unit~'seconds~" \
+                + f"editorString~'fields*20*40timestamp*2c*20*40message*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" \
+                + quote(lq, safe='').replace('%', '*').lower() + '))'
 
 class AwsXraySettings(BaseModel):
     trace_id: Optional[str] = None
@@ -83,3 +112,6 @@ class AwsSettings(BaseModel):
     def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
         if self.network:
             self.network.update_derived_attrs(run_environment=run_environment)
+
+        if self.logging:
+            self.logging.update_derived_attrs(run_environment=run_environment)
