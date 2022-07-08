@@ -19,7 +19,7 @@ from .aws_ecs_service_options_serializer import AwsEcsServiceOptionsSerializer
 
 logger = logging.getLogger(__name__)
 
-
+# Deprecated
 class AwsEcsExecutionMethodCapabilitySerializer(
         SerializerHelpers,
         AwsEcsTaskDefinitionSerializer,

@@ -41,8 +41,11 @@ from .aws_ecs_service_options_serializer import (
     AwsEcsServiceOptionsSerializer
 )
 
+
+
 from ..common.request_helpers import required_user_and_group_from_request
 from ..execution_methods import *
+from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from ..models import *
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
@@ -370,12 +373,12 @@ class TaskSerializer(GroupSettingSerializerMixin,
         if task:
             execution_method_type = task.execution_method_type
 
-        execution_method_type = validated.get('execution_method_type',
-            execution_method_type)
-
-        if legacy_emc is not None:
+        if is_legacy_schema:
             execution_method_type = legacy_emc.get('type',
                     execution_method_type)
+
+        execution_method_type = validated.get('execution_method_type',
+            execution_method_type)
 
         if execution_method_type:
             known_execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
@@ -408,7 +411,9 @@ class TaskSerializer(GroupSettingSerializerMixin,
             if 'is_service' in validated:
                 is_service = validated['is_service']
 
-        if execution_method_type == AwsEcsExecutionMethod.NAME:
+        infrastructure_type = validated.get('infrastructure_type')
+
+        if infrastructure_type == INFRASTRUCTURE_TYPE_AWS:
             infrastructure_settings = data.get('infrastructure_settings')
 
             if infrastructure_settings:
@@ -427,14 +432,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
                         src_dict=network_settings,
                         dest_prefix='aws_ecs_default_',
                         included_keys=['security_groups', 'assign_public_ip'])
-
-            service_settings = data.get('service_settings')
-            if service_settings:
-                ser = AwsEcsServiceOptionsSerializer(data=service_settings)
-                ser.is_valid()
-                validated_service_data = ser.validated_data
-                logger.debug(f"{validated_service_data=}")
-                validated |= validated_service_data
 
         self.set_validated_alert_methods(data=data, validated=validated,
                 run_environment=run_environment)

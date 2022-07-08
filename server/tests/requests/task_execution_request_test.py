@@ -692,19 +692,107 @@ def test_task_execution_create_access_control(
         check_validation_error(response, validation_error_attribute,
                 error_code)
 
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+  auto_create, is_legacy_schema
+""", [
+  (False, True),
+  (False, False),
+  (True, True),
+  (True, False),
+])
+@mock_ecs
+@mock_sts
+@mock_events
+def test_task_create_aws_ecs_task_execution(auto_create: bool,
+        is_legacy_schema: bool,
+        user_factory, group_factory, run_environment_factory, task_factory,
+        task_execution_factory, api_client) -> None:
+    user = user_factory()
+
+    _task_execution, task, api_key_run_environment, client, url = common_setup(
+            is_authenticated=True,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_scope_type=SCOPE_TYPE_CORRECT,
+            uuid_send_type=SEND_ID_NONE,
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory,
+            task_execution_factory=task_execution_factory,
+            api_client=api_client)
+
+    assert api_key_run_environment is not None # for mypy
+
+    aws_ecs_setup = setup_aws_ecs(run_environment=api_key_run_environment)
+
+    request_data = make_aws_ecs_task_execution_request_body(
+        run_environment=api_key_run_environment,
+        task_definition_arn=aws_ecs_setup.task_definition_arn,
+        task_name=None if auto_create else task.name,
+        was_auto_created=auto_create,
+        is_legacy_schema=is_legacy_schema)
+
+    old_count = TaskExecution.objects.count()
+
+    response = client.post(url, data=request_data)
+
+    assert response.status_code == 201
+
+    new_count = TaskExecution.objects.count()
+
+    assert new_count == old_count + 1
+
+    response_task_execution = cast(dict[str, Any], response.data)
+    task_execution_uuid = response_task_execution['uuid']
+    created_task_execution = TaskExecution.objects.get(uuid=task_execution_uuid)
+
+    ensure_serialized_task_execution_valid(
+            response_task_execution=response_task_execution,
+            task_execution=created_task_execution, user=user,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=api_key_run_environment)
+
+    validate_saved_task_execution(body_task_execution=request_data,
+        model_task_execution=created_task_execution)
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-    was_auto_created, passive,
+    was_auto_created, passive, is_legacy_schema,
     status_code, validation_error_attribute, error_code
 """, [
-    (True, True, 201, None, None),
-    (False, True, 422, 'task', 'not_found'),
-    (True, False, 400, 'passive', 'invalid'),
+    (
+        True, True, True,
+        201, None, None
+    ),
+    (
+        True, True, False,
+        201, None, None
+    ),
+    (
+        False, True, True,
+        422, 'task', 'not_found'
+    ),
+    (
+        False, True, False,
+        422, 'task', 'not_found'
+    ),
+    (
+        True, False, True,
+        400, 'passive', 'invalid'
+    ),
+    (
+        True, False, False,
+        400, 'passive', 'invalid'
+    ),
 ])
 def test_task_execution_with_unknown_method_auto_creation(
-        was_auto_created, passive,
-        status_code, validation_error_attribute, error_code,
+        was_auto_created: bool, passive: bool, is_legacy_schema: bool,
+        status_code: int, validation_error_attribute: Optional[str],
+        error_code: Optional[str],
         user_factory, group_factory, run_environment_factory,
         unknown_execution_method_task_factory, task_execution_factory,
         api_client) -> None:
@@ -728,6 +816,20 @@ def test_task_execution_with_unknown_method_auto_creation(
             api_client=api_client)
 
     assert api_key_run_environment is not None # for mypy
+
+    task_dict = {
+        'name': 'Auto Unknown Method Task',
+        'run_environment': {
+            'name': api_key_run_environment.name,
+        },
+    }
+
+    if is_legacy_schema:
+        task_dict['execution_method_capability'] =  {
+            'type': 'Unknown',
+        }
+    else:
+        task_dict['execution_method_type'] = 'Unknown'
 
     request_dict: dict[str, Any] = {
         'status': TaskExecution.Status.RUNNING.name,

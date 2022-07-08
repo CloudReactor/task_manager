@@ -24,7 +24,7 @@ from ..common import (
 from ..common.request_helpers import ensure_group_access_level
 from ..exception import UnprocessableEntity
 from ..execution_methods import *
-
+from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from .name_and_uuid_serializer import NameAndUuidSerializer
 
 from .embedded_id_validating_serializer_mixin import (
@@ -205,6 +205,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         group = self.get_request_group()
 
+        task_execution: Optional[TaskExecution] = \
+            cast(TaskExecution, self.instance) if self.instance else None
+
         # Support process_type for backward compatibility with wrapper scripts
         # less than 2.0.0
         task_dict = data.get('task') or data.get('process_type')
@@ -240,23 +243,79 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         validated['started_by'] = self.get_request_user()
 
-        execution_method_dict = data.get('execution_method')
+        execution_method_dict = data.get('execution_method_details')
 
+        legacy_em = data.pop('execution_method', None)
+        is_legacy_schema = (legacy_em is not None) and \
+            (execution_method_dict is None)
+
+        execution_method_dict = execution_method_dict or legacy_em
+
+        logger.debug(f"{execution_method_dict=}")
+
+        execution_method_type: Optional[str] = None
+
+        if task_execution:
+            execution_method_type = task_execution.task.execution_method_type
+
+        execution_method_type = data.get('execution_method_type',
+            execution_method_type)
+
+        if is_legacy_schema:
+            execution_method_type = legacy_em.get('type', execution_method_type)
+
+        if execution_method_type:
+            from .task_serializer import UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME
+            known_execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
+                execution_method_type.upper())
+
+            if known_execution_method_type:
+                execution_method_type = known_execution_method_type
+            else:
+                logger.warning(f"Unsupported execution method type: '{execution_method_type}")
+        else:
+            execution_method_type = UnknownExecutionMethod.NAME
+
+        logger.debug(f"{execution_method_type=}")
+
+        # TODO after this is added to TaskExecution
+        # validated['execution_method_type'] = execution_method_type
+
+        # Set deprecated columns
         if execution_method_dict:
-            self.copy_props_with_prefix(dest_dict=validated,
-                  src_dict=execution_method_dict,
-                  included_keys=['allocated_cpu_units',
-                      'allocated_memory_mb'])
+            if is_legacy_schema:
+                self.copy_props_with_prefix(dest_dict=validated,
+                      src_dict=execution_method_dict,
+                      included_keys=['allocated_cpu_units',
+                          'allocated_memory_mb'])
 
-            self.copy_props_with_prefix(dest_dict=validated,
-                  src_dict=execution_method_dict,
-                  dest_prefix='aws_ecs_',
-                  included_keys=[
-                      'task_definition_arn', 'task_arn', 'launch_type',
-                      'cluster_arn', 'security_groups',
-                      'assign_public_ip', 'execution_role',
-                      'task_role', 'platform_version',
-                  ])
+            if execution_method_type == AwsEcsExecutionMethod.NAME:
+                self.copy_props_with_prefix(dest_dict=validated,
+                      src_dict=execution_method_dict,
+                      dest_prefix='aws_ecs_',
+                      included_keys=[
+                          'task_definition_arn', 'task_arn', 'launch_type',
+                          'cluster_arn', 'security_groups',
+                          'assign_public_ip', 'execution_role',
+                          'task_role', 'platform_version',
+                      ])
+
+        infrastructure_type = data.get('infrastructure_type')
+
+        if infrastructure_type == INFRASTRUCTURE_TYPE_AWS:
+            infrastructure_settings = data.get('infrastructure_settings')
+
+            if infrastructure_settings:
+                network_settings = infrastructure_settings.get('network')
+                if network_settings:
+                    self.copy_props_with_prefix(dest_dict=validated,
+                        src_dict=network_settings,
+                        dest_prefix='aws_',
+                        included_keys=['subnets'])
+                    self.copy_props_with_prefix(dest_dict=validated,
+                        src_dict=network_settings,
+                        dest_prefix='aws_ecs_',
+                        included_keys=['security_groups', 'assign_public_ip'])
 
         return validated
 

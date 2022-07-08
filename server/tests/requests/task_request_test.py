@@ -3,6 +3,7 @@ from typing import Any, List, Optional, Tuple, cast
 from datetime import timedelta
 import uuid
 from urllib.parse import quote
+from wsgiref import validate
 
 from django.utils import timezone
 
@@ -550,6 +551,7 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_run_environment=api_key_run_environment)
 
+    validate_saved_task(body_task=request_data, model_task=created_task)
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""

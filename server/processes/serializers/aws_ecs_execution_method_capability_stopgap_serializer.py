@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class AwsEcsExecutionMethodCapabilityStopgapSerializer(
         SerializerHelpers,
         AwsEcsTaskDefinitionSerializer):
-    default_launch_type = serializers.ChoiceField(
+    launch_type = serializers.ChoiceField(
             source='aws_ecs_default_launch_type',
             choices=AwsEcsExecutionMethod.ALL_LAUNCH_TYPES,
             default=AwsEcsExecutionMethod.DEFAULT_LAUNCH_TYPE,
@@ -72,7 +72,8 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
                         isinstance(field_instance, serializers.CharField):
                     string_valued_columns.append(field_instance.source or field_name)
 
-        default_prefixed_keys = ['execution_role', 'task_role', 'platform_version']
+        default_prefixed_keys = ['execution_role', 'task_role',
+            'platform_version', 'launch_type']
 
         validated = self.copy_props_with_prefix(dest_dict=validated,
                 src_dict=data,
@@ -110,5 +111,10 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
                         })
 
             validated['aws_ecs_default_cluster_arn'] = cluster or ''
+
+
+        # Do not populate service attributes because we plan on
+        # removing AWS ECS attributes from Tasks before we allow
+        # deployments with the new schema
 
         return validated

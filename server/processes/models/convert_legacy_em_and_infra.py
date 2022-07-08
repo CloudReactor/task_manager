@@ -32,7 +32,7 @@ def compute_region(
 
 def extract_emc(task) -> dict[str, Any]:
     return convert_empty_to_none_values({
-        'default_launch_type': task.aws_ecs_default_launch_type,
+        'launch_type': task.aws_ecs_default_launch_type,
         'supported_launch_types': task.aws_ecs_supported_launch_types,
         'cluster_arn': task.aws_ecs_default_cluster_arn,
         'execution_role': task.aws_ecs_default_execution_role,

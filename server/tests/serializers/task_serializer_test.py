@@ -57,12 +57,15 @@ def test_task_serialization_with_unsupported_emcd(task_factory):
 @pytest.mark.parametrize("""
   is_legacy_schema, is_service, is_scheduled
 """, [
-  (False, False, False),
-  (False, True, False),
-  (False, False, True),
-  (True, False, False),
-  (True, True, False),
-  (True, False, True),
+    (False, False, False),
+
+    # Service property extraction into legacy columns not supported
+    # (False, True, False),
+
+    (False, False, True),
+    (True, False, False),
+    (True, True, False),
+    (True, False, True),
 ])
 def test_aws_ecs_task_deserialization(is_legacy_schema: bool,
         is_service: bool, is_scheduled: bool,

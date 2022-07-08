@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from botocore.exceptions import ClientError
 
 from ..common.aws import *
-from ..common.utils import deepmerge_with_lists, deepmerge_with_lists_pair
+from ..common.utils import deepmerge_with_lists_pair
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 from .aws_cloudwatch_scheduling_settings import (
     AwsCloudwatchSchedulingSettings
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class AwsEcsExecutionMethodSettings(BaseModel):
-    default_launch_type: Optional[str] = None
+    launch_type: Optional[str] = None
     supported_launch_types: Optional[list[str]] = None
     cluster_arn: Optional[str] = None
     cluster_infrastructure_website_url: Optional[str] = None
