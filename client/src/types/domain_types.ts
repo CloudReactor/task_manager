@@ -1,4 +1,7 @@
-import { EXECUTION_CAPABILITY_MANUAL_START, EXECUTION_METHOD_TYPE_UNKNOWN } from '../utils/constants';
+import {
+  EXECUTION_CAPABILITY_MANUAL_START,
+  EXECUTION_METHOD_TYPE_UNKNOWN
+} from '../utils/constants';
 
 export interface EntityReference {
   uuid: string;
@@ -158,19 +161,19 @@ export interface AwsTags {
   [propName: string]: string;
 }
 
-export interface ExecutionMethodCapability {
+export interface LegacyExecutionMethodCapability {
   capabilities: string[];
   type: string;
 }
 
-export class ExecutionMethodCapabilityImpl
-implements ExecutionMethodCapabilityImpl {
+export class LegacyExecutionMethodCapabilityImpl
+implements LegacyExecutionMethodCapabilityImpl {
   capabilities = []
   type = EXECUTION_METHOD_TYPE_UNKNOWN;
 }
 
-export interface AwsEcsExecutionMethodCapability
-extends ExecutionMethodCapability {
+export interface LegacyAwsEcsExecutionMethodCapability
+extends LegacyExecutionMethodCapability {
   allocated_cpu_units: number | null;
   allocated_memory_mb: number | null;
   default_subnets: string[];
@@ -190,9 +193,9 @@ extends ExecutionMethodCapability {
   tags: AwsTags | null;
 }
 
-export class AwsEcsExecutionMethodCapabilityImpl
-extends ExecutionMethodCapabilityImpl
-implements AwsEcsExecutionMethodCapability {
+export class LegacyAwsEcsExecutionMethodCapabilityImpl
+extends LegacyExecutionMethodCapabilityImpl
+implements LegacyAwsEcsExecutionMethodCapability {
   allocated_cpu_units = 256;
   allocated_memory_mb = 512;
   default_subnets = [];
@@ -212,8 +215,8 @@ implements AwsEcsExecutionMethodCapability {
   tags = null;
 }
 
-export class TaskAwsEcsExecutionMethodCapability
-extends AwsEcsExecutionMethodCapabilityImpl {
+export class LegacyTaskAwsEcsExecutionMethodCapability
+extends LegacyAwsEcsExecutionMethodCapabilityImpl {
   service_options: {
     load_balancer_health_check_grace_period_seconds: number | null;
     load_balancers: AwsLoadBalancer[],
@@ -238,7 +241,7 @@ export interface RunEnvironment extends EntityReferenceWithDates {
   aws_workflow_starter_lambda_arn: string;
   aws_workflow_starter_access_key: string;
   default_alert_methods: EntityReference[];
-  execution_method_capabilities: ExecutionMethodCapability[];
+  execution_method_capabilities: LegacyExecutionMethodCapability[];
   tags: AwsTags | null;
   [propName: string]: any;
 }
@@ -292,21 +295,37 @@ export interface ExternalLink extends EntityReferenceWithDates {
   rank: number;
 }
 
-export interface CurrentServiceInfo {
+export interface LegacyCurrentServiceInfo {
   type: string,
   service_arn: string;
   service_arn_updated_at: Date | null;
   service_infrastructure_website_url: string | null;
 }
 
+export interface AwsLambdaExecutionMethodCapability {
+  runtime_id: string | null;
+  function_arn: string | null;
+  function_name: string | null;
+  function_version: string | null;
+  init_type: string | null;
+  dotnet_prejit: string | null;
+  function_memory_mb: string | null;
+  time_zone_name: string | null;
+  infrastructure_website_url: string | null;
+}
+
 export interface Task extends EntityReferenceWithDates, Executable {
   alert_methods: EntityReference[];
+  capabilities: string[];
   created_by_group: GroupReference;
   created_by_user?: string;
-  current_service_info: CurrentServiceInfo | null;
+  current_service_info: LegacyCurrentServiceInfo | null;
   description: string;
-  execution_method_capability: ExecutionMethodCapability;
+  execution_method_capability: LegacyExecutionMethodCapability;
+  execution_method_capability_details: object | null;
+  execution_method_type: string;
   heartbeat_interval_seconds: number;
+  infrastructure_settings: object | null;
   is_service: boolean;
   latest_task_execution: any;
   links: ExternalLink[];
@@ -322,22 +341,30 @@ export interface Task extends EntityReferenceWithDates, Executable {
   passive: boolean;
   project_url: string;
   run_environment: EntityReference;
+  scheduling_provider_type: string | null;
+  scheduling_settings: object | null;
   service_instance_count: number;
+  service_provider_type: string | null;
+  service_settings: object | null;
   was_auto_created: boolean;
 }
 
 export class TaskImpl extends EntityReferenceWithDatesImpl
 implements Task {
-  alert_methods = []
+  alert_methods = [];
+  capabilities = [];
   created_by_group = new GroupReferenceImpl();
   created_by_user = '';
   current_service_info = null;
   default_max_retries = 0;
   description = '';
   enabled = true;
-  execution_method_capability: ExecutionMethodCapability =
-    new ExecutionMethodCapabilityImpl();
+  execution_method_capability: LegacyExecutionMethodCapability =
+    new LegacyExecutionMethodCapabilityImpl();
+  execution_method_capability_details = null;
+  execution_method_type = EXECUTION_METHOD_TYPE_UNKNOWN;
   heartbeat_interval_seconds = 0;
+  infrastructure_settings = null;
   is_service = false;
   latest_task_execution = null;
   links = [];
@@ -363,14 +390,17 @@ implements Task {
   run_environment = new EntityReferenceImpl();
   schedule = '';
   scheduled_instance_count = null;
+  scheduling_provider_type = null;
+  scheduling_settings = null;
   service_instance_count = 0;
+  service_provider_type = null;
+  service_settings = null;
   should_clear_failure_alerts_on_success = false;
   should_clear_timeout_alerts_on_success = false;
   was_auto_created = false;
 
   canManuallyStart(): boolean {
-    const emc = this.execution_method_capability;
-    return (emc.capabilities.indexOf(EXECUTION_CAPABILITY_MANUAL_START) >= 0);
+    return ((this.capabilities as string[]).indexOf(EXECUTION_CAPABILITY_MANUAL_START) >= 0);
   }
 }
 

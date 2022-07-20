@@ -87,6 +87,7 @@ class CurrentServiceInfoSerializer(serializers.Serializer):
 
 SUPPORTED_EXECUTION_METHODS = [
     AwsEcsExecutionMethod,
+    AwsLambdaExecutionMethod,
     UnknownExecutionMethod,
 ]
 
@@ -212,7 +213,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 method_name=method_name, task=obj, is_legacy_schema=True).data
 
     def get_capabilities(self, task: Task) -> list[str]:
-        return list(task.execution_method().capabilities())
+        return [c.name for c in task.execution_method().capabilities()]
 
     # Deprecated
     @extend_schema_field(CurrentServiceInfoSerializer(required=False,

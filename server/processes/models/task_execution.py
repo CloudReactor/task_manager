@@ -1,4 +1,4 @@
-from typing import cast, Any, Dict, List, Optional, Type
+from typing import cast, Any, List, Optional, Type
 
 import enum
 import logging
@@ -302,7 +302,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
 
         exec_method.manually_start(task_execution=self)
 
-    def make_environment(self) -> Dict[str, Any]:
+    def make_environment(self) -> dict[str, Any]:
         task = self.task
 
         env = {

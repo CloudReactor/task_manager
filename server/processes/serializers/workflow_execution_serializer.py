@@ -2,6 +2,8 @@ import logging
 
 from rest_framework import serializers
 
+from rest_flex_fields.serializers import FlexFieldsSerializerMixin
+
 from drf_spectacular.utils import extend_schema_field
 
 from ..models import WorkflowExecution
@@ -48,8 +50,9 @@ class WorkflowExecutionStopReasonSerializer(serializers.BaseSerializer):
         return WorkflowExecution.StopReason[data.upper()].value
 
 
-class WorkflowExecutionSummarySerializer(serializers.HyperlinkedModelSerializer,
-                                         SerializerHelpers):
+class WorkflowExecutionSummarySerializer(SerializerHelpers,
+        FlexFieldsSerializerMixin,
+        serializers.HyperlinkedModelSerializer):
     """
     A WorkflowExecutionSummary contains a subset of the data inside of a
     WorkflowExecution.

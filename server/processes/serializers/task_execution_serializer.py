@@ -236,6 +236,24 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                     raise UnprocessableEntity({
                         'task': [ErrorDetail('Task does not exist', code='not_found')]
                     }) from e
+            else:
+                if was_auto_created:
+                    should_update = True
+                    task_version_number = data.get('task_version_number')
+                    if (task_version_number is not None) and task.latest_task_execution:
+                        last_version_number = task.latest_task_execution.task_version_number
+                        if last_version_number is not None:
+                            should_update = (last_version_number <= task_version_number)
+
+                    if should_update:
+                        logger.info(f"Updating Task details for {task.uuid=}")
+                        from .task_serializer import TaskSerializer
+                        task_serializer = TaskSerializer(task, data=task_dict,
+                                context=self.context)
+                        task_serializer.is_valid(raise_exception=True)
+                        task = task_serializer.save()
+                    else:
+                        logger.info(f"Not updating Task details for {task.uuid=}")
 
             logger.debug(f"to_internal_value(): validated task {task}")
 
@@ -272,7 +290,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             if known_execution_method_type:
                 execution_method_type = known_execution_method_type
             else:
-                logger.warning(f"Unsupported execution method type: '{execution_method_type}")
+                logger.warning(f"Unsupported execution method type: '{execution_method_type}'")
         else:
             execution_method_type = UnknownExecutionMethod.NAME
 

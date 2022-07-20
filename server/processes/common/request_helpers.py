@@ -78,7 +78,7 @@ def make_fake_request(**kwargs) -> Request:
             SERVER_NAME=server_hostname, SERVER_PORT=server_port), **kwargs)
 
 
-def context_with_request() -> Dict[str, Any]:
+def context_with_request() -> dict[str, Any]:
     return {
         'request': request_for_context()
     }

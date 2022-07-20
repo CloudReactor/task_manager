@@ -17,3 +17,8 @@ from .aws_ecs_execution_method import (
     AwsApplicationLoadBalancer,
     AwsApplicationLoadBalancerSettings
 )
+
+from .aws_lambda_execution_method import (
+    AwsLambdaExecutionMethod,
+    AwsLambdaExecutionMethodCapabilitySettings
+)

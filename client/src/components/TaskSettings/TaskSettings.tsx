@@ -7,13 +7,14 @@ import {
 
 import {
   RunEnvironment, Task,
-  TaskAwsEcsExecutionMethodCapability
+  LegacyTaskAwsEcsExecutionMethodCapability,
+  AwsLambdaExecutionMethodCapability
 } from '../../types/domain_types';
 
 import { Table } from 'react-bootstrap';
 
 import BooleanIcon from '../common/BooleanIcon';
-import { EXECUTION_METHOD_TYPE_AWS_ECS } from '../../utils/constants';
+import { EXECUTION_METHOD_TYPE_AWS_ECS, EXECUTION_METHOD_TYPE_AWS_LAMBDA } from '../../utils/constants';
 
 function pair(name: string, value: any) {
   return { name, value: value ?? 'N/A' };
@@ -26,6 +27,8 @@ interface Props {
 
 const TaskSettings = ({ task, runEnvironment }: Props) => {
   const execMethod = task.execution_method_capability;
+  const execMethodType = task.execution_method_type;
+  const execMethodDetails = task.execution_method_capability_details;
   const runEnvExecMethod = (runEnvironment?.execution_method_capabilities ?? [])[0] as any;
 
   let rows = [
@@ -51,11 +54,11 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
     pair('Max retries', formatNumber(task.default_max_retries)),
     pair('Passive', <BooleanIcon checked={task.passive} />),
     pair('Auto-created', <BooleanIcon checked={task.was_auto_created} />),
-    pair('Execution method', execMethod.type)
+    pair('Execution method', execMethodType)
   ];
 
-  if (execMethod.type === EXECUTION_METHOD_TYPE_AWS_ECS) {
-    const awsEcsEmc = execMethod as TaskAwsEcsExecutionMethodCapability;
+  if (execMethodType === EXECUTION_METHOD_TYPE_AWS_ECS) {
+    const awsEcsEmc = execMethod as LegacyTaskAwsEcsExecutionMethodCapability;
     let execMethodRows = [
       pair('ECS task definition ARN', makeLink(awsEcsEmc.task_definition_arn,
         awsEcsEmc.task_definition_infrastructure_website_url)),
@@ -143,6 +146,20 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
         })
       }
     }
+
+    rows = rows.concat(execMethodRows);
+  } else if (execMethodType === EXECUTION_METHOD_TYPE_AWS_LAMBDA) {
+    const awsLambdaEmc = execMethodDetails as AwsLambdaExecutionMethodCapability;
+    let execMethodRows = [
+      pair('Function ARN', makeLink(awsLambdaEmc.function_arn,
+        awsLambdaEmc.infrastructure_website_url)),
+      pair('Function version', awsLambdaEmc.function_version),
+      pair('Allocated memory', awsLambdaEmc.function_memory_mb ?
+        (awsLambdaEmc.function_memory_mb + ' MB') : 'N/A'),
+      pair('Init type', awsLambdaEmc.init_type),
+      pair('Runtime ID', awsLambdaEmc.runtime_id),
+      pair('.NET PreJIT', awsLambdaEmc.dotnet_prejit),
+    ]
 
     rows = rows.concat(execMethodRows);
   }

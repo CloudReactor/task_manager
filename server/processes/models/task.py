@@ -14,8 +14,11 @@ from django.utils import timezone
 from django.contrib.postgres.fields import HStoreField
 
 from ..common.aws import *
-from ..execution_methods import ExecutionMethod, AwsEcsExecutionMethod, \
-        UnknownExecutionMethod
+from ..execution_methods import (
+    ExecutionMethod,
+    AwsEcsExecutionMethod,
+    UnknownExecutionMethod
+)
 from ..exception.unprocessable_entity import UnprocessableEntity
 
 from .subscription import Subscription
@@ -312,9 +315,14 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         return num_completed_deleted + num_in_progress_deleted
 
     def execution_method(self):
+        from processes.execution_methods import (
+            AwsEcsExecutionMethod, AwsLambdaExecutionMethod
+        )
+
         if self.execution_method_type == AwsEcsExecutionMethod.NAME:
             return AwsEcsExecutionMethod(task=self)
-
+        elif self.execution_method_type == AwsLambdaExecutionMethod.NAME:
+            return AwsLambdaExecutionMethod(task=self)
         return UnknownExecutionMethod(task=self)
 
     # def setup_scheduled_execution(self) -> None:
