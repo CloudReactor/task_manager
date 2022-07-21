@@ -1,9 +1,11 @@
-
 from typing import Optional, TYPE_CHECKING
 
 from urllib.parse import quote
 
 from pydantic import BaseModel
+
+from ..common.aws import aws_encode
+
 
 if TYPE_CHECKING:
     from ..models import (
@@ -71,6 +73,21 @@ class AwsLogOptions(BaseModel):
     multiline_pattern: Optional[str] = None
     mode: Optional[str] = None
     max_buffer_size: Optional[str] = None
+    stream_infrastructure_website_url: Optional[str] = None
+
+    def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
+        self.stream_infrastructure_website_url = None
+
+        if self.stream and self.group:
+            region = self.region or run_environment.aws_default_region
+
+            if region:
+                #https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/$252Faws$252Flambda$252Faws-python-scheduled-cron-project-dev-cronHandler/log-events/2022$252F07$252F21$252F$255B$2524LATEST$255D45d39af3414141b6a281315363aa33bf
+                self.stream_infrastructure_website_url = \
+                    f"https://{region}.console.aws.amazon.com/cloudwatch/home?" \
+                    + f"region={region}#logsV2:log-groups/log-group/" \
+                    + aws_encode(self.group) + '/log-events/' \
+                    + aws_encode(self.stream)
 
 
 class AwsLoggingSettings(BaseModel):
@@ -89,14 +106,14 @@ class AwsLoggingSettings(BaseModel):
         if region and (self.driver == 'awslogs'):
             limit = 2000 # TODO: make configurable
             lq = options.group
-
-            # FIXME: does not handle queries with capital letters
             self.infrastructure_website_url = \
                 f"https://{region}.console.aws.amazon.com/cloudwatch/home?" \
                 + f"region={region}#logs-insights:queryDetail=" \
                 + "~(end~0~start~-86400~timeType~'RELATIVE~unit~'seconds~" \
                 + f"editorString~'fields*20*40timestamp*2c*20*40message*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" \
-                + quote(lq, safe='').replace('%', '*').lower() + '))'
+                + quote(lq, safe='').replace('%', '*') + '))'
+
+            options.update_derived_attrs(run_environment=run_environment)
 
 class AwsXraySettings(BaseModel):
     trace_id: Optional[str] = None

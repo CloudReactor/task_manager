@@ -314,8 +314,52 @@ export interface AwsLambdaExecutionMethodCapability {
   infrastructure_website_url: string | null;
 }
 
+export interface AwsLoggingOptions {
+  create_group: string | null;
+  datetime_format: string | null;
+  group: string | null;
+  max_buffer_size: number | null;
+  mode: string | null;
+  multiline_pattern: string | null;
+  region: string | null;
+  stream: string | null;
+  stream_infrastructure_website_url: string | null;
+  stream_prefix: string | null;
+}
+
+export interface AwsLoggingSettings {
+  driver: string | null;
+  infrastructure_website_url: string | null;
+  options: AwsLoggingOptions | null;
+}
+
+export interface AwsNetworkSettings {
+  assign_public_ip: boolean | null;
+  availability_zone: string | null;
+  //networks: null
+  region: string | null;
+  security_group_infrastructure_website_urls: string[] | null;
+  security_groups: string[] | null;
+  subnet_infrastructure_website_urls: string[] | null;
+  subnets: string[] | null;
+}
+
+export interface AwsXraySettings {
+  context_missing: string | null;
+  trace_id: string | null;
+}
+
+export interface AwsInfrastructureSettings {
+  logging: AwsLoggingSettings | null;
+  network: AwsNetworkSettings | null;
+  xray: AwsXraySettings | null;
+  tags: object | null;
+}
+
 export interface Task extends EntityReferenceWithDates, Executable {
   alert_methods: EntityReference[];
+  allocated_cpu_units: number | null;
+  allocated_memory_mb: number | null;
   capabilities: string[];
   created_by_group: GroupReference;
   created_by_user?: string;
@@ -326,6 +370,7 @@ export interface Task extends EntityReferenceWithDates, Executable {
   execution_method_type: string;
   heartbeat_interval_seconds: number;
   infrastructure_settings: object | null;
+  infrastructure_type: string;
   is_service: boolean;
   latest_task_execution: any;
   links: ExternalLink[];
@@ -352,6 +397,8 @@ export interface Task extends EntityReferenceWithDates, Executable {
 export class TaskImpl extends EntityReferenceWithDatesImpl
 implements Task {
   alert_methods = [];
+  allocated_cpu_units = null;
+  allocated_memory_mb = null;
   capabilities = [];
   created_by_group = new GroupReferenceImpl();
   created_by_user = '';
@@ -365,6 +412,7 @@ implements Task {
   execution_method_type = EXECUTION_METHOD_TYPE_UNKNOWN;
   heartbeat_interval_seconds = 0;
   infrastructure_settings = null;
+  infrastructure_type = '';
   is_service = false;
   latest_task_execution = null;
   links = [];

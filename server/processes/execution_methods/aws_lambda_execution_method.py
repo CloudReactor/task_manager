@@ -36,7 +36,7 @@ class AwsLambdaExecutionMethodCapabilitySettings(BaseModel):
     function_version: Optional[str] = None
     init_type: Optional[str] = None
     dotnet_prejit: Optional[str] = None
-    function_memory_mb: Optional[str] = None
+    function_memory_mb: Optional[int] = None
     time_zone_name: Optional[str] = None
     infrastructure_website_url: Optional[str] = None
 
@@ -96,7 +96,7 @@ class AwsLambdaExecutionMethod(ExecutionMethod):
     def __init__(self, task: 'Task'):
         super().__init__(self.NAME, task)
 
-        self.settings = AwsLambdaExecutionMethodSettings.parse_obj(
+        self.settings = AwsLambdaExecutionMethodCapabilitySettings.parse_obj(
                 task.execution_method_capability_details)
 
         self.aws_settings: Optional[AwsSettings] = None

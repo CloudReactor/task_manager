@@ -1,8 +1,9 @@
 from typing import Optional
 
 import logging
+import re
 
-from urllib.parse import quote
+from urllib.parse import quote, quote_plus
 
 
 from rest_framework.exceptions import APIException
@@ -170,3 +171,14 @@ def make_aws_console_ecs_service_url(ecs_service_arn: Optional[str],
                 exc_info=True)
 
     return None
+
+
+def aws_encode(value: str):
+      """
+      From rh0dium on
+      https://stackoverflow.com/questions/60796991/is-there-a-way-to-generate-the-aws-console-urls-for-cloudwatch-log-group-filters
+
+      """
+      value = quote_plus(value)
+      value = re.sub(r"\+", " ", value)
+      return re.sub(r"%", "$", quote_plus(value))

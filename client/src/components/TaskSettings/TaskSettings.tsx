@@ -8,15 +8,21 @@ import {
 import {
   RunEnvironment, Task,
   LegacyTaskAwsEcsExecutionMethodCapability,
-  AwsLambdaExecutionMethodCapability
+  AwsLambdaExecutionMethodCapability,
+  AwsInfrastructureSettings
 } from '../../types/domain_types';
 
 import { Table } from 'react-bootstrap';
 
 import BooleanIcon from '../common/BooleanIcon';
-import { EXECUTION_METHOD_TYPE_AWS_ECS, EXECUTION_METHOD_TYPE_AWS_LAMBDA } from '../../utils/constants';
+import { EXECUTION_METHOD_TYPE_AWS_ECS, EXECUTION_METHOD_TYPE_AWS_LAMBDA, INFRASTRUCTURE_TYPE_AWS } from '../../utils/constants';
 
-function pair(name: string, value: any) {
+interface NameValuePair {
+  name: string;
+  value: any;
+}
+
+function pair(name: string, value: any): NameValuePair {
   return { name, value: value ?? 'N/A' };
 }
 
@@ -35,6 +41,11 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
     pair('Created by', task.created_by_user ?? 'N/A'),
     pair('Created at', timeFormat(task.created_at, true)),
     pair('Updated at', timeFormat(task.updated_at, true)),
+
+    pair('Allocated CPU units', task.allocated_cpu_units),
+    pair('Allocated memory',
+      task.allocated_memory_mb ? `${task.allocated_memory_mb} MB` : null),
+
     pair('Desired service concurrency', ((task.service_instance_count === null) ? 'N/A' :
       formatNumber(task.service_instance_count))),
     pair('Min service concurrency', ((task.min_service_instance_count === null) ? 'N/A' :
@@ -105,9 +116,6 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
         })
         </span>),
       pair('Assign public IP?', <BooleanIcon checked={awsEcsEmc.default_assign_public_ip} />),
-      pair('Allocated CPU units', awsEcsEmc.allocated_cpu_units ?? 'N/A'),
-      pair('Allocated memory', awsEcsEmc.allocated_memory_mb ?
-        (awsEcsEmc.allocated_memory_mb + ' MB') : 'N/A'),
     ];
 
     const serviceInfo = task.current_service_info;
@@ -154,14 +162,69 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
       pair('Function ARN', makeLink(awsLambdaEmc.function_arn,
         awsLambdaEmc.infrastructure_website_url)),
       pair('Function version', awsLambdaEmc.function_version),
-      pair('Allocated memory', awsLambdaEmc.function_memory_mb ?
-        (awsLambdaEmc.function_memory_mb + ' MB') : 'N/A'),
       pair('Init type', awsLambdaEmc.init_type),
       pair('Runtime ID', awsLambdaEmc.runtime_id),
       pair('.NET PreJIT', awsLambdaEmc.dotnet_prejit),
     ]
 
     rows = rows.concat(execMethodRows);
+  }
+
+  const infrastructureType = task.infrastructure_type;
+
+  if (infrastructureType && task.infrastructure_settings) {
+    let infraRows: NameValuePair[] = [];
+
+    switch (infrastructureType) {
+      case INFRASTRUCTURE_TYPE_AWS: {
+        const awsSettings = task.infrastructure_settings as AwsInfrastructureSettings;
+
+        // TODO: Network
+
+        const awsLogging = awsSettings.logging;
+
+        if (awsLogging) {
+          infraRows = infraRows.concat([
+            pair('Logging', ''),
+            pair('Log Driver', awsLogging.driver)
+          ]);
+
+          const loggingOptions = awsLogging.options;
+
+          if (loggingOptions?.group || awsLogging.infrastructure_website_url) {
+            infraRows.push(pair('Log Group',
+              makeLink(loggingOptions?.group ?? 'View',
+                awsLogging.infrastructure_website_url)));
+          }
+
+          if (loggingOptions) {
+            infraRows = infraRows.concat([
+              pair('Stream Prefix', loggingOptions.stream_prefix),
+
+              // TODO: Move to TaskExecutionSettings
+              pair('Stream',
+                makeLink(loggingOptions.stream,
+                  loggingOptions.stream_infrastructure_website_url))
+            ]);
+          }
+        }
+
+        const tags = awsSettings.tags;
+
+        if (tags) {
+          infraRows.push(pair('Tags', ''));
+          for (const [k, v] of Object.entries(tags)) {
+            infraRows.push(pair(k, v));
+          }
+        }
+      }
+      break;
+
+      default:
+      break;
+    }
+
+    rows = rows.concat(infraRows);
   }
 
 	return (
