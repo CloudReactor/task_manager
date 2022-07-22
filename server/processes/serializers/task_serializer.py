@@ -265,6 +265,9 @@ class TaskSerializer(GroupSettingSerializerMixin,
         body_task_links = data.pop('links', None) or \
             data.pop('process_type_links', None)
 
+        legacy_emc = data.pop('execution_method_capability', None)
+        logger.info(f"Removed {legacy_emc=}")
+
         validated = super().to_internal_value(data)
 
         user, group = required_user_and_group_from_request(
@@ -360,7 +363,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
         execution_method_dict = validated.get('execution_method_capability_details')
 
         # deprecated
-        legacy_emc = data.pop('execution_method_capability', None)
         is_legacy_schema = (legacy_emc is not None) and \
             (execution_method_dict is None)
         logger.debug(f"{is_legacy_schema=}")

@@ -436,8 +436,7 @@ def pre_save_task(sender: Type[Task], **kwargs):
 
     from .convert_legacy_em_and_infra import populate_task_emc_and_infra
 
-    if instance.execution_method_type == AwsEcsExecutionMethod.NAME:
-        populate_task_emc_and_infra(instance)
+    populate_task_emc_and_infra(instance)
 
     if instance.should_skip_synchronize_with_run_environment:
         logger.info(f"skipping synchronize_with_run_environment with Task {instance}")
