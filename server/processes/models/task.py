@@ -239,9 +239,8 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                 region = run_env.aws_default_region or 'us-west-2'
                 limit = 2000
 
-                # FIXME: does not handle queries with capital letters
                 return f"https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logs-insights:queryDetail=~(end~0~start~-86400~timeType~'RELATIVE~unit~'seconds~editorString~'fields*20*40timestamp*2c*20*40message*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" + \
-                        quote(lq, safe='').replace('%', '*').lower() + '))'
+                        quote(lq, safe='').replace('%', '*') + '))'
         else:
             return None
 
