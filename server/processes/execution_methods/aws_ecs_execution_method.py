@@ -176,6 +176,10 @@ class AwsEcsExecutionMethod(ExecutionMethod):
 
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
         task = self.task
+
+        if task.passive:
+            return frozenset()
+
         run_env = task.run_environment
 
         if not run_env.can_control_aws_ecs():

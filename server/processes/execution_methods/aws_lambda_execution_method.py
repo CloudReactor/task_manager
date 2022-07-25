@@ -106,10 +106,14 @@ class AwsLambdaExecutionMethod(ExecutionMethod):
 
 
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
+        task = self.task
+
+        if task.passive:
+            return frozenset()
+
         if not (self.settings.function_name or self.settings.function_arn):
             return frozenset()
 
-        #task = self.task
         #run_env = task.run_environment
 
         # TODO: handle scheduling
@@ -124,7 +128,7 @@ class AwsLambdaExecutionMethod(ExecutionMethod):
       # input can be trusted.
       payload = {
           'cloudreactor_context': {
-              'cloudreactor_params': {
+              'proc_wrapper_params': {
                   'task_execution': {
                       'uuid': str(task_execution.uuid)
                   }

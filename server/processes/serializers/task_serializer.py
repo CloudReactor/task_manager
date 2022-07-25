@@ -213,6 +213,9 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 method_name=method_name, task=obj, is_legacy_schema=True).data
 
     def get_capabilities(self, task: Task) -> list[str]:
+        if task.passive:
+            return []
+
         return [c.name for c in task.execution_method().capabilities()]
 
     # Deprecated
