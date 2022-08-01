@@ -4,7 +4,7 @@ from .user_factory import UserFactory
 from .subscription_plan_factory import SubscriptionPlanFactory
 from .subscription_factory import SubscriptionFactory
 from .run_environment_factory import RunEnvironmentFactory
-from .task_factory import TaskFactory
+from .task_factory import TaskFactory, UnknownTaskFactory
 from .unknown_execution_method_task_factory import UnknownExecutionMethodTaskFactory
 from .task_execution_factory import TaskExecutionFactory
 from .email_notification_profile_factory import EmailNotificationProfileFactory

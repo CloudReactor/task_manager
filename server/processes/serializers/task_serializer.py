@@ -43,7 +43,11 @@ from .aws_ecs_service_options_serializer import (
 
 
 
-from ..common.request_helpers import required_user_and_group_from_request
+from ..common.request_helpers import (
+    ensure_group_access_level,
+    required_user_and_group_from_request
+)
+
 from ..execution_methods import *
 from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from ..models import *
@@ -251,7 +255,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             if legacy_emc:
                 execution_method_type = legacy_emc.get('type')
 
-
         if not execution_method_type:
             execution_method_type = task.execution_method_type if task \
                 else UnknownExecutionMethod.NAME
@@ -273,8 +276,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         validated = super().to_internal_value(data)
 
-        user, group = required_user_and_group_from_request(
-            self.context.get('request'))
+        request = self.context.get('request')
+        user, group = required_user_and_group_from_request(request)
 
         task: Optional[Task] = cast(Task, self.instance) if self.instance else None
 
@@ -285,6 +288,14 @@ class TaskSerializer(GroupSettingSerializerMixin,
             raise ValidationError({
                 'run_environment': ErrorDetail('Run Environment is required', 'missing')
             })
+
+        # Ensure the API key has Developer access to the Run Environment
+        # of the Task that will be updated.
+        if task and (run_environment.pk != task.run_environment.pk):
+            ensure_group_access_level(group=group,
+                min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+                run_environment=task.run_environment,
+                request=request)
 
         # Not sure why is_service isn't in validated even when specified in the
         # request body, falling back to original request.

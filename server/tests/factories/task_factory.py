@@ -1,6 +1,9 @@
 from typing import Optional
 
-from processes.execution_methods.aws_ecs_execution_method import AwsEcsExecutionMethod
+from processes.execution_methods import (
+    AwsEcsExecutionMethod,
+    UnknownExecutionMethod
+)
 from processes.models import Task
 from processes.models.convert_legacy_em_and_infra import populate_task_emc_and_infra
 
@@ -70,3 +73,17 @@ class TaskFactory(OwnedModelFactory):
             return
 
         populate_task_emc_and_infra(task)
+
+
+class UnknownTaskFactory(TaskFactory):
+    execution_method_type = UnknownExecutionMethod.NAME
+
+    aws_ecs_task_definition_arn = ''
+    aws_ecs_default_launch_type = ''
+    aws_ecs_supported_launch_types = None
+
+    allocated_cpu_units = None
+    allocated_memory_mb = None
+
+    was_auto_created = True
+    passive = True

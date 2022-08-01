@@ -1,3 +1,5 @@
+from rest_framework.exceptions import APIException
+
 from processes.common.aws import extract_cluster_name
 from processes.common.request_helpers import context_with_request
 from processes.models import Task
@@ -102,3 +104,91 @@ def test_aws_ecs_task_deserialization(is_legacy_schema: bool,
 
     reserialized_data = TaskSerializer(task, context=context).data
     validate_serialized_task(reserialized_data, task)
+
+
+@pytest.mark.django_db
+@mock_ecs
+@mock_sts
+@mock_events
+@pytest.mark.parametrize("""
+  api_key_access_level, is_api_key_scoped,
+  run_environment_send_type,
+  status_code, validation_error_attribute,
+""", [
+    (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, True,
+    SEND_ID_CORRECT,
+    200, None),
+    (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, True,
+    SEND_ID_OTHER,
+    403, None),
+    (UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, True,
+    SEND_ID_CORRECT,
+    403, None),
+    (UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, True,
+    SEND_ID_CORRECT,
+    403, None),
+    (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
+    SEND_ID_CORRECT,
+    200, None),
+    (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
+    SEND_ID_OTHER,
+    200, None),
+    (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, True,
+    SEND_ID_IN_WRONG_GROUP,
+    422, 'run_environment'),
+    (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
+    SEND_ID_IN_WRONG_GROUP,
+    422, 'run_environment'),
+    (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, True,
+    SEND_ID_WRONG,
+    422, 'run_environment'),
+    (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
+    SEND_ID_WRONG,
+    422, 'run_environment'),
+])
+def test_task_deserialization_with_existing_task(
+    api_key_access_level: int, is_api_key_scoped: bool,
+    run_environment_send_type: str,
+    status_code: int, validation_error_attribute: Optional[str],
+    unknown_task_factory, run_environment_factory,
+    user_factory):
+    user = user_factory()
+    group = user.groups.all()[0]
+    run_environment = run_environment_factory(
+        created_by_group=group,
+        created_by_user=user)
+
+    task = cast(Task, unknown_task_factory(
+        run_environment=run_environment,
+        created_by_group=group,
+        created_by_user=user))
+
+    context = context_with_authenticated_request(
+        user=user, group=group,
+        api_key_access_level=api_key_access_level,
+        api_key_run_environment=run_environment if is_api_key_scoped else None)
+
+    if run_environment_send_type == SEND_ID_OTHER:
+        run_environment = run_environment_factory(
+            created_by_group=group,
+            created_by_user=user)
+    elif run_environment_send_type == SEND_ID_IN_WRONG_GROUP:
+        run_environment = run_environment_factory()
+    elif run_environment_send_type == SEND_ID_WRONG:
+        run_environment = RunEnvironment(name='Unsaved')
+
+    data = make_unknown_task_request_body(
+            run_environment=run_environment)
+
+    ser = TaskSerializer(task, data=data.copy(), context=context)
+
+    try:
+        ser.is_valid(raise_exception=True)
+        ser.save()
+    except APIException as ex:
+        assert ex.status_code == status_code
+        if validation_error_attribute:
+            assert validation_error_attribute == list(ex.detail.keys())[0]
+    else:
+        assert status_code == 200
+        assert validation_error_attribute is None

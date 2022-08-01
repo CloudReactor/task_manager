@@ -37,6 +37,7 @@ from tests.factories import (
     SubscriptionFactory,
     RunEnvironmentFactory,
     TaskFactory,
+    UnknownTaskFactory,
     UnknownExecutionMethodTaskFactory,
     TaskExecutionFactory,
     WorkflowFactory,
@@ -71,6 +72,7 @@ register(SubscriptionPlanFactory)
 register(SubscriptionFactory)
 register(RunEnvironmentFactory)
 register(TaskFactory)
+register(UnknownTaskFactory)
 register(UnknownExecutionMethodTaskFactory)
 register(TaskExecutionFactory)
 register(WorkflowFactory)
@@ -543,6 +545,16 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
 
         if schedule:
             body['scheduling_provider_type'] = SCHEDULING_TYPE_AWS_CLOUDWATCH
+
+    return body
+
+
+def make_unknown_task_request_body(run_environment: RunEnvironment) -> dict[str, Any]:
+    body = make_common_task_request_body(
+            run_environment_name=run_environment.name,
+            was_auto_created=True)
+
+    body['execution_method_type'] = 'Unknown'
 
     return body
 
