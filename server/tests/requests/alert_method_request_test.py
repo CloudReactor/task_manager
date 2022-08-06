@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, List, Optional, Tuple, cast
 
 import uuid
 from urllib.parse import quote
@@ -18,7 +18,7 @@ from rest_framework.test import APIClient
 from conftest import *
 
 
-def ensure_serialized_alert_method_valid(response_dict: Dict[str, Any],
+def ensure_serialized_alert_method_valid(response_dict: dict[str, Any],
         alert_method: AlertMethod, user: User,
         group_access_level: int,
         api_key_access_level: Optional[int] = None,
@@ -274,8 +274,8 @@ def make_request_body(uuid_send_type: Optional[str],
         method_details_send_type: Optional[str],
         alert_method: AlertMethod,
         group_factory, run_environment_factory,
-        pager_duty_profile_factory) -> Dict[str, Any]:
-    request_data: Dict[str, Any] = {
+        pager_duty_profile_factory) -> dict[str, Any]:
+    request_data: dict[str, Any] = {
       'name': 'Some AM',
     }
 
@@ -308,7 +308,7 @@ def make_request_body(uuid_send_type: Optional[str],
                 'uuid': str(run_environment.uuid)
             }
 
-    method_details: Dict[str, Any] = {
+    method_details: dict[str, Any] = {
         'type': 'PagerDuty'
     }
     request_data['method_details'] = method_details
@@ -631,7 +631,7 @@ def test_alert_method_create_access_control(
     if status_code == 201:
         assert new_count == old_count + 1
 
-        response_am = cast(Dict[str, Any], response.data)
+        response_am = cast(dict[str, Any], response.data)
         am_uuid = response_am['uuid']
         created_am = AlertMethod.objects.get(uuid=am_uuid)
 
@@ -806,7 +806,7 @@ def test_alert_method_set_method_details(
             else:
                 assert new_count == old_count
 
-            response_am = cast(Dict[str, Any], response.data)
+            response_am = cast(dict[str, Any], response.data)
             am_uuid = response_am['uuid']
             created_am = AlertMethod.objects.get(uuid=am_uuid)
 
@@ -1073,7 +1073,7 @@ def test_alert_method_update_access_control(
         assert group_access_level is not None
 
         ensure_serialized_alert_method_valid(
-                response_dict=cast(Dict[str, Any], response.data),
+                response_dict=cast(dict[str, Any], response.data),
                 alert_method=alert_method, user=user,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,

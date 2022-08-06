@@ -1,4 +1,4 @@
-from typing import Any, Collection, Dict, Mapping, NoReturn, Optional
+from typing import Any, Collection, Mapping, NoReturn, Optional
 
 import logging
 
@@ -41,7 +41,7 @@ class SerializerHelpers(serializers.BaseSerializer):
 
     def set_validated_alert_methods(self,
             data: Mapping[str, Any],
-            validated: Dict[str, Any],
+            validated: dict[str, Any],
             run_environment: Optional[RunEnvironment],
             property_name: str = 'alert_methods',
             allow_any_run_environment: bool = False):

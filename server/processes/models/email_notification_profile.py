@@ -1,6 +1,6 @@
 import logging
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from django.db import models
 from django.conf import settings
@@ -42,7 +42,7 @@ class EmailNotificationProfile(NamedWithUuidAndRunEnvironmentModel):
     subject_template = models.CharField(max_length=1000, blank=True)
     body_template = models.CharField(max_length=10000, blank=True)
 
-    def send(self, details: Optional[Dict[str, Any]] = None, severity: Optional[str] = None,
+    def send(self, details: Optional[dict[str, Any]] = None, severity: Optional[str] = None,
              subject_template: Optional[str] = None,
              body_template: Optional[str] = None,
              template_name: Optional[str] = None,

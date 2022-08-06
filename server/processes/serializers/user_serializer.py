@@ -46,8 +46,8 @@ class UserSerializer(serializers.ModelSerializer):
 
         super().__init__(instance, data, **kwargs)
 
-    def get_group_access_levels(self, user: User) -> Dict[int, int]:
-        rv: Dict[int, int] = {
+    def get_group_access_levels(self, user: User) -> dict[int, int]:
+        rv: dict[int, int] = {
                 ugal.group.id : ugal.access_level for ugal in
                 UserGroupAccessLevel.objects.filter(user=user)
         }

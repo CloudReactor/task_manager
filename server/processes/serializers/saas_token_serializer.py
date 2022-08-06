@@ -1,4 +1,4 @@
-from typing import cast, Any, Dict, Optional
+from typing import cast, Any, Optional
 
 import logging
 
@@ -61,7 +61,7 @@ class SaasTokenSerializer(
             lookup_field='uuid'
     )
 
-    def to_internal_value(self, data) -> Dict[str, Any]:
+    def to_internal_value(self, data) -> dict[str, Any]:
         # Reject user supplied key as it may not be complex enough
         if data.get('key'):
             raise ParseError({

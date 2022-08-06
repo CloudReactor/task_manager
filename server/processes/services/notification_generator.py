@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import logging
 
@@ -28,7 +28,7 @@ class NotificationGenerator:
           workflow: Optional[Workflow] = None,
           workflow_execution: Optional[WorkflowExecution] = None,
           is_resolution: bool = False,
-          severity: Optional[str] = None) -> Dict[str, Any]:
+          severity: Optional[str] = None) -> dict[str, Any]:
         from processes.serializers import (
             RunEnvironmentSerializer,
             TaskSerializer,
@@ -43,7 +43,7 @@ class NotificationGenerator:
             else:
                 severity = DEFAULT_NOTIFICATION_ERROR_SEVERITY
 
-        template_dict: Dict[str, Any] = {
+        template_dict: dict[str, Any] = {
             'severity': severity
         }
 

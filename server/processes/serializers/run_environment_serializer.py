@@ -1,4 +1,4 @@
-from typing import cast, Any, Dict, Optional, Sequence
+from typing import cast, Any, Optional, Sequence
 
 import logging
 
@@ -71,7 +71,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
         'created_by_user', 'created_by_group',
         'created_at', 'updated_at', 'default_alert_methods',])
 
-    def __init__(self, instance=None, data=empty, context: Optional[Dict[str, Any]] = None,
+    def __init__(self, instance=None, data=empty, context: Optional[dict[str, Any]] = None,
             forced_access_level: Optional[int] = None, **kwargs) -> None:
         context = context or {}
 
@@ -100,14 +100,14 @@ class RunEnvironmentSerializer(SerializerHelpers,
     # TODO: use PolymorphicProxySerializer when it is supported
     @extend_schema_field(AwsEcsRunEnvironmentExecutionMethodCapabilitySerializer(many=True))
     def get_execution_method_capabilities(self, run_env: RunEnvironment) \
-            -> Sequence[Dict[str, Any]]:
+            -> Sequence[dict[str, Any]]:
         rv = []
         if run_env.can_control_aws_ecs():
             rv.append(AwsEcsRunEnvironmentExecutionMethodCapabilitySerializer(
                     run_env).data)
         return rv
 
-    def to_internal_value(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         # May be None
         group = find_group_by_id_or_name(obj_dict=data.pop('created_by_group', None),
                 raise_exception_if_missing=False)
@@ -178,7 +178,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
 
         return run_environment
 
-    def update(self, instance: RunEnvironment, validated_data: Dict[str, Any]):
+    def update(self, instance: RunEnvironment, validated_data: dict[str, Any]):
         request = self.context.get('request')
         alert_methods = validated_data.pop('default_alert_methods', None)
 

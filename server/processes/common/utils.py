@@ -27,7 +27,7 @@ def deepmerge_with_lists_pair(dest: Any, src: Any) -> Any:
     if isinstance(dest, str): # because string is iterable
         return src
 
-    if isinstance(dest, abc.Mapping):
+    if isinstance(dest, abc.MutableMapping):
         if (not isinstance(src, str)) and isinstance(src, abc.Mapping):
             for k, v in src.items():
                 if k in dest:
@@ -40,8 +40,8 @@ def deepmerge_with_lists_pair(dest: Any, src: Any) -> Any:
         logger.warning(f"Attempt to merge dict {dest} with non-dict {src}")
         return src
 
-    if isinstance(dest, abc.Iterable):
-        if isinstance(src, abc.Iterable):
+    if isinstance(dest, abc.MutableSequence):
+        if isinstance(src, abc.Sequence):
           x_len = len(dest)
           y_len = len(src)
           for i, v in enumerate(dest):

@@ -84,7 +84,7 @@ class RunEnvironment(AwsEcsConfiguration, NamedWithUuidModel):
                 aws_access_key_id=self.aws_access_key,
                 aws_secret_access_key=self.aws_secret_key,
                 region_name=self.aws_default_region
-            )
+            )  # type: ignore
         else:
             customer_invoker_role_arn = os.environ['CUSTOMER_INVOKER_ROLE_ARN']
             aws_region = os.environ['HOME_AWS_DEFAULT_REGION']
@@ -104,7 +104,7 @@ class RunEnvironment(AwsEcsConfiguration, NamedWithUuidModel):
                 region_name=self.aws_default_region,
                 external_id=self.aws_assumed_role_external_id)
 
-            return boto3_session_2.client(service_name)
+            return boto3_session_2.client(service_name)  # type: ignore
 
     def can_schedule_workflow(self) -> bool:
         return bool(self.aws_account_id and \

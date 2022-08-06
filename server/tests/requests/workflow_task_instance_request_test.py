@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import uuid
 from urllib.parse import quote
@@ -24,7 +24,7 @@ from moto import mock_ecs, mock_sts, mock_events
 from conftest import *
 
 
-def ensure_serialized_workflow_task_instance_valid(response_workflow_task_instance: Dict[str, Any],
+def ensure_serialized_workflow_task_instance_valid(response_workflow_task_instance: dict[str, Any],
         workflow_task_instance: WorkflowTaskInstance, user: User,
         group_access_level: int,
         api_key_access_level: Optional[int] = None,
@@ -314,8 +314,8 @@ def make_request_body(uuid_send_type: Optional[str],
         api_key_run_environment: Optional[RunEnvironment],
         workflow_task_instance: WorkflowTaskInstance,
         group_factory, run_environment_factory, workflow_factory,
-        task_factory, workflow_task_instance_factory) -> Dict[str, Any]:
-    request_data: Dict[str, Any] = {
+        task_factory, workflow_task_instance_factory) -> dict[str, Any]:
+    request_data: dict[str, Any] = {
       'name': 'WTI_1'
     }
 
@@ -679,7 +679,7 @@ def test_workflow_task_instance_create_access_control(
     if status_code == 201:
         assert new_count == old_count + 1
 
-        response_workflow_task_instance = cast(Dict[str, Any], response.data)
+        response_workflow_task_instance = cast(dict[str, Any], response.data)
         workflow_task_instance_uuid = response_workflow_task_instance['uuid']
         created_am = WorkflowTaskInstance.objects.get(uuid=workflow_task_instance_uuid)
 
@@ -895,7 +895,7 @@ def test_workflow_task_instance_update_access_control(
         assert group_access_level is not None
 
         ensure_serialized_workflow_task_instance_valid(
-                response_workflow_task_instance=cast(Dict[str, Any], response.data),
+                response_workflow_task_instance=cast(dict[str, Any], response.data),
                 workflow_task_instance=workflow_task_instance, user=user,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
@@ -1040,7 +1040,7 @@ def test_workflow_set_task(
             else:
                 assert new_count == old_count
 
-            response_wti = cast(Dict[str, Any], response.data)
+            response_wti = cast(dict[str, Any], response.data)
             assert response_wti
 
             wti_uuid = response_wti['uuid']
@@ -1059,7 +1059,7 @@ def test_workflow_set_task(
             assert new_count == old_count
 
             if status_code == 422:
-                response_dict = cast(Dict[str, Any], response.data)
+                response_dict = cast(dict[str, Any], response.data)
                 assert('task' in response_dict)
 
 @pytest.mark.django_db

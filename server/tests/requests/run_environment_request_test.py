@@ -1,4 +1,4 @@
-from typing import cast, Any, Dict, List, Optional, Tuple
+from typing import cast, Any, List, Optional, Tuple
 
 import uuid
 from urllib.parse import quote
@@ -26,7 +26,7 @@ PROTECTED_PROPERTIES = [
   'aws_workflow_starter_access_key'
 ]
 
-def ensure_serialized_run_environment_valid(response_re: Dict[str, Any],
+def ensure_serialized_run_environment_valid(response_re: dict[str, Any],
         run_environment: RunEnvironment, user: User,
         group_access_level: int,
         api_key_access_level: Optional[int] = None,
@@ -453,7 +453,7 @@ def test_run_environment_create_access_control(
     if status_code == 201:
         assert new_count == old_count + 1
 
-        response_re = cast(Dict[str, Any], response.data)
+        response_re = cast(dict[str, Any], response.data)
         re_uuid = response_re['uuid']
         created_re = RunEnvironment.objects.get(uuid=re_uuid)
 
@@ -565,7 +565,7 @@ def test_run_environment_update_access_control(
         assert group_access_level is not None
 
         ensure_serialized_run_environment_valid(
-                response_re=cast(Dict[str, Any], response.data),
+                response_re=cast(dict[str, Any], response.data),
                 run_environment=run_environment, user=user,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
@@ -657,7 +657,7 @@ def test_run_environment_set_alert_methods(is_post: bool,
             api_client=api_client)
 
     # Prevent conflict with previous iteration's created entity
-    request_data: Dict[str, Any] = {
+    request_data: dict[str, Any] = {
       'name': f'Some RE with POST {is_post}'
     }
 
@@ -713,7 +713,7 @@ def test_run_environment_set_alert_methods(is_post: bool,
         else:
             assert new_count == old_count
 
-        response_re = cast(Dict[str, Any], response.data)
+        response_re = cast(dict[str, Any], response.data)
         re_uuid = response_re['uuid']
         run_environment = RunEnvironment.objects.get(uuid=re_uuid)
 

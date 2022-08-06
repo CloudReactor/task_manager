@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import logging
 
@@ -35,7 +35,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
 
         super().__init__(instance, data, **kwargs)
 
-    def get_user_access_levels(self, obj: UserGroupAccessLevel) -> Optional[Sequence[Dict[str, Any]]]:
+    def get_user_access_levels(self, obj: UserGroupAccessLevel) -> Optional[Sequence[dict[str, Any]]]:
         if not self.include_users:
             return None
 

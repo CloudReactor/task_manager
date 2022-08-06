@@ -190,7 +190,6 @@ class ExecutionMethod:
 
           wtie_info = {
               'uuid': str(wtie.uuid),
-              'name': wtie.name,
               'workflow_execution': we_info,
               'workflow_task_instance': wti_info
           }

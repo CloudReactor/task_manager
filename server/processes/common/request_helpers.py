@@ -1,5 +1,5 @@
 from typing import (
-    cast, Any, Dict, Optional, Sequence, Tuple, Union, TYPE_CHECKING
+    cast, Any, Optional, Sequence, Tuple, Union, TYPE_CHECKING
 )
 
 import logging
@@ -122,7 +122,7 @@ def required_user_and_group_from_request(request: Optional[Request] = None) -> \
 
     return (opt_user, opt_group)
 
-def find_group_by_id_or_name(obj_dict: Optional[Dict[str, Any]],
+def find_group_by_id_or_name(obj_dict: Optional[dict[str, Any]],
       raise_exception_if_missing=True, check_conflict=True) -> Optional[Group]:
     if obj_dict is None:
         if raise_exception_if_missing:

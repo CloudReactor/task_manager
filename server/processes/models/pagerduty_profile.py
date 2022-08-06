@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import logging
 
@@ -27,7 +27,7 @@ class PagerDutyProfile(NamedWithUuidAndRunEnvironmentModel):
     default_event_group_template = models.CharField(max_length=1000, blank=True)
     default_event_class_template = models.CharField(max_length=1000, blank=True)
 
-    def send(self, details: Optional[Dict[str, Any]] = None,
+    def send(self, details: Optional[dict[str, Any]] = None,
             severity: Optional[str] = None, source: Optional[str] = None,
             summary_template: Optional[str] = None,
             task_execution: Optional[TaskExecution] = None,

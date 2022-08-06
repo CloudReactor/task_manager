@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import uuid
 from urllib.parse import quote
@@ -25,7 +25,7 @@ RUN_ENVIRONMENT_TYPE_BLANK = 'blank'
 RUN_ENVIRONMENT_TYPE_NOT_FOUND = 'not_found'
 RUN_ENVIRONMENT_TYPE_NOT_IN_GROUP = 'not_in_group'
 
-def set_run_environment_in_request(request_body: Dict[str, Any],
+def set_run_environment_in_request(request_body: dict[str, Any],
         use_run_environment_type: str,
         existing_run_environment: Optional[RunEnvironment],
         run_environment_factory) -> Optional[RunEnvironment]:
@@ -347,7 +347,7 @@ def test_saas_token_creation(is_authenticated: bool,
         access_level= UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
     existing_token.save()
 
-    request_body: Dict[str, Any] = {
+    request_body: dict[str, Any] = {
         'name': name,
     }
 
@@ -563,7 +563,7 @@ def test_saas_token_update(is_authenticated: bool,
             is_authenticated=is_authenticated, user=user, group=group,
             api_key_access_level=api_key_access_level)
 
-    request_body: Dict[str, Any] = {
+    request_body: dict[str, Any] = {
         'name': 'Renamed',
     }
 

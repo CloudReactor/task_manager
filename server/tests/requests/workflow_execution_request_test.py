@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from datetime import timedelta
 import random
@@ -23,7 +23,7 @@ from moto import mock_ecs, mock_sts, mock_events
 from conftest import *
 
 
-def ensure_serialized_workflow_execution_valid(response_workflow_execution: Dict[str, Any],
+def ensure_serialized_workflow_execution_valid(response_workflow_execution: dict[str, Any],
         workflow_execution: WorkflowExecution, user: User,
         group_access_level: int,
         api_key_access_level: Optional[int] = None,
@@ -311,8 +311,8 @@ def make_request_body(uuid_send_type: Optional[str],
         api_key_run_environment: Optional[RunEnvironment],
         workflow_execution: WorkflowExecution,
         group_factory, run_environment_factory, workflow_factory,
-        workflow_execution_factory) -> Dict[str, Any]:
-    request_data: Dict[str, Any] = {
+        workflow_execution_factory) -> dict[str, Any]:
+    request_data: dict[str, Any] = {
       'status': 'RUNNING'
     }
 
@@ -648,7 +648,7 @@ def test_workflow_execution_create_access_control(
     if status_code == 201:
         assert new_count == old_count + 1
 
-        response_workflow_execution = cast(Dict[str, Any], response.data)
+        response_workflow_execution = cast(dict[str, Any], response.data)
         workflow_execution_uuid = response_workflow_execution['uuid']
         created_am = WorkflowExecution.objects.get(uuid=workflow_execution_uuid)
 
@@ -945,7 +945,7 @@ def test_workflow_execution_update_access_control(
         assert group_access_level is not None
 
         ensure_serialized_workflow_execution_valid(
-                response_workflow_execution=cast(Dict[str, Any], response.data),
+                response_workflow_execution=cast(dict[str, Any], response.data),
                 workflow_execution=workflow_execution, user=user,
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,

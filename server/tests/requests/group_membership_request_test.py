@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import uuid
 
@@ -44,7 +44,7 @@ def common_setup(
             is_authenticated=is_authenticated, user=user, group=group,
             api_key_access_level=api_key_access_level)
 
-    request_body: Dict[str, Any] = {}
+    request_body: dict[str, Any] = {}
 
     target_username = target_user.username
     request_body['user'] = { 'username': target_username }

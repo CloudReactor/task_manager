@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import uuid
 from urllib.parse import quote
@@ -17,7 +17,7 @@ from rest_framework.test import APIClient
 
 from conftest import *
 
-def ensure_serialized_pagerduty_profile_valid(response_entity: Dict[str, Any],
+def ensure_serialized_pagerduty_profile_valid(response_entity: dict[str, Any],
         pagerduty_profile: PagerDutyProfile, user: User,
         group_access_level: int,
         api_key_access_level: Optional[int] = None,
@@ -272,9 +272,9 @@ def make_request_body(uuid_send_type: Optional[str],
         user: User,
         api_key_run_environment: Optional[RunEnvironment],
         pagerduty_profile: PagerDutyProfile,
-        group_factory, run_environment_factory) -> Dict[str, Any]:
+        group_factory, run_environment_factory) -> dict[str, Any]:
 
-    request_data: Dict[str, Any] = {
+    request_data: dict[str, Any] = {
       'name': 'Some PDP',
       'integration_key': 'YASD',
       'default_severity': 'error',
@@ -592,7 +592,7 @@ def test_pagerduty_profile_create_access_control(
     if status_code == 201:
         assert new_count == old_count + 1
 
-        response_entity = cast(Dict[str, Any], response.data)
+        response_entity = cast(dict[str, Any], response.data)
         entity_uuid = response_entity['uuid']
         created_am = PagerDutyProfile.objects.get(uuid=entity_uuid)
 
@@ -856,7 +856,7 @@ def test_pagerduty_profile_update_access_control(
         assert group_access_level is not None
 
         ensure_serialized_pagerduty_profile_valid(
-          response_entity=cast(Dict[str, Any], response.data),
+          response_entity=cast(dict[str, Any], response.data),
           pagerduty_profile=pagerduty_profile, user=user,
           group_access_level=group_access_level,
           api_key_access_level=api_key_access_level,

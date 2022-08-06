@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import logging
 
@@ -51,7 +51,7 @@ class AlertMethod(NamedWithUuidAndRunEnvironmentModel):
 
     enabled = models.BooleanField(default=True)
 
-    def send(self, details: Optional[Dict[str, Any]] = None,
+    def send(self, details: Optional[dict[str, Any]] = None,
              severity: Optional[str] = None, source: Optional[str] = None,
              summary_template: Optional[str] = None,
              task_execution: Optional[TaskExecution] = None,

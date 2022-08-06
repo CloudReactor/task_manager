@@ -48,16 +48,16 @@ class AwsNetworkSettings(BaseModel):
             if self.subnets is None:
                 self.subnet_infrastructure_website_urls = None
             else:
-                self.subnet_infrastructure_website_urls = [
+                self.subnet_infrastructure_website_urls = [x for x in [
                     make_aws_console_subnet_url(subnet_name, region) \
-                    for subnet_name in self.subnets]
+                    for subnet_name in self.subnets] if x is not None]
 
             if self.security_groups is None:
                 self.security_group_infrastructure_website_urls = None
             else:
-                self.security_group_infrastructure_website_urls = [
+                self.security_group_infrastructure_website_urls = [x for x in [
                     make_aws_console_security_group_url(security_group_name, region) \
-                    for security_group_name in self.security_groups]
+                    for security_group_name in self.security_groups] if x is not None]
         else:
             self.subnet_infrastructure_website_urls = None
             self.security_group_infrastructure_website_urls = None

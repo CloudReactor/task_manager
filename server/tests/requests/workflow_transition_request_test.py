@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, List, Optional, Tuple, cast
 
 import uuid
 from urllib.parse import quote
@@ -22,7 +22,7 @@ from moto import mock_ecs, mock_sts, mock_events
 from conftest import *
 
 
-def ensure_serialized_workflow_transition_valid(response_workflow_transition: Dict[str, Any],
+def ensure_serialized_workflow_transition_valid(response_workflow_transition: dict[str, Any],
         workflow_transition: WorkflowTransition, user: User,
         group_access_level: int,
         api_key_access_level: Optional[int] = None,
@@ -348,8 +348,8 @@ def make_request_body(uuid_send_type: Optional[str],
         workflow: Workflow,
         group_factory, run_environment_factory, workflow_factory,
         workflow_task_instance_factory, task_factory,
-        workflow_transition_factory) -> Dict[str, Any]:
-    request_data: Dict[str, Any] = {
+        workflow_transition_factory) -> dict[str, Any]:
+    request_data: dict[str, Any] = {
         'rule_type': WorkflowTransition.RULE_TYPE_ON_SUCCESS
     }
 
@@ -717,7 +717,7 @@ def test_workflow_transition_create_access_control(
         if status_code == 201:
             assert new_count == old_count + 1
 
-            response_workflow_transition = cast(Dict[str, Any], response.data)
+            response_workflow_transition = cast(dict[str, Any], response.data)
             workflow_transition_uuid = response_workflow_transition['uuid']
             created_am = WorkflowTransition.objects.get(uuid=workflow_transition_uuid)
 
@@ -738,7 +738,7 @@ def test_workflow_transition_create_access_control(
                         (validation_error_attribute == 'from_workflow_task_instance'):
                     actual_vea = 'to_workflow_task_instance'
 
-                response_dict = cast(Dict[str, Any], response.data)
+                response_dict = cast(dict[str, Any], response.data)
                 assert(actual_vea in response_dict)
 
                 if error_code:
@@ -951,7 +951,7 @@ def test_workflow_transition_update_access_control(
             assert group_access_level is not None
 
             ensure_serialized_workflow_transition_valid(
-                    response_workflow_transition=cast(Dict[str, Any], response.data),
+                    response_workflow_transition=cast(dict[str, Any], response.data),
                     workflow_transition=workflow_transition, user=user,
                     group_access_level=group_access_level,
                     api_key_access_level=api_key_access_level,
@@ -964,7 +964,7 @@ def test_workflow_transition_update_access_control(
                         (validation_error_attribute == 'from_workflow_task_instance'):
                     actual_vea = 'to_workflow_task_instance'
 
-                response_dict = cast(Dict[str, Any], response.data)
+                response_dict = cast(dict[str, Any], response.data)
                 assert actual_vea in response_dict
 
                 if error_code:

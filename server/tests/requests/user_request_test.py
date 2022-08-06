@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, List, Optional, cast
 
 from urllib.parse import quote
 
@@ -300,7 +300,7 @@ UPDATABLE_ATTRIBUTES = ['first_name', 'last_name']
 def test_user_update(
         is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
         send_username_type, fields_to_change: List[str],
-        value_overrides: Dict[str, Any],
+        value_overrides: dict[str, Any],
         status_code: int,
         user_factory, api_client):
     user = user_factory()
@@ -341,7 +341,7 @@ def test_user_update(
     assert response.status_code == status_code
 
     user.refresh_from_db()
-    response_user = cast(Dict[str, Any], response.data)
+    response_user = cast(dict[str, Any], response.data)
     if status_code == 200:
         for field in fields_to_change:
             v =  value_overrides.get(field,

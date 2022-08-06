@@ -178,7 +178,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         return attrs
 
-    def to_internal_value(self, data: Mapping[str, Any]):
+    def to_internal_value(self, data: dict[str, Any]):
         # Remove process_version and process_hash once all process wrapper scripts < 1.2.0 are extinct
         process_version_number = data.get('process_version_number',
                                    data.get('process_version'))
@@ -222,9 +222,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             was_auto_created = task_dict.get('was_auto_created')
             task: Optional[Task] = None
             try:
-                task = Task.find_by_uuid_or_name(
+                task = cast(Task, Task.find_by_uuid_or_name(
                     task_dict, required_group=group,
-                    required_run_environment=authenticated_run_environment)
+                    required_run_environment=authenticated_run_environment))
             except (Task.DoesNotExist, NotFound) as e:
                 if was_auto_created:
                     from .task_serializer import TaskSerializer
@@ -337,7 +337,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         return validated
 
-    def create(self, validated_data: Mapping[str, Any]):
+    def create(self, validated_data: dict[str, Any]):
         now = timezone.now()
 
         request_status = TaskExecution.Status(validated_data.get(
@@ -363,7 +363,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         return super().create(validated_data)
 
-    def update(self, instance, validated_data: Mapping[str, Any]):
+    def update(self, instance, validated_data: dict[str, Any]):
         now = timezone.now()
 
         logger.info(
@@ -461,7 +461,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         return WorkflowTaskInstanceExecutionBaseSerializer(wtie,
                 context=self.context, read_only=True).data
 
-    def protect_attributes(self, validated_data: Mapping[str, Any],
+    def protect_attributes(self, validated_data: dict[str, Any],
             existing_task_execution: Optional[TaskExecution],
             task: Task) -> None:
         if task.was_auto_created and task.passive:

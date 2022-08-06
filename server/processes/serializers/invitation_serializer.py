@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import binascii
 import logging
@@ -42,7 +42,7 @@ class InvitationSerializer(serializers.HyperlinkedModelSerializer):
     invited_by_user = UserSerializer(required=False, include_groups=False, include_profile=False)
     group = GroupSerializer(read_only=True, include_users=False)
 
-    def to_internal_value(self, data) -> Dict[str, Any]:
+    def to_internal_value(self, data) -> dict[str, Any]:
         logger.info(f"to_internal_value: {data=}")
 
         validated = super().to_internal_value(data)
