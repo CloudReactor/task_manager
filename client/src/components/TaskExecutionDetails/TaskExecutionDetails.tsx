@@ -34,7 +34,7 @@ const TaskExecutionDetails = ({ taskExecution }: Props) => {
     pair('Duration', timeDuration(te.started_at, te.finished_at)),
     pair('Last heartbeat at', formatTime(te.last_heartbeat_at)),
     pair('Heartbeat interval', formatDuration(te.heartbeat_interval_seconds)),
-    pair('Commit', makeLink(te.task_version_signature, te.commit_url)),
+    pair('Version signature', makeLink(te.task_version_signature, te.commit_url)),
     pair('Version number', te.task_version_number),
     pair('Version text', te.task_version_text),
     pair('Deployment', te.deployment),
