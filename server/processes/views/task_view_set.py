@@ -1,6 +1,8 @@
 import logging
 
-from django.db.models import Prefetch
+from django.db.models import Case, ExpressionWrapper, F, IntegerField, Prefetch, CharField, Q, Value, When
+from django.db.models.functions import Length
+from django.db.models.lookups import GreaterThan
 
 from django.contrib.auth.models import User
 
@@ -48,12 +50,13 @@ class TaskViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
     serializer_class = TaskSerializer
     search_fields = ('name', 'description')
     ordering_fields = (
-        'uuid', 'name', 'enabled', 'is_service', 'schedule',
+        'uuid', 'name', 'enabled', 'execution_time_kind', 'schedule',
         'heartbeat_interval_seconds', 'max_concurrency', 'max_age_seconds',
         'default_max_retries', 'passive',
         'run_environment__name',
         'latest_task_execution__started_at',
         'latest_task_execution__finished_at',
+        'latest_task_execution__duration',
         'latest_task_execution__last_heartbeat_at',
         'latest_task_execution__status',
         'latest_task_execution__success_count',
@@ -79,5 +82,21 @@ class TaskViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
         if 'alert_methods' not in omitted:
             alert_methods_qs = AlertMethod.objects.only('uuid', 'name')
             qs = qs.prefetch_related(Prefetch('alert_methods', queryset=alert_methods_qs))
+
+        ordering = self.request.query_params.get('ordering')
+
+        if ordering:
+            if ordering.find('execution_time_kind') >= 0:
+                qs = qs.alias(execution_time_kind=Case(
+                    When(Q(service_instance_count__gt=0), then=100),
+                    When(Q(schedule=''), then=0),
+                    default=50
+                ))
+
+            if ordering.find('latest_task_execution__duration') >= 0:
+                # TODO: maybe use this in serializer
+                qs = qs.alias(latest_task_execution__duration=
+                    F('latest_task_execution__finished_at') -
+                    F('latest_task_execution__started_at'))
 
         return qs

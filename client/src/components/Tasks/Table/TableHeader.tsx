@@ -6,11 +6,11 @@ import "../../../styles/tableStyles.scss";
 const TASK_COLUMNS: TableColumnInfo[] = [
   { name: 'Name', ordering: 'name' },
   { name: 'Enabled', ordering: 'enabled', textAlign: 'text-center' },
-  { name: 'Type', ordering: 'is_service' },
+  { name: 'Type', ordering: 'execution_time_kind' },
   { name: 'Status', ordering: 'latest_task_execution__status' },
   { name: 'Started', ordering: 'latest_task_execution__started_at' },
   { name: 'Finished', ordering: 'latest_task_execution__finished_at' },
-  { name: 'Duration', ordering: 'undefined' },
+  { name: 'Duration', ordering: 'latest_task_execution__duration' },
   { name: 'Last heartbeat', ordering: 'latest_task_execution__last_heartbeat_at' },
   {
     name: 'Processed',

@@ -236,8 +236,14 @@ class TaskList extends Component<InnerProps, State> {
         console.log('Request cancelled: ' + error.message);
         return;
       }
+
+      if (this.state.interval) {
+        clearInterval(this.state.interval);
+      }
+
       this.setState({
-        lastLoadErrorMessage: 'Failed to load Tasks'
+        lastLoadErrorMessage: 'Failed to load Tasks',
+        interval: null
       });
     }
   }
@@ -434,4 +440,3 @@ class TaskList extends Component<InnerProps, State> {
 }
 
 export default withRouter(cancelTokenHoc(TaskList));
-
