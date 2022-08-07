@@ -66,7 +66,7 @@ class ApiKeyList extends Component<InnerProps, State> {
       rowsPerPage: UIC.DEFAULT_PAGE_SIZE,
     };
 
-    this.loadApiKeys = _.debounce(this.loadApiKeys, 250);
+    this.loadApiKeys = _.debounce(this.loadApiKeys, 250) as () => Promise<void>;
   }
 
   loadApiKeys = async (): Promise<void> => {
@@ -303,3 +303,4 @@ class ApiKeyList extends Component<InnerProps, State> {
 }
 
 export default withRouter(cancelTokenHoc(ApiKeyList));
+

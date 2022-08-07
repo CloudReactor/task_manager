@@ -83,7 +83,7 @@ class WorkflowList extends Component<InnerProps, State> {
       interval: null,
     };
 
-    this.loadWorkflows = _.debounce(this.loadWorkflows, 250);
+    this.loadWorkflows = _.debounce(this.loadWorkflows, 250) as () => Promise<void>;
   }
 
   async componentDidMount() {
@@ -452,3 +452,4 @@ class WorkflowList extends Component<InnerProps, State> {
 }
 
 export default withRouter(cancelTokenHoc(WorkflowList));
+

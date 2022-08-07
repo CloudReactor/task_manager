@@ -91,8 +91,7 @@ const TaskTable = (props: Props) => (
         count={props.taskPage.count}
         rowsPerPage={props.rowsPerPage}
         page={props.currentPage}
-        onChangePage={() => null}
-        onChangeRowsPerPage={() => null}
+        onPageChange={(event) => null}
       />
     </div>
     <Table striped bordered responsive hover size="sm">

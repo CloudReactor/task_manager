@@ -332,8 +332,7 @@ class WorkflowExecutionsTable extends Component<Props, State> {
             count={workflowExecutionsPage.count}
             rowsPerPage={rowsPerPage}
             page={currentPage}
-            onChangePage={() => null}
-            onChangeRowsPerPage={() => null}
+            onPageChange={(event) => null}
           />
         </div>
       </div>

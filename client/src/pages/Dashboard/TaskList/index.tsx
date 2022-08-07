@@ -65,7 +65,7 @@ class TaskList extends Component<InnerProps, State> {
       runEnvironments: [],
     };
 
-    this.loadTasks = _.debounce(this.loadTasks, 250);
+    this.loadTasks = _.debounce(this.loadTasks, 250) as () => Promise<void>;
   }
 
   async componentDidMount() {
@@ -434,3 +434,4 @@ class TaskList extends Component<InnerProps, State> {
 }
 
 export default withRouter(cancelTokenHoc(TaskList));
+

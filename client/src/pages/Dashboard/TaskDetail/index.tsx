@@ -466,8 +466,7 @@ class TaskDetail extends Component<Props, State> {
                               count={taskExecutionsPage.count}
                               rowsPerPage={rowsPerPage}
                               page={currentPage}
-                              onChangePage={() => null}
-                              onChangeRowsPerPage={() => null}
+                              onPageChange={(event) => null}
                             />
                           </Fragment>
                         ) : (
