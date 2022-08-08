@@ -3,6 +3,7 @@ from typing import cast, Any, Optional
 import logging
 
 from django.db import transaction
+from django.db.models import F
 from django.db.models.query import QuerySet
 from django.views import View
 
@@ -75,7 +76,8 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
                      'task_version_text', 'hostname',
                      'last_status_message', 'api_base_url',)
     ordering_fields = ('uuid', 'task__name',
-                       'started_at', 'finished_at', 'last_heartbeat_at',
+                       'started_at', 'finished_at', 'duration',
+                       'last_heartbeat_at',
                        'status', 'task_version_signature', 'task_version_text',
                        'wrapper_version',
                        'success_count', 'error_count', 'skipped_count',
@@ -92,7 +94,9 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
     ordering = 'started_at'
 
     def get_queryset(self):
-        return super().get_queryset().select_related('task__created_by_group',
+        return super().get_queryset().alias(duration=
+                    F('finished_at') - F('started_at')).select_related(
+            'task__created_by_group',
             'started_by', 'marked_done_by', 'killed_by',).prefetch_related(
             'workflowtaskinstanceexecution__workflow_execution',
             'workflowtaskinstanceexecution__workflow_task_instance')

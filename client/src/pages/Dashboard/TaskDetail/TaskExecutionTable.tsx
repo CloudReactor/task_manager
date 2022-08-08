@@ -49,7 +49,7 @@ const TaskExecutionTable = ({
   const TASK_EXECUTION_COLUMNS: TableColumnInfo[] = [
     { name: 'Started', ordering: 'started_at' },
     { name: 'Finished', ordering: 'finished_at' },
-    { name: 'Run Duration', ordering: '' },
+    { name: 'Run Duration', ordering: 'duration' },
     { name: 'Status', ordering: 'status' },
     { name: 'Last heartbeat', ordering: 'last_heartbeat_at' },
     { name: 'Exit Code', ordering: 'exit_code', textAlign: 'text-right' },
