@@ -1,34 +1,43 @@
+from typing import Optional
+
 from dataclasses import dataclass
+
+
+def add_limits(x: Optional[int], y: Optional[int]) -> Optional[int]:
+    if (x is None) or (y is None):
+        return None
+
+    return x + y
+
 
 @dataclass
 class UsageLimits:
-    max_users: int = 0
-    max_api_keys: int = 0
-    max_api_credits_per_month: int = 0
-    max_tasks: int = 0
-    max_task_execution_concurrency: int = 0
-    max_task_execution_history_items: int = 0
-    max_workflows: int = 0
-    max_workflow_execution_concurrency: int = 0
-    max_workflow_task_instances: int = 0
-    max_workflow_execution_history_items: int = 0
-    max_alerts_per_day: int = 0
+    max_users: Optional[int] = None
+    max_api_keys: Optional[int] = None
+    max_api_credits_per_month: Optional[int] = None
+    max_tasks: Optional[int] = None
+    max_task_execution_concurrency: Optional[int] = None
+    max_task_execution_history_items: Optional[int] = None
+    max_workflows: Optional[int] = None
+    max_workflow_execution_concurrency: Optional[int] = None
+    max_workflow_task_instances: Optional[int] = None
+    max_workflow_execution_history_items: Optional[int] = None
+    max_alerts_per_day: Optional[int] = None
 
     def combine(self, other: 'UsageLimits') -> 'UsageLimits':
         return UsageLimits(
-                max_users=self.max_users + other.max_users,
-                max_api_keys=self.max_api_keys + other.max_api_keys,
-                max_api_credits_per_month=self.max_api_credits_per_month + other.max_api_credits_per_month,
-                max_tasks=self.max_tasks + other.max_tasks,
-                max_task_execution_concurrency=self.max_task_execution_concurrency + other.max_task_execution_concurrency,
-                max_task_execution_history_items=self.max_task_execution_history_items + other.max_task_execution_history_items,
-                max_workflows=self.max_workflows + other.max_workflows,
-                max_workflow_execution_concurrency=self.max_workflow_execution_concurrency + other.max_workflow_execution_concurrency,
-                max_workflow_task_instances=self.max_workflow_task_instances + other.max_workflow_task_instances,
-                max_workflow_execution_history_items=self.max_workflow_execution_history_items + other.max_workflow_execution_history_items,
-                max_alerts_per_day=self.max_alerts_per_day + other.max_alerts_per_day,
+                max_users=add_limits(self.max_users, other.max_users),
+                max_api_keys=add_limits(self.max_api_keys, other.max_api_keys),
+                max_api_credits_per_month=add_limits(self.max_api_credits_per_month, other.max_api_credits_per_month),
+                max_tasks=add_limits(self.max_tasks, other.max_tasks),
+                max_task_execution_concurrency=add_limits(self.max_task_execution_concurrency, other.max_task_execution_concurrency),
+                max_task_execution_history_items=add_limits(self.max_task_execution_history_items, other.max_task_execution_history_items),
+                max_workflows=add_limits(self.max_workflows, other.max_workflows),
+                max_workflow_execution_concurrency=add_limits(self.max_workflow_execution_concurrency, other.max_workflow_execution_concurrency),
+                max_workflow_task_instances=add_limits(self.max_workflow_task_instances, other.max_workflow_task_instances),
+                max_workflow_execution_history_items=add_limits(self.max_workflow_execution_history_items, other.max_workflow_execution_history_items),
+                max_alerts_per_day=add_limits(self.max_alerts_per_day, other.max_alerts_per_day),
         )
-
 
     @staticmethod
     def default_limits() -> 'UsageLimits':

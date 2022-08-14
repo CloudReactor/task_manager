@@ -94,6 +94,8 @@ def pre_save_saas_token(sender: Type[SaasToken], **kwargs) -> None:
 
     usage_limits = Subscription.compute_usage_limits(group)
 
-    if existing_token_count >= usage_limits.max_api_keys:
+    max_api_keys = usage_limits.max_api_keys
+
+    if (max_api_keys is not None) and (existing_token_count >= max_api_keys):
         raise PermissionDenied(code=SaasToken.ERROR_CODE_TOKEN_LIMIT_EXCEEDED,
                 detail=f"The group {group.name} already has {existing_token_count} API keys, exceeded its limit")

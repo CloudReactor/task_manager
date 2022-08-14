@@ -153,18 +153,25 @@ class Workflow(Schedulable):
         logger.info(f'Starting purge_history() for Workflow {self.uuid} ...')
 
         usage_limits = Subscription.compute_usage_limits(self.created_by_group)
-        max_items = usage_limits.max_workflow_execution_history_items - reservation_count
+
+        max_items = usage_limits.max_workflow_execution_history_items
+
+        if max_items is None:
+            logger.info("purge_history: no limit on Workflow Execution history count")
+            return 0
+
+        remaining_items = max_items - reservation_count
 
         qs = self.workflowexecution_set
 
         execution_count = qs.count()
-        items_to_remove = execution_count - max_items
+        items_to_remove = execution_count - remaining_items
 
         if max_to_purge > 0:
             items_to_remove = min(items_to_remove, max_to_purge)
 
         if items_to_remove <= 0:
-            logger.info(f"purge_history: {execution_count=} < {max_items=}, no need to purge")
+            logger.info(f"purge_history: {execution_count=} < {remaining_items=}, no need to purge")
             return 0
 
         logger.info(f"Removing {items_to_remove=} Workflow Execution history items ...")
@@ -403,12 +410,12 @@ def pre_save_workflow(sender: Type[Workflow], **kwargs) -> None:
     if instance.pk is None:
         old_instance = None
         usage_limits = Subscription.compute_usage_limits(instance.created_by_group)
-        max_tasks = usage_limits.max_workflows
+        max_workflows = usage_limits.max_workflows
 
         existing_count = Workflow.objects.filter(
                 created_by_group=instance.created_by_group).count()
 
-        if existing_count >= max_tasks:
+        if (max_workflows is not None) and (existing_count >= max_workflows):
             raise UnprocessableEntity(detail='Workflow limit exceeded', code='limit_exceeded')
     else:
         old_instance = Workflow.objects.filter(id=instance.id).first()
