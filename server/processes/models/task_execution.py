@@ -1,6 +1,7 @@
 from typing import cast, Any, List, Optional, Type
 
 import enum
+import json
 import logging
 from urllib.parse import quote
 
@@ -18,16 +19,18 @@ from rest_framework.exceptions import ValidationError
 from ..common.aws import *
 from ..common.request_helpers import context_with_request
 from ..common.pagerduty import *
-
+from ..common.utils import coalesce
+from ..execution_methods import ExecutionMethod
 from .uuid_model import UuidModel
 from .task import Task
+from .infrastructure_configuration import InfrastructureConfiguration
 from .aws_tagged_entity import AwsTaggedEntity
 
 
 logger = logging.getLogger(__name__)
 
 
-class TaskExecution(AwsTaggedEntity, UuidModel):
+class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     @enum.unique
     class Status(enum.IntEnum):
         RUNNING = 0
@@ -74,7 +77,6 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         'marked_outdated_at', 'marked_done_at', 'marked_done_by',]
 
     ATTRIBUTES_REQUIRING_DEVELOPER_ACCESS_FOR_UPDATE = [
-        'execution_method',
         'process_command',
         'task_max_concurrency',
         'prevent_offline_execution',
@@ -91,6 +93,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
 
     task = models.ForeignKey(Task, on_delete=models.CASCADE,
             db_column='process_type_id')
+    auto_created_task_properties = models.JSONField(null=True, blank=True)
     task_version_number = models.BigIntegerField(null=True, blank=True,
             db_column='process_version_number')
     task_version_signature = models.CharField(max_length=200, null=True, blank=True,
@@ -123,6 +126,7 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
     failed_attempts = models.PositiveIntegerField(default=0)
     timed_out_attempts = models.PositiveIntegerField(default=0)
     exit_code = models.IntegerField(null=True, blank=True)
+    error_details = models.JSONField(null=True, blank=True)
     debug_log_tail = models.CharField(max_length=5000000, null=True, blank=True)
     error_log_tail = models.CharField(max_length=5000000, null=True, blank=True)
     last_status_message = models.CharField(max_length=5000, null=True, blank=True)
@@ -153,9 +157,13 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
     process_max_retries = models.IntegerField(null=True, blank=True)
     process_retry_delay_seconds = models.PositiveIntegerField(null=True, blank=True)
     process_termination_grace_period_seconds = models.IntegerField(null=True, blank=True)
+
+    # Deprecated
     schedule = models.CharField(max_length=1000, null=True, blank=True)
+
     api_base_url = models.CharField(max_length=200, blank=True)
     api_key = models.CharField(max_length=40, blank=True)
+
     api_retry_delay_seconds = models.PositiveIntegerField(null=True, blank=True)
     api_resume_delay_seconds = models.PositiveIntegerField(null=True, blank=True)
     api_error_timeout_seconds = models.IntegerField(null=True, blank=True)
@@ -178,6 +186,14 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
     status_update_message_max_bytes = models.IntegerField(null=True, blank=True)
     embedded_mode = models.BooleanField(null=True, blank=True)
 
+    execution_method_type = models.CharField(max_length=100, null=False,
+            blank=False, default='Unknown')
+    execution_method_details = models.JSONField(null=True, blank=True)
+
+    input_value = models.JSONField(null=True, blank=True)
+    output_value = models.JSONField(null=True, blank=True)
+
+    # Deprecated
     aws_subnets = ArrayField(models.CharField(max_length=1000, blank=False), null=True)
     aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_task_arn = models.CharField(max_length=1000, blank=True)
@@ -284,8 +300,6 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         return None
 
     def manually_start(self) -> None:
-        from ..execution_methods import ExecutionMethod
-
         logger.info("TaskExecution.manually_start()")
 
         if self.status != TaskExecution.Status.MANUALLY_STARTED:
@@ -295,12 +309,20 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         if self.task.passive:
             raise ValidationError(detail="Can't manually start a passive Task")
 
-        exec_method = self.task.execution_method()
+        exec_method = self.execution_method()
 
         if ExecutionMethod.ExecutionCapability.MANUAL_START not in exec_method.capabilities():
             raise ValidationError(detail="Execution method does not support manual start")
 
-        exec_method.manually_start(task_execution=self)
+        exec_method.manually_start()
+
+    def enrich_settings(self) -> None:
+        exec_method = self.execution_method()
+        exec_method.enrich_task_execution_settings()
+
+    def execution_method(self) -> ExecutionMethod:
+        return ExecutionMethod.make_execution_method(task=self.task,
+            task_execution=self)
 
     def make_environment(self) -> dict[str, Any]:
         task = self.task
@@ -308,6 +330,11 @@ class TaskExecution(AwsTaggedEntity, UuidModel):
         env = {
             'PROC_WRAPPER_TASK_EXECUTION_UUID': str(self.uuid),
             'PROC_WRAPPER_TASK_NAME': task.name,
+            'PROC_WRAPPER_INPUT_VALUE': json.dumps(
+                coalesce(self.input_value, task.default_input_value)),
+            'PROC_WRAPPER_MANAGED_PROBABILITY': str(task.managed_probability),
+            'PROC_WRAPPER_FAILURE_REPORT_PROBABILITY': str(task.failure_report_probability),
+            'PROC_WRAPPER_TIMEOUT_REPORT_PROBABILITY': str(task.timeout_report_probability)
         }
 
         if self.wrapper_log_level:
@@ -677,6 +704,11 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
     elif instance.status == TaskExecution.Status.STOPPED:
         if not instance.kill_finished_at:
             instance.kill_finished_at = now
+
+    from .convert_legacy_em_and_infra import populate_task_execution_em_and_infra
+
+    populate_task_execution_em_and_infra(instance)
+    instance.enrich_settings()
 
 
 @receiver(post_save, sender=TaskExecution)

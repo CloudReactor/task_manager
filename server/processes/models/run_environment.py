@@ -1,19 +1,26 @@
-from typing import Optional
+from typing import Optional, Type
 
 import logging
 import os
 
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 import boto3
 
+from ..exception.unprocessable_entity import UnprocessableEntity
+
 from .named_with_uuid_model import NamedWithUuidModel
 from .aws_ecs_configuration import AwsEcsConfiguration
+from .infrastructure_configuration import InfrastructureConfiguration
+from .subscription import Subscription
 
 logger = logging.getLogger(__name__)
 
 
-class RunEnvironment(AwsEcsConfiguration, NamedWithUuidModel):
+class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
+        NamedWithUuidModel):
     class Meta:
         unique_together = (('name', 'created_by_group'),)
 
@@ -111,3 +118,25 @@ class RunEnvironment(AwsEcsConfiguration, NamedWithUuidModel):
                 self.aws_workflow_starter_lambda_arn and \
                 self.aws_workflow_starter_access_key and \
                 self.aws_ecs_default_execution_role)
+
+
+@receiver(pre_save, sender=RunEnvironment)
+def pre_save_task(sender: Type[RunEnvironment], **kwargs):
+    instance = kwargs['instance']
+    logger.info(f"pre-save with Run Environment {instance}")
+
+    if instance.pk is None:
+        usage_limits = Subscription.compute_usage_limits(instance.created_by_group)
+
+        # For now use the Task limit for Run Environments
+        max_tasks = usage_limits.max_tasks
+
+        existing_count = RunEnvironment.objects.filter(
+                created_by_group=instance.created_by_group).count()
+
+        if (max_tasks is not None) and (existing_count >= max_tasks):
+            raise UnprocessableEntity(detail='Task limit exceeded', code='limit_exceeded')
+
+    from .convert_legacy_em_and_infra import populate_run_environment_infra
+
+    populate_run_environment_infra(instance)

@@ -1,6 +1,7 @@
 from collections import abc
 from datetime import datetime
 from typing import cast, Any, List, Optional, Mapping, NamedTuple, Tuple
+import uuid
 
 import pytest
 from pytest_factoryboy import register
@@ -217,24 +218,25 @@ def verify_name_uuid_url_match(body_1: dict[str, Any],
         assert t_1[1] == t_2[1]
 
 
-def assert_deep_subset(subset: Any, superset: Any) -> None:
-    # print(f"assert_deep_subset(): {subset=}, {superset=}")
+def assert_deep_subset(subset: Any, superset: Any, attr: Optional[str]=None) \
+        -> None:
+    attr = attr or '(unknown)'
 
     if isinstance(subset, str): # Because string is iterable
-        assert subset == superset
+        assert subset == superset, f"{attr=}, {subset=} not a subset of {superset=}"
     elif isinstance(subset, abc.Mapping):
         assert isinstance(superset, abc.Mapping)
         for k, v in subset.items():
             assert k in superset
-            assert_deep_subset(v, superset[k])
+            assert_deep_subset(v, superset[k], f"{attr}.{k}")
     elif isinstance(subset, abc.Iterable):
         assert isinstance(superset, abc.Iterable)
         assert len(subset) == len(superset)
 
         for i, v in enumerate(subset):
-            assert_deep_subset(v, superset[i])
+            assert_deep_subset(v, superset[i], f"{attr}[{i}]")
     else:
-        assert subset == superset
+        assert subset == superset, f"{attr=}, {subset=} != {superset=}"
 
 
 def ensure_attributes_match(body_dict: dict[str, Any], model,
@@ -289,8 +291,12 @@ COPIED_TASK_ATTRIBUTES = [
     'max_heartbeat_lateness_before_abandonment_seconds',
     'is_service', 'service_instance_count', 'min_service_instance_count',
     'schedule', 'scheduled_instance_count', 'max_concurrency',
-    'execution_method_type', 'scheduling_provider_type',
-    'service_provider_type',
+    'execution_method_type',
+    'scheduling_provider_type', 'is_scheduling_managed',
+    'service_provider_type', 'is_service_managed',
+    'default_input_value', 'input_value_schema', 'output_value_schema',
+    'managed_probability', 'failure_report_probability',
+    'timeout_report_probability',
 ] + EXECUTABLE_ATTRIBUTES
 
 ENHANCED_TASK_ATTRIBUTES = [
@@ -334,14 +340,13 @@ COPIED_TASK_EXECUTION_ATTRIBUTES = [
     'status_update_port', 'status_update_message_max_bytes',
     'debug_log_tail', 'error_log_tail',
     'embedded_mode',
+    'auto_created_task_properties',
+    'input_value', 'output_value', 'error_details',
 ]
 
 ENHANCED_TASK_EXECUTION_ATTRIBUTES = [
-   # TODO
-   #'execution_method_details',
-   #'infrastructure_settings',
-   #'scheduling_settings',
-   #'service_settings',
+   'execution_method_details',
+   'infrastructure_settings',
 ]
 
 OUTPUT_TASK_EXECUTION_ATTRIBUTES = COPIED_TASK_EXECUTION_ATTRIBUTES \
@@ -380,6 +385,13 @@ class AwsEcsSetup(NamedTuple):
     @property
     def task_definition_arn(self) -> str:
         return cast(str, self.task_definition['taskDefinitionArn'])
+
+def setup_aws_ecs_cluster(run_environment: RunEnvironment) -> str:
+    ecs_client = run_environment.make_boto3_client('ecs')
+    cluster_response = ecs_client.create_cluster(
+            clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
+    print(f"{cluster_response=}")
+    return cluster_response['cluster']
 
 def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     ecs_client = run_environment.make_boto3_client('ecs')
@@ -621,7 +633,7 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
             continue
 
         if attr in body_task:
-            assert_deep_subset(body_task[attr], getattr(model_task, attr))
+            assert_deep_subset(body_task[attr], getattr(model_task, attr), attr)
 
     execution_method_type = ''
     service_provider_type = ''
@@ -804,29 +816,119 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
         assert model_task.scheduling_provider_type == ''
         assert model_task.scheduling_settings is None
 
-def make_aws_ecs_task_execution_request_body(run_environment: RunEnvironment,
+
+def make_task_execution_request_body(uuid_send_type: Optional[str],
+        task_send_type: Optional[str],
+        user: User,
+        api_key_run_environment: Optional[RunEnvironment],
+        task_execution: Optional[TaskExecution],
+        group_factory, run_environment_factory, task_factory,
+        task_execution_factory,
+        task_execution_status: str = 'RUNNING',
+        task_property_name: str = 'task',
+        task: Optional[Task] = None) -> dict[str, Any]:
+    request_data: dict[str, Any] = {
+      'status': task_execution_status,
+      'extraprop': 'dummy',
+    }
+
+    run_environment: Optional[RunEnvironment] = None
+
+    if task_send_type == SEND_ID_CORRECT:
+        if (task is None) and task_execution:
+            task = task_execution.task
+    elif task_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
+        run_environment = run_environment_factory(created_by_group=user.groups.first())
+    elif task_send_type == SEND_ID_IN_WRONG_GROUP:
+        group = group_factory()
+        set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
+        run_environment = run_environment_factory(created_by_group=group)
+
+    # TODO set created by group from run_environment
+    if task is None:
+        if run_environment is None:
+            if api_key_run_environment:
+                run_environment = api_key_run_environment
+            elif task_execution:
+                run_environment = task_execution.task.run_environment
+            else:
+                run_environment = run_environment_factory(created_by_group=user.groups.first())
+
+        assert run_environment is not None
+        task = task_factory(
+            created_by_group=run_environment.created_by_group,
+            run_environment=run_environment)
+
+    if task_send_type:
+        if task_send_type == SEND_ID_NONE:
+            request_data[task_property_name] = None
+        else:
+            assert task is not None  # for mypy
+            request_data[task_property_name] = {
+                'uuid': str(task.uuid)
+            }
+
+    if uuid_send_type == SEND_ID_NOT_FOUND:
+        request_data['uuid'] = str(uuid.uuid4())
+    elif uuid_send_type == SEND_ID_CORRECT:
+        assert task_execution is not None
+        request_data['uuid'] = str(task_execution.uuid)
+    elif uuid_send_type == SEND_ID_WRONG:
+        assert task is not None
+        another_task_execution = task_execution_factory(
+                task=task)
+        request_data['uuid'] = str(another_task_execution.uuid)
+
+    return request_data
+
+
+def make_aws_ecs_task_execution_request_body(
+        run_environment: Optional[RunEnvironment],
+        group_factory, run_environment_factory, task_factory,
+        task_execution_factory,
+        user: User,
+        uuid_send_type: Optional[str] = SEND_ID_NONE,
+        task_send_type: Optional[str] = SEND_ID_CORRECT,
+        task_execution: Optional[TaskExecution] = None,
+        task_execution_status: str = 'RUNNING',
+        task_property_name: str = 'task',
+        task: Optional[Task] = None,
         task_definition_arn: Optional[str] = None,
-        task_name: Optional[str] = None,
         was_auto_created: bool = False, is_passive: bool = False,
         is_legacy_schema: bool = False) -> dict[str, Any]:
+    body = make_task_execution_request_body(
+        uuid_send_type = uuid_send_type,
+        task_send_type = task_send_type,
+        user = user,
+        api_key_run_environment = run_environment,
+        task_execution = task_execution,
+        group_factory = group_factory,
+        run_environment_factory = run_environment_factory,
+        task_factory = task_factory,
+        task_execution_factory = task_execution_factory,
+        task_execution_status = task_execution_status,
+        task_property_name = task_property_name,
+        task = task
+    )
 
-    if task_name:
-        task_request_fragment = {
-            'name': task_name
-        }
-    else:
-        task_request_fragment = make_aws_ecs_task_request_body(
-            run_environment=run_environment,
-            task_definition_arn=task_definition_arn,
-            was_auto_created=was_auto_created,
-            is_legacy_schema=is_legacy_schema)
+    task_request_fragment = {}
 
-    task_request_fragment["passive"] = is_passive
+    if task_send_type == SEND_ID_CORRECT:
+        if task:
+            task_request_fragment = {
+                'name': task.name
+            }
+        else:
+            task_request_fragment = make_aws_ecs_task_request_body(
+                run_environment=run_environment,
+                task_definition_arn=task_definition_arn,
+                was_auto_created=was_auto_created,
+                is_legacy_schema=is_legacy_schema)
 
-    body = {
-        'task': task_request_fragment,
-        'status': 'RUNNING',
-    }
+        task_request_fragment["passive"] = is_passive
+
+        body['task'] = task_request_fragment
 
     default_attr_prefix = ''
     if is_legacy_schema:
@@ -941,6 +1043,11 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
 
     ensure_attributes_match(body_task_execution, model_task_execution,
             COPIED_TASK_EXECUTION_ATTRIBUTES, partial=True)
+
+    for attr in ENHANCED_TASK_EXECUTION_ATTRIBUTES:
+        if attr in body_task_execution:
+            assert_deep_subset(body_task_execution[attr],
+                    getattr(model_task_execution, attr), attr)
 
     body_task = body_task_execution.get('task')
     model_task = model_task_execution.task

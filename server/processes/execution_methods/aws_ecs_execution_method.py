@@ -18,6 +18,7 @@ from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 from .aws_cloudwatch_scheduling_settings import (
     AwsCloudwatchSchedulingSettings
 )
+from .aws_base_execution_method import AwsBaseExecutionMethod
 
 if TYPE_CHECKING:
     from ..models import (
@@ -129,7 +130,7 @@ class AwsEcsServiceSettings(BaseModel):
                 aws_settings=aws_settings)
 
 
-class AwsEcsExecutionMethod(ExecutionMethod):
+class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     NAME = 'AWS ECS'
 
     LAUNCH_TYPE_EC2 = 'EC2'
@@ -147,22 +148,30 @@ class AwsEcsExecutionMethod(ExecutionMethod):
         SERVICE_PROPAGATE_TAGS_SERVICE,
     ]
 
-    CAPABILITIES_WITH_SCHEDULING = frozenset([
+    CAPABILITIES_WITHOUT_SCHEDULING = frozenset([
         ExecutionMethod.ExecutionCapability.MANUAL_START,
         ExecutionMethod.ExecutionCapability.SETUP_SERVICE
     ])
 
     MAX_TAG_COUNT = 50
 
-    def __init__(self, task: 'Task'):
-        super().__init__(self.NAME, task)
 
-        self.settings = AwsEcsExecutionMethodSettings.parse_obj(task.execution_method_capability_details)
+    def __init__(self, task: 'Task',
+            task_execution: Optional['TaskExecution'] = None) -> None:
+        super().__init__(self.NAME, task=task, task_execution=task_execution)
+
+        emd, infra = ExecutionMethod.merge_execution_method_and_infrastructure_details(
+            task=task, task_execution=task_execution
+        )
+
+        self.settings = AwsEcsExecutionMethodSettings.parse_obj(emd)
+
         self.aws_settings: Optional[AwsSettings] = None
 
-        if task.infrastructure_settings and \
-                (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
-            self.aws_settings = AwsSettings.parse_obj(task.infrastructure_settings)
+        if (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS) or \
+            (task_execution and \
+            (task_execution.infrastructure_type == INFRASTRUCTURE_TYPE_AWS)):
+            self.aws_settings = AwsSettings.parse_obj(infra)
 
         self.service_settings: Optional[AwsEcsServiceSettings] = None
 
@@ -210,7 +219,7 @@ class AwsEcsExecutionMethod(ExecutionMethod):
         if run_env.aws_events_role_arn:
             return ExecutionMethod.ALL_CAPABILITIES
 
-        return self.CAPABILITIES_WITH_SCHEDULING
+        return self.CAPABILITIES_WITHOUT_SCHEDULING
 
 
     def setup_scheduled_execution(self) -> None:
@@ -488,8 +497,13 @@ class AwsEcsExecutionMethod(ExecutionMethod):
             # TODO: Mark Task Executions as STOPPED so they are aborted the next
             # time they heartbeat
 
-    def manually_start(self, task_execution: 'TaskExecution'):
-        task = task_execution.task
+    def manually_start(self) -> None:
+        task_execution = self.task_execution
+
+        if task_execution is None:
+            raise APIException("No Task Execution found")
+
+        task = self.task or task_execution.task
 
         if task_execution.is_service is None:
             task_execution.is_service = task.is_service
@@ -549,6 +563,7 @@ class AwsEcsExecutionMethod(ExecutionMethod):
         task.latest_task_execution = task_execution
         task.save()
 
+        success = False
         try:
             ecs_client = run_env.make_boto3_client('ecs')
 
@@ -603,14 +618,18 @@ class AwsEcsExecutionMethod(ExecutionMethod):
             # TODO: handle failures in rv['failures'][]
 
             task_execution.aws_ecs_task_arn = rv['tasks'][0]['taskArn']
-        except Exception:
-            from ..models import TaskExecution
+
+            success = True
+        except ClientError as client_error:
             logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
+            task_execution.error_details = client_error.response
+        except Exception:
+            logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
+
+        if not success:
+            from ..models import TaskExecution
             task_execution.status = TaskExecution.Status.FAILED
             task_execution.stop_reason = TaskExecution.StopReason.FAILED_TO_START
-
-            # TODO: add info from execption
-
             task_execution.finished_at = timezone.now()
 
         task_execution.save()
@@ -624,10 +643,15 @@ class AwsEcsExecutionMethod(ExecutionMethod):
         if ecs_client is None:
             ecs_client = run_env.make_boto3_client('ecs')
 
-        service_arn_or_name = task.aws_ecs_service_arn or \
-                self.make_aws_ecs_service_name()
         cluster = task.aws_ecs_default_cluster_arn or \
                 run_env.aws_ecs_default_cluster_arn
+
+        if not cluster:
+            logger.debug("find_aws_ecs_service(): No ECS Cluster found, returning None")
+            return None
+
+        service_arn_or_name = task.aws_ecs_service_arn or \
+                self.make_aws_ecs_service_name()
 
         logger.debug(f"describe_services() with {service_arn_or_name=}, {cluster=}")
 
@@ -788,15 +812,7 @@ class AwsEcsExecutionMethod(ExecutionMethod):
         return args
 
     def enrich_task_settings(self) -> None:
-        self.settings.update_derived_attrs()
-        self.task.execution_method_capability_details = deepmerge_with_lists_pair(
-            self.task.execution_method_capability_details, self.settings.dict())
-
-        if self.aws_settings:
-            self.aws_settings.update_derived_attrs(
-                run_environment=self.task.run_environment)
-            self.task.infrastructure_settings = deepmerge_with_lists_pair(
-                self.task.infrastructure_settings, self.aws_settings.dict())
+        super().enrich_task_settings()
 
         if self.service_settings:
             self.service_settings.update_derived_attrs(task=self.task,

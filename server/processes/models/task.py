@@ -5,7 +5,7 @@ import logging
 import re
 from urllib.parse import quote
 
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.signals import pre_save, pre_delete
 from django.dispatch import receiver
@@ -16,8 +16,7 @@ from django.contrib.postgres.fields import HStoreField
 from ..common.aws import *
 from ..execution_methods import (
     ExecutionMethod,
-    AwsEcsExecutionMethod,
-    UnknownExecutionMethod
+    AwsEcsExecutionMethod
 )
 from ..exception.unprocessable_entity import UnprocessableEntity
 
@@ -45,7 +44,8 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         'aws_ecs_default_security_groups',
         'aws_ecs_default_execution_role',
         'aws_ecs_default_task_role',
-        'enabled'
+        'enabled',
+        'is_scheduling_managed'
     ]
 
     # attr => must_recreate
@@ -64,7 +64,8 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         'aws_ecs_service_enable_ecs_managed_tags': False,
         'aws_ecs_service_propagate_tags': False,
         'aws_ecs_service_tags': False,
-        'enabled': True
+        'enabled': True,
+        'is_service_managed': True
     }
 
     DEFAULT_ECS_SERVICE_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS = 300
@@ -110,6 +111,17 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     service_provider_type = models.CharField(max_length=100, blank=True)
     service_settings = models.JSONField(null=True, blank=True)
 
+    input_value_schema = models.JSONField(null=True, blank=True)
+    default_input_value = models.JSONField(null=True, blank=True)
+    output_value_schema = models.JSONField(null=True, blank=True)
+
+    managed_probability =  models.FloatField(default=1.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
+    failure_report_probability =  models.FloatField(default=1.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
+    timeout_report_probability =  models.FloatField(default=1.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
+
     aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_load_balancer_health_check_grace_period_seconds = \
             models.IntegerField(null=True, blank=True)
@@ -143,9 +155,11 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     infrastructure_type = models.CharField(max_length=100, blank=True)
     infrastructure_settings = models.JSONField(null=True, blank=True)
 
+    is_scheduling_managed = models.BooleanField(default=False, null=True)
     scheduling_provider_type = models.CharField(max_length=100, blank=True)
     scheduling_settings = models.JSONField(null=True, blank=True)
 
+    is_service_managed = models.BooleanField(default=False, null=True)
     service_provider_type = models.CharField(max_length=100, blank=True)
     service_settings = models.JSONField(null=True, blank=True)
 
@@ -320,32 +334,8 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         logger.info(f'Removed {num_in_progress_deleted=} in-progress Task Execution history items for Task {self.uuid}')
         return num_completed_deleted + num_in_progress_deleted
 
-    def execution_method(self):
-        from processes.execution_methods import (
-            AwsEcsExecutionMethod, AwsLambdaExecutionMethod
-        )
-
-        if self.execution_method_type == AwsEcsExecutionMethod.NAME:
-            return AwsEcsExecutionMethod(task=self)
-        elif self.execution_method_type == AwsLambdaExecutionMethod.NAME:
-            return AwsLambdaExecutionMethod(task=self)
-        return UnknownExecutionMethod(task=self)
-
-    # def setup_scheduled_execution(self) -> None:
-    #     logger.info(f"Task.setup_scheduled_execution() for task #{self.uuid}")
-    #     self.execution_method().setup_scheduled_execution()
-
-    # def teardown_scheduled_execution(self) -> None:
-    #     logger.info(f"Task.teardown_scheduled_execution() for task #{self.uuid}")
-    #     self.execution_method().teardown_scheduled_execution()
-
-    # def setup_service(self, force_creation=False):
-    #     logger.info(f"Task.setup_service() for task #{self.uuid}")
-    #     return self.execution_method().setup_service(force_creation=force_creation)
-
-    # def teardown_service(self) -> None:
-    #     logger.info(f'Task.teardown_service() for task #{self.uuid}')
-    #     self.execution_method().teardown_service()
+    def execution_method(self) -> ExecutionMethod:
+        return ExecutionMethod.make_execution_method(task=self)
 
     def synchronize_with_run_environment(self, old_self=None, is_saving=False) -> bool:
         if self.passive:
@@ -390,20 +380,34 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
 
         if should_update_schedule:
             logger.info("pre_save_task(): Updating schedule params ...")
-            if self.schedule and self.enabled:
+            # TODO: just check is_scheduling_managed once it is migrated
+            if self.schedule and self.enabled and (self.is_scheduling_managed != False):
                 execution_method.setup_scheduled_execution()
+                self.is_scheduling_managed = True
             else:
                 execution_method.teardown_scheduled_execution()
+
+                if self.schedule:
+                    self.is_scheduling_managed = False
+                else:
+                    self.is_scheduling_managed = None
             logger.info("Done updating schedule params ...")
         else:
             logger.debug("Not updating schedule params")
 
         if should_update_service:
             logger.info("synchronize_with_run_environment(): Updating service...")
-            if self.is_service and self.enabled:
+            # TODO: just check is_service_managed once it is migrated
+            if self.is_service and self.enabled and (self.is_service_managed != False):
                 execution_method.setup_service(force_creation=should_force_create_service)
+                self.is_scheduling_managed = True
             else:
                 execution_method.teardown_service()
+
+                if self.service_instance_count is None:
+                    self.is_scheduling_managed = None
+                else:
+                    self.is_scheduling_managed = False
         else:
             logger.debug("Not updating service params")
 
@@ -461,10 +465,10 @@ def pre_delete_task(sender: Type[Task], **kwargs) -> None:
     task = cast(Task, kwargs['instance'])
     logger.info(f"pre-save with instance {task}")
 
-    execution_method = task.execution_method()
+    if task.enabled:
+        execution_method = task.execution_method()
+        if task.schedule and task.is_scheduling_managed:
+            execution_method.teardown_scheduled_execution()
 
-    if task.schedule:
-        execution_method.teardown_scheduled_execution()
-
-    if task.is_service:
-        execution_method.teardown_service()
+        if task.is_service and task.is_service_managed:
+            execution_method.teardown_service()

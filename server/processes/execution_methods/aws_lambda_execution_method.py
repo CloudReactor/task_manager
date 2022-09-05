@@ -14,9 +14,7 @@ from botocore.exceptions import ClientError
 from ..common.aws import *
 from ..common.utils import deepmerge_with_lists_pair
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
-from .aws_cloudwatch_scheduling_settings import (
-    AwsCloudwatchSchedulingSettings
-)
+from .aws_base_execution_method import AwsBaseExecutionMethod
 
 if TYPE_CHECKING:
     from ..models import (
@@ -37,7 +35,6 @@ class AwsLambdaExecutionMethodCapabilitySettings(BaseModel):
     init_type: Optional[str] = None
     dotnet_prejit: Optional[str] = None
     function_memory_mb: Optional[int] = None
-    time_zone_name: Optional[str] = None
     infrastructure_website_url: Optional[str] = None
 
     def update_derived_attrs(self) -> None:
@@ -85,24 +82,52 @@ class AwsClientContext(BaseModel):
 
 
 class AwsLambdaExecutionMethodSettings(AwsLambdaExecutionMethodCapabilitySettings):
+    time_zone_name: Optional[str] = None
     aws_request_id: Optional[str] = None
     cognito_identity: Optional[AwsCognitoIdentity] = None
     client_context: Optional[AwsClientContext] = None
 
+    @staticmethod
+    def from_capability(
+        capability: AwsLambdaExecutionMethodCapabilitySettings) \
+        -> 'AwsLambdaExecutionMethodSettings':
+        settings = AwsLambdaExecutionMethodSettings()
+        settings.runtime_id = capability.runtime_id
+        settings.function_arn = capability.function_arn
+        settings.function_name = capability.function_name
+        settings.function_version = capability.function_version
+        settings.init_type = capability.init_type
+        settings.dotnet_prejit = capability.dotnet_prejit
+        settings.function_memory_mb = capability.function_memory_mb
+        settings.infrastructure_website_url = capability.infrastructure_website_url
+        return settings
 
-class AwsLambdaExecutionMethod(ExecutionMethod):
+
+class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
     NAME = "AWS Lambda"
 
-    def __init__(self, task: 'Task'):
-        super().__init__(self.NAME, task)
+    def __init__(self, task: 'Task', task_execution: Optional['TaskExecution']):
+        super().__init__(self.NAME, task=task, task_execution=task_execution)
 
-        self.settings = AwsLambdaExecutionMethodCapabilitySettings.parse_obj(
-                task.execution_method_capability_details)
+        emd, infra = ExecutionMethod.merge_execution_method_and_infrastructure_details(
+            task=task, task_execution=task_execution
+        )
 
-        self.aws_settings: Optional[AwsSettings] = None
-        if task.infrastructure_settings and \
-                (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
-            self.aws_settings = AwsSettings.parse_obj(task.infrastructure_settings)
+        if task_execution:
+            if emd:
+                self.settings = AwsLambdaExecutionMethodSettings.parse_obj(emd)
+            else:
+                self.settings = AwsLambdaExecutionMethodSettings()
+        else:
+            if emd:
+                self.settings = AwsLambdaExecutionMethodCapabilitySettings.parse_obj(emd)
+            else:
+                self.settings = AwsLambdaExecutionMethodCapabilitySettings()
+
+        if (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS) or \
+            (task_execution and \
+            (task_execution.infrastructure_type == INFRASTRUCTURE_TYPE_AWS)):
+            self.aws_settings = AwsSettings.parse_obj(infra)
 
 
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
@@ -119,58 +144,62 @@ class AwsLambdaExecutionMethod(ExecutionMethod):
         # TODO: handle scheduling
         return frozenset([self.ExecutionCapability.MANUAL_START])
 
-    def manually_start(self, task_execution: 'TaskExecution') -> None:
-      task = task_execution.task
-      run_env = task.run_environment
+    def manually_start(self) -> None:
+        task_execution = self.task_execution
 
-      # TODO: merge with user-provided event object
-      # Allow more params to be set, as well as the environment if the
-      # input can be trusted.
-      payload = {
-          'cloudreactor_context': {
-              'proc_wrapper_params': {
-                  'task_execution': {
-                      'uuid': str(task_execution.uuid)
-                  }
-              }
-          }
-      }
+        if task_execution is None:
+            raise APIException("No Task Execution found")
 
-      try:
-          lambda_client = run_env.make_boto3_client('lambda')
+        task = self.task or task_execution.task
+        run_env = task.run_environment
 
-          response = lambda_client.invoke(
-              FunctionName=self.settings.function_arn or self.settings.function_name,
-              InvocationType='Event',
-              LogType='None',
-              # Client context is dropped in async invocations
-              # https://github.com/aws/aws-sdk-js/issues/1388#issuecomment-403466618
-              # ClientContext='',
-              Payload=json.dumps(payload).encode('utf-8'))
+        function_name = self.settings.function_arn or self.settings.function_name
 
-          logger.info(f"Got invoke() return value {response}")
+        # Allow more params to be set, as well as the environment if the
+        # input can be trusted.
+        payload = {
+            'original_input_value': task_execution.input_value,
+            'cloudreactor_context': {
+                'proc_wrapper_params': {
+                    'task_execution': {
+                        'uuid': str(task_execution.uuid)
+                    }
+                }
+            }
+        }
 
-          # TODO: Store these in TaskExecution.execution_method_details
-          # response.get('ExecutedVersion')
-      except Exception:
-          from ..models import TaskExecution
-          logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
-          task_execution.status = TaskExecution.Status.FAILED
-          task_execution.stop_reason = TaskExecution.StopReason.FAILED_TO_START
+        success = False
+        try:
+            lambda_client = run_env.make_boto3_client('lambda')
 
-          # TODO: add info from execption
+            response = lambda_client.invoke(
+                FunctionName=function_name,
+                InvocationType='Event',
+                LogType='None',
+                # Client context is dropped in async invocations
+                # https://github.com/aws/aws-sdk-js/issues/1388#issuecomment-403466618
+                # ClientContext='',
+                Payload=json.dumps(payload).encode('utf-8'))
 
-          task_execution.finished_at = timezone.now()
+            logger.info(f"Got invoke() return value {response}")
 
-      task_execution.save()
+            self.settings.function_version = response.get('ExecutedVersion')
 
-    def enrich_task_settings(self) -> None:
-        self.settings.update_derived_attrs()
-        self.task.execution_method_capability_details = deepmerge_with_lists_pair(
-            self.task.execution_method_capability_details, self.settings.dict())
+            success = True
+        except ClientError as client_error:
+            logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
+            task_execution.error_details = client_error.response
+        except Exception:
+            logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
 
-        if self.aws_settings:
-            self.aws_settings.update_derived_attrs(
-                run_environment=self.task.run_environment)
-            self.task.infrastructure_settings = deepmerge_with_lists_pair(
-                self.task.infrastructure_settings, self.aws_settings.dict())
+        if not success:
+            from ..models import TaskExecution
+            task_execution.status = TaskExecution.Status.FAILED
+            task_execution.stop_reason = TaskExecution.StopReason.FAILED_TO_START
+            task_execution.finished_at = timezone.now()
+
+        task_execution.execution_method_details = deepmerge_with_lists_pair(
+            (task_execution.execution_method_details or {}).copy(),
+            self.settings.dict())
+
+        task_execution.save()

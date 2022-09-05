@@ -44,12 +44,15 @@ class RunEnvironmentSerializer(SerializerHelpers,
         model = RunEnvironment
         fields = ['url', 'uuid', 'name', 'description', 'dashboard_url',
                   'created_by_user', 'created_by_group',
-                  'created_at', 'updated_at', 'aws_account_id',
+                  'created_at', 'updated_at',
+                  'infrastructure_type', 'infrastructure_settings',
+                  'aws_account_id',
                   'aws_default_region', 'aws_access_key',
                   'aws_assumed_role_external_id', 'aws_events_role_arn',
                   'aws_workflow_starter_lambda_arn', 'aws_workflow_starter_access_key',
                   'default_alert_methods',
-                  'execution_method_capabilities']
+                  'execution_method_capabilities',
+                  'infrastructure_type', 'infrastructure_settings']
 
         read_only_fields = [
             'url', 'uuid', 'dashboard_url',

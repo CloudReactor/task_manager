@@ -52,7 +52,8 @@ def test_task_execution_in_workflow_serialization(task_execution_factory,
 ])
 def test_auto_created_aws_ecs_task_execution_deserialization(
         is_passive: bool, is_legacy_schema: bool,
-        user_factory, run_environment_factory):
+        user_factory, group_factory, run_environment_factory,
+        task_factory, task_execution_factory):
     user = user_factory()
     group = user.groups.all()[0]
     run_environment = run_environment_factory(
@@ -68,6 +69,11 @@ def test_auto_created_aws_ecs_task_execution_deserialization(
 
     request_body = make_aws_ecs_task_execution_request_body(
         run_environment=run_environment,
+        run_environment_factory=run_environment_factory,
+        group_factory=group_factory,
+        task_factory=task_factory,
+        task_execution_factory=task_execution_factory,
+        user=user,
         was_auto_created=True, is_passive=is_passive,
         task_definition_arn=aws_ecs_setup.task_definition_arn,
         is_legacy_schema=is_legacy_schema)

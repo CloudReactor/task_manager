@@ -72,13 +72,21 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         model = TaskExecution
         fields = ('url',
                   'uuid', 'dashboard_url', 'infrastructure_website_url',
-                  'task',
+                  'task', 'auto_created_task_properties',
                   'task_version_number', 'task_version_text',
                   'task_version_signature', 'commit_url',
                   'other_instance_metadata',
                   'hostname',
                   'environment_variables_overrides',
-                  'execution_method', 'status',
+
+                  # Deprecated
+                  'execution_method',
+
+                  'execution_method_type',
+                  'execution_method_details',
+                  'infrastructure_type',
+                  'infrastructure_settings',
+                  'status',
                   'started_by', 'started_at',
                   'finished_at',
                   'marked_done_by',
@@ -90,7 +98,8 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                   'stop_reason',
                   'last_heartbeat_at',
                   'failed_attempts', 'timed_out_attempts',
-                  'exit_code', 'last_status_message',
+                  'exit_code', 'error_details',
+                  'last_status_message',
                   'error_count', 'skipped_count',
                   'expected_count', 'success_count',
                   'other_runtime_metadata',
@@ -118,10 +127,12 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                   'status_update_port', 'status_update_message_max_bytes',
                   'debug_log_tail', 'error_log_tail',
                   'embedded_mode',
+                  'input_value', 'output_value',
                   'created_at', 'updated_at',)
 
         read_only_fields = [
-            'url', 'uuid', 'dashboard_url', 'infrastructure_website_url',
+            'url', 'uuid',
+            'dashboard_url', 'infrastructure_website_url',
             'created_by_user', 'created_by_group',
             'created_at', 'updated_at'
         ]
@@ -210,16 +221,20 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         # Support process_type for backward compatibility with wrapper scripts
         # less than 2.0.0
-        task_dict = data.get('task') or data.get('process_type')
+        task_dict = data.get('auto_created_task_properties') or \
+                data.get('task') or data.get('process_type')
+
+        was_auto_created = ('auto_created_task_properties' in data)
 
         if task_dict is None:
-            if ('task' in data) or ('process_type' in data):
+            if ('task' in data) or was_auto_created or ('process_type' in data):
                 raise serializers.ValidationError({
                     'task': [ErrorDetail('Cannot be empty', code='invalid')]
                 })
         else:
+            was_auto_created = was_auto_created or task_dict.get('was_auto_created')
             authenticated_run_environment = extract_authenticated_run_environment()
-            was_auto_created = task_dict.get('was_auto_created')
+
             task: Optional[Task] = None
             try:
                 task = cast(Task, Task.find_by_uuid_or_name(
@@ -254,6 +269,11 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                         task = task_serializer.save()
                     else:
                         logger.info(f"Not updating Task details for {task.uuid=}")
+
+
+            if was_auto_created:
+                validated['auto_created_task_properties'] = task_dict or \
+                    task_execution.auto_created_task_dict
 
             logger.debug(f"to_internal_value(): validated task {task}")
 
@@ -296,8 +316,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         logger.debug(f"{execution_method_type=}")
 
-        # TODO after this is added to TaskExecution
-        # validated['execution_method_type'] = execution_method_type
+        validated['execution_method_type'] = execution_method_type
 
         # Set deprecated columns
         if execution_method_dict:

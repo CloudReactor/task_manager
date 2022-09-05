@@ -1,11 +1,15 @@
-from typing import Any, FrozenSet, Optional, TYPE_CHECKING
+from typing import Any, FrozenSet, Optional, Tuple, TYPE_CHECKING
 
 import logging
 import enum
 
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import (
+    APIException,
+    ValidationError
+)
 
 from ..common.request_helpers import context_with_request
+from ..common.utils import deepmerge_with_lists_pair
 from ..exception import UnprocessableEntity
 
 if TYPE_CHECKING:
@@ -99,9 +103,11 @@ class ExecutionMethod:
         'created_at', 'updated_at',
     ]
 
-    def __init__(self, name: str, task: 'Task'):
+    def __init__(self, name: str, task: 'Task',
+            task_execution: Optional['TaskExecution']):
         self.name = name
         self.task = task
+        self.task_execution = task_execution
 
     def capabilities(self) -> FrozenSet[ExecutionCapability]:
         return frozenset()
@@ -123,13 +129,16 @@ class ExecutionMethod:
     def teardown_service(self) -> None:
         logger.info('teardown_service(): execution method does not support services, no-op')
 
-    def manually_start(self, task_execution: 'TaskExecution') -> None:
+    def manually_start(self) -> None:
         raise ValidationError(detail='Execution method does not support manual start.')
 
     def enrich_task_settings(self) -> None:
         pass
 
-    def make_context(self, task_execution: 'TaskExecution') -> dict[str, Any]:
+    def enrich_task_execution_settings(self) -> None:
+        pass
+
+    def make_context(self) -> dict[str, Any]:
       from ..models import (
           WorkflowTaskInstanceExecution
       )
@@ -138,8 +147,14 @@ class ExecutionMethod:
           WorkflowExecutionSummarySerializer
       )
 
+      task_execution = self.task_execution
+
+      if not task_execution:
+          raise APIException("Missing Task Execution")
+
+      task = self.task or task_execution.task
+
       te_uuid = task_execution.uuid
-      task = task_execution.task
 
       serializer_context = context_with_request()
 
@@ -218,3 +233,54 @@ class ExecutionMethod:
           'task_execution': task_execution_info,
           'env_override': task_execution.make_environment()
       }
+
+    @staticmethod
+    def merge_execution_method_and_infrastructure_details(
+            task: 'Task',
+            task_execution: Optional['TaskExecution'] = None) \
+            -> Tuple[dict[str, Any], dict[str, Any]]:
+        emd = task.execution_method_capability_details or {}
+        infra = task.infrastructure_settings or {}
+
+        if task_execution:
+            if task_execution.execution_method_details:
+                if task.execution_method_type == task_execution.execution_method_type:
+                    emd = deepmerge_with_lists_pair(emd.copy(),
+                        task_execution.execution_method_details)
+                else:
+                    emd = task_execution.execution_method_details or {}
+
+            if task_execution.infrastructure_settings:
+                if task.infrastructure_type == task_execution.infrastructure_type:
+                    infra = deepmerge_with_lists_pair(infra.copy(),
+                        task_execution.infrastructure_settings)
+                else:
+                    infra = task_execution.infrastructure_settings or {}
+
+        return (emd, infra)
+
+    @staticmethod
+    def make_execution_method(task: Optional['Task'] = None,
+            task_execution: Optional['TaskExecution'] = None) -> 'ExecutionMethod':
+        from . import (
+            AwsEcsExecutionMethod,
+            AwsLambdaExecutionMethod,
+            UnknownExecutionMethod
+        )
+
+        emt = UnknownExecutionMethod.NAME
+
+        if task:
+            emt = task.execution_method_type
+
+        if task_execution:
+            emt = task_execution.execution_method_type or emt
+
+        if emt == AwsEcsExecutionMethod.NAME:
+            return AwsEcsExecutionMethod(task=task,
+                task_execution=task_execution)
+        elif emt == AwsLambdaExecutionMethod.NAME:
+            return AwsLambdaExecutionMethod(task=task,
+                task_execution=task_execution)
+        return UnknownExecutionMethod(task=task,
+                task_execution=task_execution)

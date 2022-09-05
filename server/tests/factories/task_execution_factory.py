@@ -1,4 +1,5 @@
 from processes.models import TaskExecution
+from processes.models.convert_legacy_em_and_infra import populate_task_execution_em_and_infra
 
 import factory
 from faker import Factory as FakerFactory
@@ -24,3 +25,10 @@ class TaskExecutionFactory(factory.django.DjangoModelFactory):
 
     failed_attempts = 0
     timed_out_attempts = 0
+
+    @factory.post_generation
+    def sanitize_em(task_execution: TaskExecution, create: bool, extracted, **kwargs):
+        if task_execution.execution_method_details:
+            return
+
+        populate_task_execution_em_and_infra(task_execution)

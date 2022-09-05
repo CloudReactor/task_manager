@@ -46,6 +46,13 @@ class TaskFactory(OwnedModelFactory):
 
     execution_method_type = AwsEcsExecutionMethod.NAME
 
+    is_scheduling_managed = None
+    is_service_managed = None
+
+    managed_probability = 1.0
+    failure_report_probability = 1.0
+    timeout_report_probability = 1.0
+
     aws_default_subnets: Optional[list[str]] = None
     aws_ecs_task_definition_arn = 'arn:aws:ecs:us-west-2:123456789012:task-definition/hello_world:8'
     aws_ecs_default_launch_type = 'FARGATE'

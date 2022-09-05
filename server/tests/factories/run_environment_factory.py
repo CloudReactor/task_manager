@@ -1,5 +1,6 @@
 
-from processes.models import RunEnvironment, UserGroupAccessLevel
+from processes.models import RunEnvironment
+from processes.models.convert_legacy_em_and_infra import populate_run_environment_infra
 
 import factory
 from faker import Factory as FakerFactory
@@ -23,3 +24,10 @@ class RunEnvironmentFactory(OwnedModelFactory):
     aws_ecs_default_cluster_arn = 'arn:aws:ecs:us-west-1:123456789012:cluster/MyECSCluster'
     aws_default_subnets = ['subnet-123456']
     aws_ecs_default_security_groups = ['sg-123456']
+
+    @factory.post_generation
+    def sanitize_infra(run_environment: RunEnvironment, create: bool, extracted, **kwargs):
+        if run_environment.infrastructure_settings:
+            return
+
+        populate_run_environment_infra(run_environment)

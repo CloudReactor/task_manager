@@ -265,6 +265,9 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
     task_execution_group = group
 
     run_environment = run_environment_factory(created_by_group=task_execution_group)
+
+    setup_aws_ecs_cluster(run_environment=run_environment)
+
     another_run_environment = run_environment_factory(created_by_group=task_execution_group)
 
     task = task_factory(created_by_group=group, run_environment=run_environment)
@@ -305,72 +308,6 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
         url += quote(str(task_execution_uuid)) + '/'
 
     return (task_execution, task, api_key_run_environment, client, url)
-
-
-def make_request_body(uuid_send_type: Optional[str],
-        task_send_type: Optional[str],
-        user: User,
-        api_key_run_environment: Optional[RunEnvironment],
-        task_execution: Optional[TaskExecution],
-        group_factory, run_environment_factory, task_factory,
-        task_execution_factory,
-        task_execution_status: str = 'RUNNING',
-        task_property_name: str = 'task',
-        task: Optional[Task] = None) -> dict[str, Any]:
-    request_data: dict[str, Any] = {
-      'status': task_execution_status,
-      'extraprop': 'dummy',
-    }
-
-    run_environment: Optional[RunEnvironment] = None
-
-    if task_send_type == SEND_ID_CORRECT:
-        if (task is None) and task_execution:
-            task = task_execution.task
-    elif task_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
-        run_environment = run_environment_factory(created_by_group=user.groups.first())
-    elif task_send_type == SEND_ID_IN_WRONG_GROUP:
-        group = group_factory()
-        set_group_access_level(user=user, group=group,
-            access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
-        run_environment = run_environment_factory(created_by_group=group)
-
-    # TODO set created by group from run_environment
-    if task is None:
-        if run_environment is None:
-            if api_key_run_environment:
-                run_environment = api_key_run_environment
-            elif task_execution:
-                run_environment = task_execution.task.run_environment
-            else:
-                run_environment = run_environment_factory(created_by_group=user.groups.first())
-
-        assert run_environment is not None
-        task = task_factory(
-            created_by_group=run_environment.created_by_group,
-            run_environment=run_environment)
-
-    if task_send_type:
-        if task_send_type == SEND_ID_NONE:
-            request_data[task_property_name] = None
-        else:
-            assert task is not None  # for mypy
-            request_data[task_property_name] = {
-                'uuid': str(task.uuid)
-            }
-
-    if uuid_send_type == SEND_ID_NOT_FOUND:
-        request_data['uuid'] = str(uuid.uuid4())
-    elif uuid_send_type == SEND_ID_CORRECT:
-        assert task_execution is not None
-        request_data['uuid'] = str(task_execution.uuid)
-    elif uuid_send_type == SEND_ID_WRONG:
-        assert task is not None
-        another_task_execution = task_execution_factory(
-                task=task)
-        request_data['uuid'] = str(another_task_execution.uuid)
-
-    return request_data
 
 
 @pytest.mark.django_db
@@ -642,7 +579,7 @@ def test_task_execution_create_access_control(
 
     user = user_factory()
 
-    task_execution, _task, api_key_run_environment, client, url = common_setup(
+    _task_execution, task, api_key_run_environment, client, url = common_setup(
             is_authenticated=is_authenticated,
             group_access_level=group_access_level,
             api_key_access_level=api_key_access_level,
@@ -655,16 +592,43 @@ def test_task_execution_create_access_control(
             task_execution_factory=task_execution_factory,
             api_client=api_client)
 
-    request_data = make_request_body(uuid_send_type=body_uuid_type,
-            task_send_type=task_send_type,
-            task_execution_status=task_execution_status,
-            user=user,
-            group_factory=group_factory,
-            api_key_run_environment=api_key_run_environment,
-            task_execution=task_execution,
-            run_environment_factory=run_environment_factory,
-            task_factory=task_factory,
-            task_execution_factory=task_execution_factory)
+    aws_ecs_setup = setup_aws_ecs(run_environment=task.run_environment)
+
+    auto_create = False
+    is_legacy_schema = False
+
+
+    sent_task: Optional[Task] = task
+
+    if auto_create or (task_send_type != SEND_ID_CORRECT):
+        sent_task = None
+
+    request_data = make_aws_ecs_task_execution_request_body(
+        run_environment=api_key_run_environment or task.run_environment,
+        group_factory=group_factory,
+        run_environment_factory=run_environment_factory,
+        task_factory=task_factory,
+        task_execution_factory=task_execution_factory,
+        user=user,
+        task_execution_status=task_execution_status,
+        uuid_send_type=body_uuid_type,
+        task_send_type=task_send_type,
+        task_definition_arn=aws_ecs_setup.task_definition_arn,
+        task=sent_task,
+        was_auto_created=auto_create,
+        is_legacy_schema=is_legacy_schema)
+
+
+    # request_data = make_request_body(uuid_send_type=body_uuid_type,
+    #         task_send_type=task_send_type,
+    #         task_execution_status=task_execution_status,
+    #         user=user,
+    #         group_factory=group_factory,
+    #         api_key_run_environment=api_key_run_environment,
+    #         task_execution=task_execution,
+    #         run_environment_factory=run_environment_factory,
+    #         task_factory=task_factory,
+    #         task_execution_factory=task_execution_factory)
 
     old_count = TaskExecution.objects.count()
 
@@ -703,7 +667,6 @@ def test_task_execution_create_access_control(
 ])
 @mock_ecs
 @mock_sts
-@mock_events
 def test_task_create_aws_ecs_task_execution(auto_create: bool,
         is_legacy_schema: bool,
         user_factory, group_factory, run_environment_factory, task_factory,
@@ -730,9 +693,15 @@ def test_task_create_aws_ecs_task_execution(auto_create: bool,
     request_data = make_aws_ecs_task_execution_request_body(
         run_environment=api_key_run_environment,
         task_definition_arn=aws_ecs_setup.task_definition_arn,
-        task_name=None if auto_create else task.name,
+        task=None if auto_create else task,
         was_auto_created=auto_create,
-        is_legacy_schema=is_legacy_schema)
+        is_legacy_schema=is_legacy_schema,
+        user=user,
+        group_factory=group_factory,
+        run_environment_factory=run_environment_factory,
+        task_factory=task_factory,
+        task_execution_factory=task_execution_factory
+    )
 
     old_count = TaskExecution.objects.count()
 
@@ -789,6 +758,8 @@ def test_task_create_aws_ecs_task_execution(auto_create: bool,
         400, 'passive', 'invalid'
     ),
 ])
+@mock_ecs
+@mock_sts
 def test_task_execution_with_unknown_method_auto_creation(
         was_auto_created: bool, passive: bool, is_legacy_schema: bool,
         status_code: int, validation_error_attribute: Optional[str],
@@ -897,6 +868,8 @@ def test_task_execution_with_unknown_method_auto_creation(
     (TaskExecution.Status.FAILED.name,
      201, None, None),
 ])
+@mock_ecs
+@mock_sts
 def test_task_execution_of_passive_task_creation(
         status,
         status_code, validation_error_attribute, error_code,
@@ -983,7 +956,7 @@ def test_task_execution_create_history_purging(subscription_plan,
 
     assert task_execution is None
 
-    request_data = make_request_body(uuid_send_type=SEND_ID_NONE,
+    request_data = make_task_execution_request_body(uuid_send_type=SEND_ID_NONE,
             task_send_type=SEND_ID_CORRECT,
             user=user,
             group_factory=group_factory,
@@ -1034,7 +1007,6 @@ def test_task_execution_create_history_purging(subscription_plan,
 @pytest.mark.django_db
 @mock_ecs
 @mock_sts
-@mock_events
 def test_task_execution_create_with_legacy_task_property(
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
@@ -1059,7 +1031,7 @@ def test_task_execution_create_with_legacy_task_property(
             task_execution_factory=task_execution_factory,
             api_client=api_client)
 
-    request_data = make_request_body(uuid_send_type=SEND_ID_NONE,
+    request_data = make_task_execution_request_body(uuid_send_type=SEND_ID_NONE,
             task_send_type=SEND_ID_CORRECT,
             user=user,
             group_factory=group_factory,
@@ -1279,7 +1251,7 @@ def test_task_execution_update_access_control(
             task_execution_factory=task_execution_factory,
             api_client=api_client)
 
-    request_data = make_request_body(uuid_send_type=body_uuid_send_type,
+    request_data = make_task_execution_request_body(uuid_send_type=body_uuid_send_type,
             task_send_type=task_send_type,
             user=user,
             api_key_run_environment=api_key_run_environment,

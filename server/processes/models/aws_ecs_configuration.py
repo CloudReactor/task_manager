@@ -37,10 +37,9 @@ class AwsEcsConfiguration(AwsTaggedEntity):
             blank=True)
     aws_ecs_default_task_role = models.CharField(max_length=200, blank=True)
 
-    # TODO: Change default to empty string after first migration of production data
     aws_ecs_default_platform_version = models.CharField(max_length=10,
             blank=True, choices=[(x, x) for x in ALLOWED_PLATFORM_VERSION_CHOICES],
-            default='1.3.0')
+            default='')
 
     aws_ecs_enable_ecs_managed_tags = models.BooleanField(blank=True,
             null=True)
