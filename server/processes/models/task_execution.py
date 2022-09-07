@@ -311,6 +311,9 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
         exec_method = self.execution_method()
 
+        print(f"{exec_method=}, cap = {exec_method.capabilities()}")
+
+
         if ExecutionMethod.ExecutionCapability.MANUAL_START not in exec_method.capabilities():
             raise ValidationError(detail="Execution method does not support manual start")
 

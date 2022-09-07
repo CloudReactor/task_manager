@@ -226,6 +226,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         was_auto_created = ('auto_created_task_properties' in data)
 
+        task: Optional[Task] = None
         if task_dict is None:
             if ('task' in data) or was_auto_created or ('process_type' in data):
                 raise serializers.ValidationError({
@@ -235,7 +236,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             was_auto_created = was_auto_created or task_dict.get('was_auto_created')
             authenticated_run_environment = extract_authenticated_run_environment()
 
-            task: Optional[Task] = None
             try:
                 task = cast(Task, Task.find_by_uuid_or_name(
                     task_dict, required_group=group,
@@ -293,7 +293,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         execution_method_type: Optional[str] = None
 
-        if task_execution:
+        if task:
+            execution_method_type = task.execution_method_type
+        elif task_execution:
             execution_method_type = task_execution.task.execution_method_type
 
         execution_method_type = data.get('execution_method_type',
