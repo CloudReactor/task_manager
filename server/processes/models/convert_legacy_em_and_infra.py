@@ -3,7 +3,7 @@ import logging
 from typing import Any, Optional
 
 from ..common.utils import coalesce
-from ..execution_methods import AwsEcsExecutionMethod
+from ..execution_methods import AwsEcsExecutionMethod, UnknownExecutionMethod
 from .run_environment import RunEnvironment
 from .task import Task
 from .task_execution import TaskExecution
@@ -237,6 +237,7 @@ def extract_infra_from_task_execution(task_execution: TaskExecution) -> dict[str
 def populate_task_execution_em_and_infra(task_execution: TaskExecution) -> bool:
     te = task_execution
     if te.aws_ecs_task_definition_arn:
+        te.execution_method_type = AwsEcsExecutionMethod.NAME
         te.execution_method_details = extract_em(te)
 
         if not te.infrastructure_type:
@@ -246,5 +247,6 @@ def populate_task_execution_em_and_infra(task_execution: TaskExecution) -> bool:
             te.infrastructure_settings = extract_infra_from_task_execution(te)
 
         return True
-    else:
+    elif not te.execution_method_type:
+        te.execution_method_type = UnknownExecutionMethod.NAME
         return False
