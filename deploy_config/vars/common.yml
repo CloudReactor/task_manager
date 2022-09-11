@@ -180,7 +180,7 @@ default_task_config:
     # send_pid: True
     # send_hostname: True
     # send_runtime_metadata: True
-    api_heartbeat_interval_seconds: 120
+    api_heartbeat_interval_seconds: 300
     # api_error_timeout_seconds: 300
     # api_retry_delay_seconds: 120
     # api_resume_delay_seconds: 300
@@ -293,6 +293,7 @@ task_name_to_config:
     description: "Migrate Tasks Execution created with legacy execution method schema"
     command: "python manage.py task_execution_em_migrator"
     max_concurrency: 1
+    max_age_seconds: 60000
     ecs:
       cpu_units: 1024
       memory_mb: 2048
