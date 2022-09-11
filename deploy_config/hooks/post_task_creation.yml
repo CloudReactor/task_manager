@@ -15,7 +15,7 @@
     url: "{{ resolved_cloudreactor.api_base_url }}/api/v1/task_executions/"
     method: POST
     headers:
-      Authorization: "Token {{resolved_cloudreactor.deploy_api_key}}"
+      Authorization: "Bearer {{resolved_cloudreactor.deploy_api_key}}"
     return_content: yes
     body:
       task:
