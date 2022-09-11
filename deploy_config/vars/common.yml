@@ -163,7 +163,6 @@ default_task_config:
     # # set the configuration dictionary in the environment.
     # env_var_name_for_config: null
 
-    process_timeout_seconds: 600
     process_max_retries: 1
     # process_retry_delay_seconds: 120
     # process_timeout_seconds: null
@@ -252,6 +251,7 @@ task_name_to_config:
     service_instance_count: 1
     min_service_instance_count: 1
     wrapper:
+      process_timeout_seconds: 600
       enable_status_updates: true
 
   usage_limit_enforcer:
@@ -263,7 +263,9 @@ task_name_to_config:
       cpu_units: 1024
       memory_mb: 2048
     wrapper:
+      process_timeout_seconds: 600
       enable_status_updates: true
+
 
   task_emc_migrator:
     description: "Migrate Tasks created with legacy execution method schema"
@@ -273,6 +275,7 @@ task_name_to_config:
       cpu_units: 1024
       memory_mb: 2048
     wrapper:
+      process_timeout_seconds: 60000
       enable_status_updates: true
 
   task_managed_flag_migrator:
@@ -283,6 +286,7 @@ task_name_to_config:
       cpu_units: 1024
       memory_mb: 2048
     wrapper:
+      process_timeout_seconds: 600
       enable_status_updates: true
 
   task_execution_em_migrator:
@@ -293,4 +297,5 @@ task_name_to_config:
       cpu_units: 1024
       memory_mb: 2048
     wrapper:
+      process_timeout_seconds: 60000
       enable_status_updates: true
