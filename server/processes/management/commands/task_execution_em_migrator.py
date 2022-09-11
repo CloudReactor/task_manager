@@ -1,6 +1,6 @@
 import logging
-import os
 
+from django.core.paginator import Paginator
 from django.core.management.base import BaseCommand
 
 from proc_wrapper import StatusUpdater
@@ -37,21 +37,25 @@ class Command(BaseCommand):
 
             success_count = 0
             error_count = 0
-            for task_execution in qs.all():
-                try:
-                    if populate_task_execution_em_and_infra(
-                            task_execution=task_execution):
-                        task_execution.enrich_settings()
-                        task_execution.save()
-                except Exception:
-                    msg = f"Failed to convert Task Execution {task_execution.uuid=}"
-                    logger.exception(msg)
-                    error_count += 1
-                    status_updater.send_update(last_status_message=msg,
-                        error_count=error_count)
-                else:
-                    success_count += 1
 
-            status_updater.send_update(success_count=success_count)
+            paginator = Paginator(qs.all(), 1000)
+
+            for page_idx in range(1, paginator.num_pages+1):
+                for task_execution in paginator.page(page_idx).object_list:
+                    try:
+                        if populate_task_execution_em_and_infra(
+                                task_execution=task_execution):
+                            task_execution.enrich_settings()
+                            task_execution.save()
+                    except Exception:
+                        msg = f"Failed to convert Task Execution {task_execution.uuid=}"
+                        logger.exception(msg)
+                        error_count += 1
+                        status_updater.send_update(last_status_message=msg,
+                            error_count=error_count)
+                    else:
+                        success_count += 1
+
+                status_updater.send_update(success_count=success_count)
 
             logger.info(f"Migrated {success_count} Task Executions successfully with {error_count} errors")
