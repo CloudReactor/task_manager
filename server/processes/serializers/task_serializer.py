@@ -85,9 +85,9 @@ class CurrentServiceInfoSerializer(serializers.Serializer):
         source='aws_ecs_service_infrastructure_website_url',
         allow_null=True)
 
-    service_arn_updated_at = serializers.ReadOnlyField(
-        source='aws_ecs_service_updated_at',
-        allow_null=True)
+    service_arn_updated_at = serializers.DateTimeField(
+        source='aws_ecs_service_updated_at', allow_null=True,
+        read_only=True)
 
 SUPPORTED_EXECUTION_METHODS = [
     AwsEcsExecutionMethod,
