@@ -103,7 +103,10 @@ class TaskExecutionChecker:
                 logger.info(
                     f"Run duration of Task Execution {te.uuid} {run_duration} seconds > max stopping duration {task.max_age_seconds} seconds, abandoning")
                 te.status = TaskExecution.Status.ABANDONED
-                te.marked_done_at = utc_now
+
+                if not te.marked_done_at:
+                    te.marked_done_at = utc_now
+
                 te.finished_at = utc_now
                 te.save()
                 return True
@@ -114,6 +117,10 @@ class TaskExecutionChecker:
                 te.status = TaskExecution.Status.STOPPING
                 te.marked_done_at = utc_now
                 te.stop_reason = TaskExecution.StopReason.MAX_EXECUTION_TIME_EXCEEDED
+
+                # Let the Task set the state to STOPPED, so don't set
+                # finished_at here.
+
                 # This will send alerts if configured by the Task
                 te.save()
                 return True
