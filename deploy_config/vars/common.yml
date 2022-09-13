@@ -252,7 +252,7 @@ task_name_to_config:
     min_service_instance_count: 1
     wrapper:
       process_timeout_seconds: 600
-      enable_status_updates: true
+      enable_status_update_listener: true
 
   usage_limit_enforcer:
     description: "Enforce usage limits"
@@ -264,7 +264,7 @@ task_name_to_config:
       memory_mb: 2048
     wrapper:
       process_timeout_seconds: 600
-      enable_status_updates: true
+      enable_status_update_listener: true
 
 
   task_emc_migrator:
@@ -276,7 +276,7 @@ task_name_to_config:
       memory_mb: 2048
     wrapper:
       process_timeout_seconds: 60000
-      enable_status_updates: true
+      enable_status_update_listener: true
 
   task_managed_flag_migrator:
     description: "Sets managed flags in Tasks"
@@ -287,7 +287,7 @@ task_name_to_config:
       memory_mb: 2048
     wrapper:
       process_timeout_seconds: 600
-      enable_status_updates: true
+      enable_status_update_listener: true
 
   task_execution_em_migrator:
     description: "Migrate Tasks Execution created with legacy execution method schema"
@@ -299,4 +299,4 @@ task_name_to_config:
       memory_mb: 2048
     wrapper:
       process_timeout_seconds: 60000
-      enable_status_updates: true
+      enable_status_update_listener: true
