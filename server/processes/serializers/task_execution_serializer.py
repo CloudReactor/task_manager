@@ -415,6 +415,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                 # the handshake we'll leave the status STOPPING until the script sends
                 # acknowledgment with a EXITED_AFTER_MARKED_DONE status, or something similar.
                 validated_data['status'] = TaskExecution.Status.STOPPED
+                validated_data['finished_at'] = now
             elif existing_status not in TaskExecution.IN_PROGRESS_STATUSES:
                 validation_error = serializers.ValidationError(
                     {'status': f"Status cannot be set to {request_status.name} after {existing_status.name}"})
