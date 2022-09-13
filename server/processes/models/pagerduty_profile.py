@@ -64,9 +64,6 @@ class PagerDutyProfile(NamedWithUuidAndRunEnvironmentModel):
         else:
             summary_template = summary_template or DEFAULT_PAGERDUTY_EVENT_TASK_EXECUTION_SUMMARY_TEMPLATE
 
-        if task_execution:
-            summary_template = summary_template or DEFAULT_PAGERDUTY_EVENT_TASK_EXECUTION_SUMMARY_TEMPLATE
-
         event_summary = notification_generator.generate_text(
             template_params=template_params,
             template=summary_template,
@@ -113,6 +110,9 @@ class PagerDutyProfile(NamedWithUuidAndRunEnvironmentModel):
 
         if grouping_key:
             data['dedup_key'] = grouping_key
+
+        payload = data['payload']
+        logger.info(f"Sending {payload=} to PagerDuty ...")
 
         response = pypd.EventV2.create(data=data)
 
