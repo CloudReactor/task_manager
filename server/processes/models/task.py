@@ -396,18 +396,16 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
             logger.debug("Not updating schedule params")
 
         if should_update_service:
-            logger.info("synchronize_with_run_environment(): Updating service...")
+            logger.info(f"synchronize_with_run_environment(): Updating service, {self.is_service=}, {self.enabled=}, {self.is_service_managed=} ...")
             # TODO: just check is_service_managed once it is migrated
             if self.is_service and self.enabled and (self.is_service_managed != False):
                 execution_method.setup_service(force_creation=should_force_create_service)
-                self.is_scheduling_managed = True
+                self.is_service_managed = True
             else:
                 execution_method.teardown_service()
 
-                if self.service_instance_count is None:
-                    self.is_scheduling_managed = None
-                else:
-                    self.is_scheduling_managed = False
+                if self.is_service_managed != False:
+                    self.is_service_managed = None
         else:
             logger.debug("Not updating service params")
 
