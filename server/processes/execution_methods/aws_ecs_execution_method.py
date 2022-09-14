@@ -363,6 +363,9 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         from ..models.task import Task
 
         task = self.task
+
+        logger.info(f"setup_service() for Task {task.name}, {force_creation=} ...")
+
         run_env = task.run_environment
         ecs_client = run_env.make_boto3_client('ecs')
 
@@ -380,6 +383,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         new_service_name = service_name
         if existing_service:
+            logger.info(f"setup_service() for Task {task.name} found existing service {service_name}")
+
             current_status = existing_service['status'].upper()
             if force_creation or (current_status != 'ACTIVE'):
                 logger.info(f"Deleting service '{service_name}' before updating ...")
@@ -413,6 +418,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 existing_service = None
                 task.aws_ecs_service_arn = ''
                 task.aws_ecs_service_updated_at = timezone.now()
+            else:
+                logger.info(f"setup_service() for Task {task.name} not deleting existing service {service_name}")
 
         if existing_service:
             args = self.make_common_service_args(include_launch_type=False)
@@ -424,6 +431,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 args['healthCheckGracePeriodSeconds'] = \
                     task.aws_ecs_service_load_balancer_health_check_grace_period_seconds or \
                             Task.DEFAULT_ECS_SERVICE_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
+
+            logger.info(f"setup_service() for Task {task.name} updating service ...")
 
             response = ecs_client.update_service(**args)
         else:
@@ -460,14 +469,22 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if task.aws_ecs_service_propagate_tags:
                 args['propagateTags'] = task.aws_ecs_service_propagate_tags
 
+            logger.info(f"setup_service() for Task {task.name} creating service ...")
+
             response = ecs_client.create_service(**args)
 
         task.aws_ecs_service_arn = response['service']['serviceArn']
         task.aws_ecs_service_updated_at = timezone.now()
+
+        logger.info(f"setup_service() for Task {task.name} got service ARN  {task.aws_ecs_service_arn} ...")
+
         return response
 
     def teardown_service(self) -> None:
         task = self.task
+
+        logger.info(f"Tearing down service for Task {task.name} ...")
+
         run_env = task.run_environment
         ecs_client = run_env.make_boto3_client('ecs')
         existing_service = self.find_aws_ecs_service(ecs_client=ecs_client)
@@ -496,6 +513,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
             # TODO: Mark Task Executions as STOPPED so they are aborted the next
             # time they heartbeat
+        else:
+            logger.info(f"Tearing down service for Task {task.name} was a no-op since service was not found")
 
     def manually_start(self) -> None:
         task_execution = self.task_execution
