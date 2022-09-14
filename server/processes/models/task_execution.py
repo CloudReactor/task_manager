@@ -187,7 +187,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     embedded_mode = models.BooleanField(null=True, blank=True)
 
     execution_method_type = models.CharField(max_length=100, null=False,
-            blank=False, default='Unknown')
+            blank=True, default='')
     execution_method_details = models.JSONField(null=True, blank=True)
 
     input_value = models.JSONField(null=True, blank=True)
@@ -311,8 +311,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
         exec_method = self.execution_method()
 
-        print(f"{exec_method=}, cap = {exec_method.capabilities()}")
-
+        logger.info(f"{exec_method=}, cap = {exec_method.capabilities()}")
 
         if ExecutionMethod.ExecutionCapability.MANUAL_START not in exec_method.capabilities():
             raise ValidationError(detail="Execution method does not support manual start")

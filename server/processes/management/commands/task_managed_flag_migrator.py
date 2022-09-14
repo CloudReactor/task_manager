@@ -34,11 +34,7 @@ class Command(BaseCommand):
                 emt = task.execution_method_type
                 manageable = (not task.was_auto_created) and (emt == AwsEcsExecutionMethod.NAME)
 
-                logger.info(f"Task {task.name} was_auto_created={task.was_auto_created}, {emt=}, managable = {manageable}")
-
-                if not manageable:
-                    logger.warning(f"Correcting manageable flag for Task {task.name} to true")
-                    manageable = True
+                logger.info(f"Task {task.name} was_auto_created={task.was_auto_created}, {emt=}, manageable = {manageable}")
 
                 try:
                     if should_reset or (task.is_scheduling_managed is None):

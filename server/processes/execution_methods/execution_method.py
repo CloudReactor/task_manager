@@ -272,9 +272,11 @@ class ExecutionMethod:
 
         if task:
             emt = task.execution_method_type
+            logger.info(f"task emt = {emt}")
 
         if task_execution:
             emt = task_execution.execution_method_type or emt
+            logger.info(f"emt overridden to = {emt}")
 
         if emt == AwsEcsExecutionMethod.NAME:
             return AwsEcsExecutionMethod(task=task,

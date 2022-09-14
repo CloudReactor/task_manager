@@ -164,7 +164,11 @@ class WorkflowTaskInstance(UuidModel):
           status=TaskExecution.Status.MANUALLY_STARTED,
         )
 
+        logger.info(f"wti: new task execution emt = {task_execution.execution_method_type}")
+
         task_execution.save()
+
+        logger.info(f"wti: save task execution emt = {task_execution.execution_method_type}")
 
         WorkflowTaskInstanceExecution.objects.filter(
             workflow_execution=workflow_execution,

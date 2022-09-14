@@ -247,6 +247,5 @@ def populate_task_execution_em_and_infra(task_execution: TaskExecution) -> bool:
             te.infrastructure_settings = extract_infra_from_task_execution(te)
 
         return True
-    elif not te.execution_method_type:
-        te.execution_method_type = UnknownExecutionMethod.NAME
+    else:
         return False

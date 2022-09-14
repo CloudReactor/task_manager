@@ -154,7 +154,7 @@ class WorkflowExecution(UuidModel):
             # In case there are no root processes
             self.check_if_complete()
         except Exception:
-            logger.exception(f"Failed to start workflow {self.workflow.uuid}")
+            logger.exception(f"Failed to start Workflow {self.workflow.uuid}")
             self.status = WorkflowExecution.Status.FAILED
             self.finished_at = timezone.now()
             self.save()
@@ -162,7 +162,7 @@ class WorkflowExecution(UuidModel):
     def retry(self):
         from . import WorkflowTaskInstanceExecution
 
-        logger.info(f"Retrying workflow execution with UUID = {self.uuid} ...")
+        logger.info(f"Retrying Workflow Execution with UUID = {self.uuid} ...")
 
         self.invalidate_alerts()
 
