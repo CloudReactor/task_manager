@@ -351,7 +351,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 # Happens if the schedule rule is removed manually
                 if error_code == 'ResourceNotFoundException':
                     logger.warning(
-                        f"teardown_scheduled_execution(): Can't disable rule{task.aws_scheduled_execution_rule_name} because resource not found, exception = {client_error}")
+                        f"teardown_scheduled_execution(): Can't disable rule {task.aws_scheduled_execution_rule_name} because resource not found, exception = {client_error}")
                 else:
                     logger.exception(
                         f"teardown_scheduled_execution(): Can't remove target {task.aws_scheduled_execution_rule_name} due to unhandled error {error_code}")
