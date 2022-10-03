@@ -68,8 +68,7 @@ services:
 
   db:
     container_name: db
-    # Should be the version we have in AWS
-    image: postgres:13.4
+    image: postgres:13.7
     volumes:
       - ./server/sql/initial.sql:/docker-entrypoint-initdb.d/initial.sql
       - ./server/sql/db-setup.sql:/db-setup.sql
