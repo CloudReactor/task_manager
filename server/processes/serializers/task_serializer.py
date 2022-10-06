@@ -305,14 +305,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
         min_service_instance_count = validated.get('min_service_instance_count')
         schedule = validated.get('schedule')
 
-        if (min_service_instance_count is not None) \
-                and (min_service_instance_count > 0):
-            if is_service is False:
-                raise serializers.ValidationError({
-                    'min_service_instance_count': ['Must null for services']
-                })
-            is_service = True
-
         if (service_instance_count is not None) and (service_instance_count > 0):
             if is_service is False:
                 raise serializers.ValidationError({
@@ -320,60 +312,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 })
             is_service = True
 
-        if (is_service is None) and schedule:
-            is_service = False
-
-        if (is_service is None) and task:
-            is_service = task.is_service
-
-        if is_service:
-            if schedule:
-                raise serializers.ValidationError({
-                    'schedule': ['Must be blank for services']
-                })
-
-            if service_instance_count is None:
-                if task:
-                    service_instance_count = task.service_instance_count
-
-                if service_instance_count is None:
-                    service_instance_count = min_service_instance_count or 1
-
-            if service_instance_count <= 0:
-                raise serializers.ValidationError({
-                    'service_instance_count': ['Must be positive for services']
-                })
-
-            if min_service_instance_count is None:
-                if task:
-                    min_service_instance_count = task.min_service_instance_count
-
-                if min_service_instance_count is None:
-                    min_service_instance_count = service_instance_count
-
-            if min_service_instance_count > service_instance_count:
-                raise serializers.ValidationError({
-                    'min_service_instance_count': ['Must be less than or equal to service_instance_count']
-                })
-
-            validated['schedule'] = ''
-            validated['min_service_instance_count'] = min_service_instance_count
-            validated['service_instance_count'] = service_instance_count
-        else:
-            if service_instance_count and (service_instance_count > 0):
-                raise serializers.ValidationError({
-                    'service_instance_count': ['Must be null or zero for non-services']
-                })
-
-            if min_service_instance_count and (min_service_instance_count > 0):
-                raise serializers.ValidationError({
-                    'min_service_instance_count': ['Must be non-positive if service_instance_count is negative']
-                })
-
-            validated['min_service_instance_count'] = None
-            validated['service_instance_count'] = None
-
-        validated['is_service'] = is_service
 
         execution_method_dict = validated.get('execution_method_capability_details')
 
@@ -451,6 +389,95 @@ class TaskSerializer(GroupSettingSerializerMixin,
                         dest_prefix='aws_ecs_default_',
                         included_keys=['security_groups', 'assign_public_ip'])
 
+        if (is_service is None) and schedule:
+            is_service = False
+
+        if (is_service is None) and task:
+            is_service = task.is_service
+
+        if (min_service_instance_count is not None) \
+                and (min_service_instance_count > 0):
+            if is_service is False:
+                raise serializers.ValidationError({
+                    'min_service_instance_count': ['Must null for services']
+                })
+
+            is_service = True
+
+        validated['is_service'] = is_service
+
+        if is_service:
+            if service_instance_count is None:
+                if task:
+                    service_instance_count = task.service_instance_count
+
+                if service_instance_count is None:
+                    service_instance_count = min_service_instance_count or 1
+
+            if service_instance_count <= 0:
+                raise serializers.ValidationError({
+                    'service_instance_count': ['Must be positive for services']
+                })
+
+            if min_service_instance_count is None:
+                if task:
+                    min_service_instance_count = task.min_service_instance_count
+
+                if min_service_instance_count is None:
+                    min_service_instance_count = service_instance_count
+
+            if min_service_instance_count < 0:
+                raise serializers.ValidationError({
+                    'min_service_instance_count': ['Must be greater than or equal to 0']
+                })
+
+            if min_service_instance_count > service_instance_count:
+                raise serializers.ValidationError({
+                    'min_service_instance_count': ['Must be less than or equal to service_instance_count']
+                })
+
+            if schedule:
+                raise serializers.ValidationError({
+                    'schedule': ['Must be blank for services']
+                })
+
+            validated['schedule'] = ''
+            validated['min_service_instance_count'] = min_service_instance_count
+            validated['service_instance_count'] = service_instance_count
+
+            if ('is_service_managed' not in validated) and \
+                ((task is None) or (task.is_service_managed is None)):
+              validated['is_service_managed'] = True
+        else:
+            if service_instance_count and (service_instance_count > 0):
+                raise serializers.ValidationError({
+                    'service_instance_count': ['Must be null or zero for non-services']
+                })
+
+            if min_service_instance_count and (min_service_instance_count > 0):
+                raise serializers.ValidationError({
+                    'min_service_instance_count': ['Must be non-positive if service_instance_count is negative']
+                })
+
+            if validated.get('is_service_managed'):
+                raise serializers.ValidationError({
+                    'is_service_managed': ['Cannot be true for non-services']
+                })
+
+            validated['service_instance_count'] = None
+            validated['min_service_instance_count'] = None
+            validated['is_service_managed'] = None
+
+        if schedule:
+            if ('is_scheduling_managed' not in validated) and \
+                ((task is None) or (task.is_scheduling_managed is None)):
+              validated['is_scheduling_managed'] = True
+        else:
+            if validated.get('is_scheduling_managed'):
+                raise serializers.ValidationError({
+                    'is_scheduling_managed': ['Cannot be true for unscheduled Tasks']
+                })
+
         self.set_validated_alert_methods(data=data, validated=validated,
                 run_environment=run_environment)
 
@@ -476,23 +503,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
             validated['task_links'] = updated_task_links
 
-        validated['is_service'] = is_service
-
-        if is_service is True:
-            if min_service_instance_count and (min_service_instance_count < 0):
-                raise serializers.ValidationError({
-                    'min_service_instance_count': ['Must be greater than or equal to 0']
-                })
-
-            if schedule:
-                raise serializers.ValidationError({
-                    'schedule': ['Must be blank for services']
-                })
-
-            validated.schedule = ''
-        elif is_service is False:
-            validated['service_instance_count'] = None
-            validated['min_service_instance_count'] = None
 
         return validated
 

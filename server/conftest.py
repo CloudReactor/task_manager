@@ -466,8 +466,6 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
             },
         }
 
-
-
         if is_service:
             emc['service_options'] = {
                 'load_balancers': [
@@ -807,6 +805,12 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
         assert len(model_task.aws_ecs_service_load_balancer_details_set.all()) == 0
 
     if body_task.get('schedule'):
+        body_is_scheduling_managed = body_task.get('is_scheduling_managed')
+        if body_is_scheduling_managed is None:
+            assert model_task.is_scheduling_managed
+        else:
+            assert model_task.is_scheduling_managed == body_is_scheduling_managed
+
         if execution_method_type == AwsEcsExecutionMethod.NAME:
             assert model_task.scheduling_provider_type == SCHEDULING_TYPE_AWS_CLOUDWATCH
         else:
@@ -815,6 +819,13 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
     else:
         assert model_task.scheduling_provider_type == ''
         assert model_task.scheduling_settings is None
+
+    if model_task.is_service:
+        body_is_service_managed = body_task.get('is_service_managed')
+        if body_is_service_managed is None:
+            assert model_task.is_service_managed
+        else:
+            assert model_task.is_service_managed == body_is_service_managed
 
 
 def make_task_execution_request_body(uuid_send_type: Optional[str],
