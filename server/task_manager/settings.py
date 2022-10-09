@@ -286,8 +286,8 @@ DJOSER = {
     'PASSWORD_CHANGED_EMAIL_CONFIRMATION': True,
     'USERNAME_CHANGED_EMAIL_CONFIRMATION': True,
     'PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND': True,
-    'ACTIVATION_URL': 'activate_user/?uid={uid}&token={token}',
-    'PASSWORD_RESET_CONFIRM_URL': 'password_reset/?uid={uid}&token={token}',
+    'ACTIVATION_URL': EXTERNAL_BASE_URL + 'activate_user/?uid={uid}&token={token}',
+    'PASSWORD_RESET_CONFIRM_URL': EXTERNAL_BASE_URL + 'password_reset/?uid={uid}&token={token}',
 }
 
 SIMPLE_JWT = {
