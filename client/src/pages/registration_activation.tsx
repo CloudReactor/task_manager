@@ -75,8 +75,8 @@ class RegistrationActivation extends Component<Props, State> {
             activated ? (
               <div>
                 <p>
-                  Thanks for activating your CloudReactor account. You may now
-                  <Link to={path.LOGIN + '?status=activated'}>sign in</Link>.
+                  Thanks for activating your CloudReactor account. You may
+                  now <Link to={path.LOGIN + '?status=activated'}>sign in</Link>.
                 </p>
               </div>
             ) : (
