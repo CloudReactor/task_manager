@@ -2,7 +2,7 @@ six>=1.15.0
 beautifulsoup4>=4.11.1
 boto3==1.23.5
 botocore==1.26.5
-cloudreactor-procwrapper==4.0.1
+cloudreactor-procwrapper==5.0.2
 crontab==0.23.0
 cryptography==37.0.2
 Django==3.2.13
