@@ -4,6 +4,10 @@ from rest_framework.authtoken.models import TokenProxy
 
 from .models import *
 
+class UserGroupAccessLevelAdmin(admin.ModelAdmin):
+    search_fields = ('user__username', 'user__email', 'group__name')
+
+
 class SubscriptionAdmin(admin.ModelAdmin):
     search_fields = ('subscription__name',)
 
@@ -70,6 +74,7 @@ class EmailNotificationProfileAdmin(admin.ModelAdmin):
 
 
 admin.site.unregister(TokenProxy)
+admin.site.register(UserGroupAccessLevel, UserGroupAccessLevelAdmin)
 admin.site.register(SubscriptionPlan)
 admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(SaasToken)
