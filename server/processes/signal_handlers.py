@@ -71,30 +71,3 @@ def add_default_group_and_saas_token(user: User) -> None:
 def on_user_activated(sender: Type[DjoserUserViewSet], user: User, request: Request, **_kwargs) -> None:
     logger.info('on_user_activated() calling add_default_group_and_saas_token')
     add_default_group_and_saas_token(user)
-
-@receiver(post_save, sender=Group)
-def on_group_created(sender: Type[Group], instance: Group, created: bool, **_kwargs) -> None:
-    """Make the creating user an admin of the created group and create an API key"""
-
-    if not created:
-        logger.info('on_group_created() created=False')
-        return
-
-    logger.info('on_group_created() created=True')
-
-    user, _group = user_and_group_from_request()
-
-    if user and user.is_active and user.is_authenticated:
-        instance.user_set.add(user)
-
-        UserGroupAccessLevel(user=user, group=instance,
-          access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN).save()
-
-        SaasToken(name=SaasToken.DEPLOYMENT_KEY_NAME,
-                description=SaasToken.DEPLOYMENT_KEY_DESCRIPTION,
-                enabled=True, access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-                user=user, group=instance).save()
-        SaasToken(name=SaasToken.TASK_KEY_NAME,
-                description=SaasToken.TASK_KEY_DESCRIPTION,
-                enabled=True, access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-                user=user, group=instance).save()
