@@ -68,6 +68,7 @@ WORKDIR $INSTALL_PATH
 
 COPY ./server/manage.py .
 COPY ./server/migrate_and_runserver.sh .
+COPY ./server/migrate_and_load_dynamic_fixtures.sh .
 COPY ./server/task_manager task_manager
 COPY ./server/spectacular spectacular
 COPY ./server/processes processes

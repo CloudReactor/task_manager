@@ -25,6 +25,31 @@
     status_code:
       - 200
       - 201
+  register: create_cloudreactor_task_execution_result
   when: resolved_cloudreactor.enabled and (item == 'db_migrator')
   tags:
     - always
+
+- name: Wait for DB migration Task to finish
+  uri:
+    url: "{{ create_cloudreactor_task_execution_result.json.url }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{resolved_cloudreactor.deploy_api_key}}"
+    return_content: yes
+    body_format: json
+    status_code:
+      - 200
+      - 201
+  register: check_cloudreactor_task_execution_result
+  when: resolved_cloudreactor.enabled and (item == 'db_migrator')
+  until: (check_cloudreactor_task_execution_result.json.status != 'MANUALLY_STARTED') and (check_cloudreactor_task_execution_result.json.status != 'RUNNING')
+  delay: 30
+  retries: 1000
+  tags:
+    - migrate
+
+- name: Ensure migration succeeded
+  assert:
+    that: check_cloudreactor_task_execution_result.json.status == 'SUCCEEDED'
+  when: (item == 'db_migrator')

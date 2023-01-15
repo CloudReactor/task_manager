@@ -86,7 +86,7 @@ default_task_config:
     #      - hostPort: 8000    # port of the target group
     #      - protocol: tcp
 
-  wrapper: &default_task_wrapper
+  wrapper:
     # # Working directory to execute command in
     # work_dir: .
 
@@ -222,9 +222,21 @@ default_task_config:
 # To add a task, add an additional property to task_name_to_config (e.g. task_1, file_io)
 # Each task must at a minimum define which command to run i.e. `command: python main.py`
 task_name_to_config:
+  db_migrator:
+    deployed: "{{ resolved_cloudreactor.enabled }}"
+    command: "./migrate_and_load_dynamic_fixtures.sh"
+    max_concurrency: 1
+    ecs:
+      cpu_units: 1024
+      memory_mb: 2048
+    wrapper:
+      env_locations:
+        - arn:aws:secretsmanager:{{aws_region}}:{{ aws.account_id }}:secret:CloudReactor/task_manager/{{env}}/config.json
+        - arn:aws:secretsmanager:{{aws_region}}:{{ aws.account_id }}:secret:CloudReactor/task_manager/{{env}}/migrate_db_config.json
+
   web:
     description: "Web Server"
-    command: "./migrate_and_runserver.sh"
+    command: "{{ 'gunicorn task_manager.wsgi --bind 0.0.0.0:8000 --workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir /dev/shm' if resolved_cloudreactor.enabled else './migrate_and_runserver.sh' }}"
     service_instance_count: 1
     max_concurrency: null
     ecs:
@@ -243,6 +255,16 @@ task_name_to_config:
         portMappings:
           - containerPort: 8000
             protocol: tcp
+
+  create_superuser:
+    command: "python manage.py createsuperuser --noinput"
+    max_concurrency: 1
+    max_age_seconds: 60000
+    ecs:
+      cpu_units: 1024
+      memory_mb: 2048
+    wrapper:
+      process_timeout_seconds: 60000
 
   task_schedule_checker:
     description: "Ensure Tasks and Workflows run on time"
@@ -265,7 +287,6 @@ task_name_to_config:
     wrapper:
       process_timeout_seconds: 600
       enable_status_update_listener: true
-
 
   task_emc_migrator:
     description: "Migrate Tasks created with legacy execution method schema"
