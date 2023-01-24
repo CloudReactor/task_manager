@@ -386,11 +386,7 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                 self.is_scheduling_managed = True
             else:
                 execution_method.teardown_scheduled_execution()
-
-                if self.schedule:
-                    self.is_scheduling_managed = False
-                else:
-                    self.is_scheduling_managed = None
+                self.is_scheduling_managed = None
             logger.info("Done updating schedule params ...")
         else:
             logger.debug("Not updating schedule params")
