@@ -321,3 +321,15 @@ task_name_to_config:
     wrapper:
       process_timeout_seconds: 60000
       enable_status_update_listener: true
+
+  run_environment_config_migrator:
+    description: "Migrate Run Environments created with legacy schema"
+    command: "python manage.py run_environment_config_migrator"
+    max_concurrency: 1
+    max_age_seconds: 60000
+    ecs:
+      cpu_units: 1024
+      memory_mb: 2048
+    wrapper:
+      process_timeout_seconds: 60000
+      enable_status_update_listener: true

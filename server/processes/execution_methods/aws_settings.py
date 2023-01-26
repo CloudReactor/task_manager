@@ -121,6 +121,14 @@ class AwsXraySettings(BaseModel):
 
 
 class AwsSettings(BaseModel):
+    account_id: Optional[str] = None
+    region: Optional[str] = None
+    access_key: Optional[str] = None
+    secret_key: Optional[str] = None
+    events_role_arn: Optional[str] = None
+    assumed_role_external_id: Optional[str] = None
+    workflow_starter_lambda_arn: Optional[str] = None
+    workflow_starter_access_key: Optional[str] = None
     network: Optional[AwsNetworkSettings] = None
     logging: Optional[AwsLoggingSettings] = None
     xray: Optional[AwsXraySettings] = None

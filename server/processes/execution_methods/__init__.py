@@ -1,4 +1,5 @@
 from .aws_settings import (
+    INFRASTRUCTURE_TYPE_AWS,
     AwsSettings,
     AwsNetwork,
     AwsNetworkSettings,

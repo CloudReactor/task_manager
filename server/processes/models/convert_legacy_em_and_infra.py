@@ -33,14 +33,22 @@ def compute_region(
     return region
 
 def extract_infra_from_run_environment(run_environment: RunEnvironment) -> dict[str, Any]:
-    aws = {
+    aws = convert_empty_to_none_values({
+        'account_id': run_environment.aws_account_id,
+        'region': run_environment.aws_default_region,
+        'access_key': run_environment.aws_access_key,
+        'secret_key': run_environment.aws_secret_key,
+        'events_role_arn': run_environment.aws_events_role_arn,
+        'assumed_role_external_id': run_environment.aws_assumed_role_external_id,
+        'workflow_starter_lambda_arn': run_environment.aws_workflow_starter_lambda_arn,
+        'workflow_starter_access_key': run_environment.aws_workflow_starter_access_key,
         'network': convert_empty_to_none_values({
             'region': run_environment.aws_default_region,
             'subnets': run_environment.aws_default_subnets,
             'security_groups': run_environment.aws_ecs_default_security_groups,
             'assign_public_ip': run_environment.aws_ecs_default_assign_public_ip
         })
-    }
+    })
 
     if run_environment.aws_tags is not None:
         aws['tags'] = run_environment.aws_tags
@@ -48,17 +56,37 @@ def extract_infra_from_run_environment(run_environment: RunEnvironment) -> dict[
     return aws
 
 
-def populate_run_environment_infra(run_environment: Task) -> bool:
+def populate_run_environment_infra(run_environment: RunEnvironment) -> bool:
     if run_environment.aws_account_id or run_environment.aws_events_role_arn:
-        run_environment.infrastructure_type = 'AWS'
-        run_environment.infrastructure_settings = extract_infra_from_run_environment(
+        run_environment.aws_settings = extract_infra_from_run_environment(
                 run_environment)
         return True
     else:
         return False
 
 
-def extract_emc(task) -> dict[str, Any]:
+def extract_aws_ecs_configuration(run_environment: RunEnvironment) -> dict[str, Any]:
+    return convert_empty_to_none_values({
+        'launch_type': run_environment.aws_ecs_default_launch_type,
+        'supported_launch_types': run_environment.aws_ecs_supported_launch_types,
+        'cluster_arn': run_environment.aws_ecs_default_cluster_arn,
+        'execution_role': run_environment.aws_ecs_default_execution_role,
+        'task_role': run_environment.aws_ecs_default_task_role,
+        'platform_version': run_environment.aws_ecs_default_platform_version,
+        'enable_ecs_managed_tags': run_environment.aws_ecs_enable_ecs_managed_tags
+    })
+
+
+def populate_run_environment_aws_ecs_configuration(run_environment: RunEnvironment) -> bool:
+    if run_environment.aws_ecs_default_cluster_arn or run_environment.aws_ecs_default_execution_role:
+        run_environment.default_aws_ecs_configuration = extract_aws_ecs_configuration(
+                run_environment)
+        return True
+    else:
+        return False
+
+
+def extract_emc(task: Task) -> dict[str, Any]:
     return convert_empty_to_none_values({
         'launch_type': task.aws_ecs_default_launch_type,
         'supported_launch_types': task.aws_ecs_supported_launch_types,
@@ -84,6 +112,7 @@ def extract_infra_from_task(task: Task) -> dict[str, Any]:
             log_stream_prefix = log_query[(last_slash_index + 1):]
 
     aws = {
+        'region': region,
         'network': convert_empty_to_none_values({
             'region': region,
             'subnets': task.aws_default_subnets,
@@ -107,7 +136,7 @@ def extract_infra_from_task(task: Task) -> dict[str, Any]:
     return aws
 
 
-def extract_scheduling_settings(task) -> dict[str, Any]:
+def extract_scheduling_settings(task: Task) -> dict[str, Any]:
     return convert_empty_to_none_values({
         'execution_rule_name': task.aws_scheduled_execution_rule_name,
         'event_rule_arn': task.aws_scheduled_event_rule_arn,
@@ -165,16 +194,10 @@ def populate_task_emc_and_infra(task: Task) -> bool:
         task.infrastructure_type = 'AWS'
         task.infrastructure_settings = extract_infra_from_task(task)
 
-        task.scheduling_provider_type = ''
-        task.scheduling_settings = None
         task.service_provider_type = ''
         task.service_settings = None
 
         if not task.passive:
-            if task.schedule:
-                task.scheduling_provider_type = 'AWS CloudWatch'
-                task.scheduling_settings = extract_scheduling_settings(task)
-
             if task.service_instance_count:
                 task.service_provider_type = 'AWS ECS'
                 task.service_settings = extract_service_settings(task)

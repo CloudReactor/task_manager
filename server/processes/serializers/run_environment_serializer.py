@@ -42,17 +42,19 @@ class RunEnvironmentSerializer(SerializerHelpers,
 
     class Meta:
         model = RunEnvironment
-        fields = ['url', 'uuid', 'name', 'description', 'dashboard_url',
-                  'created_by_user', 'created_by_group',
-                  'created_at', 'updated_at',
-                  'infrastructure_type', 'infrastructure_settings',
-                  'aws_account_id',
-                  'aws_default_region', 'aws_access_key',
-                  'aws_assumed_role_external_id', 'aws_events_role_arn',
-                  'aws_workflow_starter_lambda_arn', 'aws_workflow_starter_access_key',
-                  'default_alert_methods',
-                  'execution_method_capabilities',
-                  'infrastructure_type', 'infrastructure_settings']
+        fields = [
+            'url', 'uuid', 'name', 'description', 'dashboard_url',
+            'created_by_user', 'created_by_group',
+            'created_at', 'updated_at',
+            'infrastructure_settings',
+            'aws_account_id',
+            'aws_default_region',
+            'aws_assumed_role_external_id', 'aws_events_role_arn',
+            'aws_workflow_starter_lambda_arn', 'aws_workflow_starter_access_key',
+            'default_alert_methods',
+            'execution_method_capabilities',
+            'default_execution_method_configurations',
+        ]
 
         read_only_fields = [
             'url', 'uuid', 'dashboard_url',
@@ -60,13 +62,24 @@ class RunEnvironmentSerializer(SerializerHelpers,
             'created_at', 'updated_at'
         ]
 
+        extra_kwargs = {
+            'aws_access_key': { 'write_only': True }
+        }
+
     created_by_user = serializers.ReadOnlyField(source='created_by_user.username')
     created_by_group = GroupSerializer(read_only=True, include_users=False)
     url = serializers.HyperlinkedIdentityField(
         view_name='run_environments-detail',
         lookup_field='uuid'
     )
+
+    infrastructure_settings = serializers.SerializerMethodField()
+
+    # Deprecated
     execution_method_capabilities = serializers.SerializerMethodField()
+
+    default_execution_method_configurations = serializers.SerializerMethodField()
+
     default_alert_methods = NameAndUuidSerializer(include_name=True,
             view_name='alert_methods-detail', required=False, many=True)
 
@@ -110,6 +123,25 @@ class RunEnvironmentSerializer(SerializerHelpers,
                     run_env).data)
         return rv
 
+
+    def get_infrastructure_settings(self, run_env: RunEnvironment) \
+            -> dict[str, Any]:
+        rv = {}
+        if run_env.aws_settings:
+            rv[INFRASTRUCTURE_TYPE_AWS] = run_env.aws_settings
+
+        return rv
+
+
+    def get_default_execution_method_configurations(self, run_env: RunEnvironment) \
+            -> dict[str, Any]:
+        rv = {}
+        if run_env.default_aws_ecs_configuration:
+            rv[AwsEcsExecutionMethod.NAME] = run_env.default_aws_ecs_configuration
+
+        return rv
+
+
     def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         # May be None
         group = find_group_by_id_or_name(obj_dict=data.pop('created_by_group', None),
@@ -119,26 +151,61 @@ class RunEnvironmentSerializer(SerializerHelpers,
         validated['created_by_user'] = self.get_request_user()
         validated['created_by_group'] = group
 
-        try:
-            caps = data.get('execution_method_capabilities')
+        infra_configs = data.get('infrastructure_settings')
 
-            if caps is not None:
-                # TODO: clear existing properties
-                found_cap_types: list[str] = []
-                for cap in caps:
-                    cap_type = cap['type']
-                    found_cap_types.append(cap_type)
-                    if cap_type == AwsEcsExecutionMethod.NAME:
-                        validated = self.copy_aws_ecs_properties(validated, cap)
-                    else:
-                        raise serializers.ValidationError(f"Unknown execution method capability type '{cap_type}'")
+        if infra_configs:
+            aws_config = infra_configs.get(INFRASTRUCTURE_TYPE_AWS)
+            if aws_config:
+                self.copy_props_with_prefix(dest_dict=validated,
+                        src_dict=aws_config,
+                        dest_prefix='aws_',
+                        included_keys=['account_id', 'default_region',
+                        'access_key', 'secret_key', 'events_role_arn',
+                        'assumed_role_external_id',
+                        'workflow_starter_lambda_arn',
+                        'workflow_starter_lambda_access_key',
+                        ])
 
-                if AwsEcsExecutionMethod.NAME not in found_cap_types:
-                    validated['aws_events_role_arn'] = ''
+                # TODO: copy network settings
 
-        except serializers.ValidationError as validation_error:
-            self.handle_to_internal_value_exception(validation_error,
-                                                    field_name='execution_environment_capabilities')
+        defaults = data.get('default_execution_method_configurations')
+
+        if defaults:
+            aws_ecs_config = defaults.get(AwsEcsExecutionMethod.NAME)
+
+            if aws_ecs_config:
+                # Remove after default_aws_ecs_configuration becomes source of truth
+                self.copy_props_with_prefix(dest_dict=validated,
+                        src_dict=aws_ecs_config,
+                        dest_prefix='aws_ecs_default_',
+                        except_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
+
+                self.copy_props_with_prefix(dest_dict=validated,
+                        src_dict=aws_ecs_config,
+                        dest_prefix='aws_ecs_',
+                        included_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
+        else:
+            # For legacy AWS setup wizard / Dashboard UI
+            try:
+                caps = data.get('execution_method_capabilities')
+
+                if caps is not None:
+                    # TODO: clear existing properties
+                    found_cap_types: list[str] = []
+                    for cap in caps:
+                        cap_type = cap['type']
+                        found_cap_types.append(cap_type)
+                        if cap_type == AwsEcsExecutionMethod.NAME:
+                            validated = self.copy_aws_ecs_properties(validated, cap)
+                        else:
+                            raise serializers.ValidationError(f"Unknown execution method capability type '{cap_type}'")
+
+                    if AwsEcsExecutionMethod.NAME not in found_cap_types:
+                        validated['aws_events_role_arn'] = ''
+
+            except serializers.ValidationError as validation_error:
+                self.handle_to_internal_value_exception(validation_error,
+                                                        field_name='execution_environment_capabilities')
 
         self.set_validated_alert_methods(data=data, validated=validated,
             run_environment=cast(Optional[RunEnvironment], self.instance),
