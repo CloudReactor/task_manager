@@ -16,6 +16,7 @@ from ..common.aws import *
 from ..common.utils import deepmerge_with_lists_pair
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 from .aws_cloudwatch_scheduling_settings import (
+    SCHEDULING_TYPE_AWS_CLOUDWATCH,
     AwsCloudwatchSchedulingSettings
 )
 from .aws_base_execution_method import AwsBaseExecutionMethod
@@ -258,10 +259,15 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             # ],
             # EventBusName='string'
 
-        task.aws_scheduled_execution_rule_name = aws_scheduled_execution_rule_name
-        task.aws_scheduled_event_rule_arn = response['RuleArn']
 
-        logger.info(f"got rule ARN = {task.aws_scheduled_event_rule_arn}")
+
+        aws_scheduled_event_rule_arn = response['RuleArn']
+
+        # Delete these once scheduling_settings is the source of truth
+        task.aws_scheduled_execution_rule_name = aws_scheduled_execution_rule_name
+        task.aws_scheduled_event_rule_arn = aws_scheduled_event_rule_arn
+
+        logger.info(f"got rule ARN = {aws_scheduled_event_rule_arn}")
 
         if task.enabled:
             client.enable_rule(Name=aws_scheduled_execution_rule_name)
@@ -306,8 +312,18 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         )
         handle_aws_multiple_failure_response(response)
 
+        # Remove these once scheduling_settings is the source of truth
         task.aws_event_target_rule_name = aws_event_target_rule_name
         task.aws_event_target_id = aws_event_target_id
+
+        task.is_scheduling_managed = True
+        task.scheduling_provider_type = SCHEDULING_TYPE_AWS_CLOUDWATCH
+        task.scheduling_settings = AwsCloudwatchSchedulingSettings(
+            execution_rule_name=aws_scheduled_execution_rule_name,
+            event_rule_arn=aws_scheduled_event_rule_arn,
+            event_target_rule_name=aws_event_target_rule_name,
+            event_target_id=aws_event_target_id
+        ).dict()
 
     def teardown_scheduled_execution(self) -> None:
         client = None
@@ -326,8 +342,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     Force=False
                 )
                 handle_aws_multiple_failure_response(response)
-                task.aws_event_target_rule_name = ''
-                task.aws_event_target_id = ''
             except ClientError as client_error:
                 error_code = client_error.response['Error']['Code']
                 # Happens if the schedule rule is removed manually
@@ -336,6 +350,15 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 else:
                     logger.exception(f"teardown_scheduled_execution(): Can't remove target {task.aws_event_target_rule_name} due to unhandled error {error_code}")
                     raise client_error
+
+            # Remove when scheduling_settings is the source of truth
+            task.aws_event_target_rule_name = ''
+            task.aws_event_target_id = ''
+
+            if self.scheduling_settings:
+                self.scheduling_settings.event_target_rule_name = None
+                self.scheduling_settings.event_target_id = None
+                task.scheduling_settings = self.scheduling_settings.dict()
 
         if task.aws_scheduled_execution_rule_name:
             client = client or self.make_events_client()
@@ -356,8 +379,16 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     logger.exception(
                         f"teardown_scheduled_execution(): Can't remove target {task.aws_scheduled_execution_rule_name} due to unhandled error {error_code}")
                     raise client_error
+            else:
+                task.is_scheduling_managed = None
+                task.scheduling_provider_type = ''
 
-            task.aws_scheduled_event_rule_arn = ''
+                # Remove when scheduling_settings becomes source of truth
+                task.aws_scheduled_event_rule_arn = ''
+
+                self.scheduling_settings = None
+                task.scheduling_settings = None
+
 
     def setup_service(self, force_creation=False):
         from ..models.task import Task
