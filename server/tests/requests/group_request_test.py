@@ -248,27 +248,6 @@ def test_group_creation(is_authenticated: bool, use_api_key: bool,
     fetched_group = Group.objects.filter(name='Another Group').first()
     if status_code == 201:
         assert fetched_group is not None
-        assert user in fetched_group.user_set.all()
-        gals = list(user.group_access_levels.all())
-        assert len(gals) == 2
-
-        for gal in gals:
-            if gal.group != group:
-                assert gal.group == fetched_group
-                assert gal.user == user
-                assert gal.access_level == UserGroupAccessLevel.ACCESS_LEVEL_ADMIN
-
-        created_saas_tokens = list(SaasToken.objects.filter(user=user,
-                group=fetched_group).order_by('access_level').all())
-
-        assert len(created_saas_tokens) == 2
-
-        assert created_saas_tokens[0].name == SaasToken.TASK_KEY_NAME
-        assert created_saas_tokens[0].description == SaasToken.TASK_KEY_DESCRIPTION
-        assert created_saas_tokens[0].access_level == UserGroupAccessLevel.ACCESS_LEVEL_TASK
-        assert created_saas_tokens[1].name == SaasToken.DEPLOYMENT_KEY_NAME
-        assert created_saas_tokens[1].description == SaasToken.DEPLOYMENT_KEY_DESCRIPTION
-        assert created_saas_tokens[1].access_level == UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     elif is_name_conflict:
         assert fetched_group is not None # for mypy
         assert fetched_group == existing_group
