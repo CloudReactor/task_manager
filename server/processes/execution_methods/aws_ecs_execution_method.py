@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from botocore.exceptions import ClientError
 
 from ..common.aws import *
-from ..common.utils import deepmerge_with_lists_pair
+from ..common.utils import deepmerge
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 from .aws_cloudwatch_scheduling_settings import (
     SCHEDULING_TYPE_AWS_CLOUDWATCH,
@@ -56,6 +56,7 @@ class AwsEcsExecutionMethodSettings(BaseModel):
 
         self.task_role_infrastructure_website_url = \
             make_aws_console_role_url(self.task_role)
+
 
 class AwsEcsServiceDeploymentCircuitBreaker(BaseModel):
     enable: Optional[bool] = None
@@ -976,5 +977,5 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             self.service_settings.update_derived_attrs(task=self.task,
                 aws_ecs_settings=self.settings,
                 aws_settings=self.aws_settings)
-            self.task.service_settings = deepmerge_with_lists_pair(self.task.service_settings,
+            self.task.service_settings = deepmerge(self.task.service_settings,
                 self.service_settings.dict())
