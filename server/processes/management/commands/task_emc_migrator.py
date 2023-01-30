@@ -24,20 +24,17 @@ class Command(BaseCommand):
         logger.info("Starting Task execution method conversion ...")
 
         with StatusUpdater() as status_updater:
-            should_reset = (os.getenv('TASK_MANAGER_SHOULD_RESET_EMCD', 'FALSE') == 'TRUE')
+            should_reset = (os.getenv('TASK_MANAGER_SHOULD_RESET', 'FALSE') == 'TRUE')
 
             logger.info(f"{should_reset=}")
 
             qs = Task.objects.filter(execution_method_type=AwsEcsExecutionMethod.NAME)
 
-            if not should_reset:
-                qs = qs.filter(execution_method_capability_details__isnull=True)
-
             success_count = 0
             error_count = 0
             for task in qs.all():
                 try:
-                    if populate_task_emc_and_infra(task=task):
+                    if populate_task_emc_and_infra(task=task, should_reset=should_reset):
                         task.enrich_settings()
                         task.save()
                 except Exception:

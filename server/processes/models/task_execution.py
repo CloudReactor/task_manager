@@ -709,7 +709,7 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
 
     from .convert_legacy_em_and_infra import populate_task_execution_em_and_infra
 
-    populate_task_execution_em_and_infra(instance)
+    populate_task_execution_em_and_infra(instance, should_reset=True)
     instance.enrich_settings()
 
 

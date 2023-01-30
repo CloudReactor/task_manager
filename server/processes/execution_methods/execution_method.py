@@ -115,6 +115,9 @@ class ExecutionMethod:
     def supports_capability(self, cap: ExecutionCapability) -> bool:
         return cap in self.capabilities()
 
+    def should_update_scheduled_execution(self, old_self: 'Task') -> bool:
+        return False
+
     def setup_scheduled_execution(self) -> None:
         raise UnprocessableEntity(
                 detail='Execution method does not support scheduled execution.')

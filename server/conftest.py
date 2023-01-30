@@ -292,8 +292,6 @@ COPIED_TASK_ATTRIBUTES = [
     'is_service', 'service_instance_count', 'min_service_instance_count',
     'schedule', 'scheduled_instance_count', 'max_concurrency',
     'execution_method_type',
-    'scheduling_provider_type', 'is_scheduling_managed',
-    'service_provider_type', 'is_service_managed',
     'default_input_value', 'input_value_schema', 'output_value_schema',
     'managed_probability', 'failure_report_probability',
     'timeout_report_probability',
@@ -505,6 +503,7 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
         }
         body['infrastructure_type'] = 'AWS'
         body['infrastructure_settings'] = {
+            'region': 'us-west-1',
             'network': {
                 'subnets': ['subnet1', 'subnet2'],
                 'security_groups': ['sg1', 'sg2'],
@@ -978,6 +977,7 @@ def make_aws_ecs_task_execution_request_body(
             te_logging['stream'] = "ecs/curl/cd189a933e5849daa93386466019ab50"
 
             body['infrastructure_settings'] = {
+                'region': 'us-east-2',
                 'network': {
                     "region": "us-east-2",
                     "availability_zone": "us-east-2a",

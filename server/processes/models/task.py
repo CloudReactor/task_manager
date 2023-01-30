@@ -426,8 +426,9 @@ def pre_save_task(sender: Type[Task], **kwargs):
     instance = kwargs['instance']
     logger.info(f"pre-save with task {instance}")
 
+    old_self: Optional[Task] = None
+
     if instance.pk is None:
-        old_self = None
         usage_limits = Subscription.compute_usage_limits(instance.created_by_group)
         max_tasks = usage_limits.max_tasks
 
@@ -441,7 +442,8 @@ def pre_save_task(sender: Type[Task], **kwargs):
 
     from .convert_legacy_em_and_infra import populate_task_emc_and_infra
 
-    populate_task_emc_and_infra(instance)
+    # Temporary until the JSON fields are the source of truth
+    populate_task_emc_and_infra(instance, should_reset=True)
 
     if instance.should_skip_synchronize_with_run_environment:
         logger.info(f"skipping synchronize_with_run_environment with Task {instance}")
@@ -450,7 +452,7 @@ def pre_save_task(sender: Type[Task], **kwargs):
                 is_saving=False)
 
         if changed:
-            populate_task_emc_and_infra(instance)
+            populate_task_emc_and_infra(instance, should_reset=True)
 
     instance.enrich_settings()
 

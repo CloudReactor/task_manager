@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.core.paginator import Paginator
 from django.core.management.base import BaseCommand
@@ -25,15 +26,11 @@ class Command(BaseCommand):
         logger.info("Starting Task Execution execution method conversion ...")
 
         with StatusUpdater() as status_updater:
-            #should_reset = (os.getenv('TASK_MANAGER_SHOULD_RESET_EMD', 'FALSE') == 'TRUE')
-            should_reset = True
+            should_reset = (os.getenv('TASK_MANAGER_SHOULD_RESET', 'FALSE') == 'TRUE')
 
             logger.info(f"{should_reset=}")
 
             qs = TaskExecution.objects.filter(aws_ecs_task_definition_arn__isnull=False)
-
-            if not should_reset:
-                qs = qs.filter(execution_method_details__isnull=True)
 
             success_count = 0
             error_count = 0
@@ -44,7 +41,8 @@ class Command(BaseCommand):
                 for task_execution in paginator.page(page_idx).object_list:
                     try:
                         if populate_task_execution_em_and_infra(
-                                task_execution=task_execution):
+                                task_execution=task_execution,
+                                should_reset=should_reset):
                             task_execution.enrich_settings()
                             task_execution.save()
                     except Exception:

@@ -7,6 +7,9 @@ from .aws_settings import (
     AwsLogOptions,
     AwsXraySettings
 )
+from .aws_cloudwatch_scheduling_settings import (
+    SCHEDULING_TYPE_AWS_CLOUDWATCH
+)
 from .execution_method import ExecutionMethod
 from .unknown_execution_method import UnknownExecutionMethod
 from .aws_ecs_execution_method import (

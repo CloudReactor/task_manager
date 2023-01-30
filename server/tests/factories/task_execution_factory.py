@@ -28,7 +28,5 @@ class TaskExecutionFactory(factory.django.DjangoModelFactory):
 
     @factory.post_generation
     def sanitize_em(task_execution: TaskExecution, create: bool, extracted, **kwargs):
-        if task_execution.execution_method_details:
-            return
-
         populate_task_execution_em_and_infra(task_execution)
+
