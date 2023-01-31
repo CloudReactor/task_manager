@@ -40,6 +40,9 @@ class RunEnvironmentSerializer(SerializerHelpers,
     the RunEnvironment's settings.
     """
 
+    DEFAULT_LABEL = '__default__'
+    SETTINGS_KEY = 'settings'
+
     class Meta:
         model = RunEnvironment
         fields = [
@@ -53,7 +56,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
             'aws_workflow_starter_lambda_arn', 'aws_workflow_starter_access_key',
             'default_alert_methods',
             'execution_method_capabilities',
-            'default_execution_method_configurations',
+            'execution_method_settings',
         ]
 
         read_only_fields = [
@@ -78,7 +81,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
     # Deprecated
     execution_method_capabilities = serializers.SerializerMethodField()
 
-    default_execution_method_configurations = serializers.SerializerMethodField()
+    execution_method_settings = serializers.SerializerMethodField()
 
     default_alert_methods = NameAndUuidSerializer(include_name=True,
             view_name='alert_methods-detail', required=False, many=True)
@@ -131,16 +134,35 @@ class RunEnvironmentSerializer(SerializerHelpers,
             aws_settings_dict = run_env.aws_settings.copy()
             aws_settings_dict.pop('secret_key')
             aws_settings_dict.pop('workflow_starter_access_key')
-            rv[INFRASTRUCTURE_TYPE_AWS] = aws_settings_dict
+            rv[INFRASTRUCTURE_TYPE_AWS] = {
+                self.DEFAULT_LABEL: {
+                    self.SETTINGS_KEY: aws_settings_dict
+                }
+            }
 
         return rv
 
 
-    def get_default_execution_method_configurations(self, run_env: RunEnvironment) \
+    def get_execution_method_settings(self, run_env: RunEnvironment) \
             -> dict[str, Any]:
         rv = {}
         if run_env.default_aws_ecs_configuration:
-            rv[AwsEcsExecutionMethod.NAME] = run_env.default_aws_ecs_configuration
+            capabilities: list[str] = []
+            try:
+                em = AwsEcsExecutionMethod(
+                    aws_settings=run_env.aws_settings,
+                    aws_ecs_settings=run_env.default_aws_ecs_configuration)
+                capabilities = [c.name for c in em.capabilities()]
+            except Exception:
+                logger.warning("Can't compute capabilities for default ECS configuration")
+
+            rv[AwsEcsExecutionMethod.NAME] = {
+                self.DEFAULT_LABEL: {
+                    self.SETTINGS_KEY: run_env.default_aws_ecs_configuration,
+                    'capabilities': capabilities,
+                    'infrastructure_ref': self.DEFAULT_LABEL
+                }
+            }
 
         return rv
 
@@ -288,6 +310,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
             instance.save()
 
         return instance
+
 
     def copy_aws_ecs_properties(self, validated: dict[str, Any],
           cap: dict[str, Any]) -> dict[str, Any]:

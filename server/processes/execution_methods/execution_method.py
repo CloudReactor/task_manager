@@ -14,6 +14,7 @@ from ..exception import UnprocessableEntity
 
 if TYPE_CHECKING:
     from ..models import (
+      RunEnvironment,
       Task,
       TaskExecution
     )
@@ -103,11 +104,16 @@ class ExecutionMethod:
         'created_at', 'updated_at',
     ]
 
-    def __init__(self, name: str, task: 'Task',
+    def __init__(self, name: str,
+            task: Optional['Task'],
             task_execution: Optional['TaskExecution']):
         self.name = name
-        self.task = task
         self.task_execution = task_execution
+
+        if task_execution and (task is None):
+            task = task_execution.task
+
+        self.task = task
 
     def capabilities(self) -> FrozenSet[ExecutionCapability]:
         return frozenset()

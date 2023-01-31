@@ -175,28 +175,35 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     ]
 
 
-    def __init__(self, task: 'Task',
-            task_execution: Optional['TaskExecution'] = None) -> None:
-        super().__init__(self.NAME, task=task, task_execution=task_execution)
+    def __init__(self,
+            task: Optional['Task'] = None,
+            task_execution: Optional['TaskExecution'] = None,
+            aws_settings: Optional[dict[str, Any]] = None,
+            aws_ecs_settings: Optional[dict[str, Any]] = None) -> None:
+        super().__init__(self.NAME, task=task, task_execution=task_execution,
+                aws_settings=aws_settings)
 
+        task = self.task
 
-        emd, infra = ExecutionMethod.merge_execution_method_and_infrastructure_details(
-            task=task, task_execution=task_execution
-        )
+        if aws_ecs_settings is None:
+            settings_to_merge = [ {} ]
 
-        self.settings = AwsEcsExecutionMethodSettings.parse_obj(emd)
+            if task and task.execution_method_capability_details:
+                settings_to_merge.append(task.execution_method_capability_details)
 
-        self.aws_settings: Optional[AwsSettings] = None
+            if task_execution and task_execution.execution_method_details:
+                settings_to_merge.append(task_execution.execution_method_details)
 
-        if (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS) or \
-            (task_execution and \
-            (task_execution.infrastructure_type == INFRASTRUCTURE_TYPE_AWS)):
-            self.aws_settings = AwsSettings.parse_obj(infra)
+            aws_ecs_settings = deepmerge(*settings_to_merge)
+
+        logger.debug(f"{aws_ecs_settings=}")
+
+        self.settings = AwsEcsExecutionMethodSettings.parse_obj(aws_ecs_settings)
 
         self.service_settings: Optional[AwsEcsServiceSettings] = None
         self.scheduling_settings: Optional[AwsCloudwatchSchedulingSettings] = None
 
-        if task_execution is None:
+        if task and (task_execution is None):
             if task.service_settings:
                 self.service_settings = AwsEcsServiceSettings.parse_obj(task.service_settings)
 
@@ -208,48 +215,36 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
         task = self.task
 
-        if task.passive:
+        if task and task.passive:
             return frozenset()
 
-        run_env = task.run_environment
+        aws_settings = self.aws_settings
+        settings = self.settings
 
-        if not run_env.can_control_aws_ecs():
+        can_control_aws_ecs = bool(aws_settings.account_id and
+                aws_settings.region and \
+                ((aws_settings.events_role_arn and \
+                aws_settings.assumed_role_external_id) or
+                (aws_settings.access_key and aws_settings.secret_key)) and \
+                settings.execution_role and settings.cluster_arn)
+
+        if not can_control_aws_ecs:
+            logger.debug("Can't control ECS")
             return frozenset()
 
-        execution_role = self.settings.execution_role or \
-            run_env.aws_ecs_default_execution_role
+        network = self.aws_settings.network
 
-        if not execution_role:
+        subnets: Optional[list[str]] = None
+        security_groups: Optional[list[str]] = None
+
+        if network:
+            subnets = network.subnets
+            security_groups = network.security_groups
+
+        if (not subnets) or (not security_groups) :
             return frozenset()
 
-        cluster_arn = self.settings.cluster_arn or \
-            run_env.aws_ecs_default_cluster_arn
-
-        if not cluster_arn:
-            return frozenset()
-
-        task_network = self.aws_settings.network
-
-        subnets = run_env.aws_default_subnets
-
-        if task_network:
-            subnets = task_network.subnets or subnets
-
-        if not subnets:
-            return frozenset()
-
-        security_groups = run_env.aws_ecs_default_security_groups
-
-        if task_network:
-            security_groups = task_network.security_groups or security_groups
-
-        if not security_groups:
-            return frozenset()
-
-        if run_env.aws_events_role_arn:
-            return ExecutionMethod.ALL_CAPABILITIES
-
-        return self.CAPABILITIES_WITHOUT_SCHEDULING
+        return ExecutionMethod.ALL_CAPABILITIES
 
 
     def should_update_scheduled_execution(self, old_task: 'Task') -> bool:

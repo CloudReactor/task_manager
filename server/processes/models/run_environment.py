@@ -39,6 +39,7 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
     aws_workflow_starter_access_key = models.CharField(max_length=1000, blank=True)
     default_alert_methods = models.ManyToManyField('AlertMethod', blank=True)
 
+    # Deprecated
     def can_control_aws_ecs(self) -> bool:
         return bool(self.aws_account_id and self.aws_default_region and \
                 ((self.aws_events_role_arn and \
