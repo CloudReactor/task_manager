@@ -6,7 +6,9 @@ from ..common.utils import coalesce, deepmerge_with_lists
 from ..execution_methods import (
     INFRASTRUCTURE_TYPE_AWS,
     SCHEDULING_TYPE_AWS_CLOUDWATCH,
-    AwsEcsExecutionMethod
+    AwsSettings,
+    AwsEcsExecutionMethod,
+    AwsEcsExecutionMethodSettings
 )
 from .run_environment import RunEnvironment
 from .task import Task
@@ -80,6 +82,12 @@ def populate_run_environment_infra(run_environment: RunEnvironment) -> bool:
     if run_environment.aws_account_id or run_environment.aws_events_role_arn:
         run_environment.aws_settings = extract_infra_from_run_environment(
                 run_environment)
+
+        if run_environment.aws_settings:
+            aws_settings = AwsSettings.parse_obj(run_environment.aws_settings)
+            aws_settings.update_derived_attrs(run_environment=run_environment)
+            run_environment.aws_settings = aws_settings.dict()
+
         return True
     else:
         return False
@@ -99,8 +107,16 @@ def extract_aws_ecs_configuration(run_environment: RunEnvironment) -> dict[str, 
 
 def populate_run_environment_aws_ecs_configuration(run_environment: RunEnvironment) -> bool:
     if run_environment.aws_ecs_default_cluster_arn or run_environment.aws_ecs_default_execution_role:
-        run_environment.default_aws_ecs_configuration = extract_aws_ecs_configuration(
-                run_environment)
+        aws_ecs_config = extract_aws_ecs_configuration(run_environment)
+
+        if aws_ecs_config:
+            aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(
+                    aws_ecs_config)
+            aws_ecs_settings.update_derived_attrs()
+            aws_ecs_config = aws_ecs_settings.dict()
+
+        run_environment.default_aws_ecs_configuration = aws_ecs_config
+
         return True
     else:
         return False

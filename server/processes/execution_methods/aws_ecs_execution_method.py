@@ -48,6 +48,9 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     infrastructure_website_url: Optional[str] = None
 
     def update_derived_attrs(self):
+        self.cluster_infrastructure_website_url = \
+            make_aws_console_ecs_cluster_url(self.cluster_arn)
+
         self.task_definition_infrastructure_website_url = \
             make_aws_console_ecs_task_definition_url(self.task_definition_arn)
 
