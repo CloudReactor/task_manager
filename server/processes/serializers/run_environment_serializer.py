@@ -128,7 +128,10 @@ class RunEnvironmentSerializer(SerializerHelpers,
             -> dict[str, Any]:
         rv = {}
         if run_env.aws_settings:
-            rv[INFRASTRUCTURE_TYPE_AWS] = run_env.aws_settings
+            aws_settings_dict = run_env.aws_settings.copy()
+            aws_settings_dict.pop('secret_key')
+            aws_settings_dict.pop('workflow_starter_access_key')
+            rv[INFRASTRUCTURE_TYPE_AWS] = aws_settings_dict
 
         return rv
 
@@ -163,7 +166,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
                         'access_key', 'secret_key', 'events_role_arn',
                         'assumed_role_external_id',
                         'workflow_starter_lambda_arn',
-                        'workflow_starter_lambda_access_key',
+                        'workflow_starter_access_key',
                         ])
 
                 # TODO: copy network settings
