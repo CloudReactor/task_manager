@@ -40,10 +40,10 @@ class Command(BaseCommand):
             for run_env in qs.all():
                 changed = False
                 try:
-                    if should_reset or run_env.aws_settings:
+                    if should_reset or (run_env.aws_settings is None):
                         changed = populate_run_environment_infra(run_environment=run_env)
 
-                    if should_reset or run_env.default_aws_ecs_configuration:
+                    if should_reset or (run_env.default_aws_ecs_configuration is None):
                         changed = populate_run_environment_aws_ecs_configuration(
                                 run_environment=run_env) or changed
                 except Exception:
