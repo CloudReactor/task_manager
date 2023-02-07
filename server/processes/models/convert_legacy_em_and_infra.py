@@ -88,7 +88,7 @@ def populate_run_environment_infra(run_environment: RunEnvironment) -> bool:
 
         if run_environment.aws_settings:
             aws_settings = AwsSettings.parse_obj(run_environment.aws_settings)
-            aws_settings.update_derived_attrs(run_environment=run_environment)
+            aws_settings.update_derived_attrs()
             run_environment.aws_settings = aws_settings.dict()
 
         return True

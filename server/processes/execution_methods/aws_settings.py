@@ -1,6 +1,10 @@
 from typing import Optional, TYPE_CHECKING
 
+import os
 from urllib.parse import quote
+import uuid
+
+import boto3
 
 from pydantic import BaseModel
 
@@ -37,12 +41,12 @@ class AwsNetworkSettings(BaseModel):
     assign_public_ip: Optional[bool] = None
     networks: Optional[list[AwsNetwork]] = None
 
-    def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
+    def update_derived_attrs(self, aws_settings: 'AwsSettings') -> None:
         from ..common.aws import (
             make_aws_console_subnet_url,
             make_aws_console_security_group_url
         )
-        region = self.region or run_environment.get_aws_region()
+        region = self.region or aws_settings.region
 
         if region:
             if self.subnets is None:
@@ -75,11 +79,11 @@ class AwsLogOptions(BaseModel):
     max_buffer_size: Optional[str] = None
     stream_infrastructure_website_url: Optional[str] = None
 
-    def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
+    def update_derived_attrs(self, aws_settings: 'AwsSettings') -> None:
         self.stream_infrastructure_website_url = None
 
         if self.stream and self.group:
-            region = self.region or run_environment.aws_default_region
+            region = self.region or aws_settings.region
 
             if region:
                 #https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/$252Faws$252Flambda$252Faws-python-scheduled-cron-project-dev-cronHandler/log-events/2022$252F07$252F21$252F$255B$2524LATEST$255D45d39af3414141b6a281315363aa33bf
@@ -95,14 +99,14 @@ class AwsLoggingSettings(BaseModel):
     options: Optional[AwsLogOptions] = None
     infrastructure_website_url: Optional[str] = None
 
-    def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
+    def update_derived_attrs(self, aws_settings: 'AwsSettings') -> None:
         self.infrastructure_website_url = None
 
         options = self.options
         if not (options and options.group):
             return
 
-        region = options.region or run_environment.aws_default_region
+        region = options.region or aws_settings.region
         if region and (self.driver == 'awslogs'):
             limit = 2000 # TODO: make configurable
             lq = options.group
@@ -113,11 +117,16 @@ class AwsLoggingSettings(BaseModel):
                 + f"editorString~'fields*20*40timestamp*2c*20*40message*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" \
                 + quote(lq, safe='').replace('%', '*') + '))'
 
-            options.update_derived_attrs(run_environment=run_environment)
+            options.update_derived_attrs(aws_settings=aws_settings)
 
 class AwsXraySettings(BaseModel):
     trace_id: Optional[str] = None
     context_missing: Optional[str] = None
+
+
+PROTECTED_AWS_SETTINGS_PROPERTIES = [
+  'secret_key',
+]
 
 
 class AwsSettings(BaseModel):
@@ -138,7 +147,99 @@ class AwsSettings(BaseModel):
     xray: Optional[AwsXraySettings] = None
     tags: Optional[dict[str, str]] = None
 
-    def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
+    def assume_aws_role(self, b, service_name: str, role_arn: str,
+            region_name: str, session_uuid: str,
+            aws_access_key: Optional[str] = None,
+            aws_secret_access_key: Optional[str] = None,
+            external_id: Optional[str] = None) -> boto3.session.Session:
+        kwargs = dict(
+            region_name=region_name
+        )
+
+        if aws_access_key:
+            kwargs['aws_access_key_id'] = aws_access_key
+
+            if not aws_secret_access_key:
+                raise Exception('AWS access key found but not secret access key')
+
+            kwargs['aws_secret_access_key'] = aws_secret_access_key
+
+        sts_client = b.client('sts', **kwargs)
+
+        logger.info(f"Assuming role {role_arn} ...")
+
+        kwargs = dict(
+            RoleArn=role_arn,
+            RoleSessionName=f"{session_uuid}_{service_name}"
+        )
+
+        if external_id:
+            kwargs['ExternalId'] = external_id
+
+        assume_role_response = sts_client.assume_role(**kwargs)
+
+        logger.info(f"Successfully assumed role {role_arn}.")
+
+        assumed_credentials = assume_role_response['Credentials']
+
+        return boto3.session.Session(
+            aws_access_key_id=assumed_credentials['AccessKeyId'],
+            aws_secret_access_key=assumed_credentials['SecretAccessKey'],
+            aws_session_token=assumed_credentials['SessionToken'],
+            region_name=region_name)
+
+
+    def make_boto3_client(self, service_name: str, session_uuid: Optional[str] = None):
+        if self.access_key and self.secret_key:
+            return boto3.client(
+                service_name,
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key,
+                region_name=self.region
+            )  # type: ignore
+        else:
+            if not session_uuid:
+                session_uuid = str(uuid.uuid4())
+
+            customer_invoker_role_arn = os.environ['CUSTOMER_INVOKER_ROLE_ARN']
+            aws_region = os.environ['HOME_AWS_DEFAULT_REGION']
+            aws_access_key = os.environ.get('HOME_AWS_ACCESS_KEY')
+            aws_secret_access_key = os.environ.get('HOME_AWS_SECRET_KEY')
+
+            boto3_session_1 = self.assume_aws_role(boto3,
+                service_name='sts',
+                role_arn=customer_invoker_role_arn,
+                region_name=aws_region,
+                session_uuid=session_uuid,
+                aws_access_key=aws_access_key,
+                aws_secret_access_key=aws_secret_access_key)
+
+            boto3_session_2 = self.assume_aws_role(boto3_session_1,
+                service_name=service_name,
+                role_arn=self.events_role_arn,
+                region_name=self.region,
+                session_uuid=session_uuid,
+                external_id=self.assumed_role_external_id)
+
+            return boto3_session_2.client(service_name)  # type: ignore
+
+
+    def make_events_client(self, session_uuid: Optional[str] = None):
+        return self.make_boto3_client('events',
+                session_uuid=session_uuid)
+
+    def can_manage_infrastructure(self) -> bool:
+        return bool(self.account_id and self.region and \
+                ((self.events_role_arn and self.assumed_role_external_id) or
+                (self.access_key and self.secret_key)))
+
+    def can_schedule_workflow(self) -> bool:
+        return self.can_manage_infrastructure() and bool(
+                self.workflow_starter_lambda_arn and \
+                self.aws_workflow_starter_access_key and \
+                self.execution_role)
+
+    def update_derived_attrs(self) -> None:
         self.events_role_infrastructure_website_url = \
                 make_aws_console_role_url(self.events_role_arn)
 
@@ -149,7 +250,7 @@ class AwsSettings(BaseModel):
                 make_aws_console_lambda_function_url(self.workflow_starter_lambda_arn)
 
         if self.network:
-            self.network.update_derived_attrs(run_environment=run_environment)
+            self.network.update_derived_attrs(aws_settings=self)
 
         if self.logging:
-            self.logging.update_derived_attrs(run_environment=run_environment)
+            self.logging.update_derived_attrs(aws_settings=self)

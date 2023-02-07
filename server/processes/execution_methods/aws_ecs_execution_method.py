@@ -120,8 +120,7 @@ class AwsEcsServiceSettings(BaseModel):
     def update_derived_attrs(self, task: 'Task',
             aws_ecs_settings: AwsEcsExecutionMethodSettings,
             aws_settings: Optional[AwsSettings]):
-        cluster_name = extract_cluster_name(aws_ecs_settings.cluster_arn or \
-              task.run_environment.aws_ecs_default_cluster_arn)
+        cluster_name = extract_cluster_name(aws_ecs_settings.cluster_arn)
 
         if cluster_name and self.service_arn:
             self.infrastructure_website_url = make_aws_console_ecs_service_url(
@@ -188,8 +187,11 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if aws_ecs_settings is None:
             settings_to_merge = [ {} ]
 
-            if task and task.execution_method_capability_details:
-                settings_to_merge.append(task.execution_method_capability_details)
+            if task:
+                settings_to_merge = [
+                    task.run_environment.default_aws_ecs_configuration or {},
+                    task.execution_method_capability_details or {}
+                ]
 
             if task_execution and task_execution.execution_method_details:
                 settings_to_merge.append(task_execution.execution_method_details)
@@ -221,27 +223,18 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         aws_settings = self.aws_settings
         settings = self.settings
 
-        can_control_aws_ecs = bool(aws_settings.account_id and
-                aws_settings.region and \
-                ((aws_settings.events_role_arn and \
-                aws_settings.assumed_role_external_id) or
-                (aws_settings.access_key and aws_settings.secret_key)) and \
-                settings.execution_role and settings.cluster_arn)
-
-        if not can_control_aws_ecs:
+        if not aws_settings.can_manage_infrastructure():
             logger.debug("Can't control ECS")
             return frozenset()
 
         network = self.aws_settings.network
 
         subnets: Optional[list[str]] = None
-        security_groups: Optional[list[str]] = None
 
         if network:
             subnets = network.subnets
-            security_groups = network.security_groups
 
-        if (not subnets) or (not security_groups) :
+        if not subnets:
             return frozenset()
 
         return ExecutionMethod.ALL_CAPABILITIES
@@ -279,6 +272,9 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     def setup_scheduled_execution(self) -> None:
         task = self.task
 
+        if not task:
+            raise RuntimeError("No Task found")
+
         if task.is_scheduling_managed == False:
             raise RuntimeError("setup_scheduled_execution() called but is_scheduled_managed=False")
 
@@ -291,7 +287,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         aws_scheduled_execution_rule_name = f"CR_{task.uuid}"
 
-        client = self.make_events_client()
+        client = self.aws_settings.make_events_client()
 
         state = 'ENABLED' if task.enabled else 'DISABLED'
 
@@ -315,8 +311,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             #     },
             # ],
 
-        run_env = task.run_environment
-        execution_role_arn = self.settings.execution_role or run_env.aws_ecs_default_execution_role
+        execution_role_arn = self.settings.execution_role
         logger.info(f"Using execution role arn = '{execution_role_arn}'")
 
         if execution_role_arn:
@@ -349,21 +344,13 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         aws_event_target_rule_name = f"CR_{task.uuid}"
         aws_event_target_id = f"CR_{task.uuid}"
-        cluster_arn = self.settings.cluster_arn or run_env.aws_ecs_default_cluster_arn
-        launch_type = self.settings.launch_type or run_env.aws_ecs_default_launch_type
         platform_version = self.settings.platform_version or \
-                run_env.aws_ecs_default_platform_version or \
                 AWS_ECS_PLATFORM_VERSION_LATEST
 
-        subnets = run_env.aws_default_subnets
-        security_groups = run_env.aws_ecs_default_security_groups
+        task_network = self.aws_settings.network
 
-        if self.aws_settings:
-            task_network = self.aws_settings.network
-
-            if task_network:
-                subnets = task_network.subnets or subnets
-                security_groups = task_network.security_groups or security_groups
+        if not task_network:
+            raise APIException("Cannot schedule Task: no network settings found")
 
         assign_public_ip = self.assign_public_ip_str()
 
@@ -372,17 +359,17 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             Targets=[
                 {
                     'Id': aws_event_target_id,
-                    'Arn': cluster_arn,
-                    'RoleArn': run_env.aws_events_role_arn,
+                    'Arn': self.settings.cluster_arn,
+                    'RoleArn': self.aws_settings.events_role_arn,
                     'EcsParameters': {
                         'TaskDefinitionArn': self.settings.task_definition_arn,
                         'TaskCount': task.scheduled_instance_count or 1,
-                        'LaunchType': launch_type,
+                        'LaunchType': self.settings.launch_type,
                         # Only for tasks that use awsvpc networking
                         'NetworkConfiguration': {
                             'awsvpcConfiguration': {
-                                'Subnets': subnets,
-                                'SecurityGroups': security_groups,
+                                'Subnets': task_network.subnets,
+                                'SecurityGroups': task_network.security_groups,
                                 'AssignPublicIp': assign_public_ip
                             }
                         },
@@ -406,6 +393,9 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     def teardown_scheduled_execution(self) -> None:
         task = self.task
 
+        if not task:
+            raise RuntimeError("No Task found")
+
         if task.is_scheduling_managed == False:
             return
 
@@ -424,7 +414,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         client = None
 
         if ss.event_target_rule_name and ss.event_target_id:
-            client = self.make_events_client()
+            client = self.aws_settings.make_events_client()
 
             try:
                 kwargs = {
@@ -459,7 +449,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             task.scheduling_settings = ss.dict()
 
         if ss.execution_rule_name:
-            client = client or self.make_events_client()
+            client = client or self.aws_settings.make_events_client()
 
             try:
                 kwargs = {
@@ -495,6 +485,9 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         from ..models.task import Task
 
         task = self.task
+
+        if not task:
+            raise RuntimeError("No Task found")
 
         logger.info(f"setup_service() for Task {task.name}, {force_creation=} ...")
 
@@ -615,17 +608,19 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     def teardown_service(self) -> None:
         task = self.task
 
+        if not task:
+            raise RuntimeError("teardown_service(): No Task found")
+
         logger.info(f"Tearing down service for Task {task.name} ...")
 
         run_env = task.run_environment
         ecs_client = run_env.make_boto3_client('ecs')
         existing_service = self.find_aws_ecs_service(ecs_client=ecs_client)
-        cluster = task.aws_ecs_default_cluster_arn or run_env.aws_ecs_default_cluster_arn
 
         if existing_service:
             service_name = existing_service['serviceName']
             deletion_response = ecs_client.delete_service(
-                cluster=cluster,
+                cluster=self.settings.cluster_arn,
                 service=service_name,
                 force=True)
 
@@ -654,7 +649,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if task_execution is None:
             raise APIException("No Task Execution found")
 
-        task = self.task or task_execution.task
+        task = self.task
 
         if task_execution.is_service is None:
             task_execution.is_service = task.is_service
@@ -821,22 +816,14 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             logger.warning("Can't describe services", exc_info=True)
             return None
 
-    def make_events_client(self):
-        run_environment = self.task.run_environment
-        return run_environment.make_boto3_client('events')
 
-    def assign_public_ip_str(self, task_execution: Optional['TaskExecution'] = None) -> str:
-        task = self.task
-        run_env = task.run_environment
+    def assign_public_ip_str(self) -> str:
+        aws_network = self.aws_settings
 
         assign_public_ip = False
 
-        if task_execution and (task_execution.aws_ecs_assign_public_ip is not None):
-            assign_public_ip = task_execution.aws_ecs_assign_public_ip
-        elif task.aws_ecs_default_assign_public_ip is not None:
-            assign_public_ip = task.aws_ecs_default_assign_public_ip
-        elif run_env.aws_ecs_default_assign_public_ip is not None:
-            assign_public_ip = run_env.aws_ecs_default_assign_public_ip
+        if aws_network and aws_network.assign_public_ip:
+            assign_public_ip = True
 
         if assign_public_ip:
             return 'ENABLED'
@@ -865,8 +852,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             subnets = task_network.subnets or subnets
             security_groups = task_network.security_groups or security_groups
 
-        assign_public_ip = self.assign_public_ip_str(
-                task_execution=task_execution)
+        assign_public_ip = self.assign_public_ip_str()
 
         # if task_execution:
         #     cluster_arn =  task_execution.aws_ecs_cluster_arn or cluster_arn
@@ -969,11 +955,37 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         return args
 
     def enrich_task_settings(self) -> None:
+        if not self.task:
+            raise RuntimeError("No Task found")
+
         super().enrich_task_settings()
+
+        emcd = self.task.execution_method_capability_details
+        if emcd is None:
+            return
+
+        aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(emcd)
+        aws_ecs_settings.update_derived_attrs()
+        self.task.execution_method_capability_details = aws_ecs_settings.dict()
 
         if self.service_settings:
             self.service_settings.update_derived_attrs(task=self.task,
-                aws_ecs_settings=self.settings,
-                aws_settings=self.aws_settings)
+                    aws_ecs_settings=self.settings,
+                    aws_settings=self.aws_settings)
             self.task.service_settings = deepmerge(self.task.service_settings,
-                self.service_settings.dict())
+                    self.service_settings.dict())
+
+    def enrich_task_execution_settings(self) -> None:
+        super().enrich_task_execution_settings(self)
+
+        if self.task_execution is None:
+           raise APIException("enrich_task_settings(): Missing Task Execution")
+
+        emd = self.task_execution.execution_method_details
+
+        if emd:
+            aws_ecs_settings =  AwsEcsExecutionMethodSettings.parse_obj(emd)
+            aws_ecs_settings.update_derived_attrs()
+
+            self.task_execution.execution_method_details = deepmerge(
+                    emd, aws_ecs_settings.dict())

@@ -6,7 +6,7 @@ from rest_framework.exceptions import APIException
 
 from ..common.utils import deepmerge, deepmerge_with_lists_pair
 from .execution_method import ExecutionMethod
-from .aws_settings import AwsSettings
+from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 
 if TYPE_CHECKING:
     from ..models import (
@@ -29,43 +29,52 @@ class AwsBaseExecutionMethod(ExecutionMethod):
         if aws_settings is None:
             settings_to_merge = [ {} ]
 
-            if task and task.infrastructure_settings:
-                settings_to_merge.append(task.infrastructure_settings)
+            if task:
+                if task.run_environment.aws_settings:
+                    settings_to_merge.append(task.run_environment.aws_settings)
 
-            if task_execution and task_execution.infrastructure_settings:
+                if task.infrastructure_settings and \
+                        (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
+                    settings_to_merge.append(task.infrastructure_settings)
+
+            if task_execution and task_execution.infrastructure_settings and \
+                    (task_execution.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
                 settings_to_merge.append(task_execution.infrastructure_settings)
 
             aws_settings = deepmerge(*settings_to_merge)
 
+        # TODO: scrub
         logger.debug(f"Merged {aws_settings=}")
 
         self.aws_settings = AwsSettings.parse_obj(aws_settings)
 
 
-    # FIXME, these overwrite task settings with settings from RunEnvironment
     def enrich_task_settings(self) -> None:
-        self.settings.update_derived_attrs()
-        self.task.execution_method_capability_details = deepmerge_with_lists_pair(
-            self.task.execution_method_capability_details, self.settings.dict())
+        if not self.task:
+            raise RuntimeError("enrich_task_settings(): No Task found")
 
-        if self.aws_settings:
-            self.aws_settings.update_derived_attrs(
-                run_environment=self.task.run_environment)
-            self.task.infrastructure_settings = deepmerge_with_lists_pair(
-                self.task.infrastructure_settings, self.aws_settings.dict())
+        aws_settings_dict = self.task.infrastructure_settings
+
+        if aws_settings_dict:
+            aws_settings = AwsSettings.parse_obj(aws_settings_dict)
+
+            aws_settings.update_derived_attrs()
+
+            self.task.infrastructure_settings = deepmerge(
+                    aws_settings_dict, aws_settings.dict())
 
         # TODO: scheduling URLs
 
     def enrich_task_execution_settings(self) -> None:
-        if self.task_execution is None:
-           raise APIException("enrich_task_settings(): Missing Task Execution")
+        if not self.task_execution:
+            raise RuntimeError("enrich_task_execution_settings(): No Task Execution found")
 
-        self.settings.update_derived_attrs()
-        self.task_execution.execution_method_details = deepmerge_with_lists_pair(
-            self.task_execution.execution_method_details, self.settings.dict())
+        aws_settings_dict = self.task_execution.infrastructure_settings
 
-        if self.aws_settings:
-            self.aws_settings.update_derived_attrs(
-                run_environment=self.task.run_environment)
-            self.task_execution.infrastructure_settings = deepmerge_with_lists_pair(
-                self.task_execution.infrastructure_settings, self.aws_settings.dict())
+        if aws_settings_dict:
+            aws_settings = AwsSettings.parse_obj(aws_settings_dict)
+
+            aws_settings.update_derived_attrs()
+
+            self.task_execution.infrastructure_settings = deepmerge(
+                    aws_settings_dict, aws_settings.dict())

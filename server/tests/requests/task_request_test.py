@@ -670,8 +670,7 @@ def test_task_create_access_control(
         body_uuid_type: str, run_environment_send_type: str,
         status_code: int, validation_error_attribute: Optional[str],
         user_factory, group_factory, run_environment_factory,
-        task_factory, alert_method_factory,
-        api_client) -> None:
+        task_factory, api_client) -> None:
     """
     This only tests access control to the CREATE endpoint, not the actual changes.
     """

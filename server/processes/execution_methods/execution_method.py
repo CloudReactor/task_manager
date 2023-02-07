@@ -14,7 +14,6 @@ from ..exception import UnprocessableEntity
 
 if TYPE_CHECKING:
     from ..models import (
-      RunEnvironment,
       Task,
       TaskExecution
     )
@@ -242,31 +241,6 @@ class ExecutionMethod:
           'task_execution': task_execution_info,
           'env_override': task_execution.make_environment()
       }
-
-    @staticmethod
-    def merge_execution_method_and_infrastructure_details(
-            task: 'Task',
-            task_execution: Optional['TaskExecution'] = None) \
-            -> Tuple[dict[str, Any], dict[str, Any]]:
-        emd = task.execution_method_capability_details or {}
-        infra = task.infrastructure_settings or {}
-
-        if task_execution:
-            if task_execution.execution_method_details:
-                if task.execution_method_type == task_execution.execution_method_type:
-                    emd = deepmerge(emd.copy(),
-                        task_execution.execution_method_details)
-                else:
-                    emd = task_execution.execution_method_details or {}
-
-            if task_execution.infrastructure_settings:
-                if task.infrastructure_type == task_execution.infrastructure_type:
-                    infra = deepmerge(infra.copy(),
-                        task_execution.infrastructure_settings)
-                else:
-                    infra = task_execution.infrastructure_settings or {}
-
-        return (emd, infra)
 
     @staticmethod
     def make_execution_method(task: Optional['Task'] = None,

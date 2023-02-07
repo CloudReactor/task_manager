@@ -246,6 +246,7 @@ class Workflow(Schedulable):
         logger.info(f"Using execution role arn = '{execution_role_arn}'")
 
         # Need this permission: https://github.com/Miserlou/Zappa/issues/381
+        # TODO: event bus
         response = client.put_rule(
             Name=aws_scheduled_execution_rule_name,
             ScheduleExpression=self.schedule,
