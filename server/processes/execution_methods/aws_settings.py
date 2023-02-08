@@ -128,6 +128,8 @@ class AwsSettings(BaseModel):
     events_role_arn: Optional[str] = None
     events_role_infrastructure_website_url: Optional[str] = None
     assumed_role_external_id: Optional[str] = None
+    execution_role_arn: Optional[str] = None
+    execution_role_infrastructure_website_url: Optional[str] = None
     workflow_starter_lambda_arn: Optional[str] = None
     workflow_starter_lambda_infrastructure_website_url: Optional[str] = None
     workflow_starter_access_key: Optional[str] = None
@@ -139,6 +141,9 @@ class AwsSettings(BaseModel):
     def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
         self.events_role_infrastructure_website_url = \
                 make_aws_console_role_url(self.events_role_arn)
+
+        self.execution_role_infrastructure_website_url = \
+                make_aws_console_role_url(self.execution_role_arn)
 
         self.workflow_starter_lambda_infrastructure_website_url = \
                 make_aws_console_lambda_function_url(self.workflow_starter_lambda_arn)

@@ -62,6 +62,7 @@ def extract_infra_from_run_environment(run_environment: RunEnvironment) -> dict[
         'secret_key': run_environment.aws_secret_key,
         'events_role_arn': run_environment.aws_events_role_arn,
         'assumed_role_external_id': run_environment.aws_assumed_role_external_id,
+        'execution_role_arn': run_environment.aws_ecs_default_execution_role,
         'workflow_starter_lambda_arn': run_environment.aws_workflow_starter_lambda_arn,
         'workflow_starter_access_key': run_environment.aws_workflow_starter_access_key,
         'network': convert_empty_to_none_values({
@@ -74,6 +75,8 @@ def extract_infra_from_run_environment(run_environment: RunEnvironment) -> dict[
 
     if run_environment.aws_tags is not None:
         aws['tags'] = run_environment.aws_tags
+
+    logger.info(f"{aws=}")
 
     return aws
 
