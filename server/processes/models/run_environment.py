@@ -39,16 +39,17 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
     aws_workflow_starter_access_key = models.CharField(max_length=1000, blank=True)
     default_alert_methods = models.ManyToManyField('AlertMethod', blank=True)
 
-    # Deprecated, use AwsSettings.can_manage_infrastructure()
+    # Deprecated, use InfrastructureSettings.can_manage_infrastructure()
     def can_control_aws_ecs(self) -> bool:
-        return bool(self.aws_account_id and self.aws_default_region and \
-                ((self.aws_events_role_arn and \
-                self.aws_assumed_role_external_id) or
-                (self.aws_access_key and self.aws_secret_key)))
+        if not self.aws_settings:
+            return False
+
+        aws_settings = AwsSettings.parse_obj(self.aws_settings)
+        return aws_settings.can_manage_infrastructure()
 
     # Deprecated, use AwsSettings.region
-    def get_aws_region(self) -> str:
-        return self.aws_default_region
+    def get_aws_region(self) -> Optional[str]:
+        return self.aws_settings.get('region')
 
     # Deprecated, use AwsSettings.make_boto3_client()
     def make_boto3_client(self, service_name: str):
@@ -60,10 +61,11 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
                 session_uuid=str(self.uuid))
 
     def can_schedule_workflow(self) -> bool:
-        return bool(self.aws_account_id and \
-                self.aws_workflow_starter_lambda_arn and \
-                self.aws_workflow_starter_access_key and \
-                self.aws_ecs_default_execution_role)
+        if not self.aws_settings:
+            return False
+
+        aws_settings = AwsSettings.parse_obj(self.aws_settings)
+        return aws_settings.can_schedule_workflow()
 
 
 @receiver(pre_save, sender=RunEnvironment)
@@ -82,12 +84,3 @@ def pre_save_run_environment(sender: Type[RunEnvironment], **kwargs):
 
         if (max_tasks is not None) and (existing_count >= max_tasks):
             raise UnprocessableEntity(detail='Task limit exceeded', code='limit_exceeded')
-
-    from .convert_legacy_em_and_infra import (
-        populate_run_environment_infra,
-        populate_run_environment_aws_ecs_configuration
-    )
-
-    # Temporary until the JSON fields are the source of truth
-    populate_run_environment_infra(instance)
-    populate_run_environment_aws_ecs_configuration(instance)

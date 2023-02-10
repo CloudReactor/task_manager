@@ -8,6 +8,8 @@ from .base_aws_ecs_execution_method_serializer import (
     BaseAwsEcsExecutionMethodSerializer
 )
 
+
+# Deprecated
 class AwsEcsRunEnvironmentExecutionMethodCapabilitySerializer(
         BaseAwsEcsExecutionMethodSerializer,
         BaseExecutionMethodCapabilitySerializer):

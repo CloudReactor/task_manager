@@ -1,3 +1,5 @@
+from .infrastructure_settings import InfrastructureSettings
+
 from .aws_settings import (
     INFRASTRUCTURE_TYPE_AWS,
     PROTECTED_AWS_SETTINGS_PROPERTIES,

@@ -117,6 +117,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
 
         super().__init__(instance, data, context=context, **kwargs)
 
+    # Deprecated
     # TODO: use PolymorphicProxySerializer when it is supported
     @extend_schema_field(AwsEcsRunEnvironmentExecutionMethodCapabilitySerializer(many=True))
     def get_execution_method_capabilities(self, run_env: RunEnvironment) \

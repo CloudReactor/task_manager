@@ -9,12 +9,7 @@ import boto3
 from pydantic import BaseModel
 
 from ..common.aws import *
-
-
-if TYPE_CHECKING:
-    from ..models import (
-      RunEnvironment
-    )
+from .infrastructure_settings import InfrastructureSettings
 
 
 INFRASTRUCTURE_TYPE_AWS = 'AWS'
@@ -129,7 +124,7 @@ PROTECTED_AWS_SETTINGS_PROPERTIES = [
 ]
 
 
-class AwsSettings(BaseModel):
+class AwsSettings(InfrastructureSettings):
     account_id: Optional[str] = None
     region: Optional[str] = None
     access_key: Optional[str] = None
@@ -236,8 +231,8 @@ class AwsSettings(BaseModel):
     def can_schedule_workflow(self) -> bool:
         return self.can_manage_infrastructure() and bool(
                 self.workflow_starter_lambda_arn and \
-                self.aws_workflow_starter_access_key and \
-                self.execution_role)
+                self.workflow_starter_access_key and \
+                self.execution_role_arn)
 
     def update_derived_attrs(self) -> None:
         self.events_role_infrastructure_website_url = \

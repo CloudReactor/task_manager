@@ -955,8 +955,7 @@ def make_aws_ecs_task_execution_request_body(
         "task_definition_arn": emcd.get('task_definition_arn', task_definition_arn),
         "cluster_arn": emcd.get(default_attr_prefix + "cluster_arn",
                 run_environment.aws_ecs_default_cluster_arn),
-        "launch_type": launch_type,
-        "supported_launch_types": [launch_type],
+        "launch_type": launch_type
     }
 
     if is_legacy_schema:
@@ -1057,6 +1056,8 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
 
     for attr in ENHANCED_TASK_EXECUTION_ATTRIBUTES:
         if attr in body_task_execution:
+            print(f"body task execution[{attr}] = {body_task_execution[attr]}")
+            print(f"model[{attr}] = {getattr(model_task_execution, attr)}")
             assert_deep_subset(body_task_execution[attr],
                     getattr(model_task_execution, attr), attr)
 

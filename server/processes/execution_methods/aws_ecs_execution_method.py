@@ -221,7 +221,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             return frozenset()
 
         aws_settings = self.aws_settings
-        settings = self.settings
 
         if not aws_settings.can_manage_infrastructure():
             logger.debug("Can't control ECS")
@@ -818,7 +817,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
 
     def assign_public_ip_str(self) -> str:
-        aws_network = self.aws_settings
+        aws_network = self.aws_settings.network
 
         assign_public_ip = False
 
@@ -976,10 +975,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     self.service_settings.dict())
 
     def enrich_task_execution_settings(self) -> None:
-        super().enrich_task_execution_settings(self)
+        super().enrich_task_execution_settings()
 
         if self.task_execution is None:
-           raise APIException("enrich_task_settings(): Missing Task Execution")
+            raise APIException("enrich_task_settings(): Missing Task Execution")
 
         emd = self.task_execution.execution_method_details
 
