@@ -101,8 +101,8 @@ def extract_aws_ecs_configuration(run_environment: RunEnvironment) -> dict[str, 
         'launch_type': run_environment.aws_ecs_default_launch_type,
         'supported_launch_types': run_environment.aws_ecs_supported_launch_types,
         'cluster_arn': run_environment.aws_ecs_default_cluster_arn,
-        'execution_role': run_environment.aws_ecs_default_execution_role,
-        'task_role': run_environment.aws_ecs_default_task_role,
+        'execution_role_arn': run_environment.aws_ecs_default_execution_role,
+        'task_role_arn': run_environment.aws_ecs_default_task_role,
         'platform_version': run_environment.aws_ecs_default_platform_version,
         'enable_ecs_managed_tags': run_environment.aws_ecs_enable_ecs_managed_tags
     })
@@ -130,8 +130,8 @@ def extract_emc(task: Task) -> dict[str, Any]:
         'launch_type': task.aws_ecs_default_launch_type,
         'supported_launch_types': task.aws_ecs_supported_launch_types,
         'cluster_arn': task.aws_ecs_default_cluster_arn,
-        'execution_role': task.aws_ecs_default_execution_role,
-        'task_role': task.aws_ecs_default_task_role,
+        'execution_role_arn': task.aws_ecs_default_execution_role,
+        'task_role_arn': task.aws_ecs_default_task_role,
         'platform_version': task.aws_ecs_default_platform_version,
         'enable_ecs_managed_tags': task.aws_ecs_enable_ecs_managed_tags,
         'task_definition_arn': task.aws_ecs_task_definition_arn,
@@ -271,8 +271,8 @@ def extract_em(task_execution: TaskExecution) -> dict[str, Any]:
     return convert_empty_to_none_values({
         'launch_type': te.aws_ecs_launch_type,
         'cluster_arn': te.aws_ecs_cluster_arn,
-        'execution_role': te.aws_ecs_execution_role,
-        'task_role': te.aws_ecs_task_role,
+        'execution_role_arn': te.aws_ecs_execution_role,
+        'task_role_arn': te.aws_ecs_task_role,
         'platform_version': te.aws_ecs_platform_version,
         'task_definition_arn': te.aws_ecs_task_definition_arn,
         'task_arn': te.aws_ecs_task_arn

@@ -39,13 +39,14 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     cluster_infrastructure_website_url: Optional[str] = None
     task_definition_arn: Optional[str] = None
     task_definition_infrastructure_website_url: Optional[str] = None
+    infrastructure_website_url: Optional[str] = None
     main_container_name: Optional[str] = None
-    execution_role: Optional[str] = None
+    execution_role_arn: Optional[str] = None
     execution_role_infrastructure_website_url: Optional[str] = None
-    task_role: Optional[str] = None
+    task_role_arn: Optional[str] = None
     task_role_infrastructure_website_url: Optional[str] = None
     platform_version: Optional[str] = None
-    infrastructure_website_url: Optional[str] = None
+    enable_ecs_managed_tags: Optional[bool] = None
 
     def update_derived_attrs(self):
         self.cluster_infrastructure_website_url = \
@@ -54,11 +55,47 @@ class AwsEcsExecutionMethodSettings(BaseModel):
         self.task_definition_infrastructure_website_url = \
             make_aws_console_ecs_task_definition_url(self.task_definition_arn)
 
+        # Just a copy of the task definition URL, overwritten by
+        # AwsEcsExecutionMethodInfo.update_derived_attrs()
+        self.infrastructure_website_url = self.task_definition_infrastructure_website_url
+
         self.execution_role_infrastructure_website_url = \
-            make_aws_console_role_url(self.execution_role)
+            make_aws_console_role_url(self.execution_role_arn)
 
         self.task_role_infrastructure_website_url = \
-            make_aws_console_role_url(self.task_role)
+            make_aws_console_role_url(self.task_role_arn)
+
+
+class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
+    task_arn: Optional[str] = None
+
+    def update_derived_attrs(self):
+        super().update_derived_attrs()
+
+        self.infrastructure_website_url = None
+
+        if self.task_arn and self.cluster_arn:
+            parts = self.task_arn.split(':')
+            aws_region = parts[3]
+
+            if aws_region:
+                last_part = parts[5]
+                last_part_parts = last_part.split('/')
+                if len(last_part_parts) < 3:
+                    cluster_name = extract_cluster_name(self.cluster_arn)
+                    task_id = last_part_parts[1]
+                else:
+                    cluster_name = last_part_parts[1]
+                    task_id = last_part_parts[2]
+
+                if cluster_name is None:
+                    logger.warning("Task.infrastructure_website_url() can't determine cluster_name")
+                else:
+                    self.infrastructure_website_url = AWS_CONSOLE_BASE_URL \
+                        + 'ecs/home?region=' \
+                        + quote(aws_region) + '#/clusters/' \
+                        + quote(cluster_name) + '/tasks/' \
+                        + quote(task_id) + '/details'
 
 
 class AwsEcsServiceDeploymentCircuitBreaker(BaseModel):
@@ -184,7 +221,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             task=task, task_execution=task_execution
         )
 
-        self.settings = AwsEcsExecutionMethodSettings.parse_obj(emd)
+        if task_execution:
+            self.settings = AwsEcsExecutionMethodInfo.parse_obj(emd)
+        else:
+            self.settings = AwsEcsExecutionMethodSettings.parse_obj(emd)
 
         self.aws_settings: Optional[AwsSettings] = None
 
@@ -216,10 +256,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if not run_env.can_control_aws_ecs():
             return frozenset()
 
-        execution_role = self.settings.execution_role or \
+        execution_role_arn = self.settings.execution_role_arn or \
             run_env.aws_ecs_default_execution_role
 
-        if not execution_role:
+        if not execution_role_arn:
             return frozenset()
 
         cluster_arn = self.settings.cluster_arn or \
@@ -321,7 +361,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             # ],
 
         run_env = task.run_environment
-        execution_role_arn = self.settings.execution_role or run_env.aws_ecs_default_execution_role
+        execution_role_arn = self.settings.execution_role_arn or run_env.aws_ecs_default_execution_role
         logger.info(f"Using execution role arn = '{execution_role_arn}'")
 
         if execution_role_arn:
@@ -639,12 +679,24 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
             if current_status == 'INACTIVE':
                 logger.info(f'Service {service_name} was inactive, clearing service ARN')
+
+                # TODO: Remove when service_settings are the source of truth
                 task.aws_ecs_service_arn = ''
+
+                if self.service_settings:
+                    self.service_settings.service_arn = None
+                    task.service_settings = self.service_settings.dict()
             else:
                 logger.info(f'Service {service_name} had status {current_status}, saving service ARN')
                 # The service ARN is not modified so that the name can be
                 # incremented next time the service is enabled.
+
+                # TODO: Remove when service_settings are the source of truth
                 task.aws_ecs_service_arn = deleted_service['serviceArn']
+
+                if self.service_settings:
+                    self.service_settings.service_arn = deleted_service['serviceArn']
+                    task.service_settings = self.service_settings.dict()
 
             task.aws_ecs_service_updated_at = timezone.now()
 
@@ -982,3 +1034,18 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 aws_settings=self.aws_settings)
             self.task.service_settings = deepmerge(self.task.service_settings,
                 self.service_settings.dict())
+
+    def enrich_task_execution_settings(self) -> None:
+        super().enrich_task_execution_settings()
+
+        if self.task_execution is None:
+            raise APIException("enrich_task_settings(): Missing Task Execution")
+
+        emd = self.task_execution.execution_method_details
+
+        if emd:
+            aws_ecs_settings =  AwsEcsExecutionMethodInfo.parse_obj(emd)
+            aws_ecs_settings.update_derived_attrs()
+
+            self.task_execution.execution_method_details = deepmerge(
+                    emd, aws_ecs_settings.dict())

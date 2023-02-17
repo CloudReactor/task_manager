@@ -498,8 +498,8 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
             'supported_launch_types': ['FARGATE'],
             'platform_version': '1.4.0',
             'main_container_name': 'hello',
-            'execution_role': run_environment.aws_ecs_default_execution_role,
-            'task_role': 'arn:aws:iam::123456789012:role/task'
+            'execution_role_arn': run_environment.aws_ecs_default_execution_role,
+            'task_role_arn': 'arn:aws:iam::123456789012:role/task'
         }
         body['infrastructure_type'] = 'AWS'
         body['infrastructure_settings'] = {
@@ -1103,10 +1103,15 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
 
     if emd:
         for attr in ['task_arn', 'task_definition_arn', 'cluster_arn',
-                'launch_type', 'platform_version'
-                'execution_role', 'task_role']:
+                'launch_type', 'platform_version']:
+
             if attr in emd:
                 assert getattr(model_task_execution, 'aws_ecs_' + attr) == emd[attr], attr
+
+        for attr in ['execution_role', 'task_role']:
+            if attr in emd:
+                assert getattr(model_task_execution, 'aws_ecs_' + attr) == emd[attr  + '_arn'], attr
+
 
 
 def validate_serialized_workflow(body_workflow: dict[str, Any],
