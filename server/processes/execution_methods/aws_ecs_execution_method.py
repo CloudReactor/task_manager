@@ -13,8 +13,8 @@ from pydantic import BaseModel
 from botocore.exceptions import ClientError
 
 from ..common.aws import *
-from ..common.utils import deepmerge
-from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
+from ..common.utils import coalesce, deepmerge
+from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsNetwork, AwsSettings
 from .aws_cloudwatch_scheduling_settings import (
     SCHEDULING_TYPE_AWS_CLOUDWATCH,
     AwsCloudwatchSchedulingSettings
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     )
 
 from .execution_method import ExecutionMethod
+
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     DEFAULT_LAUNCH_TYPE = LAUNCH_TYPE_FARGATE
     DEFAULT_CPU_UNITS = 256
     DEFAULT_MEMORY_MB = 512
+
+    DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS = 300
 
     SERVICE_PROPAGATE_TAGS_TASK_DEFINITION = 'TASK_DEFINITION'
     SERVICE_PROPAGATE_TAGS_SERVICE = 'SERVICE'
@@ -511,13 +514,13 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                         f"teardown_scheduled_execution(): Can't delete rule {ss.execution_rule_name} due to unhandled error {error_code}")
                     raise client_error
 
-            self.scheduling_settings = None
-            task.is_scheduling_managed = None
-            task.scheduling_provider_type = ''
-            task.scheduling_settings = None
-
-            # Remove when scheduling_settings becomes source of truth
+            # TODO: Remove when scheduling_settings becomes source of truth
             task.aws_scheduled_event_rule_arn = ''
+
+            ss.execution_rule_name = None
+            ss.event_rule_arn = None
+            task.scheduling_settings = ss.dict()
+            task.is_scheduling_managed = None
 
 
     def setup_service(self, force_creation=False):
@@ -528,10 +531,15 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if not task:
             raise RuntimeError("No Task found")
 
+        ss = self.service_settings
+
+        if not ss:
+            raise RuntimeError("No service settings found")
+
         logger.info(f"setup_service() for Task {task.name}, {force_creation=} ...")
 
-        run_env = task.run_environment
-        ecs_client = run_env.make_boto3_client('ecs')
+        ecs_client = self.aws_settings.make_boto3_client('ecs',
+                session_uuid=str(task.uuid))
 
         existing_service = self.find_aws_ecs_service(ecs_client=ecs_client)
 
@@ -539,7 +547,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             service_name = existing_service['serviceName']
         else:
             service_name = self.make_aws_ecs_service_name()
-
 
         # When creating a service that specifies multiple target groups, the Amazon ECS service-linked role must be created. The role is created by omitting the role parameter in API requests, or the Role property in AWS CloudFormation. For more information, see Service-Linked Role for Amazon ECS.
         #role = task.aws_ecs_default_task_role or task.aws_ecs_default_execution_role or \
@@ -552,7 +559,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             current_status = existing_service['status'].upper()
             if force_creation or (current_status != 'ACTIVE'):
                 logger.info(f"Deleting service '{service_name}' before updating ...")
-                cluster = task.aws_ecs_default_cluster_arn or run_env.aws_ecs_default_cluster_arn
+                cluster = self.settings.cluster_arn
                 deletion_response = ecs_client.delete_service(
                     cluster=cluster,
                     service=service_name,
@@ -580,21 +587,30 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                         logger.warning(f"Can't match service name '{service_name}', will use '{new_service_name}' as new service name")
 
                 existing_service = None
+
+                # TODO: remove when Task.service_settings is the source of truth
                 task.aws_ecs_service_arn = ''
+                # TODO: set generic service_updated_at column
                 task.aws_ecs_service_updated_at = timezone.now()
+
+                ss.service_arn = None
+                task.service_settings = ss.dict()
+
+                # TODO: save Task, but without synchronizing to Run Environment
             else:
                 logger.info(f"setup_service() for Task {task.name} not deleting existing service {service_name}")
+
+        load_balancer_settings = ss.load_balancer_settings
 
         if existing_service:
             args = self.make_common_service_args(include_launch_type=False)
             args['service'] = service_name
-            args['forceNewDeployment'] = \
-                task.aws_ecs_service_force_new_deployment or False
+            args['forceNewDeployment'] = ss.force_new_deployment or False
 
-            if task.aws_ecs_service_load_balancer_details_set.count() > 0:
+            if load_balancer_settings and (len(load_balancer_settings.load_balancers) > 0):
                 args['healthCheckGracePeriodSeconds'] = \
-                    task.aws_ecs_service_load_balancer_health_check_grace_period_seconds or \
-                            Task.DEFAULT_ECS_SERVICE_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
+                    load_balancer_settings.health_check_grace_period_seconds or \
+                    self.DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
 
             logger.info(f"setup_service() for Task {task.name} updating service ...")
 
@@ -611,36 +627,41 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 'type': 'ECS'
             }
 
-            load_balancers = []
-            for load_balancer in task.aws_ecs_service_load_balancer_details_set.all():
-                load_balancer_dict = {
-                    'targetGroupArn': load_balancer.target_group_arn,
-                    'containerName': load_balancer.container_name or task.aws_ecs_main_container_name,
-                    'containerPort': load_balancer.container_port
-                }
-                load_balancers.append(load_balancer_dict)
+            if load_balancer_settings and load_balancer_settings.load_balancers:
+                load_balancer_dicts = []
+                for lb_setting in load_balancer_settings.load_balancers:
+                    load_balancer_dict = {
+                        'targetGroupArn': lb_setting.target_group_arn,
+                        'containerName': lb_setting.container_name or self.settings.main_container_name,
+                        'containerPort': lb_setting.container_port
+                    }
+                    load_balancer_dicts.append(load_balancer_dict)
 
-            args['loadBalancers'] = load_balancers
+                args['loadBalancers'] = load_balancer_dicts
 
-            if task.aws_ecs_service_load_balancer_details_set.count() > 0:
-                args['healthCheckGracePeriodSeconds'] = \
-                    task.aws_ecs_service_load_balancer_health_check_grace_period_seconds or \
-                    task.DEFAULT_ECS_SERVICE_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
+                if len(load_balancer_dicts) > 0:
+                    args['healthCheckGracePeriodSeconds'] = \
+                        load_balancer_settings.health_check_grace_period_seconds or \
+                        self.DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
 
-            if task.aws_ecs_service_enable_ecs_managed_tags is not None:
-                args['enableECSManagedTags'] = task.aws_ecs_service_enable_ecs_managed_tags
+            if ss.enable_ecs_managed_tags is not None:
+                args['enableECSManagedTags'] = ss.enable_ecs_managed_tags
 
-            if task.aws_ecs_service_propagate_tags:
-                args['propagateTags'] = task.aws_ecs_service_propagate_tags
+            if ss.propagate_tags:
+                args['propagateTags'] = ss.propagate_tags
 
             logger.info(f"setup_service() for Task {task.name} creating service ...")
 
             response = ecs_client.create_service(**args)
 
+        # TODO: Remove when Task.service_settings are the source of truth
         task.aws_ecs_service_arn = response['service']['serviceArn']
         task.aws_ecs_service_updated_at = timezone.now()
 
-        logger.info(f"setup_service() for Task {task.name} got service ARN  {task.aws_ecs_service_arn} ...")
+        ss.service_arn = response['service']['serviceArn']
+        task.service_settings = ss.dict()
+
+        logger.info(f"setup_service() for Task {task.name} got service ARN {ss.service_arn} ...")
 
         return response
 
@@ -652,11 +673,11 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         logger.info(f"Tearing down service for Task {task.name} ...")
 
-        run_env = task.run_environment
-        ecs_client = run_env.make_boto3_client('ecs')
+        ecs_client = self.aws_settings.make_boto3_client('ecs',
+                session_uuid=str(task.uuid))
         existing_service = self.find_aws_ecs_service(ecs_client=ecs_client)
 
-        if existing_service:
+        if existing_service and self.settings.cluster_arn:
             service_name = existing_service['serviceName']
             deletion_response = ecs_client.delete_service(
                 cluster=self.settings.cluster_arn,
@@ -712,22 +733,12 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if task_execution.process_max_retries is None:
             task_execution.process_max_retries = task.default_max_retries
 
-        run_env = task.run_environment
-
         args = self.add_creation_args(self.make_common_args(
-                include_launch_type=True, task_execution=task_execution),
-                task_execution=task_execution)
+                include_launch_type=True))
         cpu_units = task_execution.allocated_cpu_units \
                 or task.allocated_cpu_units or self.DEFAULT_CPU_UNITS
         memory_mb = task_execution.allocated_memory_mb \
                 or task.allocated_memory_mb or self.DEFAULT_MEMORY_MB
-
-        execution_role_arn = task_execution.aws_ecs_execution_role \
-                or task.aws_ecs_default_execution_role \
-                or run_env.aws_ecs_default_execution_role
-        task_role_arn = task_execution.aws_ecs_task_role \
-                or task.aws_ecs_default_task_role \
-                or run_env.aws_ecs_default_task_role
 
         environment = task_execution.make_environment()
         flattened_environment = []
@@ -739,22 +750,54 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         logger.info(f"manually_start() with args = {args}, " +
             f"{cpu_units=}, {memory_mb=}, " +
-            f"{execution_role_arn=}, {task_role_arn=}")
+            f"{self.settings.execution_role_arn=}, {self.settings.task_role_arn=}")
 
+        # TODO: Remove when execution_method_details are the source of truth
         task_execution.aws_ecs_cluster_arn = args['cluster']
         task_execution.aws_ecs_task_definition_arn = args['taskDefinition']
         task_execution.aws_ecs_platform_version = args['platformVersion']
-        task_execution.allocated_cpu_units = cpu_units
-        task_execution.allocated_memory_mb = memory_mb
         task_execution.aws_ecs_launch_type = args['launchType']
-        task_execution.aws_ecs_execution_role = execution_role_arn
-        task_execution.aws_ecs_task_role = task_role_arn
-
+        task_execution.aws_ecs_execution_role = self.settings.execution_role_arn or ''
+        task_execution.aws_ecs_task_role = self.settings.task_role_arn or ''
         nc = args['networkConfiguration']['awsvpcConfiguration']
         task_execution.aws_subnets = nc['subnets']
         task_execution.aws_ecs_security_groups = nc['securityGroups']
         task_execution.aws_ecs_assign_public_ip = \
                 (nc['assignPublicIp'] == 'ENABLED')
+
+        task_execution.allocated_cpu_units = cpu_units
+        task_execution.allocated_memory_mb = memory_mb
+
+        aws_ecs_settings = AwsEcsExecutionMethodInfo.parse_obj(
+            task_execution.execution_method_details or {})
+        aws_ecs_settings.cluster_arn = self.settings.cluster_arn
+        aws_ecs_settings.task_definition_arn = self.settings.task_definition_arn
+        aws_ecs_settings.platform_version = self.settings.platform_version
+        aws_ecs_settings.launch_type = self.settings.launch_type
+        aws_ecs_settings.execution_role_arn = self.settings.execution_role_arn
+        aws_ecs_settings.task_role_arn = self.settings.task_role_arn
+
+        task_execution.execution_method_type = self.NAME
+        task_execution.execution_method_details = aws_ecs_settings.dict()
+
+        aws_settings = AwsSettings.parse_obj(task_execution.infrastructure_settings or {})
+        network = aws_settings.network
+
+        if network is None:
+            network = AwsNetwork()
+            aws_settings.network = network
+
+        merged_network = self.aws_settings.network
+
+        if merged_network is None:
+            merged_network = AwsNetwork()
+
+        network.subnets = merged_network.subnets
+        network.security_groups = merged_network.security_groups
+        network.assign_public_ip = merged_network.assign_public_ip
+
+        task_execution.infrastructure_type = INFRASTRUCTURE_TYPE_AWS
+        task_execution.infrastructure_settings = aws_settings.dict()
 
         task_execution.save()
         task.latest_task_execution = task_execution
@@ -762,12 +805,13 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         success = False
         try:
-            ecs_client = run_env.make_boto3_client('ecs')
+            ecs_client = self.aws_settings.make_boto3_client('ecs',
+                    session_uuid=str(task_execution.uuid))
 
             overrides = {
                 'containerOverrides': [
                     {
-                        'name': task.aws_ecs_main_container_name,
+                        'name': self.settings.main_container_name,
 #                        'command': [
 #                            'string',
 #                        ],
@@ -783,11 +827,11 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 #                       ]
                     },
                 ],
-                'executionRoleArn': execution_role_arn,
+                'executionRoleArn': self.settings.execution_role_arn,
             }
 
-            if task_role_arn:
-                overrides['taskRoleArn'] = task_role_arn
+            if self.settings.task_role_arn:
+                overrides['taskRoleArn'] = self.settings.task_role_arn
 
             args.update({
               'overrides': overrides,
@@ -814,7 +858,11 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
             # TODO: handle failures in rv['failures'][]
 
+            # TODO: remove once execution_method_details is the source of truth
             task_execution.aws_ecs_task_arn = rv['tasks'][0]['taskArn']
+
+            self.settings.task_arn = rv['tasks'][0]['taskArn']
+            task_execution.execution_method_details['task_arn'] = self.settings.task_arn
 
             success = True
         except ClientError as client_error:
@@ -835,20 +883,20 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         return 'CR_' + str(self.task.uuid) + '_' + str(index)
 
     def find_aws_ecs_service(self, ecs_client=None) -> Optional[Any]:
-        task = self.task
-        run_env = task.run_environment
         if ecs_client is None:
-            ecs_client = run_env.make_boto3_client('ecs')
+            ecs_client = self.aws_settings.make_boto3_client('ecs')
 
-        cluster = task.aws_ecs_default_cluster_arn or \
-                run_env.aws_ecs_default_cluster_arn
+        cluster = self.settings.cluster_arn
 
         if not cluster:
             logger.debug("find_aws_ecs_service(): No ECS Cluster found, returning None")
             return None
 
-        service_arn_or_name = task.aws_ecs_service_arn or \
-                self.make_aws_ecs_service_name()
+        service_arn_or_name: Optional[str] = None
+        if self.service_settings:
+            service_arn_or_name = self.service_settings.service_arn
+
+        service_arn_or_name = service_arn_or_name or self.make_aws_ecs_service_name()
 
         logger.debug(f"describe_services() with {service_arn_or_name=}, {cluster=}")
 
@@ -881,21 +929,14 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return 'DISABLED'
 
-    def make_common_args(self, include_launch_type: bool=True,
-          task_execution: Optional['TaskExecution']=None) -> dict[str, Any]:
+    def make_common_args(self, include_launch_type: bool=True) -> dict[str, Any]:
         from ..models.aws_ecs_configuration import AwsEcsConfiguration
 
-        task = self.task
-        run_env = task.run_environment
-        cluster_arn = self.settings.cluster_arn \
-                or run_env.aws_ecs_default_cluster_arn
         platform_version = self.settings.platform_version \
-                or run_env.aws_ecs_default_platform_version \
                 or AwsEcsConfiguration.PLATFORM_VERSION_LATEST
-        task_definition_arn = self.settings.task_definition_arn
 
-        subnets = run_env.aws_default_subnets
-        security_groups = run_env.aws_ecs_default_security_groups
+        subnets: list[str] = []
+        security_groups: list[str] = []
 
         task_network = self.aws_settings.network
 
@@ -903,21 +944,12 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             subnets = task_network.subnets or subnets
             security_groups = task_network.security_groups or security_groups
 
+        # TODO: check if empty subnets is viable
+
         assign_public_ip = self.assign_public_ip_str()
-
-        # if task_execution:
-        #     cluster_arn =  task_execution.aws_ecs_cluster_arn or cluster_arn
-        #     task_definition_arn = task_execution.aws_ecs_task_definition_arn \
-        #           or task_definition_arn
-        #     subnets = task_execution.aws_subnets or subnets
-        #     security_groups = task_execution.aws_ecs_security_groups \
-        #           or security_groups
-        #     platform_version = task_execution.aws_ecs_platform_version \
-        #         or platform_version
-
         args = dict(
-            cluster=cluster_arn,
-            taskDefinition=task_definition_arn,
+            cluster=self.settings.cluster_arn,
+            taskDefinition=self.settings.task_definition_arn,
             networkConfiguration={
                 'awsvpcConfiguration': {
                     'subnets': subnets,
@@ -929,12 +961,11 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         )
 
         if include_launch_type:
-            # TODO: check that launch type is supported
-            launch_type = task.aws_ecs_default_launch_type \
-                    or run_env.aws_ecs_default_launch_type
+            launch_type = self.settings.launch_type or self.DEFAULT_LAUNCH_TYPE
 
-            if task_execution:
-                launch_type = task_execution.aws_ecs_launch_type or launch_type
+            if (self.settings.supported_launch_types is not None) and \
+                (launch_type not in self.settings.supported_launch_types):
+                raise APIException(f"Launch type '{launch_type}' is not supported")
 
             args['launchType'] = launch_type
 
@@ -943,44 +974,35 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
     def make_common_service_args(self, include_launch_type: bool=True) \
             -> dict[str, Any]:
+        ss = self.service_settings
+
+        if not ss:
+            raise RuntimeError('No service settings found')
 
         task = self.task
         args = self.make_common_args(include_launch_type=include_launch_type)
-        args['desiredCount'] =  task.service_instance_count
+        args['desiredCount'] = task.service_instance_count
 
-        deployment_configuration = {
-            'maximumPercent': task.aws_ecs_service_deploy_maximum_percent or 200,
-            'deploymentCircuitBreaker': {
-                'enable': task.aws_ecs_service_deploy_enable_circuit_breaker or False,
-                'rollback': task.aws_ecs_service_deploy_rollback_on_failure or False,
+        dc = ss.deployment_configuration or AwsEcsServiceDeploymentConfiguration()
+        dcb = dc.deployment_circuit_breaker or AwsEcsServiceDeploymentCircuitBreaker()
+
+        args['deploymentConfiguration'] = dict(
+            maximumPercent=coalesce(dc.maximum_percent, 200),
+            minimumHealthyPercent=coalesce(dc.minimum_healthy_percent, 100),
+            deploymentCircuitBreaker={
+                'enable': coalesce(dcb.enable, False),
+                'rollback': coalesce(dcb.rollback_on_failure, False),
             }
-        }
-
-        p = 100
-        if task.aws_ecs_service_deploy_minimum_healthy_percent is not None:
-            p = task.aws_ecs_service_deploy_minimum_healthy_percent
-
-        deployment_configuration['minimumHealthyPercent'] = p
-
-        args['deploymentConfiguration'] = deployment_configuration
+        )
 
         return args
 
-    def add_creation_args(self, args: dict[str, Any],
-            task_execution: Optional['TaskExecution']=None) -> dict[str, Any]:
-        task = self.task
-        run_env = task.run_environment
+    def add_creation_args(self, args: dict[str, Any]) -> dict[str, Any]:
+        tags = self.aws_settings.tags or {}
 
-        tags = (run_env.aws_tags or {}).copy()
-
-        if task.aws_tags:
-            tags.update(task.aws_tags)
-
-        if task_execution:
-            if task_execution.aws_tags:
-                tags.update(task_execution.aws_tags)
-        elif task.aws_ecs_service_tags:
-            tags.update(task.aws_ecs_service_tags)
+        if self.service_settings and self.service_settings.tags:
+            tags = tags.copy()
+            tags.update(self.service_settings.tags)
 
         if len(tags) > 0:
             args['tags']  = [
@@ -997,11 +1019,9 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         #     },
         # ],
 
-        managed = task.aws_ecs_enable_ecs_managed_tags \
-            or run_env.aws_ecs_enable_ecs_managed_tags
-
-        if managed is not None:
-            args['enableECSManagedTags'] = managed
+        managed_tags = self.settings.enable_ecs_managed_tags
+        if managed_tags is not None:
+            args['enableECSManagedTags'] = managed_tags
 
         return args
 
@@ -1012,12 +1032,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         super().enrich_task_settings()
 
         emcd = self.task.execution_method_capability_details
-        if emcd is None:
-            return
-
-        aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(emcd)
-        aws_ecs_settings.update_derived_attrs()
-        self.task.execution_method_capability_details = aws_ecs_settings.dict()
+        if emcd:
+            aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(emcd)
+            aws_ecs_settings.update_derived_attrs()
+            self.task.execution_method_capability_details = aws_ecs_settings.dict()
 
         if self.service_settings:
             self.service_settings.update_derived_attrs(task=self.task,
@@ -1027,10 +1045,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     self.service_settings.dict())
 
     def enrich_task_execution_settings(self) -> None:
-        super().enrich_task_execution_settings()
-
         if self.task_execution is None:
             raise APIException("enrich_task_settings(): Missing Task Execution")
+
+        super().enrich_task_execution_settings()
 
         emd = self.task_execution.execution_method_details
 

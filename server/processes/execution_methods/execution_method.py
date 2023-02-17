@@ -140,9 +140,11 @@ class ExecutionMethod:
     def manually_start(self) -> None:
         raise ValidationError(detail='Execution method does not support manual start.')
 
+    # TODO: allow implementation to partially fail, signaling errors
     def enrich_task_settings(self) -> None:
         pass
 
+    # TODO: allow implementation to partially fail, signaling errors
     def enrich_task_execution_settings(self) -> None:
         pass
 

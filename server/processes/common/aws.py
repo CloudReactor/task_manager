@@ -155,7 +155,7 @@ def make_aws_console_ecs_service_url(ecs_service_arn: Optional[str],
         last_part_parts = last_part.split('/')
         if len(last_part_parts) < 3:
             if not cluster_name:
-                logger.info('Service ARN is old format and no cluster name given, returning None')
+                logger.warning('Service ARN is old format and no cluster name given, returning None')
                 return None
             service_name = last_part_parts[1]
         else:

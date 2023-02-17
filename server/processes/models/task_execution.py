@@ -174,7 +174,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     api_request_timeout_seconds = models.IntegerField(null=True, blank=True,
             db_column='api_timeout_seconds')
 
-    # Deprecates for wrappers < 2.0
+    # Deprecated for wrappers < 2.0
     api_max_retries = models.IntegerField(null=True, blank=True)
     # Deprecated for wrappers < 2.0
     api_max_retries_for_final_update = models.IntegerField(null=True, blank=True)
@@ -221,53 +221,33 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
     @property
     def infrastructure_website_url(self) -> Optional[str]:
-        if not self.aws_ecs_task_arn:
-            return None
+        if self.execution_method_details:
+            return cast(Optional[str], self.execution_method_details.get('infrastructure_website_url'))
 
-        task = self.task
-        run_environment = task.run_environment
+        return None
 
-        parts = self.aws_ecs_task_arn.split(':')
-        aws_region = parts[3]
-
-        last_part = parts[5]
-        last_part_parts = last_part.split('/')
-        if len(last_part_parts) < 3:
-            aws_cluster_arn = self.aws_ecs_cluster_arn or \
-                task.aws_ecs_default_cluster_arn or \
-                run_environment.aws_ecs_default_cluster_arn
-            cluster_name = extract_cluster_name(aws_cluster_arn)
-            task_id = last_part_parts[1]
-        else:
-            cluster_name = last_part_parts[1]
-            task_id = last_part_parts[2]
-
-        if cluster_name is None:
-            logger.warning("Task.infrastructure_website_url() can't determine cluster_name")
-            return None
-
-        return AWS_CONSOLE_BASE_URL + 'ecs/home?region=' \
-                + quote(aws_region) + '#/clusters/' \
-                + quote(cluster_name) + '/tasks/' \
-                + quote(task_id) + '/details'
-
+    # Deprecated
     @property
     def aws_ecs_task_definition_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_ecs_task_definition_url(
                 self.aws_ecs_task_definition_arn)
 
+    # Deprecated
     @property
     def aws_ecs_cluster_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_ecs_cluster_url(self.aws_ecs_cluster_arn)
 
+    # Deprecated
     @property
     def aws_ecs_execution_role_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_role_url(self.aws_ecs_execution_role)
 
+    # Deprecated
     @property
     def aws_ecs_task_role_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_role_url(self.aws_ecs_task_role)
 
+    # Deprecated
     @property
     def aws_subnet_infrastructure_website_urls(self) -> Optional[List[Optional[str]]]:
         if not self.aws_subnets:
@@ -277,6 +257,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         aws_region = self.task.run_environment.aws_default_region
         return [make_aws_console_subnet_url(subnet_name, aws_region) for subnet_name in self.aws_subnets]
 
+    # Deprecated
     @property
     def aws_security_group_infrastructure_website_urls(self) -> Optional[List[Optional[str]]]:
         if not self.aws_ecs_security_groups:

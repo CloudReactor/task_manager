@@ -2,9 +2,7 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import logging
 
-from rest_framework.exceptions import APIException
-
-from ..common.utils import deepmerge, deepmerge_with_lists_pair
+from ..common.utils import deepmerge
 from .execution_method import ExecutionMethod
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 
@@ -42,9 +40,6 @@ class AwsBaseExecutionMethod(ExecutionMethod):
                 settings_to_merge.append(task_execution.infrastructure_settings)
 
             aws_settings = deepmerge(*settings_to_merge)
-
-        # TODO: scrub
-        logger.debug(f"Merged {aws_settings=}")
 
         self.aws_settings = AwsSettings.parse_obj(aws_settings)
 
