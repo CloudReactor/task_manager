@@ -637,7 +637,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
                         task, load_balancer_details_list):
                     task.aws_ecs_should_force_service_creation = True
 
-            task.synchronize_with_run_environment(old_self=old_self)
+            task.synchronize_with_run_environment(old_self=old_self, is_saving=True)
             task.should_skip_synchronize_with_run_environment = False
 
         if alert_methods is not None:
