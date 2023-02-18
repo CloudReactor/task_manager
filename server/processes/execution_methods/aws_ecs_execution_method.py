@@ -207,7 +207,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         'execution_role_arn',
     ]
 
-    INFRASTRUCTURE_NETWORK_ATTRIBUTES_REQUIRING_SCHEDULING_UPDATE = [
+    NETWORK_ATTRIBUTES_REQUIRING_SCHEDULING_UPDATE = [
         'subnets',
         'security_groups',
         'assign_public_ip'
@@ -225,18 +225,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         task = self.task
 
         if aws_ecs_settings is None:
-            settings_to_merge = [ {} ]
-
-            if task:
-                settings_to_merge = [
-                    task.run_environment.default_aws_ecs_configuration or {},
-                    task.execution_method_capability_details or {}
-                ]
-
-            if task_execution and task_execution.execution_method_details:
-                settings_to_merge.append(task_execution.execution_method_details)
-
-            aws_ecs_settings = deepmerge(*settings_to_merge)
+            aws_ecs_settings = self.merge_aws_ecs_settings_dict(task=task,
+                task_execution=task_execution)
 
         logger.debug(f"{aws_ecs_settings=}")
 
@@ -255,6 +245,24 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if task.scheduling_settings:
                 self.scheduling_settings = AwsCloudwatchSchedulingSettings.parse_obj(
                     task.scheduling_settings)
+
+
+    @staticmethod
+    def merge_aws_ecs_settings_dict(task: Optional['Task'],
+            task_execution: Optional['TaskExecution']) -> dict[str, Any]:
+
+        settings_to_merge = [ {} ]
+
+        if task:
+            settings_to_merge = [
+                task.run_environment.default_aws_ecs_configuration or {},
+                task.execution_method_capability_details or {}
+            ]
+
+        if task_execution and task_execution.execution_method_details:
+            settings_to_merge.append(task_execution.execution_method_details)
+
+        return deepmerge(*settings_to_merge)
 
 
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
@@ -283,20 +291,16 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
 
     def should_update_scheduled_execution(self, old_task: 'Task') -> bool:
-        should_schedule = self.task.enabled and self.task.is_scheduling_managed and \
-            self.task.schedule
+        network = self.aws_settings.network
 
-        was_scheduled = old_task.enabled and old_task.is_scheduling_managed and \
-            old_task.schedule
-
-        if should_schedule != was_scheduled:
+        if network is None:
+            logger.warning("should_update_scheduled_execution(): No network settings found, returning true")
             return True
 
-        if (not should_schedule) and (not was_scheduled):
-            return False
+        should = super().should_maybe_update_scheduled_execution(old_task=old_task)
 
-        if self.task.scheduled_instance_count != old_task.scheduled_instance_count:
-            return True
+        if should is not None:
+            return should
 
         if (old_task.execution_method_capability_details is None) or \
             (old_task.execution_method_type != AwsEcsExecutionMethod.NAME) or \
@@ -305,11 +309,32 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             return True
 
         old_settings = AwsEcsExecutionMethodSettings.parse_obj(
-            old_task.execution_method_capability_details)
+            self.merge_aws_ecs_settings_dict(task=old_task))
 
-        old_aws_settings = AwsSettings.parse_obj(
-            old_task.infrastructure_settings)
+        for attr in self.EXECUTION_METHOD_ATTRIBUTES_REQUIRING_SCHEDULING_UPDATE:
+            old_value = getattr(old_settings, attr)
+            new_value = getattr(self.settings, attr)
 
+            if new_value != old_value:
+                logger.info(f"{attr} changed from {old_value} to {new_value}, adjusting schedule")
+                return True
+
+        old_aws_settings = self.merge_aws_settings(task=old_task)
+        old_network = old_aws_settings.network
+
+        if old_network is None:
+            logger.info("should_update_scheduled_execution() Task previously had no network settings, returning true")
+            return True
+
+        for attr in self.NETWORK_ATTRIBUTES_REQUIRING_SCHEDULING_UPDATE:
+            old_value = getattr(old_network, attr)
+            new_value = getattr(network, attr)
+
+            if new_value != old_value:
+                logger.info(f"{attr} changed from {old_value} to {new_value}, adjusting schedule")
+                return True
+
+        return False
 
     def setup_scheduled_execution(self) -> None:
         task = self.task

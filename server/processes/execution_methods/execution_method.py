@@ -120,8 +120,12 @@ class ExecutionMethod:
     def supports_capability(self, cap: ExecutionCapability) -> bool:
         return cap in self.capabilities()
 
-    def should_update_scheduled_execution(self, old_self: 'Task') -> bool:
-        return False
+    def should_update_scheduled_execution(self, old_task: 'Task') -> bool:
+        should = self.should_maybe_update_scheduled_execution(old_task=old_task)
+        if should is None:
+            return True
+
+        return should
 
     def setup_scheduled_execution(self) -> None:
         raise UnprocessableEntity(
@@ -271,3 +275,21 @@ class ExecutionMethod:
                 task_execution=task_execution)
         return UnknownExecutionMethod(task=task,
                 task_execution=task_execution)
+
+    def should_maybe_update_scheduled_execution(self, old_task: 'Task') -> Optional[bool]:
+        should_schedule = self.task.enabled and self.task.is_scheduling_managed and \
+            self.task.schedule
+
+        was_scheduled = old_task.enabled and old_task.is_scheduling_managed and \
+            old_task.schedule
+
+        if should_schedule != was_scheduled:
+            return True
+
+        if (not should_schedule) and (not was_scheduled):
+            return False
+
+        if self.task.scheduled_instance_count != old_task.scheduled_instance_count:
+            return True
+
+        return False

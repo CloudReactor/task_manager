@@ -25,23 +25,30 @@ class AwsBaseExecutionMethod(ExecutionMethod):
                 task_execution=task_execution)
 
         if aws_settings is None:
-            settings_to_merge = [ {} ]
+            self.aws_settings = self.merge_aws_settings(task=task,
+                task_execution=task_execution)
+        else:
+            self.aws_settings = AwsSettings.parse_obj(aws_settings)
 
-            if task:
-                if task.run_environment.aws_settings:
-                    settings_to_merge.append(task.run_environment.aws_settings)
 
-                if task.infrastructure_settings and \
-                        (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
-                    settings_to_merge.append(task.infrastructure_settings)
+    @staticmethod
+    def merge_aws_settings(task: Optional['Task'],
+            task_execution: Optional['TaskExecution']) -> AwsSettings:
+        settings_to_merge = [ {} ]
 
-            if task_execution and task_execution.infrastructure_settings and \
-                    (task_execution.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
-                settings_to_merge.append(task_execution.infrastructure_settings)
+        if task:
+            if task.run_environment.aws_settings:
+                settings_to_merge.append(task.run_environment.aws_settings)
 
-            aws_settings = deepmerge(*settings_to_merge)
+            if task.infrastructure_settings and \
+                    (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
+                settings_to_merge.append(task.infrastructure_settings)
 
-        self.aws_settings = AwsSettings.parse_obj(aws_settings)
+        if task_execution and task_execution.infrastructure_settings and \
+                (task_execution.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
+            settings_to_merge.append(task_execution.infrastructure_settings)
+
+        return AwsSettings.parse_obj(deepmerge(*settings_to_merge))
 
 
     def enrich_task_settings(self) -> None:

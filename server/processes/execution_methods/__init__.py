@@ -27,5 +27,5 @@ from .aws_ecs_execution_method import (
 
 from .aws_lambda_execution_method import (
     AwsLambdaExecutionMethod,
-    AwsLambdaExecutionMethodCapabilitySettings
+    AwsLambdaExecutionMethodSettings
 )

@@ -35,19 +35,6 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     run the task and how often the task is supposed to run.
     """
 
-    AWS_ECS_SCHEDULE_ATTRIBUTES = [
-        'schedule',
-        'aws_default_subnets',
-        'aws_ecs_task_definition_arn',
-        'aws_ecs_default_launch_type',
-        'aws_ecs_default_cluster_arn',
-        'aws_ecs_default_security_groups',
-        'aws_ecs_default_execution_role',
-        'aws_ecs_default_task_role',
-        'enabled',
-        'is_scheduling_managed'
-    ]
-
     # attr => must_recreate
     AWS_ECS_SERVICE_ATTRIBUTES = {
         'service_instance_count': False,
@@ -337,9 +324,12 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     def execution_method(self) -> ExecutionMethod:
         return ExecutionMethod.make_execution_method(task=self)
 
-    def synchronize_with_run_environment(self, old_self=None, is_saving=False) -> bool:
+    def synchronize_with_run_environment(self, old_self: Optional['Task']=None,
+            is_saving=False) -> bool:
         if self.passive:
             return False
+
+        execution_method = self.execution_method()
 
         should_update_schedule = False
         should_force_create_service = self.aws_ecs_should_force_service_creation
@@ -348,13 +338,8 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
             if self.schedule != old_self.schedule:
                 self.schedule_updated_at = timezone.now()
 
-            for attr in Task.AWS_ECS_SCHEDULE_ATTRIBUTES:
-                new_value = getattr(self, attr)
-                old_value = getattr(old_self, attr)
-
-                if new_value != old_value:
-                    logger.info(f"{attr} changed from {old_value} to {new_value}, adjusting schedule")
-                    should_update_schedule = True
+            should_update_schedule = execution_method.should_update_scheduled_execution(
+                    old_task=old_self)
 
             should_update_service = self.aws_ecs_should_force_service_creation
             for attr, must_recreate in Task.AWS_ECS_SERVICE_ATTRIBUTES.items():
@@ -370,7 +355,7 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
             should_update_service = True
             should_force_create_service = True
 
-        execution_method = self.execution_method()
+
         should_update_schedule = should_update_schedule and \
                 execution_method.supports_capability(
                         ExecutionMethod.ExecutionCapability.SCHEDULING)

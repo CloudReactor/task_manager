@@ -27,7 +27,7 @@ from .execution_method import ExecutionMethod
 logger = logging.getLogger(__name__)
 
 
-class AwsLambdaExecutionMethodCapabilitySettings(BaseModel):
+class AwsLambdaExecutionMethodSettings(BaseModel):
     runtime_id: Optional[str] = None
     function_arn: Optional[str] = None
     function_name: Optional[str] = None
@@ -65,7 +65,7 @@ class AwsClientContext(BaseModel):
     env: Optional[dict[str, Any]] = None
 
 
-class AwsLambdaExecutionMethodSettings(AwsLambdaExecutionMethodCapabilitySettings):
+class AwsLambdaExecutionMethodInfo(AwsLambdaExecutionMethodSettings):
     time_zone_name: Optional[str] = None
     aws_request_id: Optional[str] = None
     cognito_identity: Optional[AwsCognitoIdentity] = None
@@ -73,9 +73,9 @@ class AwsLambdaExecutionMethodSettings(AwsLambdaExecutionMethodCapabilitySetting
 
     @staticmethod
     def from_capability(
-        capability: AwsLambdaExecutionMethodCapabilitySettings) \
-        -> 'AwsLambdaExecutionMethodSettings':
-        settings = AwsLambdaExecutionMethodSettings()
+        capability: AwsLambdaExecutionMethodSettings) \
+        -> 'AwsLambdaExecutionMethodInfo':
+        settings = AwsLambdaExecutionMethodInfo()
         settings.runtime_id = capability.runtime_id
         settings.function_arn = capability.function_arn
         settings.function_name = capability.function_name
@@ -116,10 +116,10 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         logger.debug(f"{aws_lambda_settings=}")
 
         if task_execution:
-            self.settings = AwsLambdaExecutionMethodSettings.parse_obj(
+            self.settings = AwsLambdaExecutionMethodInfo.parse_obj(
                     aws_lambda_settings)
         else:
-            self.settings = AwsLambdaExecutionMethodCapabilitySettings.parse_obj(
+            self.settings = AwsLambdaExecutionMethodSettings.parse_obj(
                     aws_lambda_settings)
 
 
