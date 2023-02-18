@@ -109,7 +109,7 @@ class AwsLoggingSettings(BaseModel):
                 f"https://{region}.console.aws.amazon.com/cloudwatch/home?" \
                 + f"region={region}#logs-insights:queryDetail=" \
                 + "~(end~0~start~-86400~timeType~'RELATIVE~unit~'seconds~" \
-                + f"editorString~'fields*20*40timestamp*2c*20*40message*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" \
+                + f"editorString~'fields*20*40timestamp*2c*20*40message*2c*20*40logStream*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" \
                 + quote(lq, safe='').replace('%', '*') + '))'
 
             options.update_derived_attrs(aws_settings=aws_settings)
