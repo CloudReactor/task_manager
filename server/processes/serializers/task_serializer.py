@@ -9,7 +9,7 @@ import logging
 
 from rest_framework import serializers
 from rest_framework.exceptions import (
-    ErrorDetail, ValidationError
+    APIException, ErrorDetail, ValidationError
 )
 
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
@@ -37,11 +37,6 @@ from .generic_execution_method_capability_stopgap_serializer import (
 from .aws_ecs_execution_method_capability_stopgap_serializer import (
     AwsEcsExecutionMethodCapabilityStopgapSerializer
 )
-from .aws_ecs_service_options_serializer import (
-    AwsEcsServiceOptionsSerializer
-)
-
-
 
 from ..common.request_helpers import (
     ensure_group_access_level,
@@ -347,6 +342,9 @@ class TaskSerializer(GroupSettingSerializerMixin,
         else:
             execution_method_type = UnknownExecutionMethod.NAME
 
+        if execution_method_type is None:
+            raise APIException("TaskSerializer.to_internal_value() execution_method_type is None?")
+
         logger.debug(f"{execution_method_type=}")
 
         validated['execution_method_type'] = execution_method_type
@@ -447,7 +445,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
             if ('is_service_managed' not in validated) and \
                 ((task is None) or (task.is_service_managed is None)):
-              validated['is_service_managed'] = True
+                validated['is_service_managed'] = True
         else:
             if service_instance_count and (service_instance_count > 0):
                 raise serializers.ValidationError({
@@ -471,17 +469,18 @@ class TaskSerializer(GroupSettingSerializerMixin,
         if schedule:
             if ('is_scheduling_managed' not in validated) and \
                 ((task is None) or (task.is_scheduling_managed is None)):
-              validated['is_scheduling_managed'] = True
+                validated['is_scheduling_managed'] = True
 
             if ('scheduled_instance_count' not in validated) and \
                 ((task is None) or (task.scheduled_instance_count is None)):
-              validated['scheduled_instance_count'] = 1
+                validated['scheduled_instance_count'] = 1
         else:
             if validated.get('is_scheduling_managed'):
                 raise serializers.ValidationError({
                     'is_scheduling_managed': ['Cannot be true for unscheduled Tasks']
                 })
 
+            # TODO: allow this to be non-zero, in case scheduling settings set without schedule
             if validated.get('scheduled_instance_count'):
                 raise serializers.ValidationError({
                     'scheduled_instance_count': ['Cannot be non-zero for unscheduled Tasks']
@@ -554,10 +553,10 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         load_balancer_details_list = defaults.pop('aws_ecs_load_balancer_details_set', None)
         alert_methods = defaults.pop('alert_methods', None)
-
         task_links = defaults.pop('task_links', None)
 
         group = validated_data.get('created_by_group')
+        task: Optional[Task] = None
 
         if is_service_defined and (load_balancer_details_list is None):
             logger.info(f"Task update or create with {defaults}, {uuid=}")
@@ -633,9 +632,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
                     task.aws_ecs_service_load_balancer_health_check_grace_period_seconds = None
 
                 task.save()
-                if self.update_aws_ecs_service_load_balancer_details_set(
-                        task, load_balancer_details_list):
-                    task.aws_ecs_should_force_service_creation = True
+                self.update_aws_ecs_service_load_balancer_details_set(
+                        task, load_balancer_details_list)
 
             task.synchronize_with_run_environment(old_self=old_self, is_saving=True)
             task.should_skip_synchronize_with_run_environment = False

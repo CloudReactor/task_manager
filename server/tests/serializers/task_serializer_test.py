@@ -188,6 +188,7 @@ def test_task_deserialization_with_existing_task(
     except APIException as ex:
         assert ex.status_code == status_code
         if validation_error_attribute:
+            assert isinstance(ex.detail, dict)
             assert validation_error_attribute == list(ex.detail.keys())[0]
     else:
         assert status_code == 200

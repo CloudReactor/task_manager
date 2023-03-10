@@ -22,9 +22,11 @@ from ..common import (
     extract_authenticated_run_environment
 )
 from ..common.request_helpers import ensure_group_access_level
+from ..common.utils import deepmerge
 from ..exception import UnprocessableEntity
 from ..execution_methods import *
 from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
+from ..models.convert_legacy_em_and_infra import convert_empty_to_none_values
 from .name_and_uuid_serializer import NameAndUuidSerializer
 
 from .embedded_id_validating_serializer_mixin import (
@@ -272,8 +274,11 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
 
             if was_auto_created:
-                validated['auto_created_task_properties'] = task_dict or \
-                    task_execution.auto_created_task_dict
+                actp = task_dict
+                if (actp is None) and task_execution:
+                    actp = task_execution.auto_created_task_properties
+
+                validated['auto_created_task_properties'] = actp
 
             logger.debug(f"to_internal_value(): validated task {task}")
 
@@ -320,6 +325,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         validated['execution_method_type'] = execution_method_type
 
+        computed_legacy_em: Optional[dict[str, Any]] = None
+        computed_legacy_aws_settings: Optional[dict[str, Any]] = None
+
         # Set deprecated columns
         if execution_method_dict:
             if is_legacy_schema:
@@ -345,6 +353,27 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                         included_keys=[
                             'execution_role', 'task_role',
                         ])
+
+                    validated['execution_method_details'] = convert_empty_to_none_values({
+                        'launch_type': execution_method_dict.get('launch_type'),
+                        'cluster_arn': execution_method_dict.get('cluster_arn'),
+                        'task_definition_arn': execution_method_dict.get('task_definition_arn'),
+                        'task_arn': execution_method_dict.get('task_arn'),
+                        'execution_role_arn': execution_method_dict.get('execution_role'),
+                        'task_role_arn': execution_method_dict.get('task_role'),
+                        'platform_version': execution_method_dict.get('platform_version'),
+                    })
+
+                    validated['infrastructure_type'] = INFRASTRUCTURE_TYPE_AWS
+                    validated['infrastructure_settings'] = {
+                        'network': {
+                            'region': execution_method_dict.get('region'),
+                            'availability_zone': execution_method_dict.get('availability_zone'),
+                            'security_groups': execution_method_dict.get('security_groups'),
+                            'subnets': execution_method_dict.get('subnets'),
+                            'assign_public_ip': execution_method_dict.get('assign_public_ip')
+                        }
+                    }
                 else:
                     for p in ['execution_role', 'task_role']:
                         if p in execution_method_dict:
@@ -462,6 +491,10 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         for attr in TaskExecution.UNMODIFIABLE_ATTRIBUTES:
             if getattr(instance, attr) is not None:
                 validated_data.pop(attr, None)
+
+        for attr in TaskExecution.MERGED_ATTRIBUTES:
+            if (attr in validated_data) and (getattr(instance, attr) is not None):
+                validated_data[attr] = deepmerge(instance[attr], validated_data[attr])
 
         task_execution = cast(TaskExecution, self.instance)
         self.protect_attributes(validated_data=validated_data,

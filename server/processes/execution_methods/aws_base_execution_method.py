@@ -34,7 +34,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
     @staticmethod
     def merge_aws_settings(task: Optional['Task'],
             task_execution: Optional['TaskExecution']) -> AwsSettings:
-        settings_to_merge = [ {} ]
+        settings_to_merge: list[dict[str, Any]] = [ {} ]
 
         if task:
             if task.run_environment.aws_settings:
@@ -50,6 +50,28 @@ class AwsBaseExecutionMethod(ExecutionMethod):
 
         return AwsSettings.parse_obj(deepmerge(*settings_to_merge))
 
+    def compute_region(self) -> Optional[str]:
+        region = self.aws_settings.region
+
+        if (not region) and self.task:
+            infra = self.task.infrastructure_settings
+            if infra and (self.task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
+                region = infra.get('region')
+
+                if (not region) and infra.get('network'):
+                    region = infra['network'].get('region')
+
+            if not region:
+                run_environment = self.task.run_environment
+                re_aws_settings = run_environment.aws_settings
+                if re_aws_settings:
+                    region = re_aws_settings.get('region')
+
+                    if (not region) and re_aws_settings.get('network'):
+                        region = re_aws_settings['network'].get('region')
+
+        return region
+
 
     def enrich_task_settings(self) -> None:
         if not self.task:
@@ -60,7 +82,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
         if aws_settings_dict:
             aws_settings = AwsSettings.parse_obj(aws_settings_dict)
 
-            aws_settings.update_derived_attrs()
+            aws_settings.update_derived_attrs(execution_method=self)
 
             self.task.infrastructure_settings = deepmerge(
                     aws_settings_dict, aws_settings.dict())
@@ -76,7 +98,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
         if aws_settings_dict:
             aws_settings = AwsSettings.parse_obj(aws_settings_dict)
 
-            aws_settings.update_derived_attrs()
+            aws_settings.update_derived_attrs(execution_method=self)
 
             self.task_execution.infrastructure_settings = deepmerge(
                     aws_settings_dict, aws_settings.dict())

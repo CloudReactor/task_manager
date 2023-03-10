@@ -61,15 +61,16 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
             'execution_method_capability_details': data
         }
 
-        included_keys = []
-        string_valued_columns = []
+        included_keys: list[str] = []
+        string_valued_columns: list[str] = []
 
         for field_name, field_instance in self.get_fields().items():
             if not field_instance.read_only:
                 included_keys.append(field_name)
 
                 if (not field_instance.allow_null) and \
-                        isinstance(field_instance, serializers.CharField):
+                        isinstance(field_instance, serializers.CharField) and \
+                        ((field_instance.source is None) or isinstance(field_instance.source, str)):
                     string_valued_columns.append(field_instance.source or field_name)
 
         default_prefixed_keys = ['platform_version', 'launch_type']

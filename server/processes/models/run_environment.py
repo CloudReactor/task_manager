@@ -49,7 +49,10 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
     # Deprecated, use AwsSettings.region
     def get_aws_region(self) -> Optional[str]:
-        return self.aws_settings.get('region')
+        if self.aws_settings:
+            return self.aws_settings.get('region')
+
+        return None
 
     # Deprecated, use AwsSettings.make_boto3_client()
     def make_boto3_client(self, service_name: str):

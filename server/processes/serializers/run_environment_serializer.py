@@ -253,28 +253,27 @@ class RunEnvironmentSerializer(SerializerHelpers,
                         'execution_method_settings': [f"Found {execution_method_name=}, but only '{self.DEFAULT_LABEL}' is supported for now"],
                     })
 
-        else:
-            # For legacy AWS setup wizard / Dashboard UI
-            try:
-                caps = data.get('execution_method_capabilities')
+        # For legacy AWS setup wizard / Dashboard UI
+        try:
+            caps = data.get('execution_method_capabilities')
 
-                if caps is not None:
-                    # TODO: clear existing properties
-                    found_cap_types: list[str] = []
-                    for cap in caps:
-                        cap_type = cap['type']
-                        found_cap_types.append(cap_type)
-                        if cap_type == AwsEcsExecutionMethod.NAME:
-                            validated = self.copy_aws_ecs_properties(validated, cap)
-                        else:
-                            raise serializers.ValidationError(f"Unknown execution method capability type '{cap_type}'")
+            if caps is not None:
+                # TODO: clear existing properties
+                found_cap_types: list[str] = []
+                for cap in caps:
+                    cap_type = cap['type']
+                    found_cap_types.append(cap_type)
+                    if cap_type == AwsEcsExecutionMethod.NAME:
+                        validated = self.copy_aws_ecs_properties(validated, cap)
+                    else:
+                        raise serializers.ValidationError(f"Unknown execution method capability type '{cap_type}'")
 
-                    if AwsEcsExecutionMethod.NAME not in found_cap_types:
-                        validated['aws_events_role_arn'] = ''
+                if AwsEcsExecutionMethod.NAME not in found_cap_types:
+                    validated['aws_events_role_arn'] = ''
 
-            except serializers.ValidationError as validation_error:
-                self.handle_to_internal_value_exception(validation_error,
-                                                        field_name='execution_environment_capabilities')
+        except serializers.ValidationError as validation_error:
+            self.handle_to_internal_value_exception(validation_error,
+                                                    field_name='execution_method_capabilities')
 
         self.set_validated_alert_methods(data=data, validated=validated,
             run_environment=cast(Optional[RunEnvironment], self.instance),

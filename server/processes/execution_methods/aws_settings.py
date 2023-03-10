@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, cast
 
 import os
 from urllib.parse import quote
@@ -9,7 +9,9 @@ import boto3
 from pydantic import BaseModel
 
 from ..common.aws import *
+from ..exception import UnprocessableEntity
 from .infrastructure_settings import InfrastructureSettings
+from .execution_method import ExecutionMethod
 
 
 INFRASTRUCTURE_TYPE_AWS = 'AWS'
@@ -36,12 +38,10 @@ class AwsNetworkSettings(BaseModel):
     assign_public_ip: Optional[bool] = None
     networks: Optional[list[AwsNetwork]] = None
 
-    def update_derived_attrs(self, aws_settings: 'AwsSettings') -> None:
-        from ..common.aws import (
-            make_aws_console_subnet_url,
-            make_aws_console_security_group_url
-        )
-        region = self.region or aws_settings.region
+    def update_derived_attrs(self, aws_settings: 'AwsSettings',
+          execution_method: Optional[ExecutionMethod] = None) -> None:
+        region = self.compute_region(aws_settings=aws_settings,
+            execution_method=execution_method)
 
         if region:
             if self.subnets is None:
@@ -62,6 +62,18 @@ class AwsNetworkSettings(BaseModel):
             self.security_group_infrastructure_website_urls = None
 
 
+    def compute_region(self, aws_settings: 'AwsSettings',
+            execution_method: Optional[ExecutionMethod] = None) -> Optional[str]:
+        from .aws_base_execution_method import AwsBaseExecutionMethod
+
+        region = self.region or aws_settings.region
+
+        if (not region) and isinstance(execution_method, AwsBaseExecutionMethod):
+            region = cast(AwsBaseExecutionMethod, execution_method).compute_region()
+
+        return region
+
+
 class AwsLogOptions(BaseModel):
     region: Optional[str] = None
     group: Optional[str] = None
@@ -74,12 +86,13 @@ class AwsLogOptions(BaseModel):
     max_buffer_size: Optional[str] = None
     stream_infrastructure_website_url: Optional[str] = None
 
-    def update_derived_attrs(self, aws_settings: 'AwsSettings') -> None:
+    def update_derived_attrs(self, aws_settings: 'AwsSettings',
+            execution_method: Optional[ExecutionMethod] = None) -> None:
         self.stream_infrastructure_website_url = None
 
         if self.stream and self.group:
-            region = self.region or aws_settings.region
-
+            region = self.compute_region(aws_settings=aws_settings,
+                execution_method=execution_method)
             if region:
                 #https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/$252Faws$252Flambda$252Faws-python-scheduled-cron-project-dev-cronHandler/log-events/2022$252F07$252F21$252F$255B$2524LATEST$255D45d39af3414141b6a281315363aa33bf
                 self.stream_infrastructure_website_url = \
@@ -88,20 +101,34 @@ class AwsLogOptions(BaseModel):
                     + aws_encode(self.group) + '/log-events/' \
                     + aws_encode(self.stream)
 
+    def compute_region(self, aws_settings: 'AwsSettings',
+            execution_method: Optional[ExecutionMethod] = None) -> Optional[str]:
+        from .aws_base_execution_method import AwsBaseExecutionMethod
+
+        region = self.region or aws_settings.region
+
+        if (not region) and isinstance(execution_method, AwsBaseExecutionMethod):
+            region = cast(AwsBaseExecutionMethod, execution_method).compute_region()
+
+        return region
+
 
 class AwsLoggingSettings(BaseModel):
     driver: Optional[str] = None
     options: Optional[AwsLogOptions] = None
     infrastructure_website_url: Optional[str] = None
 
-    def update_derived_attrs(self, aws_settings: 'AwsSettings') -> None:
+    def update_derived_attrs(self, aws_settings: 'AwsSettings',
+            execution_method: Optional[ExecutionMethod]) -> None:
         self.infrastructure_website_url = None
 
         options = self.options
         if not (options and options.group):
             return
 
-        region = options.region or aws_settings.region
+        region = self.compute_region(aws_settings=aws_settings,
+                execution_method=execution_method)
+
         if region and (self.driver == 'awslogs'):
             limit = 2000 # TODO: make configurable
             lq = options.group
@@ -113,6 +140,26 @@ class AwsLoggingSettings(BaseModel):
                 + quote(lq, safe='').replace('%', '*') + '))'
 
             options.update_derived_attrs(aws_settings=aws_settings)
+
+
+    def compute_region(self, aws_settings: 'AwsSettings',
+            execution_method: Optional[ExecutionMethod] = None) -> Optional[str]:
+        from .aws_base_execution_method import AwsBaseExecutionMethod
+
+        region: Optional[str] = None
+        options = self.options
+
+        if options:
+            region = options.region
+
+        if not region:
+            region = aws_settings.region
+
+        if (not region) and isinstance(execution_method, AwsBaseExecutionMethod):
+            region = cast(AwsBaseExecutionMethod, execution_method).compute_region()
+
+        return region
+
 
 class AwsXraySettings(BaseModel):
     trace_id: Optional[str] = None
@@ -147,15 +194,15 @@ class AwsSettings(InfrastructureSettings):
             aws_access_key: Optional[str] = None,
             aws_secret_access_key: Optional[str] = None,
             external_id: Optional[str] = None) -> boto3.session.Session:
-        kwargs = dict(
-            region_name=region_name
-        )
+        kwargs = {
+            'region_name': region_name
+        }
 
         if aws_access_key:
             kwargs['aws_access_key_id'] = aws_access_key
 
             if not aws_secret_access_key:
-                raise Exception('AWS access key found but not secret access key')
+                raise UnprocessableEntity(detail='AWS access key found but not secret access key')
 
             kwargs['aws_secret_access_key'] = aws_secret_access_key
 
@@ -163,10 +210,10 @@ class AwsSettings(InfrastructureSettings):
 
         logger.info(f"Assuming role {role_arn} ...")
 
-        kwargs = dict(
-            RoleArn=role_arn,
-            RoleSessionName=f"{session_uuid}_{service_name}"
-        )
+        kwargs = {
+            'RoleArn': role_arn,
+            'RoleSessionName': f"{session_uuid}_{service_name}"
+        }
 
         if external_id:
             kwargs['ExternalId'] = external_id
@@ -185,6 +232,9 @@ class AwsSettings(InfrastructureSettings):
 
 
     def make_boto3_client(self, service_name: str, session_uuid: Optional[str] = None):
+        if not self.region:
+            raise UnprocessableEntity(detail='Missing region to access AWS')
+
         if self.access_key and self.secret_key:
             return boto3.client(
                 service_name,
@@ -193,6 +243,9 @@ class AwsSettings(InfrastructureSettings):
                 region_name=self.region
             )  # type: ignore
         else:
+            if not self.events_role_arn:
+                raise UnprocessableEntity(detail='Missing IAM Role to access AWS')
+
             if not session_uuid:
                 session_uuid = str(uuid.uuid4())
 
@@ -234,7 +287,7 @@ class AwsSettings(InfrastructureSettings):
                 self.workflow_starter_access_key and \
                 self.execution_role_arn)
 
-    def update_derived_attrs(self) -> None:
+    def update_derived_attrs(self, execution_method: Optional[ExecutionMethod]=None) -> None:
         self.events_role_infrastructure_website_url = \
                 make_aws_console_role_url(self.events_role_arn)
 
@@ -245,7 +298,9 @@ class AwsSettings(InfrastructureSettings):
                 make_aws_console_lambda_function_url(self.workflow_starter_lambda_arn)
 
         if self.network:
-            self.network.update_derived_attrs(aws_settings=self)
+            self.network.update_derived_attrs(aws_settings=self,
+                  execution_method=execution_method)
 
         if self.logging:
-            self.logging.update_derived_attrs(aws_settings=self)
+            self.logging.update_derived_attrs(aws_settings=self,
+                  execution_method=execution_method)

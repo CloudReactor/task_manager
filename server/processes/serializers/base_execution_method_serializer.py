@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers
 from rest_framework.fields import empty
 
@@ -16,5 +18,5 @@ class BaseExecutionMethodSerializer(FlexFieldsSerializerMixin,
     type = serializers.SerializerMethodField(
             method_name='get_execution_method_type')
 
-    def get_execution_method_type(self, obj) -> str:
+    def get_execution_method_type(self, obj: Any) -> str:
         raise NotImplementedError()

@@ -14,4 +14,3 @@ class UnknownExecutionMethodSerializer(BaseExecutionMethodSerializer):
         return {
             'execution_method_capability': data
         }
-

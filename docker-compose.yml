@@ -108,7 +108,7 @@ services:
 
   mypy:
     <<: *dev-base
-    entrypoint: mypy .
+    entrypoint: mypy --check-untyped-defs .
 
   safety:
     <<: *dev-base

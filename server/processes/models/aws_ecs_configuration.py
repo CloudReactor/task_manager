@@ -45,7 +45,7 @@ class AwsEcsConfiguration(AwsTaggedEntity):
     aws_ecs_enable_ecs_managed_tags = models.BooleanField(blank=True,
             null=True)
 
-    def get_aws_region(self) -> str:
+    def get_aws_region(self) -> Optional[str]:
         raise Exception('Not implemented')
 
     @property

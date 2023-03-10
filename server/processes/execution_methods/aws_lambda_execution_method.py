@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, Optional, TYPE_CHECKING
+from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast
 
 import json
 import logging
@@ -13,7 +13,6 @@ from botocore.exceptions import ClientError
 
 from ..common.aws import *
 from ..common.utils import deepmerge
-from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 from .aws_base_execution_method import AwsBaseExecutionMethod
 
 if TYPE_CHECKING:
@@ -37,7 +36,7 @@ class AwsLambdaExecutionMethodSettings(BaseModel):
     function_memory_mb: Optional[int] = None
     infrastructure_website_url: Optional[str] = None
 
-    def update_derived_attrs(self) -> None:
+    def update_derived_attrs(self, execution_method: Optional[ExecutionMethod]) -> None:
         logger.info("AWS Lambda Execution Method: update_derived_attrs()")
 
         self.infrastructure_website_url = make_aws_console_lambda_function_url(
@@ -100,7 +99,7 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         task = self.task
 
         if aws_lambda_settings is None:
-            settings_to_merge = [ {} ]
+            settings_to_merge: list[dict[str, Any]] = [ {} ]
 
             if task:
                 settings_to_merge = [
@@ -116,8 +115,8 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         logger.debug(f"{aws_lambda_settings=}")
 
         if task_execution:
-            self.settings = AwsLambdaExecutionMethodInfo.parse_obj(
-                    aws_lambda_settings)
+            self.settings = cast(AwsLambdaExecutionMethodSettings,
+                    AwsLambdaExecutionMethodInfo.parse_obj(aws_lambda_settings))
         else:
             self.settings = AwsLambdaExecutionMethodSettings.parse_obj(
                     aws_lambda_settings)
@@ -155,6 +154,9 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
 
         task = self.task
 
+        if task is None:
+            raise APIException("No Task found")
+
         function_name = self.settings.function_arn or self.settings.function_name
 
         # Allow more params to be set, as well as the environment if the
@@ -169,6 +171,9 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
                 }
             }
         }
+
+        task_execution.execution_method_type = self.NAME
+        task_execution.execution_method_details = self.settings.dict()
 
         success = False
         try:
@@ -192,8 +197,11 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         except ClientError as client_error:
             logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
             task_execution.error_details = client_error.response
-        except Exception:
+        except Exception as ex:
             logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
+            task_execution.error_details = {
+                'exception': str(ex)
+            }
 
         if not success:
             from ..models import TaskExecution

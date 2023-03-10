@@ -3,7 +3,6 @@ from typing import cast, Any, List, Optional, Type
 import enum
 import json
 import logging
-from urllib.parse import quote
 
 from django.db import models
 from django.db.models.signals import pre_save, post_save
@@ -75,6 +74,11 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         'started_at', 'started_by', 'finished_at',
         'kill_started_at', 'kill_finished_at', 'kill_error_code', 'killed_by',
         'marked_outdated_at', 'marked_done_at', 'marked_done_by',]
+
+    MERGED_ATTRIBUTES = [
+        'infrastructure_settings', 'execution_method_details',
+        'other_runtime_metadata'
+    ]
 
     ATTRIBUTES_REQUIRING_DEVELOPER_ACCESS_FOR_UPDATE = [
         'process_command',
@@ -300,12 +304,10 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         exec_method.manually_start()
 
     def enrich_settings(self) -> None:
-        exec_method = self.execution_method()
-        exec_method.enrich_task_execution_settings()
+        self.execution_method().enrich_task_execution_settings()
 
     def execution_method(self) -> ExecutionMethod:
-        return ExecutionMethod.make_execution_method(task=self.task,
-            task_execution=self)
+        return ExecutionMethod.make_execution_method(task_execution=self)
 
     def make_environment(self) -> dict[str, Any]:
         task = self.task
@@ -688,10 +690,11 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
         if not instance.kill_finished_at:
             instance.kill_finished_at = now
 
-    from .convert_legacy_em_and_infra import populate_task_execution_em_and_infra
-
-    populate_task_execution_em_and_infra(instance, should_reset=True)
-    instance.enrich_settings()
+    try:
+        instance.enrich_settings()
+    except Exception as ex:
+        logger.warning(f"Failed to enrich Task Execution {instance.uuid} settings",
+                exc_info=ex)
 
 
 @receiver(post_save, sender=TaskExecution)

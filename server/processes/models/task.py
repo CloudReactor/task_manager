@@ -1,8 +1,7 @@
-from typing import Optional, Type, cast
+from typing import Any, Optional, Type, cast
 
 from datetime import datetime
 import logging
-import re
 from urllib.parse import quote
 
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -14,6 +13,7 @@ from django.utils import timezone
 from django.contrib.postgres.fields import HStoreField
 
 from ..common.aws import *
+from ..common.utils import coalesce
 from ..execution_methods import (
     ExecutionMethod,
     AwsEcsExecutionMethod
@@ -55,9 +55,6 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         'is_service_managed': True
     }
 
-    DEFAULT_ECS_SERVICE_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS = 300
-
-    SERVICE_NAME_REGEX = re.compile(r"^(.+?)(_(\d+))?$")
 
     class Meta:
         db_table = 'processes_processtype'
@@ -163,20 +160,21 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     was_auto_created = models.BooleanField(default=False, null=True)
 
     should_skip_synchronize_with_run_environment = False
-    aws_ecs_should_force_service_creation = False
 
-    def get_aws_region(self) -> str:
+    def get_aws_region(self) -> Optional[str]:
         return self.run_environment.get_aws_region()
 
     @property
     def dashboard_path(self) -> str:
         return 'tasks'
 
+    # Deprecated
     @property
     def infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_ecs_task_definition_url(
                 self.aws_ecs_task_definition_arn)
 
+    # Deprecated
     @property
     def aws_ecs_task_definition_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_ecs_task_definition_url(
@@ -324,83 +322,156 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     def execution_method(self) -> ExecutionMethod:
         return ExecutionMethod.make_execution_method(task=self)
 
+    def save_without_sync(self) -> 'Task':
+        old_sync = self.should_skip_synchronize_with_run_environment
+        self.should_skip_synchronize_with_run_environment = True
+        try:
+            self.save()
+            return self
+        finally:
+            self.should_skip_synchronize_with_run_environment = old_sync
+
+    def has_active_managed_scheduled_execution(self, current: bool=True) -> bool:
+        # TODO: just check is_scheduling_managed once it is migrated
+        return self.enabled and (not self.passive) and bool(self.schedule) and \
+                coalesce(self.is_scheduling_managed, not current)
+
+    def is_active_managed_service(self, current: bool=True) -> bool:
+         # TODO: just check is_service_managed once it is migrated
+        return self.enabled and (not self.passive) and self.is_service and \
+                coalesce(self.is_service_managed, not current)
+
     def synchronize_with_run_environment(self, old_self: Optional['Task']=None,
-            is_saving=False) -> bool:
-        if self.passive:
+            is_saving: bool=False) -> bool:
+        if self.passive and ((not old_self) or old_self.passive):
             return False
 
         execution_method = self.execution_method()
 
-        should_update_schedule = False
-        should_force_create_service = self.aws_ecs_should_force_service_creation
+        old_execution_method: Optional[ExecutionMethod] = None
 
         if old_self:
-            if self.schedule != old_self.schedule:
-                self.schedule_updated_at = timezone.now()
+            old_execution_method = old_self.execution_method()
 
-            should_update_schedule = execution_method.should_update_scheduled_execution(
-                    old_task=old_self)
+        if old_self and (self.schedule != old_self.schedule):
+            self.schedule_updated_at = timezone.now()
 
-            should_update_service = self.aws_ecs_should_force_service_creation
-            for attr, must_recreate in Task.AWS_ECS_SERVICE_ATTRIBUTES.items():
-                new_value = getattr(self, attr)
-                old_value = getattr(old_self, attr)
+        should_update_scheduled_execution, should_force_create_scheduled_execution = \
+                execution_method.should_update_or_force_recreate_scheduled_execution(
+                        old_execution_method=old_execution_method)
 
-                if new_value != old_value:
-                    logger.info(f"{attr} changed from {old_value} to {new_value}, adjusting service")
-                    should_update_service = True
-                    should_force_create_service = should_force_create_service or must_recreate
-        else:
-            should_update_schedule = True
-            should_update_service = True
-            should_force_create_service = True
+        if should_update_scheduled_execution:
+            logger.info(f"synchronize_with_run_environment(): Updating scheduled_execution, {self.is_scheduling_managed=}, {self.enabled=} ...")
 
+            schedule_teardown_completed_at: Optional[datetime] = None
+            schedule_teardown_result: Optional[Any] = None
+            torndown_scheduling_settings: Optional[dict[str, Any]] = None
 
-        should_update_schedule = should_update_schedule and \
-                execution_method.supports_capability(
-                        ExecutionMethod.ExecutionCapability.SCHEDULING)
-        should_update_service = should_update_service and \
-                execution_method.supports_capability(
-                        ExecutionMethod.ExecutionCapability.SETUP_SERVICE)
+            will_be_managed_scheduled_execution = \
+                    self.has_active_managed_scheduled_execution(current=False)
 
-        if should_update_schedule:
-            logger.info("pre_save_task(): Updating schedule params ...")
-            # TODO: just check is_scheduling_managed once it is migrated
-            if self.schedule and self.enabled and (self.is_scheduling_managed != False):
-                execution_method.setup_scheduled_execution()
+            if will_be_managed_scheduled_execution and \
+                    (not execution_method.supports_capability(
+                        ExecutionMethod.ExecutionCapability.SCHEDULING)):
+                raise APIException(f"Execution method {execution_method.name} does not support scheduled executions")
+
+            if (should_force_create_scheduled_execution or (not will_be_managed_scheduled_execution)) and \
+                    old_execution_method and old_self and \
+                    old_self.has_active_managed_scheduled_execution():
+                # TODO: option to ignore error tearing down
+                torndown_scheduling_settings, schedule_teardown_result = \
+                        old_execution_method.teardown_scheduled_execution()
+                schedule_teardown_completed_at = timezone.now()
+
+            if will_be_managed_scheduled_execution:
+                try:
+                    execution_method.setup_scheduled_execution(
+                            old_execution_method=old_execution_method,
+                            force_creation=should_force_create_scheduled_execution,
+                            teardown_result=schedule_teardown_result)
+                except Exception as ex:
+                    logger.exception("Failed to setup scheduled_execution for Task {self.uuid}")
+
+                    # FIXME: due to AtomicUpdateModelMixin all changes will
+                    # probably be rolled back.
+                    if schedule_teardown_completed_at:
+                        self.scheduling_settings = torndown_scheduling_settings
+                        if self.pk:
+                            self.save_without_sync()
+                    raise ex
+
                 self.is_scheduling_managed = True
             else:
-                execution_method.teardown_scheduled_execution()
-                self.is_scheduling_managed = None
-            logger.info("Done updating schedule params ...")
+                if old_execution_method:
+                    # FIXME: this overwrites settings
+                    self.scheduling_settings, _teardown_result = \
+                            old_execution_method.teardown_scheduled_execution()
+
+                if self.is_scheduling_managed is not False:
+                    self.is_scheduling_managed = None
         else:
-            logger.debug("Not updating schedule params")
+            logger.debug("Not updating scheduling params")
+
+
+        should_update_service, should_force_create_service = \
+            execution_method.should_update_or_force_recreate_service(
+                    old_execution_method=old_execution_method)
 
         if should_update_service:
             logger.info(f"synchronize_with_run_environment(): Updating service, {self.is_service=}, {self.enabled=}, {self.is_service_managed=} ...")
-            # TODO: just check is_service_managed once it is migrated
-            if self.is_service and self.enabled and (self.is_service_managed != False):
-                execution_method.setup_service(force_creation=should_force_create_service)
+
+            service_teardown_completed_at: Optional[datetime] = None
+            service_teardown_result: Optional[Any] = None
+            torndown_service_settings: Optional[dict[str, Any]] = None
+
+            will_be_managed_service = self.is_active_managed_service(current=False)
+
+            if will_be_managed_service and \
+                    (not execution_method.supports_capability(
+                        ExecutionMethod.ExecutionCapability.SETUP_SERVICE)):
+                raise APIException(f"Execution method {execution_method.name} does not support service setup")
+
+            if (should_force_create_service or (not will_be_managed_service)) and \
+                    old_execution_method and old_self and \
+                    old_self.is_active_managed_service():
+                # TODO: option to ignore error tearing down
+                torndown_service_settings, service_teardown_result = old_execution_method.teardown_service()
+                service_teardown_completed_at = timezone.now()
+
+            if will_be_managed_service:
+                try:
+                    execution_method.setup_service(
+                            old_execution_method=old_execution_method,
+                            force_creation=should_force_create_service,
+                            teardown_result=service_teardown_result)
+                except Exception as ex:
+                    logger.exception(f"Failed to setup service for Task {self.uuid}")
+
+                    # FIXME: due to AtomicUpdateModelMixin all changes will
+                    # probably be rolled back.
+                    if service_teardown_completed_at:
+                        self.service_settings = torndown_service_settings
+                        self.aws_ecs_service_updated_at = service_teardown_completed_at
+                        if self.pk:
+                            self.save_without_sync()
+                    raise ex
+
                 self.is_service_managed = True
             else:
-                execution_method.teardown_service()
+                if old_execution_method:
+                    # FIXME: this overwrites settings
+                    self.service_settings, _teardown_result = \
+                            old_execution_method.teardown_service()
 
-                if self.is_service_managed != False:
+                if self.is_service_managed is not False:
                     self.is_service_managed = None
         else:
             logger.debug("Not updating service params")
 
         if is_saving:
-            old_sync = self.should_skip_synchronize_with_run_environment
-            self.should_skip_synchronize_with_run_environment = True
-            try:
-                self.save()
-            finally:
-                self.should_skip_synchronize_with_run_environment = old_sync
+            self.save_without_sync()
 
-        self.aws_ecs_should_force_service_creation = False
-
-        return should_update_schedule or should_update_service
+        return should_update_scheduled_execution or should_update_service
 
     def enrich_settings(self) -> None:
         self.execution_method().enrich_task_settings()
@@ -411,8 +482,6 @@ def pre_save_task(sender: Type[Task], **kwargs):
     instance = kwargs['instance']
     logger.info(f"pre-save with task {instance}")
 
-    old_self: Optional[Task] = None
-
     if instance.pk is None:
         usage_limits = Subscription.compute_usage_limits(instance.created_by_group)
         max_tasks = usage_limits.max_tasks
@@ -422,35 +491,32 @@ def pre_save_task(sender: Type[Task], **kwargs):
 
         if (max_tasks is not None) and (existing_count >= max_tasks):
             raise UnprocessableEntity(detail='Task limit exceeded', code='limit_exceeded')
-    else:
-        old_self = Task.objects.filter(id=instance.id).first()
-
-    from .convert_legacy_em_and_infra import populate_task_emc_and_infra
-
-    # Temporary until the JSON fields are the source of truth
-    populate_task_emc_and_infra(instance, should_reset=True)
 
     if instance.should_skip_synchronize_with_run_environment:
         logger.info(f"skipping synchronize_with_run_environment with Task {instance}")
     else:
-        changed = instance.synchronize_with_run_environment(old_self=old_self,
+        old_self: Optional[Task] = None
+
+        if instance.id:
+            old_self = Task.objects.filter(id=instance.id).first()
+
+        instance.synchronize_with_run_environment(old_self=old_self,
                 is_saving=False)
 
-        if changed:
-            populate_task_emc_and_infra(instance, should_reset=True)
-
-    instance.enrich_settings()
-
+    try:
+        instance.enrich_settings()
+    except Exception as ex:
+        logger.warning(f"Failed to enrich Task {instance.uuid} settings", exc_info=ex)
 
 @receiver(pre_delete, sender=Task)
 def pre_delete_task(sender: Type[Task], **kwargs) -> None:
     task = cast(Task, kwargs['instance'])
     logger.info(f"pre-save with instance {task}")
 
-    if task.enabled:
+    if task.enabled and (not task.passive):
         execution_method = task.execution_method()
-        if task.schedule and task.is_scheduling_managed:
+        if task.has_active_managed_scheduled_execution():
             execution_method.teardown_scheduled_execution()
 
-        if task.is_service and task.is_service_managed:
+        if task.is_active_managed_service():
             execution_method.teardown_service()

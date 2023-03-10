@@ -233,6 +233,8 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
         -> Tuple[Optional[Task], Optional[RunEnvironment], APIClient, str]:
     group = user.groups.first()
 
+    assert group is not None
+
     if group_access_level is not None:
         set_group_access_level(user=user, group=group,
                 access_level=group_access_level)
@@ -261,6 +263,8 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
     if uuid_send_type != SEND_ID_NONE:
         task = task_factory(created_by_group=task_group,
                             run_environment=task_run_environment)
+
+        assert task is not None
 
         task_uuid = uuid.uuid4()
         if uuid_send_type == SEND_ID_CORRECT:
@@ -329,6 +333,7 @@ def make_request_body(uuid_send_type: Optional[str],
         run_environment = run_environment_factory(created_by_group=group)
     elif run_environment_send_type == SEND_ID_IN_WRONG_GROUP:
         wrong_group = group_factory()
+        assert group is not None
         set_group_access_level(user=user, group=group,
                 access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
         run_environment = run_environment_factory(created_by_group=wrong_group)
@@ -468,6 +473,8 @@ def test_task_fetch(
             task_factory=task_factory,
             api_client=api_client)
 
+    assert task is not None
+
     response = client.get(url)
 
     assert response.status_code == status_code
@@ -518,6 +525,8 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
             run_environment_factory=run_environment_factory,
             task_factory=task_factory,
             api_client=api_client)
+
+    assert api_key_run_environment is not None
 
     aws_ecs_setup = setup_aws_ecs(run_environment=api_key_run_environment)
 
@@ -846,6 +855,7 @@ def test_task_create_task_limit(max_tasks: int,
 
     for i in range(3):
         task = task_factory(created_by_group=group)
+        assert task is not None
         task.save()
 
     utc_now = timezone.now()
@@ -1374,6 +1384,8 @@ def test_task_update_access_control(
             task_factory=task_factory,
             api_client=api_client)
 
+    assert task is not None
+
     request_data, run_environment = make_request_body(
             uuid_send_type=body_uuid_send_type,
             run_environment_send_type=run_environment_send_type,
@@ -1507,6 +1519,8 @@ def test_task_delete(
             run_environment_factory=run_environment_factory,
             task_factory=task_factory,
             api_client=api_client)
+
+    assert task is not None
 
     response = client.delete(url)
 

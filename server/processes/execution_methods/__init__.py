@@ -16,6 +16,7 @@ from .aws_cloudwatch_scheduling_settings import (
 from .execution_method import ExecutionMethod
 from .unknown_execution_method import UnknownExecutionMethod
 from .aws_ecs_execution_method import (
+    SERVICE_PROVIDER_AWS_ECS,
     AwsEcsExecutionMethod,
     AwsEcsExecutionMethodSettings,
     AwsEcsServiceSettings,

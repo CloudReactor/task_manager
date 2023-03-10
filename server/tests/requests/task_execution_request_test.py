@@ -427,6 +427,7 @@ def test_task_execution_fetch(
 
     if status_code == 200:
         assert group_access_level is not None
+        assert task_execution is not None
         ensure_serialized_task_execution_valid(response_task_execution=response.data,
           task_execution=task_execution, user=user,
           group_access_level=group_access_level,
@@ -788,7 +789,7 @@ def test_task_execution_with_unknown_method_auto_creation(
 
     assert api_key_run_environment is not None # for mypy
 
-    task_dict = {
+    task_dict: dict[str, Any] = {
         'name': 'Auto Unknown Method Task',
         'run_environment': {
             'name': api_key_run_environment.name,
@@ -1251,6 +1252,8 @@ def test_task_execution_update_access_control(
             task_execution_factory=task_execution_factory,
             api_client=api_client)
 
+    assert task_execution is not None
+
     request_data = make_task_execution_request_body(uuid_send_type=body_uuid_send_type,
             task_send_type=task_send_type,
             user=user,
@@ -1308,6 +1311,8 @@ def test_task_execution_update_conflict(
             task_execution_factory=task_execution_factory,
             api_client=api_client)
 
+    assert task_execution is not None
+
     task_execution.status = TaskExecution.Status.STOPPING
     task_execution.save()
 
@@ -1346,6 +1351,9 @@ def test_task_execution_update_unmodifiable_properties(
 
     finished_at = timezone.now()
     started_at = timezone.now() - timedelta(seconds=120)
+
+    assert task_execution is not None
+
     task_execution.started_at = started_at
     task_execution.started_by = user
     task_execution.finished_at = finished_at
@@ -1487,6 +1495,8 @@ def test_task_execution_delete(
             task_factory=task_factory,
             task_execution_factory=task_execution_factory,
             api_client=api_client)
+
+    assert task_execution is not None
 
     response = client.delete(url)
 
