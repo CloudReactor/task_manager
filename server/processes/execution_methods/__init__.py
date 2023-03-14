@@ -1,10 +1,14 @@
 from .aws_settings import (
+    INFRASTRUCTURE_TYPE_AWS,
     AwsSettings,
     AwsNetwork,
     AwsNetworkSettings,
     AwsLoggingSettings,
     AwsLogOptions,
     AwsXraySettings
+)
+from .aws_cloudwatch_scheduling_settings import (
+    SCHEDULING_TYPE_AWS_CLOUDWATCH
 )
 from .execution_method import ExecutionMethod
 from .unknown_execution_method import UnknownExecutionMethod

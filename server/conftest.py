@@ -292,8 +292,6 @@ COPIED_TASK_ATTRIBUTES = [
     'is_service', 'service_instance_count', 'min_service_instance_count',
     'schedule', 'scheduled_instance_count', 'max_concurrency',
     'execution_method_type',
-    'scheduling_provider_type', 'is_scheduling_managed',
-    'service_provider_type', 'is_service_managed',
     'default_input_value', 'input_value_schema', 'output_value_schema',
     'managed_probability', 'failure_report_probability',
     'timeout_report_probability',
@@ -500,11 +498,12 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
             'supported_launch_types': ['FARGATE'],
             'platform_version': '1.4.0',
             'main_container_name': 'hello',
-            'execution_role': run_environment.aws_ecs_default_execution_role,
-            'task_role': 'arn:aws:iam::123456789012:role/task'
+            'execution_role_arn': run_environment.aws_ecs_default_execution_role,
+            'task_role_arn': 'arn:aws:iam::123456789012:role/task'
         }
         body['infrastructure_type'] = 'AWS'
         body['infrastructure_settings'] = {
+            'region': 'us-west-1',
             'network': {
                 'subnets': ['subnet1', 'subnet2'],
                 'security_groups': ['sg1', 'sg2'],
@@ -978,6 +977,7 @@ def make_aws_ecs_task_execution_request_body(
             te_logging['stream'] = "ecs/curl/cd189a933e5849daa93386466019ab50"
 
             body['infrastructure_settings'] = {
+                'region': 'us-east-2',
                 'network': {
                     "region": "us-east-2",
                     "availability_zone": "us-east-2a",
@@ -1103,10 +1103,15 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
 
     if emd:
         for attr in ['task_arn', 'task_definition_arn', 'cluster_arn',
-                'launch_type', 'platform_version'
-                'execution_role', 'task_role']:
+                'launch_type', 'platform_version']:
+
             if attr in emd:
                 assert getattr(model_task_execution, 'aws_ecs_' + attr) == emd[attr], attr
+
+        for attr in ['execution_role', 'task_role']:
+            if attr in emd:
+                assert getattr(model_task_execution, 'aws_ecs_' + attr) == emd[attr  + '_arn'], attr
+
 
 
 def validate_serialized_workflow(body_workflow: dict[str, Any],

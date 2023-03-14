@@ -24,12 +24,17 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
     class Meta:
         unique_together = (('name', 'created_by_group'),)
 
+    aws_settings = models.JSONField(null=True, blank=True)
+
     aws_account_id = models.CharField(max_length=200, blank=True)
     aws_default_region = models.CharField(max_length=20, blank=True)
     aws_access_key = models.CharField(max_length=100, blank=True)
     aws_secret_key = models.CharField(max_length=100, blank=True)
     aws_events_role_arn = models.CharField(max_length=100, blank=True)
     aws_assumed_role_external_id = models.CharField(max_length=1000, blank=True)
+
+    default_aws_ecs_configuration = models.JSONField(null=True, blank=True)
+
     aws_workflow_starter_lambda_arn = models.CharField(max_length=1000, blank=True)
     aws_workflow_starter_access_key = models.CharField(max_length=1000, blank=True)
     default_alert_methods = models.ManyToManyField('AlertMethod', blank=True)
@@ -121,7 +126,7 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
 
 @receiver(pre_save, sender=RunEnvironment)
-def pre_save_task(sender: Type[RunEnvironment], **kwargs):
+def pre_save_run_environment(sender: Type[RunEnvironment], **kwargs):
     instance = kwargs['instance']
     logger.info(f"pre-save with Run Environment {instance}")
 
@@ -137,6 +142,11 @@ def pre_save_task(sender: Type[RunEnvironment], **kwargs):
         if (max_tasks is not None) and (existing_count >= max_tasks):
             raise UnprocessableEntity(detail='Task limit exceeded', code='limit_exceeded')
 
-    from .convert_legacy_em_and_infra import populate_run_environment_infra
+    from .convert_legacy_em_and_infra import (
+        populate_run_environment_infra,
+        populate_run_environment_aws_ecs_configuration
+    )
 
+    # Temporary until the JSON fields are the source of truth
     populate_run_environment_infra(instance)
+    populate_run_environment_aws_ecs_configuration(instance)

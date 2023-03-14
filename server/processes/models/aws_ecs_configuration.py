@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class AwsEcsConfiguration(AwsTaggedEntity):
+    PLATFORM_VERSION_DEFAULT = '1.4.0'
     PLATFORM_VERSION_LATEST = 'LATEST'
     ALLOWED_PLATFORM_VERSION_CHOICES = [
         '1.3.0',
@@ -39,7 +40,7 @@ class AwsEcsConfiguration(AwsTaggedEntity):
 
     aws_ecs_default_platform_version = models.CharField(max_length=10,
             blank=True, choices=[(x, x) for x in ALLOWED_PLATFORM_VERSION_CHOICES],
-            default='')
+            default=PLATFORM_VERSION_DEFAULT)
 
     aws_ecs_enable_ecs_managed_tags = models.BooleanField(blank=True,
             null=True)

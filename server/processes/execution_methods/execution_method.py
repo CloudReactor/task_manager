@@ -9,7 +9,7 @@ from rest_framework.exceptions import (
 )
 
 from ..common.request_helpers import context_with_request
-from ..common.utils import deepmerge_with_lists_pair
+from ..common.utils import deepmerge
 from ..exception import UnprocessableEntity
 
 if TYPE_CHECKING:
@@ -114,6 +114,9 @@ class ExecutionMethod:
 
     def supports_capability(self, cap: ExecutionCapability) -> bool:
         return cap in self.capabilities()
+
+    def should_update_scheduled_execution(self, old_self: 'Task') -> bool:
+        return False
 
     def setup_scheduled_execution(self) -> None:
         raise UnprocessableEntity(
@@ -245,14 +248,14 @@ class ExecutionMethod:
         if task_execution:
             if task_execution.execution_method_details:
                 if task.execution_method_type == task_execution.execution_method_type:
-                    emd = deepmerge_with_lists_pair(emd.copy(),
+                    emd = deepmerge(emd.copy(),
                         task_execution.execution_method_details)
                 else:
                     emd = task_execution.execution_method_details or {}
 
             if task_execution.infrastructure_settings:
                 if task.infrastructure_type == task_execution.infrastructure_type:
-                    infra = deepmerge_with_lists_pair(infra.copy(),
+                    infra = deepmerge(infra.copy(),
                         task_execution.infrastructure_settings)
                 else:
                     infra = task_execution.infrastructure_settings or {}

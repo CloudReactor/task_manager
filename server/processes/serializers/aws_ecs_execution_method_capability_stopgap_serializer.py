@@ -37,11 +37,11 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
     main_container_name = serializers.CharField(
         source='aws_ecs_main_container_name', max_length=1000, required=False)
 
-    execution_role = serializers.CharField(
+    execution_role_arn = serializers.CharField(
             source='aws_ecs_default_execution_role', max_length=1000,
             required=False)
 
-    task_role = serializers.CharField(
+    task_role_arn = serializers.CharField(
             source='aws_ecs_default_task_role', max_length=1000,
             required=False)
 
@@ -72,19 +72,26 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
                         isinstance(field_instance, serializers.CharField):
                     string_valued_columns.append(field_instance.source or field_name)
 
-        default_prefixed_keys = ['execution_role', 'task_role',
-            'platform_version', 'launch_type']
+        default_prefixed_keys = ['platform_version', 'launch_type']
+        default_prefixed_arn_suffixed_keys = ['execution_role', 'task_role']
+        all_default_prefixed_keys = default_prefixed_keys + \
+                [(x + '_arn') for x in default_prefixed_arn_suffixed_keys]
 
         validated = self.copy_props_with_prefix(dest_dict=validated,
                 src_dict=data,
                 dest_prefix='aws_ecs_',
                 included_keys=included_keys,
-                except_keys=default_prefixed_keys + ['cluster_arn'])
+                except_keys=all_default_prefixed_keys + ['cluster_arn'])
 
         validated = self.copy_props_with_prefix(dest_dict=validated,
                 src_dict=data,
                 dest_prefix='aws_ecs_default_',
                 included_keys=default_prefixed_keys)
+
+        for p in default_prefixed_arn_suffixed_keys:
+            suffixed_p = p + '_arn'
+            if suffixed_p in data:
+                validated['aws_ecs_default_' + p] = data[suffixed_p] or ''
 
         for column_name in string_valued_columns:
             if column_name in validated:

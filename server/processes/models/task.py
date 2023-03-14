@@ -155,11 +155,11 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     infrastructure_type = models.CharField(max_length=100, blank=True)
     infrastructure_settings = models.JSONField(null=True, blank=True)
 
-    is_scheduling_managed = models.BooleanField(default=False, null=True)
+    is_scheduling_managed = models.BooleanField(default=None, null=True)
     scheduling_provider_type = models.CharField(max_length=100, blank=True)
     scheduling_settings = models.JSONField(null=True, blank=True)
 
-    is_service_managed = models.BooleanField(default=False, null=True)
+    is_service_managed = models.BooleanField(default=None, null=True)
     service_provider_type = models.CharField(max_length=100, blank=True)
     service_settings = models.JSONField(null=True, blank=True)
 
@@ -405,12 +405,13 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         else:
             logger.debug("Not updating service params")
 
-        if not is_saving:
+        if is_saving:
+            old_sync = self.should_skip_synchronize_with_run_environment
             self.should_skip_synchronize_with_run_environment = True
             try:
                 self.save()
             finally:
-                self.should_skip_synchronize_with_run_environment = False
+                self.should_skip_synchronize_with_run_environment = old_sync
 
         self.aws_ecs_should_force_service_creation = False
 
@@ -425,8 +426,9 @@ def pre_save_task(sender: Type[Task], **kwargs):
     instance = kwargs['instance']
     logger.info(f"pre-save with task {instance}")
 
+    old_self: Optional[Task] = None
+
     if instance.pk is None:
-        old_self = None
         usage_limits = Subscription.compute_usage_limits(instance.created_by_group)
         max_tasks = usage_limits.max_tasks
 
@@ -440,16 +442,17 @@ def pre_save_task(sender: Type[Task], **kwargs):
 
     from .convert_legacy_em_and_infra import populate_task_emc_and_infra
 
-    populate_task_emc_and_infra(instance)
+    # Temporary until the JSON fields are the source of truth
+    populate_task_emc_and_infra(instance, should_reset=True)
 
     if instance.should_skip_synchronize_with_run_environment:
         logger.info(f"skipping synchronize_with_run_environment with Task {instance}")
     else:
         changed = instance.synchronize_with_run_environment(old_self=old_self,
-                is_saving=True)
+                is_saving=False)
 
         if changed:
-            populate_task_emc_and_infra(instance)
+            populate_task_emc_and_infra(instance, should_reset=True)
 
     instance.enrich_settings()
 

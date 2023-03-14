@@ -335,9 +335,20 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                       included_keys=[
                           'task_definition_arn', 'task_arn', 'launch_type',
                           'cluster_arn', 'security_groups',
-                          'assign_public_ip', 'execution_role',
-                          'task_role', 'platform_version',
+                          'assign_public_ip', 'platform_version',
                       ])
+
+                if is_legacy_schema:
+                    self.copy_props_with_prefix(dest_dict=validated,
+                        src_dict=execution_method_dict,
+                        dest_prefix='aws_ecs_',
+                        included_keys=[
+                            'execution_role', 'task_role',
+                        ])
+                else:
+                    for p in ['execution_role', 'task_role']:
+                        if p in execution_method_dict:
+                            validated['aws_ecs_' + p] = execution_method_dict[p + '_arn'] or ''
 
         infrastructure_type = data.get('infrastructure_type')
 

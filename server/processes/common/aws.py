@@ -172,6 +172,28 @@ def make_aws_console_ecs_service_url(ecs_service_arn: Optional[str],
 
     return None
 
+def make_aws_console_lambda_function_url(
+        function_arn: Optional[str]) -> Optional[str]:
+    if function_arn is None:
+        return None
+
+    # function_arn format:
+    # arn:aws:lambda:<region>:<aws account id>:function:<function name>
+    tokens = function_arn.split(':')
+
+    if (len(tokens) < 7) or (tokens[0] != 'arn') or \
+        (tokens[1] != 'aws') or (tokens[2] != 'lambda') or \
+        (tokens[5] != 'function'):
+        logger.warning(f"AWS Lambda Execution Method: function_arn is not the expected format")
+        return None
+
+    region = tokens[3]
+    function_name_in_arn = tokens[6]
+
+    return f"https://{region}.console.aws.amazon.com/lambda/home?" + \
+        make_region_parameter(region) + "#/functions/" + \
+        function_name_in_arn
+
 
 def aws_encode(value: str):
       """

@@ -40,26 +40,10 @@ class AwsLambdaExecutionMethodCapabilitySettings(BaseModel):
     def update_derived_attrs(self) -> None:
         logger.info("AWS Lambda Execution Method: update_derived_attrs()")
 
-        # function_arn format:
-        # arn:aws:lambda:<region>:<aws account id>:function:<function name>
-        if self.function_arn is not None:
-            tokens = self.function_arn.split(':')
+        self.infrastructure_website_url = make_aws_console_lambda_function_url(
+                function_arn=self.function_arn)
 
-            if (len(tokens) < 7) or (tokens[0] != 'arn') or \
-                (tokens[1] != 'aws') or (tokens[2] != 'lambda') or \
-                (tokens[5] != 'function'):
-                logger.warning(f"AWS Lambda Execution Method: function_arn is not the expected format")
-                return
-
-            region = tokens[3]
-            function_name_in_arn = tokens[6]
-
-            self.infrastructure_website_url = \
-                f"https://{region}.console.aws.amazon.com/lambda/home?" + \
-                make_region_parameter(region) + "#/functions/" + \
-                function_name_in_arn
-
-            logger.debug(f"{self.infrastructure_website_url=}")
+        logger.debug(f"{self.infrastructure_website_url=}")
 
 
 class AwsCognitoIdentity(BaseModel):

@@ -472,11 +472,23 @@ class TaskSerializer(GroupSettingSerializerMixin,
             if ('is_scheduling_managed' not in validated) and \
                 ((task is None) or (task.is_scheduling_managed is None)):
               validated['is_scheduling_managed'] = True
+
+            if ('scheduled_instance_count' not in validated) and \
+                ((task is None) or (task.scheduled_instance_count is None)):
+              validated['scheduled_instance_count'] = 1
         else:
             if validated.get('is_scheduling_managed'):
                 raise serializers.ValidationError({
                     'is_scheduling_managed': ['Cannot be true for unscheduled Tasks']
                 })
+
+            if validated.get('scheduled_instance_count'):
+                raise serializers.ValidationError({
+                    'scheduled_instance_count': ['Cannot be non-zero for unscheduled Tasks']
+                })
+
+            validated['scheduled_instance_count'] = None
+
 
         self.set_validated_alert_methods(data=data, validated=validated,
                 run_environment=run_environment)
@@ -625,7 +637,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
                         task, load_balancer_details_list):
                     task.aws_ecs_should_force_service_creation = True
 
-            task.synchronize_with_run_environment(old_self=old_self)
+            task.synchronize_with_run_environment(old_self=old_self, is_saving=True)
             task.should_skip_synchronize_with_run_environment = False
 
         if alert_methods is not None:

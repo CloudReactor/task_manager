@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 from pydantic import BaseModel
 
-from ..common.aws import aws_encode
+from ..common.aws import *
 
 
 if TYPE_CHECKING:
@@ -121,12 +121,33 @@ class AwsXraySettings(BaseModel):
 
 
 class AwsSettings(BaseModel):
+    account_id: Optional[str] = None
+    region: Optional[str] = None
+    access_key: Optional[str] = None
+    secret_key: Optional[str] = None
+    events_role_arn: Optional[str] = None
+    events_role_infrastructure_website_url: Optional[str] = None
+    assumed_role_external_id: Optional[str] = None
+    execution_role_arn: Optional[str] = None
+    execution_role_infrastructure_website_url: Optional[str] = None
+    workflow_starter_lambda_arn: Optional[str] = None
+    workflow_starter_lambda_infrastructure_website_url: Optional[str] = None
+    workflow_starter_access_key: Optional[str] = None
     network: Optional[AwsNetworkSettings] = None
     logging: Optional[AwsLoggingSettings] = None
     xray: Optional[AwsXraySettings] = None
     tags: Optional[dict[str, str]] = None
 
     def update_derived_attrs(self, run_environment: 'RunEnvironment') -> None:
+        self.events_role_infrastructure_website_url = \
+                make_aws_console_role_url(self.events_role_arn)
+
+        self.execution_role_infrastructure_website_url = \
+                make_aws_console_role_url(self.execution_role_arn)
+
+        self.workflow_starter_lambda_infrastructure_website_url = \
+                make_aws_console_lambda_function_url(self.workflow_starter_lambda_arn)
+
         if self.network:
             self.network.update_derived_attrs(run_environment=run_environment)
 

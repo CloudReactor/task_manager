@@ -23,15 +23,20 @@ def coalesce(*arg):
     return next((a for a in arg if a is not None), None)
 
 
-def deepmerge_with_lists_pair(dest: Any, src: Any) -> Any:
+def deepmerge_with_lists_pair(dest: Any, src: Any,
+        append_lists: bool=False) -> Any:
     if isinstance(dest, str): # because string is iterable
-        return src
+        if src is None:
+            return dest
+        else:
+            return src
 
     if isinstance(dest, abc.MutableMapping):
         if (not isinstance(src, str)) and isinstance(src, abc.Mapping):
             for k, v in src.items():
                 if k in dest:
-                    dest[k] = deepmerge_with_lists_pair(dest[k], v)
+                    dest[k] = deepmerge_with_lists_pair(dest[k], v,
+                            append_lists=append_lists)
                 else:
                     dest[k] = v
 
@@ -40,31 +45,35 @@ def deepmerge_with_lists_pair(dest: Any, src: Any) -> Any:
         logger.warning(f"Attempt to merge dict {dest} with non-dict {src}")
         return src
 
-    if isinstance(dest, abc.MutableSequence):
+    if append_lists and isinstance(dest, abc.MutableSequence):
         if isinstance(src, abc.Sequence):
-          x_len = len(dest)
-          y_len = len(src)
-          for i, v in enumerate(dest):
-              if i < y_len:
-                  dest[i] = deepmerge_with_lists_pair(dest[i], src[i])
-              else:
-                  break
+            x_len = len(dest)
+            y_len = len(src)
+            for i, v in enumerate(dest):
+                if i < y_len:
+                    dest[i] = deepmerge_with_lists_pair(dest[i], src[i],
+                            append_lists=append_lists)
+                else:
+                    break
 
-          i = x_len
-          while i < y_len:
-              dest.append(src[i])
-              i += 1
+            i = x_len
+            while i < y_len:
+                dest.append(src[i])
+                i += 1
         else:
             logger.warning(f"Attempt to merge iterable {dest} with non-iterable {src}")
             return src
 
+    if src is None:
+        return dest
+
     return src
 
 
-def deepmerge_with_lists(*args) -> Any:
+def deepmerge_core(append_lists: bool, *args) -> Any:
     """
     Deep merge, including dict elements of lists.
-    The first argument is modified in place.
+    The second argument is modified in place.
     """
     dest = None
 
@@ -72,6 +81,23 @@ def deepmerge_with_lists(*args) -> Any:
         if i == 0:
             dest = src
         else:
-            dest = deepmerge_with_lists_pair(dest, src)
+            dest = deepmerge_with_lists_pair(dest, src,
+                    append_lists=append_lists)
 
     return dest
+
+
+def deepmerge_with_lists(*args) -> Any:
+    """
+    Deep merge, including dict elements of lists.
+    The first argument is modified in place.
+    """
+    return deepmerge_core(True, *args)
+
+
+def deepmerge(*args) -> Any:
+    """
+    Deep merge, overwriting lists.
+    The first argument is modified in place.
+    """
+    return deepmerge_core(False, *args)
