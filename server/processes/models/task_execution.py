@@ -95,6 +95,10 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         'api_final_update_timeout_seconds',
     ]
 
+    # Do not send alerts for Task Executions that finished more than one day
+    # ago.
+    MAX_STATUS_ALERT_AGE_SECONDS = 24 * 60 * 60
+
     task = models.ForeignKey(Task, on_delete=models.CASCADE,
             db_column='process_type_id')
     auto_created_task_properties = models.JSONField(null=True, blank=True)
@@ -496,6 +500,13 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
         if self.skip_alert:
             logger.info("Skipping alerting since skip_alert = True")
+            return
+
+        utc_now = timezone.now()
+
+        if self.finished_at and \
+            ((utc_now - self.finished_at).total_seconds() > self.MAX_STATUS_ALERT_AGE_SECONDS):
+            logger.info(f"Skipping alerting since finished_at={self.finished_at} is too long ago")
             return
 
         task = self.task
