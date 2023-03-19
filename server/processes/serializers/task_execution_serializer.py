@@ -493,8 +493,10 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                 validated_data.pop(attr, None)
 
         for attr in TaskExecution.MERGED_ATTRIBUTES:
-            if (attr in validated_data) and (getattr(instance, attr) is not None):
-                validated_data[attr] = deepmerge(instance[attr], validated_data[attr])
+            if attr in validated_data:
+                v = getattr(instance, attr)
+                if v is not None:
+                    validated_data[attr] = deepmerge(v, validated_data[attr])
 
         task_execution = cast(TaskExecution, self.instance)
         self.protect_attributes(validated_data=validated_data,
