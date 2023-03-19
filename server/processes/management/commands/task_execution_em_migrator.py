@@ -44,6 +44,7 @@ class Command(BaseCommand):
                                 task_execution=task_execution,
                                 should_reset=should_reset):
                             task_execution.enrich_settings()
+                            task_execution.skip_alert = True
                             task_execution.save()
                     except Exception:
                         msg = f"Failed to convert Task Execution {task_execution.uuid=}"
