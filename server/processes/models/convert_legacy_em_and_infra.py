@@ -2,10 +2,11 @@ import logging
 
 from typing import Any, Optional
 
-from ..common.utils import coalesce, deepmerge_with_lists
+from ..common.utils import deepmerge_with_lists
 from ..execution_methods import (
     INFRASTRUCTURE_TYPE_AWS,
     SCHEDULING_TYPE_AWS_CLOUDWATCH,
+    SERVICE_PROVIDER_AWS_ECS,
     AwsSettings,
     AwsEcsExecutionMethod,
     AwsEcsExecutionMethodSettings
@@ -62,6 +63,7 @@ def extract_infra_from_run_environment(run_environment: RunEnvironment) -> dict[
         'secret_key': run_environment.aws_secret_key,
         'events_role_arn': run_environment.aws_events_role_arn,
         'assumed_role_external_id': run_environment.aws_assumed_role_external_id,
+        'execution_role_arn': run_environment.aws_ecs_default_execution_role,
         'workflow_starter_lambda_arn': run_environment.aws_workflow_starter_lambda_arn,
         'workflow_starter_access_key': run_environment.aws_workflow_starter_access_key,
         'network': convert_empty_to_none_values({
@@ -75,6 +77,8 @@ def extract_infra_from_run_environment(run_environment: RunEnvironment) -> dict[
     if run_environment.aws_tags is not None:
         aws['tags'] = run_environment.aws_tags
 
+    logger.info(f"{aws=}")
+
     return aws
 
 
@@ -85,7 +89,7 @@ def populate_run_environment_infra(run_environment: RunEnvironment) -> bool:
 
         if run_environment.aws_settings:
             aws_settings = AwsSettings.parse_obj(run_environment.aws_settings)
-            aws_settings.update_derived_attrs(run_environment=run_environment)
+            aws_settings.update_derived_attrs()
             run_environment.aws_settings = aws_settings.dict()
 
         return True
@@ -98,8 +102,8 @@ def extract_aws_ecs_configuration(run_environment: RunEnvironment) -> dict[str, 
         'launch_type': run_environment.aws_ecs_default_launch_type,
         'supported_launch_types': run_environment.aws_ecs_supported_launch_types,
         'cluster_arn': run_environment.aws_ecs_default_cluster_arn,
-        'execution_role': run_environment.aws_ecs_default_execution_role,
-        'task_role': run_environment.aws_ecs_default_task_role,
+        'execution_role_arn': run_environment.aws_ecs_default_execution_role,
+        'task_role_arn': run_environment.aws_ecs_default_task_role,
         'platform_version': run_environment.aws_ecs_default_platform_version,
         'enable_ecs_managed_tags': run_environment.aws_ecs_enable_ecs_managed_tags
     })
@@ -127,8 +131,8 @@ def extract_emc(task: Task) -> dict[str, Any]:
         'launch_type': task.aws_ecs_default_launch_type,
         'supported_launch_types': task.aws_ecs_supported_launch_types,
         'cluster_arn': task.aws_ecs_default_cluster_arn,
-        'execution_role': task.aws_ecs_default_execution_role,
-        'task_role': task.aws_ecs_default_task_role,
+        'execution_role_arn': task.aws_ecs_default_execution_role,
+        'task_role_arn': task.aws_ecs_default_task_role,
         'platform_version': task.aws_ecs_default_platform_version,
         'enable_ecs_managed_tags': task.aws_ecs_enable_ecs_managed_tags,
         'task_definition_arn': task.aws_ecs_task_definition_arn,
@@ -191,10 +195,10 @@ def extract_load_balancer(lb) -> dict[str, Any]:
 def extract_service_settings(task: Task) -> dict[str, Any]:
     load_balancer_settings = None
 
-    load_balancers = [lb for lb in AwsEcsServiceLoadBalancerDetails.objects.raw("""
+    load_balancers = list(AwsEcsServiceLoadBalancerDetails.objects.raw("""
         SELECT * FROM processes_awsecsserviceloadbalancerdetails
         WHERE process_type_id = %s
-        """, [task.id])]
+        """, [task.id]))
 
     if load_balancers:
         load_balancer_settings = {
@@ -241,7 +245,7 @@ def populate_task_emc_and_infra(task: Task, should_reset: bool=False) -> bool:
             task.is_service_managed = None
 
             if not task.passive and task.service_instance_count:
-                task.service_provider_type = 'AWS ECS'
+                task.service_provider_type = SERVICE_PROVIDER_AWS_ECS
                 task.service_settings = extract_service_settings(task)
 
                 if task.enabled:
@@ -268,8 +272,8 @@ def extract_em(task_execution: TaskExecution) -> dict[str, Any]:
     return convert_empty_to_none_values({
         'launch_type': te.aws_ecs_launch_type,
         'cluster_arn': te.aws_ecs_cluster_arn,
-        'execution_role': te.aws_ecs_execution_role,
-        'task_role': te.aws_ecs_task_role,
+        'execution_role_arn': te.aws_ecs_execution_role,
+        'task_role_arn': te.aws_ecs_task_role,
         'platform_version': te.aws_ecs_platform_version,
         'task_definition_arn': te.aws_ecs_task_definition_arn,
         'task_arn': te.aws_ecs_task_arn

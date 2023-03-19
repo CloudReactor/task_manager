@@ -155,7 +155,7 @@ def make_aws_console_ecs_service_url(ecs_service_arn: Optional[str],
         last_part_parts = last_part.split('/')
         if len(last_part_parts) < 3:
             if not cluster_name:
-                logger.info('Service ARN is old format and no cluster name given, returning None')
+                logger.warning('Service ARN is old format and no cluster name given, returning None')
                 return None
             service_name = last_part_parts[1]
         else:
@@ -184,7 +184,7 @@ def make_aws_console_lambda_function_url(
     if (len(tokens) < 7) or (tokens[0] != 'arn') or \
         (tokens[1] != 'aws') or (tokens[2] != 'lambda') or \
         (tokens[5] != 'function'):
-        logger.warning(f"AWS Lambda Execution Method: function_arn is not the expected format")
+        logger.warning(f"AWS Lambda Execution Method: {function_arn=} is not the expected format")
         return None
 
     region = tokens[3]
@@ -196,11 +196,11 @@ def make_aws_console_lambda_function_url(
 
 
 def aws_encode(value: str):
-      """
-      From rh0dium on
-      https://stackoverflow.com/questions/60796991/is-there-a-way-to-generate-the-aws-console-urls-for-cloudwatch-log-group-filters
+    """
+    From rh0dium on
+    https://stackoverflow.com/questions/60796991/is-there-a-way-to-generate-the-aws-console-urls-for-cloudwatch-log-group-filters
 
-      """
-      value = quote_plus(value)
-      value = re.sub(r"\+", " ", value)
-      return re.sub(r"%", "$", quote_plus(value))
+    """
+    value = quote_plus(value)
+    value = re.sub(r"\+", " ", value)
+    return re.sub(r"%", "$", quote_plus(value))

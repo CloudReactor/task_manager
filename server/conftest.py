@@ -24,7 +24,7 @@ from processes.common.aws import extract_cluster_name
 from processes.common.request_helpers import (
     context_with_request, make_fake_request
 )
-from processes.execution_methods import AwsSettings, AwsEcsExecutionMethod, AwsEcsServiceSettings
+from processes.execution_methods import AwsSettings, AwsEcsExecutionMethod, SERVICE_PROVIDER_AWS_ECS
 from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from processes.execution_methods.aws_cloudwatch_scheduling_settings import SCHEDULING_TYPE_AWS_CLOUDWATCH
 from processes.models import *
@@ -229,8 +229,8 @@ def assert_deep_subset(subset: Any, superset: Any, attr: Optional[str]=None) \
         for k, v in subset.items():
             assert k in superset
             assert_deep_subset(v, superset[k], f"{attr}.{k}")
-    elif isinstance(subset, abc.Iterable):
-        assert isinstance(superset, abc.Iterable)
+    elif isinstance(subset, abc.Sequence):
+        assert isinstance(superset, abc.Sequence)
         assert len(subset) == len(superset)
 
         for i, v in enumerate(subset):
@@ -498,8 +498,8 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
             'supported_launch_types': ['FARGATE'],
             'platform_version': '1.4.0',
             'main_container_name': 'hello',
-            'execution_role': run_environment.aws_ecs_default_execution_role,
-            'task_role': 'arn:aws:iam::123456789012:role/task'
+            'execution_role_arn': run_environment.aws_ecs_default_execution_role,
+            'task_role_arn': 'arn:aws:iam::123456789012:role/task'
         }
         body['infrastructure_type'] = 'AWS'
         body['infrastructure_settings'] = {
@@ -523,7 +523,7 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
         }
 
         if is_service:
-            body['service_provider_type'] = 'AWS ECS'
+            body['service_provider_type'] = SERVICE_PROVIDER_AWS_ECS
             body['service_settings'] = {
                 'deployment_configuration': {
                     'minimum_healthy_percent': 50,
@@ -651,11 +651,15 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
             if attr in emc:
                 assert getattr(model_task, 'aws_ecs_' + attr) == emc[attr]
 
+
+        print(f"*** {model_task.infrastructure_settings=}")
+
         model_infra = AwsSettings.parse_obj(model_task.infrastructure_settings)
         model_network = model_infra.network
 
         if 'default_subnets' in emc:
             assert model_task.aws_default_subnets == emc['default_subnets']
+            assert model_network is not None
             assert model_network.subnet_infrastructure_website_urls is not None
             assert len(model_network.subnet_infrastructure_website_urls) == len(emc['default_subnets'])
             for i, subnet in enumerate(emc['default_subnets']):
@@ -663,6 +667,7 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
 
         if 'default_security_groups' in emc:
             assert model_task.aws_ecs_default_security_groups == emc['default_security_groups']
+            assert model_network is not None
             assert model_network.security_group_infrastructure_website_urls is not None
             assert len(model_network.security_group_infrastructure_website_urls) == len(emc['default_security_groups'])
             for i, security_group in enumerate(emc['default_security_groups']):
@@ -693,8 +698,9 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
             assert model_task.service_provider_type == ''
             assert model_task.service_settings is None
         else:
-            service_provider_type = AwsEcsExecutionMethod.NAME
+            service_provider_type = SERVICE_PROVIDER_AWS_ECS
 
+            assert model_task.service_instance_count is not None
             assert model_task.service_instance_count >= 1
             for attr in nullable_service_attrs:
                 if attr in service_options:
@@ -755,12 +761,14 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
                         COPIED_AWS_NETWORK_ATTRIBUTES, partial=True)
 
                 if 'subnets' in aws_network:
+                    assert model_network is not None
                     assert model_network.subnet_infrastructure_website_urls is not None
                     assert len(model_network.subnet_infrastructure_website_urls) == len(aws_network['subnets'])
                     for i, subnet in enumerate(aws_network['subnets']):
                         assert model_network.subnet_infrastructure_website_urls[i].index(subnet) >= 0
 
                 if 'security_groups' in aws_network:
+                    assert model_network is not None
                     assert model_network.security_group_infrastructure_website_urls is not None
                     assert len(model_network.security_group_infrastructure_website_urls) == len(aws_network['security_groups'])
                     for i, subnet in enumerate(aws_network['security_groups']):
@@ -769,6 +777,7 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
             aws_logging = infra.get('logging')
             if aws_logging is not None:
                 model_logging = model_infra.logging
+                assert model_logging is not None
                 ensure_attributes_match(aws_network, model_logging,
                         ['driver'], partial=True)
 
@@ -922,7 +931,7 @@ def make_aws_ecs_task_execution_request_body(
         task = task
     )
 
-    task_request_fragment = {}
+    task_request_fragment: dict[str, Any] = {}
 
     if task_send_type == SEND_ID_CORRECT:
         if task:
@@ -930,6 +939,7 @@ def make_aws_ecs_task_execution_request_body(
                 'name': task.name
             }
         else:
+            assert run_environment is not None
             task_request_fragment = make_aws_ecs_task_request_body(
                 run_environment=run_environment,
                 task_definition_arn=task_definition_arn,
@@ -953,11 +963,16 @@ def make_aws_ecs_task_execution_request_body(
     emd = {
         "task_arn": "arn:aws:ecs:us-east-1:012345678910:task/9781c248-0edd-4cdb-9a93-f63cb662a5d3",
         "task_definition_arn": emcd.get('task_definition_arn', task_definition_arn),
-        "cluster_arn": emcd.get(default_attr_prefix + "cluster_arn",
-                run_environment.aws_ecs_default_cluster_arn),
-        "launch_type": launch_type,
-        "supported_launch_types": [launch_type],
+        "launch_type": launch_type
     }
+
+    cluster_arn = emcd.get(default_attr_prefix + "cluster_arn")
+
+    if not cluster_arn:
+        assert run_environment is not None
+        cluster_arn = run_environment.aws_ecs_default_cluster_arn
+
+    emd["cluster_arn"] = cluster_arn
 
     if is_legacy_schema:
         emd["type"] = "AWS ECS"
@@ -1015,8 +1030,11 @@ def validate_serialized_task_execution(body_task_execution: dict[str, Any],
     assert body_task_execution['status'] == TaskExecution.Status(
             model_task_execution.status).name
 
-    assert body_task_execution['started_by'] == model_task_execution \
-            .started_by.username
+    if model_task_execution.started_by:
+        assert body_task_execution['started_by'] == model_task_execution \
+                .started_by.username
+    else:
+        assert body_task_execution['started_by'] is None
 
     if model_task_execution.stop_reason is None:
         assert body_task_execution['stop_reason'] is None
@@ -1057,6 +1075,8 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
 
     for attr in ENHANCED_TASK_EXECUTION_ATTRIBUTES:
         if attr in body_task_execution:
+            print(f"body task execution[{attr}] = {body_task_execution[attr]}")
+            print(f"model[{attr}] = {getattr(model_task_execution, attr)}")
             assert_deep_subset(body_task_execution[attr],
                     getattr(model_task_execution, attr), attr)
 
@@ -1103,10 +1123,15 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
 
     if emd:
         for attr in ['task_arn', 'task_definition_arn', 'cluster_arn',
-                'launch_type', 'platform_version'
-                'execution_role', 'task_role']:
+                'launch_type', 'platform_version']:
+
             if attr in emd:
-                assert getattr(model_task_execution, 'aws_ecs_' + attr) == emd[attr], attr
+                assert getattr(model_task_execution, 'aws_ecs_' + attr) == (emd[attr] or ''), attr
+
+        for attr in ['execution_role', 'task_role']:
+            if attr in emd:
+                assert getattr(model_task_execution, 'aws_ecs_' + attr) == (emd[attr  + '_arn'] or ''), attr
+
 
 
 def validate_serialized_workflow(body_workflow: dict[str, Any],
@@ -1191,8 +1216,11 @@ def validate_serialized_workflow_execution(body_workflow_execution: dict[str, An
     verify_name_uuid_url_match(body_workflow_execution['workflow'],
             workflow_dict)
 
-    assert body_workflow_execution['started_by'] == model_workflow_execution \
-            .started_by.username
+    if model_workflow_execution.started_by is None:
+        assert body_workflow_execution['started_by'] is None
+    else:
+        assert body_workflow_execution['started_by'] == \
+                model_workflow_execution.started_by.username
 
     if model_workflow_execution.marked_done_by is None:
         assert body_workflow_execution['marked_done_by'] is None

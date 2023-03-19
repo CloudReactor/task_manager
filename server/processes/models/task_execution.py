@@ -3,7 +3,6 @@ from typing import cast, Any, List, Optional, Type
 import enum
 import json
 import logging
-from urllib.parse import quote
 
 from django.db import models
 from django.db.models.signals import pre_save, post_save
@@ -76,6 +75,11 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         'kill_started_at', 'kill_finished_at', 'kill_error_code', 'killed_by',
         'marked_outdated_at', 'marked_done_at', 'marked_done_by',]
 
+    MERGED_ATTRIBUTES = [
+        'infrastructure_settings', 'execution_method_details',
+        'other_runtime_metadata'
+    ]
+
     ATTRIBUTES_REQUIRING_DEVELOPER_ACCESS_FOR_UPDATE = [
         'process_command',
         'task_max_concurrency',
@@ -90,6 +94,10 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         'api_task_execution_creation_conflict_retry_delay_seconds',
         'api_final_update_timeout_seconds',
     ]
+
+    # Do not send alerts for Task Executions that finished more than one day
+    # ago.
+    MAX_STATUS_ALERT_AGE_SECONDS = 24 * 60 * 60
 
     task = models.ForeignKey(Task, on_delete=models.CASCADE,
             db_column='process_type_id')
@@ -174,7 +182,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     api_request_timeout_seconds = models.IntegerField(null=True, blank=True,
             db_column='api_timeout_seconds')
 
-    # Deprecates for wrappers < 2.0
+    # Deprecated for wrappers < 2.0
     api_max_retries = models.IntegerField(null=True, blank=True)
     # Deprecated for wrappers < 2.0
     api_max_retries_for_final_update = models.IntegerField(null=True, blank=True)
@@ -221,53 +229,33 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
     @property
     def infrastructure_website_url(self) -> Optional[str]:
-        if not self.aws_ecs_task_arn:
-            return None
+        if self.execution_method_details:
+            return cast(Optional[str], self.execution_method_details.get('infrastructure_website_url'))
 
-        task = self.task
-        run_environment = task.run_environment
+        return None
 
-        parts = self.aws_ecs_task_arn.split(':')
-        aws_region = parts[3]
-
-        last_part = parts[5]
-        last_part_parts = last_part.split('/')
-        if len(last_part_parts) < 3:
-            aws_cluster_arn = self.aws_ecs_cluster_arn or \
-                task.aws_ecs_default_cluster_arn or \
-                run_environment.aws_ecs_default_cluster_arn
-            cluster_name = extract_cluster_name(aws_cluster_arn)
-            task_id = last_part_parts[1]
-        else:
-            cluster_name = last_part_parts[1]
-            task_id = last_part_parts[2]
-
-        if cluster_name is None:
-            logger.warning("Task.infrastructure_website_url() can't determine cluster_name")
-            return None
-
-        return AWS_CONSOLE_BASE_URL + 'ecs/home?region=' \
-                + quote(aws_region) + '#/clusters/' \
-                + quote(cluster_name) + '/tasks/' \
-                + quote(task_id) + '/details'
-
+    # Deprecated
     @property
     def aws_ecs_task_definition_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_ecs_task_definition_url(
                 self.aws_ecs_task_definition_arn)
 
+    # Deprecated
     @property
     def aws_ecs_cluster_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_ecs_cluster_url(self.aws_ecs_cluster_arn)
 
+    # Deprecated
     @property
     def aws_ecs_execution_role_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_role_url(self.aws_ecs_execution_role)
 
+    # Deprecated
     @property
     def aws_ecs_task_role_infrastructure_website_url(self) -> Optional[str]:
         return make_aws_console_role_url(self.aws_ecs_task_role)
 
+    # Deprecated
     @property
     def aws_subnet_infrastructure_website_urls(self) -> Optional[List[Optional[str]]]:
         if not self.aws_subnets:
@@ -277,6 +265,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         aws_region = self.task.run_environment.aws_default_region
         return [make_aws_console_subnet_url(subnet_name, aws_region) for subnet_name in self.aws_subnets]
 
+    # Deprecated
     @property
     def aws_security_group_infrastructure_website_urls(self) -> Optional[List[Optional[str]]]:
         if not self.aws_ecs_security_groups:
@@ -319,12 +308,10 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         exec_method.manually_start()
 
     def enrich_settings(self) -> None:
-        exec_method = self.execution_method()
-        exec_method.enrich_task_execution_settings()
+        self.execution_method().enrich_task_execution_settings()
 
     def execution_method(self) -> ExecutionMethod:
-        return ExecutionMethod.make_execution_method(task=self.task,
-            task_execution=self)
+        return ExecutionMethod.make_execution_method(task_execution=self)
 
     def make_environment(self) -> dict[str, Any]:
         task = self.task
@@ -513,6 +500,13 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
         if self.skip_alert:
             logger.info("Skipping alerting since skip_alert = True")
+            return
+
+        utc_now = timezone.now()
+
+        if self.finished_at and \
+            ((utc_now - self.finished_at).total_seconds() > self.MAX_STATUS_ALERT_AGE_SECONDS):
+            logger.info(f"Skipping alerting since finished_at={self.finished_at} is too long ago")
             return
 
         task = self.task
@@ -707,10 +701,11 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
         if not instance.kill_finished_at:
             instance.kill_finished_at = now
 
-    from .convert_legacy_em_and_infra import populate_task_execution_em_and_infra
-
-    populate_task_execution_em_and_infra(instance, should_reset=True)
-    instance.enrich_settings()
+    try:
+        instance.enrich_settings()
+    except Exception as ex:
+        logger.warning(f"Failed to enrich Task Execution {instance.uuid} settings",
+                exc_info=ex)
 
 
 @receiver(post_save, sender=TaskExecution)

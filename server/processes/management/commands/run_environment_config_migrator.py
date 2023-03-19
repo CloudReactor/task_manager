@@ -32,9 +32,6 @@ class Command(BaseCommand):
 
             qs = RunEnvironment.objects.exclude(aws_ecs_default_execution_role='')
 
-            if not should_reset:
-                qs = qs.filter(Q(aws_settings__isnull=True) | Q(default_aws_ecs_configuration__isnull=True))
-
             success_count = 0
             error_count = 0
             for run_env in qs.all():

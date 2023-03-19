@@ -8,8 +8,8 @@ from .base_execution_method_capability_serializer import (
 )
 
 class GenericExecutionMethodCapabilitySerializer(BaseExecutionMethodCapabilitySerializer):
-    def get_execution_method_type(self, task: Task) -> str:
-        return task.execution_method_type or UnknownExecutionMethod.NAME
+    def get_execution_method_type(self, obj: Task) -> str:
+        return obj.execution_method_type or UnknownExecutionMethod.NAME
 
     def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         rv = super().to_internal_value(data)

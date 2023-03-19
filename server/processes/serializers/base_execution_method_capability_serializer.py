@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers
 from rest_framework.fields import empty
 
@@ -15,5 +17,5 @@ class BaseExecutionMethodCapabilitySerializer(BaseExecutionMethodSerializer):
     capabilities = serializers.SerializerMethodField(
             method_name='get_capabilities')
 
-    def get_capabilities(self, obj) -> list[str]:
+    def get_capabilities(self, obj: Any) -> list[str]:
         return [c.name for c in obj.execution_method().capabilities()]

@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, Optional, TYPE_CHECKING
+from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast
 
 import json
 import logging
@@ -12,8 +12,7 @@ from pydantic import BaseModel
 from botocore.exceptions import ClientError
 
 from ..common.aws import *
-from ..common.utils import deepmerge_with_lists_pair
-from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
+from ..common.utils import deepmerge
 from .aws_base_execution_method import AwsBaseExecutionMethod
 
 if TYPE_CHECKING:
@@ -27,7 +26,7 @@ from .execution_method import ExecutionMethod
 logger = logging.getLogger(__name__)
 
 
-class AwsLambdaExecutionMethodCapabilitySettings(BaseModel):
+class AwsLambdaExecutionMethodSettings(BaseModel):
     runtime_id: Optional[str] = None
     function_arn: Optional[str] = None
     function_name: Optional[str] = None
@@ -37,7 +36,7 @@ class AwsLambdaExecutionMethodCapabilitySettings(BaseModel):
     function_memory_mb: Optional[int] = None
     infrastructure_website_url: Optional[str] = None
 
-    def update_derived_attrs(self) -> None:
+    def update_derived_attrs(self, execution_method: Optional[ExecutionMethod]) -> None:
         logger.info("AWS Lambda Execution Method: update_derived_attrs()")
 
         self.infrastructure_website_url = make_aws_console_lambda_function_url(
@@ -65,7 +64,7 @@ class AwsClientContext(BaseModel):
     env: Optional[dict[str, Any]] = None
 
 
-class AwsLambdaExecutionMethodSettings(AwsLambdaExecutionMethodCapabilitySettings):
+class AwsLambdaExecutionMethodInfo(AwsLambdaExecutionMethodSettings):
     time_zone_name: Optional[str] = None
     aws_request_id: Optional[str] = None
     cognito_identity: Optional[AwsCognitoIdentity] = None
@@ -73,9 +72,9 @@ class AwsLambdaExecutionMethodSettings(AwsLambdaExecutionMethodCapabilitySetting
 
     @staticmethod
     def from_capability(
-        capability: AwsLambdaExecutionMethodCapabilitySettings) \
-        -> 'AwsLambdaExecutionMethodSettings':
-        settings = AwsLambdaExecutionMethodSettings()
+        capability: AwsLambdaExecutionMethodSettings) \
+        -> 'AwsLambdaExecutionMethodInfo':
+        settings = AwsLambdaExecutionMethodInfo()
         settings.runtime_id = capability.runtime_id
         settings.function_arn = capability.function_arn
         settings.function_name = capability.function_name
@@ -90,40 +89,59 @@ class AwsLambdaExecutionMethodSettings(AwsLambdaExecutionMethodCapabilitySetting
 class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
     NAME = "AWS Lambda"
 
-    def __init__(self, task: 'Task', task_execution: Optional['TaskExecution']):
-        super().__init__(self.NAME, task=task, task_execution=task_execution)
+    def __init__(self, task: Optional['Task'],
+            task_execution: Optional['TaskExecution'],
+            aws_settings: Optional[dict[str, Any]] = None,
+            aws_lambda_settings: Optional[dict[str, Any]] = None):
+        super().__init__(self.NAME, task=task, task_execution=task_execution,
+                aws_settings=aws_settings)
 
-        emd, infra = ExecutionMethod.merge_execution_method_and_infrastructure_details(
-            task=task, task_execution=task_execution
-        )
+        task = self.task
+
+        if aws_lambda_settings is None:
+            settings_to_merge: list[dict[str, Any]] = [ {} ]
+
+            if task:
+                settings_to_merge = [
+                    task.run_environment.default_aws_lambda_configuration or {},
+                    task.execution_method_capability_details or {}
+                ]
+
+            if task_execution and task_execution.execution_method_details:
+                settings_to_merge.append(task_execution.execution_method_details)
+
+            aws_lambda_settings = deepmerge(*settings_to_merge)
+
+        logger.debug(f"{aws_lambda_settings=}")
 
         if task_execution:
-            if emd:
-                self.settings = AwsLambdaExecutionMethodSettings.parse_obj(emd)
-            else:
-                self.settings = AwsLambdaExecutionMethodSettings()
+            self.settings = cast(AwsLambdaExecutionMethodSettings,
+                    AwsLambdaExecutionMethodInfo.parse_obj(aws_lambda_settings))
         else:
-            if emd:
-                self.settings = AwsLambdaExecutionMethodCapabilitySettings.parse_obj(emd)
-            else:
-                self.settings = AwsLambdaExecutionMethodCapabilitySettings()
-
-        if (task.infrastructure_type == INFRASTRUCTURE_TYPE_AWS) or \
-            (task_execution and \
-            (task_execution.infrastructure_type == INFRASTRUCTURE_TYPE_AWS)):
-            self.aws_settings = AwsSettings.parse_obj(infra)
+            self.settings = AwsLambdaExecutionMethodSettings.parse_obj(
+                    aws_lambda_settings)
 
 
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
         task = self.task
 
-        if task.passive:
+        if task and task.passive:
             return frozenset()
 
         if not (self.settings.function_name or self.settings.function_arn):
             return frozenset()
 
-        #run_env = task.run_environment
+        network = self.aws_settings.network
+
+        subnets: Optional[list[str]] = None
+        security_groups: Optional[list[str]] = None
+
+        if network:
+            subnets = network.subnets
+            security_groups = network.security_groups
+
+        if (not subnets) or (not security_groups) :
+            return frozenset()
 
         # TODO: handle scheduling
         return frozenset([self.ExecutionCapability.MANUAL_START])
@@ -134,8 +152,10 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         if task_execution is None:
             raise APIException("No Task Execution found")
 
-        task = self.task or task_execution.task
-        run_env = task.run_environment
+        task = self.task
+
+        if task is None:
+            raise APIException("No Task found")
 
         function_name = self.settings.function_arn or self.settings.function_name
 
@@ -152,9 +172,13 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
             }
         }
 
+        task_execution.execution_method_type = self.NAME
+        task_execution.execution_method_details = self.settings.dict()
+
         success = False
         try:
-            lambda_client = run_env.make_boto3_client('lambda')
+            lambda_client = self.aws_settings.make_boto3_client('lambda',
+                session_uuid=str(task_execution.uuid))
 
             response = lambda_client.invoke(
                 FunctionName=function_name,
@@ -173,8 +197,11 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         except ClientError as client_error:
             logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
             task_execution.error_details = client_error.response
-        except Exception:
+        except Exception as ex:
             logger.warning(f'Failed to start Task {task.uuid}', exc_info=True)
+            task_execution.error_details = {
+                'exception': str(ex)
+            }
 
         if not success:
             from ..models import TaskExecution
@@ -182,8 +209,5 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
             task_execution.stop_reason = TaskExecution.StopReason.FAILED_TO_START
             task_execution.finished_at = timezone.now()
 
-        task_execution.execution_method_details = deepmerge_with_lists_pair(
-            (task_execution.execution_method_details or {}).copy(),
-            self.settings.dict())
-
+        task_execution.execution_method_details = self.settings.dict()
         task_execution.save()

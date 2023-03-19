@@ -6,11 +6,17 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.fields import empty
 
-from processes.serializers.base_execution_method_capability_serializer import BaseExecutionMethodCapabilitySerializer
-
 from ..models import RunEnvironment, AwsEcsServiceLoadBalancerDetails
+from ..models.convert_legacy_em_and_infra import convert_empty_to_none_values
+from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
+from ..execution_methods.aws_ecs_execution_method import (
+    AwsEcsExecutionMethod, SERVICE_PROVIDER_AWS_ECS
+)
 
 from .serializer_helpers import SerializerHelpers
+from .base_execution_method_capability_serializer import (
+    BaseExecutionMethodCapabilitySerializer
+)
 from .base_aws_ecs_execution_method_serializer import (
     BaseAwsEcsExecutionMethodSerializer
 )
@@ -70,9 +76,10 @@ class AwsEcsExecutionMethodCapabilitySerializer(
         cluster = validated.get('aws_ecs_default_cluster_arn')
         if cluster and not cluster.startswith('arn:'):
             if self.run_environment:
-                validated['aws_ecs_default_cluster_arn'] = 'arn:aws:ecs:' \
+                cluster = 'arn:aws:ecs:' \
                         + self.run_environment.aws_default_region + ':' \
                         + self.run_environment.aws_account_id + ':cluster/' + cluster
+                validated['aws_ecs_default_cluster_arn'] = cluster
             else:
                 raise serializers.ValidationError({
                     'aws_ecs_default_cluster_arn': [
@@ -81,6 +88,34 @@ class AwsEcsExecutionMethodCapabilitySerializer(
                 })
 
         validated['aws_default_subnets'] = data.get('default_subnets')
+        validated['execution_method_type'] = AwsEcsExecutionMethod.NAME
+
+        emcd: dict[str, Any] = convert_empty_to_none_values({
+            'launch_type': data.get('default_launch_type'),
+            'cluster_arn': cluster,
+            'task_definition_arn': data.get('task_definition_arn'),
+            'main_container_name': data.get('main_container_name'),
+            'execution_role_arn': data.get('default_execution_role'),
+            'task_role_arn': data.get('default_task_role'),
+            'platform_version': data.get('default_platform_version'),
+        })
+
+        if 'tags' in data:
+            emcd['tags'] = data['tags']
+
+        if 'supported_launch_types' in data:
+            emcd['supported_launch_types'] = data['supported_launch_types']
+
+        validated['execution_method_capability_details'] = emcd
+
+        validated['infrastructure_type'] = INFRASTRUCTURE_TYPE_AWS
+        validated['infrastructure_settings'] = {
+            'network': {
+                'security_groups': data.get('default_security_groups'),
+                'subnets': data.get('default_subnets'),
+                'assign_public_ip': data.get('default_assign_public_ip')
+            }
+        }
 
         is_service = self.is_service
 
@@ -93,7 +128,7 @@ class AwsEcsExecutionMethodCapabilitySerializer(
             elif is_service is False:
                 raise serializers.ValidationError({
                     'execution_method_capability.service_options': [
-                        ErrorDetail('Must be blank or non-negative for services', code='invalid')
+                        ErrorDetail('Must be empty for non-services', code='invalid')
                     ]
                 })
 
@@ -115,5 +150,38 @@ class AwsEcsExecutionMethodCapabilitySerializer(
                     ))
 
                 validated['aws_ecs_load_balancer_details_set'] = load_balancer_details_list
+
+            service_settings: dict[str, Any] = {}
+
+            self.copy_props_with_prefix(dest_dict=service_settings,
+                    src_dict=service_dict,
+                    included_keys=[
+                        'force_new_deployment',
+                        'enabled_ecs_managed_tags',
+                        'propagate_tags',
+                        'tags'
+                    ])
+
+            service_settings['deployment_configuration'] = {
+                'maximum_percent': service_dict.get('deploy_maximum_percent'),
+                'minimum_percent': service_dict.get('deploy_minimum_percent'),
+                'deployment_circuit_breaker': {
+                    'enabled': service_dict.get('deploy_enable_circuit_breaker'),
+                    'rollback_on_failure': service_dict.get('deploy_rollback_on_failure'),
+                }
+            }
+
+            if load_balancer_dicts is not None:
+                service_settings['load_balancer_settings'] = {
+                    'health_check_grace_period_seconds': service_dict.get('load_balancer_health_check_grace_period_seconds'),
+                    'load_balancers': load_balancer_dicts
+                }
+
+            validated['service_settings'] = service_settings
+
+        if is_service:
+            validated['service_provider_type'] = SERVICE_PROVIDER_AWS_ECS
+        elif is_service is False:
+            validated['service_provider_type'] = ''
 
         return validated

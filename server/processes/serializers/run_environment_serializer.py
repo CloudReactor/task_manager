@@ -40,6 +40,10 @@ class RunEnvironmentSerializer(SerializerHelpers,
     the RunEnvironment's settings.
     """
 
+    DEFAULT_LABEL = '__default__'
+    SETTINGS_KEY = 'settings'
+    INFRASTRUCTURE_NAME_KEY = 'infrastructure_name'
+
     class Meta:
         model = RunEnvironment
         fields = [
@@ -53,7 +57,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
             'aws_workflow_starter_lambda_arn', 'aws_workflow_starter_access_key',
             'default_alert_methods',
             'execution_method_capabilities',
-            'default_execution_method_configurations',
+            'execution_method_settings',
         ]
 
         read_only_fields = [
@@ -78,7 +82,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
     # Deprecated
     execution_method_capabilities = serializers.SerializerMethodField()
 
-    default_execution_method_configurations = serializers.SerializerMethodField()
+    execution_method_settings = serializers.SerializerMethodField()
 
     default_alert_methods = NameAndUuidSerializer(include_name=True,
             view_name='alert_methods-detail', required=False, many=True)
@@ -113,6 +117,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
 
         super().__init__(instance, data, context=context, **kwargs)
 
+    # Deprecated
     # TODO: use PolymorphicProxySerializer when it is supported
     @extend_schema_field(AwsEcsRunEnvironmentExecutionMethodCapabilitySerializer(many=True))
     def get_execution_method_capabilities(self, run_env: RunEnvironment) \
@@ -129,18 +134,38 @@ class RunEnvironmentSerializer(SerializerHelpers,
         rv = {}
         if run_env.aws_settings:
             aws_settings_dict = run_env.aws_settings.copy()
-            aws_settings_dict.pop('secret_key')
-            aws_settings_dict.pop('workflow_starter_access_key')
-            rv[INFRASTRUCTURE_TYPE_AWS] = aws_settings_dict
+            for p in PROTECTED_AWS_SETTINGS_PROPERTIES:
+                aws_settings_dict.pop(p)
+
+            rv[INFRASTRUCTURE_TYPE_AWS] = {
+                self.DEFAULT_LABEL: {
+                    self.SETTINGS_KEY: aws_settings_dict
+                }
+            }
 
         return rv
 
 
-    def get_default_execution_method_configurations(self, run_env: RunEnvironment) \
+    def get_execution_method_settings(self, run_env: RunEnvironment) \
             -> dict[str, Any]:
         rv = {}
         if run_env.default_aws_ecs_configuration:
-            rv[AwsEcsExecutionMethod.NAME] = run_env.default_aws_ecs_configuration
+            capabilities: list[str] = []
+            try:
+                em = AwsEcsExecutionMethod(
+                    aws_settings=run_env.aws_settings,
+                    aws_ecs_settings=run_env.default_aws_ecs_configuration)
+                capabilities = [c.name for c in em.capabilities()]
+            except Exception:
+                logger.warning("Can't compute capabilities for default ECS configuration")
+
+            rv[AwsEcsExecutionMethod.NAME] = {
+                self.DEFAULT_LABEL: {
+                    self.SETTINGS_KEY: run_env.default_aws_ecs_configuration,
+                    'capabilities': capabilities,
+                    self.INFRASTRUCTURE_NAME_KEY: self.DEFAULT_LABEL
+                }
+            }
 
         return rv
 
@@ -154,61 +179,101 @@ class RunEnvironmentSerializer(SerializerHelpers,
         validated['created_by_user'] = self.get_request_user()
         validated['created_by_group'] = group
 
-        infra_configs = data.get('infrastructure_settings')
+        infra_settings = data.get('infrastructure_settings')
 
-        if infra_configs:
-            aws_config = infra_configs.get(INFRASTRUCTURE_TYPE_AWS)
-            if aws_config:
-                self.copy_props_with_prefix(dest_dict=validated,
-                        src_dict=aws_config,
-                        dest_prefix='aws_',
-                        included_keys=['account_id', 'default_region',
-                        'access_key', 'secret_key', 'events_role_arn',
-                        'assumed_role_external_id',
-                        'workflow_starter_lambda_arn',
-                        'workflow_starter_access_key',
-                        ])
+        if infra_settings:
+            name_to_aws_settings = infra_settings.get(INFRASTRUCTURE_TYPE_AWS)
+            if name_to_aws_settings:
+                for name, aws_settings in name_to_aws_settings.items():
+                    if name == self.DEFAULT_LABEL:
+                        # TODO: sanitize
+                        validated['aws_settings'] = aws_settings
 
-                # TODO: copy network settings
+                        # Remove once JSON settings are the source of truth
+                        self.copy_props_with_prefix(dest_dict=validated,
+                                src_dict=aws_settings,
+                                dest_prefix='aws_',
+                                included_keys=['account_id', 'default_region',
+                                'access_key', 'secret_key', 'events_role_arn',
+                                'assumed_role_external_id',
+                                'workflow_starter_lambda_arn',
+                                'workflow_starter_access_key',
+                                ])
 
-        defaults = data.get('default_execution_method_configurations')
+                        default_aws_network = aws_settings.get('network')
 
-        if defaults:
-            aws_ecs_config = defaults.get(AwsEcsExecutionMethod.NAME)
+                        if default_aws_network:
+                            validated['aws_default_subnets'] = default_aws_network['subnets']
+                            validated['aws_ecs_default_security_groups'] = default_aws_network['security_groups']
+                            validated['aws_ecs_default_assign_public_ip'] = default_aws_network['assign_public_ip']
+                    else:
+                        raise serializers.ValidationError({
+                            'infrastructure_settings': ['Non-default infrastructure settings not supported yet']
+                        })
 
-            if aws_ecs_config:
-                # Remove after default_aws_ecs_configuration becomes source of truth
-                self.copy_props_with_prefix(dest_dict=validated,
-                        src_dict=aws_ecs_config,
-                        dest_prefix='aws_ecs_default_',
-                        except_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
+        em_defaults = data.get('execution_method_settings') or {}
 
-                self.copy_props_with_prefix(dest_dict=validated,
-                        src_dict=aws_ecs_config,
-                        dest_prefix='aws_ecs_',
-                        included_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
-        else:
-            # For legacy AWS setup wizard / Dashboard UI
-            try:
-                caps = data.get('execution_method_capabilities')
+        for emt, em_settings in em_defaults.items():
+            for execution_method_name, meta_settings in em_settings.items():
+                if execution_method_name == self.DEFAULT_LABEL:
+                    meta_settings = meta_settings or {}
 
-                if caps is not None:
-                    # TODO: clear existing properties
-                    found_cap_types: list[str] = []
-                    for cap in caps:
-                        cap_type = cap['type']
-                        found_cap_types.append(cap_type)
-                        if cap_type == AwsEcsExecutionMethod.NAME:
-                            validated = self.copy_aws_ecs_properties(validated, cap)
-                        else:
-                            raise serializers.ValidationError(f"Unknown execution method capability type '{cap_type}'")
+                    if (emt == AwsEcsExecutionMethod.NAME) or (emt == AwsLambdaExecutionMethod.NAME):
+                        infrastructure_name = meta_settings.get(self.INFRASTRUCTURE_NAME_KEY)
 
-                    if AwsEcsExecutionMethod.NAME not in found_cap_types:
-                        validated['aws_events_role_arn'] = ''
+                        if infrastructure_name and (infrastructure_name != self.DEFAULT_LABEL):
+                            raise serializers.ValidationError({
+                                'execution_method_settings': [f"Found {infrastructure_name=}, but only '{self.DEFAULT_LABEL}' is supported for now"]
+                            })
+                    elif emt:
+                        raise serializers.ValidationError({
+                            'execution_method_settings': [f"Unsupported execution method type: '{emt}'"]
+                        })
 
-            except serializers.ValidationError as validation_error:
-                self.handle_to_internal_value_exception(validation_error,
-                                                        field_name='execution_environment_capabilities')
+                    em_settings = meta_settings.get(self.SETTINGS_KEY)
+
+                    if em_settings:
+                        if emt == AwsEcsExecutionMethod.NAME:
+                            validated['default_aws_ecs_configuration'] = em_settings
+
+                            # Remove after default_aws_ecs_configuration becomes source of truth
+                            self.copy_props_with_prefix(dest_dict=validated,
+                                    src_dict=em_settings,
+                                    dest_prefix='aws_ecs_default_',
+                                    except_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
+
+                            self.copy_props_with_prefix(dest_dict=validated,
+                                    src_dict=em_settings,
+                                    dest_prefix='default_aws_ecs_',
+                                    included_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
+                        elif emt == AwsLambdaExecutionMethod.NAME:
+                            validated['default_aws_lambda_configuration'] = em_settings
+                else:
+                    raise serializers.ValidationError({
+                        'execution_method_settings': [f"Found {execution_method_name=}, but only '{self.DEFAULT_LABEL}' is supported for now"],
+                    })
+
+        # For legacy AWS setup wizard / Dashboard UI
+        try:
+            caps = data.get('execution_method_capabilities')
+
+            if caps is not None:
+                # TODO: clear existing properties
+                found_cap_types: list[str] = []
+                for cap in caps:
+                    cap_type = cap['type']
+                    found_cap_types.append(cap_type)
+                    if cap_type == AwsEcsExecutionMethod.NAME:
+                        validated = self.copy_aws_ecs_properties(validated, cap)
+                    else:
+                        raise serializers.ValidationError(f"Unknown execution method capability type '{cap_type}'")
+
+                if AwsEcsExecutionMethod.NAME not in found_cap_types:
+                    validated['aws_events_role_arn'] = ''
+
+        except serializers.ValidationError as validation_error:
+            self.handle_to_internal_value_exception(validation_error,
+                                                    field_name='execution_method_capabilities')
 
         self.set_validated_alert_methods(data=data, validated=validated,
             run_environment=cast(Optional[RunEnvironment], self.instance),
@@ -288,6 +353,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
             instance.save()
 
         return instance
+
 
     def copy_aws_ecs_properties(self, validated: dict[str, Any],
           cap: dict[str, Any]) -> dict[str, Any]:
