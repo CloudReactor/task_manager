@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: CloudReactor API
-  version: 0.3.0
+  version: 0.4.0
   description: CloudReactor API Documentation
   contact:
     name: Jeff Tsay
@@ -2026,6 +2026,9 @@ components:
       - FARGATE
       - EC2
       type: string
+      description: |-
+        * `FARGATE` - FARGATE
+        * `EC2` - EC2
     AwsEcsRunEnvironmentExecutionMethodCapability:
       type: object
       description: |-
@@ -2172,8 +2175,8 @@ components:
         service_arn_updated_at:
           type: string
           format: date-time
-          nullable: true
           readOnly: true
+          nullable: true
     EmailNotificationProfile:
       type: object
       description: An EmailProfile contains settings for emailing notifications.
@@ -2260,6 +2263,10 @@ components:
       - fail_workflow_if_unhandled
       - ignore
       type: string
+      description: |-
+        * `always_fail_workflow` - Always fail workflow
+        * `fail_workflow_if_unhandled` - Fail workflow if unhandled
+        * `ignore` - Ignore
     Group:
       type: object
       properties:
@@ -2325,6 +2332,11 @@ components:
       - warning
       - info
       type: string
+      description: |-
+        * `critical` - critical
+        * `error` - error
+        * `warning` - warning
+        * `info` - info
     PagerDutyProfile:
       type: object
       description: |-
@@ -2819,15 +2831,16 @@ components:
           type: string
           format: date-time
           readOnly: true
+        infrastructure_settings:
+          type: object
+          additionalProperties: {}
+          readOnly: true
         aws_account_id:
           type: string
           maxLength: 200
         aws_default_region:
           type: string
           maxLength: 20
-        aws_access_key:
-          type: string
-          maxLength: 100
         aws_assumed_role_external_id:
           type: string
           maxLength: 1000
@@ -2848,6 +2861,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AwsEcsRunEnvironmentExecutionMethodCapability'
+          readOnly: true
+        execution_method_settings:
+          type: object
+          additionalProperties: {}
           readOnly: true
     PatchedTask:
       type: object
@@ -2993,6 +3010,16 @@ components:
           allOf:
           - $ref: '#/components/schemas/NameAndUuid'
           nullable: true
+        allocated_cpu_units:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        allocated_memory_mb:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         execution_method_capability:
           allOf:
           - $ref: '#/components/schemas/ExecutionMethodCapability'
@@ -3004,6 +3031,11 @@ components:
           type: object
           additionalProperties: {}
           nullable: true
+        capabilities:
+          type: array
+          items:
+            type: string
+          readOnly: true
         infrastructure_type:
           type: string
           maxLength: 100
@@ -3011,20 +3043,53 @@ components:
           type: object
           additionalProperties: {}
           nullable: true
+        is_scheduling_managed:
+          type: boolean
+          nullable: true
         scheduling_provider_type:
           type: string
-          maxLength: 10
+          maxLength: 100
         scheduling_settings:
           type: object
           additionalProperties: {}
           nullable: true
+        is_service_managed:
+          type: boolean
+          nullable: true
         service_provider_type:
           type: string
-          maxLength: 10
+          maxLength: 100
         service_settings:
           type: object
           additionalProperties: {}
           nullable: true
+        default_input_value:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        input_value_schema:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        output_value_schema:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        managed_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+        failure_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+        timeout_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
         alert_methods:
           type: array
           items:
@@ -3088,6 +3153,10 @@ components:
           readOnly: true
         task:
           $ref: '#/components/schemas/NameAndUuid'
+        auto_created_task_properties:
+          type: object
+          additionalProperties: {}
+          nullable: true
         task_version_number:
           type: integer
           maximum: 9223372036854775807
@@ -3122,6 +3191,20 @@ components:
           allOf:
           - $ref: '#/components/schemas/AwsEcsExecutionMethod'
           readOnly: true
+        execution_method_type:
+          type: string
+          maxLength: 100
+        execution_method_details:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        infrastructure_type:
+          type: string
+          maxLength: 100
+        infrastructure_settings:
+          type: object
+          additionalProperties: {}
+          nullable: true
         status:
           $ref: '#/components/schemas/TaskExecutionStatus'
         started_by:
@@ -3190,6 +3273,10 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
+          nullable: true
+        error_details:
+          type: object
+          additionalProperties: {}
           nullable: true
         last_status_message:
           type: string
@@ -3387,6 +3474,14 @@ components:
           maxLength: 5000000
         embedded_mode:
           type: boolean
+          nullable: true
+        input_value:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        output_value:
+          type: object
+          additionalProperties: {}
           nullable: true
         created_at:
           type: string
@@ -3790,6 +3885,9 @@ components:
       - TASK_DEFINITION
       - SERVICE
       type: string
+      description: |-
+        * `TASK_DEFINITION` - TASK_DEFINITION
+        * `SERVICE` - SERVICE
     RuleTypeEnum:
       enum:
       - always
@@ -3801,6 +3899,15 @@ components:
       - custom
       - default
       type: string
+      description: |-
+        * `always` - Always
+        * `success` - Success
+        * `failure` - Failure
+        * `timeout` - Timeout
+        * `exit_code` - Exit code
+        * `threshold` - Threshold
+        * `custom` - Custom
+        * `default` - Default
     RunEnvironment:
       type: object
       description: |-
@@ -3844,15 +3951,16 @@ components:
           type: string
           format: date-time
           readOnly: true
+        infrastructure_settings:
+          type: object
+          additionalProperties: {}
+          readOnly: true
         aws_account_id:
           type: string
           maxLength: 200
         aws_default_region:
           type: string
           maxLength: 20
-        aws_access_key:
-          type: string
-          maxLength: 100
         aws_assumed_role_external_id:
           type: string
           maxLength: 1000
@@ -3874,6 +3982,10 @@ components:
           items:
             $ref: '#/components/schemas/AwsEcsRunEnvironmentExecutionMethodCapability'
           readOnly: true
+        execution_method_settings:
+          type: object
+          additionalProperties: {}
+          readOnly: true
       required:
       - name
     StartTransitionConditionEnum:
@@ -3883,6 +3995,11 @@ components:
       - count_at_least
       - ratio_at_least
       type: string
+      description: |-
+        * `all` - All
+        * `any` - Any
+        * `count_at_least` - Count at least
+        * `ratio_at_least` - Ratio at least
     StopReasonEnum:
       enum:
       - MANUAL
@@ -3893,6 +4010,14 @@ components:
       - WORKFLOW_EXECUTION_RETRIED
       - WORKFLOW_EXECUTION_TIMED_OUT
       type: string
+      description: |-
+        * `MANUAL` - MANUAL
+        * `MAX_EXECUTION_TIME_EXCEEDED` - MAX_EXECUTION_TIME_EXCEEDED
+        * `MISSING_HEARTBEAT` - MISSING_HEARTBEAT
+        * `FAILED_TO_START` - FAILED_TO_START
+        * `WORKFLOW_EXECUTION_STOPPED` - WORKFLOW_EXECUTION_STOPPED
+        * `WORKFLOW_EXECUTION_RETRIED` - WORKFLOW_EXECUTION_RETRIED
+        * `WORKFLOW_EXECUTION_TIMED_OUT` - WORKFLOW_EXECUTION_TIMED_OUT
     Task:
       type: object
       description: |-
@@ -4037,6 +4162,16 @@ components:
           allOf:
           - $ref: '#/components/schemas/NameAndUuid'
           nullable: true
+        allocated_cpu_units:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        allocated_memory_mb:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         execution_method_capability:
           allOf:
           - $ref: '#/components/schemas/ExecutionMethodCapability'
@@ -4048,6 +4183,11 @@ components:
           type: object
           additionalProperties: {}
           nullable: true
+        capabilities:
+          type: array
+          items:
+            type: string
+          readOnly: true
         infrastructure_type:
           type: string
           maxLength: 100
@@ -4055,20 +4195,53 @@ components:
           type: object
           additionalProperties: {}
           nullable: true
+        is_scheduling_managed:
+          type: boolean
+          nullable: true
         scheduling_provider_type:
           type: string
-          maxLength: 10
+          maxLength: 100
         scheduling_settings:
           type: object
           additionalProperties: {}
           nullable: true
+        is_service_managed:
+          type: boolean
+          nullable: true
         service_provider_type:
           type: string
-          maxLength: 10
+          maxLength: 100
         service_settings:
           type: object
           additionalProperties: {}
           nullable: true
+        default_input_value:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        input_value_schema:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        output_value_schema:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        managed_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+        failure_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+        timeout_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
         alert_methods:
           type: array
           items:
@@ -4134,6 +4307,10 @@ components:
           readOnly: true
         task:
           $ref: '#/components/schemas/NameAndUuid'
+        auto_created_task_properties:
+          type: object
+          additionalProperties: {}
+          nullable: true
         task_version_number:
           type: integer
           maximum: 9223372036854775807
@@ -4168,6 +4345,20 @@ components:
           allOf:
           - $ref: '#/components/schemas/AwsEcsExecutionMethod'
           readOnly: true
+        execution_method_type:
+          type: string
+          maxLength: 100
+        execution_method_details:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        infrastructure_type:
+          type: string
+          maxLength: 100
+        infrastructure_settings:
+          type: object
+          additionalProperties: {}
+          nullable: true
         status:
           $ref: '#/components/schemas/TaskExecutionStatus'
         started_by:
@@ -4236,6 +4427,10 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
+          nullable: true
+        error_details:
+          type: object
+          additionalProperties: {}
           nullable: true
         last_status_message:
           type: string
@@ -4434,6 +4629,14 @@ components:
         embedded_mode:
           type: boolean
           nullable: true
+        input_value:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        output_value:
+          type: object
+          additionalProperties: {}
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -4458,6 +4661,18 @@ components:
       - MANUALLY_STARTED
       - ABORTED
       type: string
+      description: |-
+        * `RUNNING` - RUNNING
+        * `SUCCEEDED` - SUCCEEDED
+        * `FAILED` - FAILED
+        * `TERMINATED_AFTER_TIME_OUT` - TERMINATED_AFTER_TIME_OUT
+        * `MARKED_DONE` - MARKED_DONE
+        * `EXITED_AFTER_MARKED_DONE` - EXITED_AFTER_MARKED_DONE
+        * `STOPPING` - STOPPING
+        * `STOPPED` - STOPPED
+        * `ABANDONED` - ABANDONED
+        * `MANUALLY_STARTED` - MANUALLY_STARTED
+        * `ABORTED` - ABORTED
     ThresholdPropertyEnum:
       enum:
       - execution_time
@@ -4465,6 +4680,11 @@ components:
       - failure_ratio
       - skipped_ratio
       type: string
+      description: |-
+        * `execution_time` - Executiontime
+        * `success_ratio` - Successratio
+        * `failure_ratio` - Failureratio
+        * `skipped_ratio` - Skippedratio
     TimeoutBehaviorEnum:
       enum:
       - always_fail_workflow
@@ -4473,6 +4693,12 @@ components:
       - timeout_workflow_if_unhandled
       - ignore
       type: string
+      description: |-
+        * `always_fail_workflow` - Always fail workflow
+        * `always_timeout_workflow` - Always timeout workflow
+        * `fail_workflow_if_unhandled` - Fail workflow if unhandled
+        * `timeout_workflow_if_unhandled` - Timeout workflow if unhandled
+        * `ignore` - Ignore
     UnknownExecutionMethodCapability:
       type: object
       description: |-
@@ -4729,6 +4955,10 @@ components:
       - SCHEDULED_START
       - EXPLICIT_RETRY
       type: string
+      description: |-
+        * `EXPLICIT_START` - EXPLICIT_START
+        * `SCHEDULED_START` - SCHEDULED_START
+        * `EXPLICIT_RETRY` - EXPLICIT_RETRY
     WorkflowExecutionStatus:
       enum:
       - RUNNING
@@ -4739,12 +4969,23 @@ components:
       - STOPPED
       - MANUALLY_STARTED
       type: string
+      description: |-
+        * `RUNNING` - RUNNING
+        * `SUCCEEDED` - SUCCEEDED
+        * `FAILED` - FAILED
+        * `TERMINATED_AFTER_TIME_OUT` - TERMINATED_AFTER_TIME_OUT
+        * `STOPPING` - STOPPING
+        * `STOPPED` - STOPPED
+        * `MANUALLY_STARTED` - MANUALLY_STARTED
     WorkflowExecutionStopReason:
       enum:
       - MANUAL
       - MAX_EXECUTION_TIME_EXCEEDED
       - ''
       type: string
+      description: |-
+        * `MANUAL` - MANUAL
+        * `MAX_EXECUTION_TIME_EXCEEDED` - MAX_EXECUTION_TIME_EXCEEDED
     WorkflowExecutionSummary:
       type: object
       description: |-
