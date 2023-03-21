@@ -164,9 +164,9 @@ class AwsEcsExecutionMethodCapabilitySerializer(
 
             service_settings['deployment_configuration'] = {
                 'maximum_percent': service_dict.get('deploy_maximum_percent'),
-                'minimum_percent': service_dict.get('deploy_minimum_percent'),
+                'minimum_healthy_percent': service_dict.get('deploy_minimum_healthy_percent'),
                 'deployment_circuit_breaker': {
-                    'enabled': service_dict.get('deploy_enable_circuit_breaker'),
+                    'enable': service_dict.get('deploy_enable_circuit_breaker'),
                     'rollback_on_failure': service_dict.get('deploy_rollback_on_failure'),
                 }
             }
