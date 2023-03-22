@@ -1,6 +1,6 @@
 # Alpine base image can lead to long compilation times and errors.
 # https://pythonspeed.com/articles/base-image-python-docker-images/
-FROM python:3.9.13-slim-buster
+FROM python:3.11.2-slim-bullseye
 
 LABEL maintainer="jeff@cloudreactor.io"
 
@@ -8,9 +8,9 @@ EXPOSE 8000
 
 RUN apt-get update \
   && apt-get upgrade -y \
-  && apt-get install binutils=2.31.1-16 libproj-dev=5.2.0-1 \
-  gdal-bin=2.4.0+dfsg-1+b1 git=1:2.20.1-2+deb10u3 \
-  libpq-dev build-essential=12.6 \
+  && apt-get install binutils libproj-dev \
+  gdal-bin git \
+  libpq-dev build-essential \
   -y --no-install-recommends \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -45,8 +45,8 @@ RUN mkdir -p $WHITENOISE_ROOT
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN pip install pip==22.0.4
-RUN pip install --no-input --no-cache-dir pip-tools==6.6.1 click==8.1.2 requests==2.27.1
+RUN pip install pip==23.0.1
+RUN pip install --no-input --no-cache-dir pip-tools==6.12.3 requests==2.28.2
 
 WORKDIR /tmp
 COPY server/requirements.in .
@@ -55,7 +55,7 @@ RUN pip-compile --allow-unsafe --generate-hashes \
   requirements.in --output-file requirements.txt
 
 # install dependencies
-RUN pip install --no-input --no-cache-dir -r requirements.txt
+RUN pip-sync requirements.txt
 
 ARG asset_path=./client/build
 
