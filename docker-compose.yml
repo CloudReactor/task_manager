@@ -135,7 +135,7 @@ services:
 
   client-shell:
     <<: *client-base
-    container_name: client-shellF
+    container_name: client-shell
     entrypoint: bash
 
   client-npm:

@@ -4,6 +4,8 @@ FROM node:16.19.1
 # set working directory
 WORKDIR /work
 
+RUN npm install -g npm@9.6.2
+
 # add `/work/client/node_modules/.bin` to $PATH
 ENV PATH /work/client/node_modules/.bin:$PATH
 

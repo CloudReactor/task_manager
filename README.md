@@ -10,7 +10,7 @@ API Server and Web Front-end for CloudReactor. Deployed to dash.cloudreactor.io
 
 * Docker (with Compose built-in)
 * Python 3.9+ if running outside of Docker
-* Node JS v12.22.5
+* Node JS v16.19.1
 * Postgres 13.4+
 
 ## Components
@@ -66,7 +66,7 @@ In another terminal, start the asset compiler / dev server natively:
     npm install
     npm start
 
-(Require nodejs 12.22.5 to be installed either natively or through
+(Require nodejs 16.19.1 to be installed either natively or through
 [nvm](https://github.com/nvm-sh/nvm).)
 
 Then you should be able to view the site at:
