@@ -430,9 +430,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         old_aws_ecs_execution_method = cast(AwsEcsExecutionMethod, old_execution_method)
         old_settings = old_aws_ecs_execution_method.settings
 
-        if old_settings is None:
-            return (True, True)
-
         for attr in self.EXECUTION_METHOD_ATTRIBUTES_REQUIRING_SCHEDULING_UPDATE:
             old_value = getattr(old_settings, attr)
             new_value = getattr(self.settings, attr)
@@ -676,8 +673,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if not task:
             raise RuntimeError("No Task found")
 
-        will_be_managed_service = task.enabled and task.is_service and \
-                task.is_service_managed
+        will_be_managed_service = task.is_active_managed_service(current=False)
 
         old_task: Optional[Task] = None
         old_aws_ecs_execution_method: Optional[AwsEcsExecutionMethod] = None
@@ -726,10 +722,15 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 return (True, True)
 
             old_aws_settings = old_aws_ecs_execution_method.aws_settings
+
+            # TODO: network can change for ECS deployment controller
+
             old_network = old_aws_settings.network
 
             if (not old_network) or (not old_network.subnets):
                 return (True, True)
+
+            # TODO: load balancers can change for ECS deployment controller
 
             old_lbs = old_ss.load_balancer_settings
             lbs = ss.load_balancer_settings
@@ -763,7 +764,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
                 if bool(old_target_group_arn_to_lb) or \
                         (old_lbs.health_check_grace_period_seconds != lbs.health_check_grace_period_seconds):
-                    return (True, False)
+                    return (True, True)
             elif old_lbs:
                 return (True, True)
 
@@ -791,13 +792,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             dc = ss.deployment_configuration
             old_dc = old_ss.deployment_configuration
 
-            if dc:
-                if old_dc:
-                    if dc != old_dc:
-                        return (True, False)
-                else:
-                    return (True, False)
-            elif old_dc:
+            if dc != old_dc:
                 return (True, False)
         except Exception:
             logger.warning("Can't parse old Task service settings: {old_ss}", exc_info=True)
@@ -855,7 +850,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
             logger.info(f"setup_service() for Task {task.name} found existing service {service_name}")
             if force_creation and (existing_service_info.last_status == 'ACTIVE'):
-                if old_aws_ecs_execution_method and old_ecs_client:
+                if old_aws_ecs_execution_method:
+                    old_ecs_client = old_ecs_client or old_aws_ecs_execution_method.make_ecs_client()
                     existing_service_info = old_aws_ecs_execution_method.delete_service(
                             service_name=service_name, ecs_client=old_ecs_client)
             else:
