@@ -795,7 +795,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if dc != old_dc:
                 return (True, False)
         except Exception:
-            logger.warning("Can't parse old Task service settings: {old_ss}", exc_info=True)
+            logger.warning(f"Can't parse old Task service settings: {old_ss}", exc_info=True)
             return (True, True)
 
         return (False, False)
@@ -851,16 +851,19 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             logger.info(f"setup_service() for Task {task.name} found existing service {service_name}")
             if force_creation and (existing_service_info.last_status == 'ACTIVE'):
                 if old_aws_ecs_execution_method:
+                    logger.info(f"setup_service(): deleting ACTIVE service {service_name} ...")
                     old_ecs_client = old_ecs_client or old_aws_ecs_execution_method.make_ecs_client()
                     existing_service_info = old_aws_ecs_execution_method.delete_service(
                             service_name=service_name, ecs_client=old_ecs_client)
+                else:
+                    logger.warning(f"setup_service(): service {service_name} existed before Task was saved as an AWS ECS Task?")
+                    # TODO: how to recover?
             else:
                 logger.info(f"setup_service() for Task {task.name} not deleting existing service {service_name}")
 
-
         if (existing_service_info is None) or \
                 (existing_service_info.last_status == 'INACTIVE'):
-            logger.info("Clearing service_arn for inactive or missing service {service_name}")
+            logger.info(f"Clearing service_arn for inactive or missing service {service_name or 'N/A'}")
 
             # TODO: remove when Task.service_settings is the source of truth
             task.aws_ecs_service_arn = ''
@@ -902,6 +905,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 new_service_name = self.make_aws_ecs_service_name(
                         index=existing_service_info.next_service_name_suffix or 0)
 
+            logger.info(f"setup_service() for Task {task.name} creating service with {new_service_name=} ...")
+
             args['serviceName'] = new_service_name
 
             client_token = ''.join(random.choice(string.ascii_letters) for i in range(30))
@@ -933,8 +938,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
             if ss.propagate_tags is not None:
                 args['propagateTags'] = ss.propagate_tags
-
-            logger.info(f"setup_service() for Task {task.name} creating service ...")
 
             response = ecs_client.create_service(**args)
 
