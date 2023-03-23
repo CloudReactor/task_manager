@@ -36,7 +36,7 @@ class Command(BaseCommand):
                 try:
                     if populate_task_emc_and_infra(task=task, should_reset=should_reset):
                         task.enrich_settings()
-                        task.save()
+                        task.save_without_sync()
                 except Exception:
                     msg = f"Failed to convert Task {task.uuid=} {task.name=}"
                     logger.exception(msg)
