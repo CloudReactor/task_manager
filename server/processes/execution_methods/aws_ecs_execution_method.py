@@ -350,10 +350,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         self.scheduling_settings: Optional[AwsCloudwatchSchedulingSettings] = None
 
         if task and (task_execution is None):
-            if task.service_settings:
+            if task.service_settings is not None:
                 self.service_settings = AwsEcsServiceSettings.parse_obj(task.service_settings)
 
-            if task.scheduling_settings:
+            if task.scheduling_settings is not None:
                 self.scheduling_settings = AwsCloudwatchSchedulingSettings.parse_obj(
                     task.scheduling_settings)
 
@@ -705,7 +705,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if not was_managed_ecs_service:
             return (True, True)
 
-        if (not old_task) or (not old_task.service_settings) or \
+        if (not old_task) or (old_task.service_settings is None) or \
                 (not old_aws_ecs_execution_method):
             return (True, True)
 
