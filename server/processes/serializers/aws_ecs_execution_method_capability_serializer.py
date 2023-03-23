@@ -178,7 +178,9 @@ class AwsEcsExecutionMethodCapabilitySerializer(
                 }
 
             validated['service_settings'] = service_settings
-
+        elif is_service:
+            validated['service_settings'] = {}
+            
         if is_service:
             validated['service_provider_type'] = SERVICE_PROVIDER_AWS_ECS
         elif is_service is False:
