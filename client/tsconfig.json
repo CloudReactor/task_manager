@@ -23,7 +23,7 @@
     "noEmit": true
   },
   "types": [
-    "vite/client", "vite-plugin-svgr/client", "typePatches"
+    "vite/client", "vite-plugin-svgr/client"
   ],
   "include": [
     "src"
