@@ -27,6 +27,7 @@ export default defineConfig({
     transformMixedEsModules: true
   },
   build: {
-    outDir: 'build'
+    outDir: 'build',
+    manifest: true
   }
 });
