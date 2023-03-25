@@ -1,6 +1,6 @@
 {
-  "short_name": "cloudreactor-process-manager",
-  "name": "CloudReactor Process Manager",
+  "short_name": "cloudreactor-task-manager",
+  "name": "CloudReactor Task Manager",
   "icons": [
     {
       "src": "favicon.ico",
