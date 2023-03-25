@@ -243,8 +243,8 @@ const Dashboard = (p: Props) => {
       <div className={styles.dashboardFooter}>
         <UTCTimeMemo />
         {
-          (process.env.REACT_APP_DEPLOYMENT !== 'production') &&
-          <p>Version {process.env.REACT_APP_VERSION_SIGNATURE}</p>
+          (import.meta.env.VITE_DEPLOYMENT !== 'production') &&
+          <p>Version {import.meta.env.VITE_VERSION_SIGNATURE}</p>
         }
       </div>
     </div>

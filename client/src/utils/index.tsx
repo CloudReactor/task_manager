@@ -11,8 +11,8 @@ import swal from 'sweetalert';
 
 import StartTaskModal from '../components/StartTaskModal/StartTaskModal';
 
-const moment = require('moment');
-require('moment-duration-format');
+import moment from 'moment';
+import 'moment-duration-format';
 
 export const displayStatus = (
   status: string,
