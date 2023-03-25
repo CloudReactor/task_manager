@@ -2,7 +2,6 @@ import * as C from './constants';
 import * as api from './api';
 import {TaskExecution, Task} from '../types/domain_types';
 
-import React from 'react';
 import { Link } from 'react-router-dom';
 
 import { createModal } from 'react-modal-promise';
@@ -12,7 +11,6 @@ import swal from 'sweetalert';
 import StartTaskModal from '../components/StartTaskModal/StartTaskModal';
 
 import moment from 'moment';
-import 'moment-duration-format';
 
 export const displayStatus = (
   status: string,
@@ -139,10 +137,7 @@ export function formatDuration(x: number | null,
     if (negative_value && (x < 0)) {
       return negative_value;
     }
-    return moment.duration(x, 'seconds').format(
-      'd [days], h [hours], m [minutes], s [seconds]', {
-        trim: 'both mid'
-      });
+    return moment.duration(x, 'seconds').humanize();
   }
   return fallback;
 }
