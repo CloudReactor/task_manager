@@ -6,7 +6,7 @@ import * as JwtUtils from './utils/jwt_utils';
 
 axios.defaults.withCredentials = true;
 
-const baseURL = process.env.REACT_APP_API_BASE_URL ?? 'http://localhost:8000/';
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/';
 
 const defaultOptions = {
   baseURL,

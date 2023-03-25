@@ -6,14 +6,14 @@ import App from './App';
 
 import * as serviceWorker from './serviceWorker';
 
-import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
+import { MuiThemeProvider, createTheme } from '@material-ui/core/styles';
 
 import CssBaseline from '@material-ui/core/CssBaseline';
 import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
 
 import './styles/index.scss';
 
-const darkTheme = createMuiTheme({
+const darkTheme = createTheme({
   // settings for Material UI components
   palette: {
     type: 'dark',

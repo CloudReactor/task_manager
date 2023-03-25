@@ -73,7 +73,7 @@ COPY ./server/task_manager task_manager
 COPY ./server/spectacular spectacular
 COPY ./server/processes processes
 
-COPY ${asset_path}/static $CRA_ROOT/static
+COPY ${asset_path}/assets $CRA_ROOT/static
 
 RUN python manage.py collectstatic --no-input
 

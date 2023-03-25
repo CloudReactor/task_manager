@@ -16,9 +16,9 @@ import formItems from './loginFormItems';
 
 import * as JwtUtils from '../../utils/jwt_utils';
 
-const DEPLOYMENT = process.env.REACT_APP_DEPLOYMENT ?? 'N/A';
-const VERSION_SIGNATURE = process.env.REACT_APP_VERSION_SIGNATURE ?? 'N/A';
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL ?? 'http://localhost:8000/';
+const DEPLOYMENT = import.meta.env.VITE_DEPLOYMENT ?? 'N/A';
+const VERSION_SIGNATURE = import.meta.env.VITE_VERSION_SIGNATURE ?? 'N/A';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/';
 
 interface Props extends RouteComponentProps {
 }

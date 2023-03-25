@@ -233,7 +233,7 @@ CRA_ROOT = env.str('CRA_ROOT',
 
 STATICFILES_DIRS = [os.path.join(CRA_ROOT, 'static')] if CRA_ROOT else []
 
-STATIC_URL = '/static/'
+STATIC_URL = '/assets/'
 
 WHITENOISE_ROOT = env.str('WHITENOISE_ROOT', default=CRA_ROOT)
 
