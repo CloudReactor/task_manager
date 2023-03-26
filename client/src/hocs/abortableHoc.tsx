@@ -5,7 +5,7 @@ export interface AbortSignalProps {
 }
 
 export default function abortableHoc(Component: React.ComponentType<any>): React.ComponentClass<any> {
-  return class extends React.Component {
+  class AbortableComponent extends React.Component {
     abortController = new AbortController();
 
     componentWillUnmount() {
@@ -16,4 +16,6 @@ export default function abortableHoc(Component: React.ComponentType<any>): React
       return <Component abortSignal={this.abortController.signal} {...this.props} />;
     }
   };
+
+  return AbortableComponent;
 }

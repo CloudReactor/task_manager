@@ -19,7 +19,7 @@ interface State {
 
 export const isAuth = <P extends object>(
     WrappedComponent: React.ComponentType<P>) =>
-  class extends React.Component<P & Props, State> {
+  class AuthenticatedComponent extends React.Component<P & Props, State> {
     static contextType = GlobalContext;
 
     async componentDidMount() {
