@@ -18,7 +18,7 @@ import { Alert, Row, Col } from 'react-bootstrap';
 
 import { createModal } from 'react-modal-promise';
 
-import cancelTokenHoc, { CancelTokenProps } from '../../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import {
   GlobalContext,
@@ -42,7 +42,7 @@ import styles from './index.module.scss'
 interface Props extends RouteComponentProps<any> {
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 interface State {
   isLoading: boolean;
@@ -99,7 +99,7 @@ class ApiKeyList extends Component<InnerProps, State> {
         descending,
         offset,
         maxResults: rowsPerPage,
-        cancelToken: this.props.cancelToken
+        abortSignal: this.props.abortSignal
       });
     } catch (error) {
       if (isCancel(error)) {
@@ -302,4 +302,4 @@ class ApiKeyList extends Component<InnerProps, State> {
   };
 }
 
-export default withRouter(cancelTokenHoc(ApiKeyList));
+export default withRouter(abortableHoc(ApiKeyList));

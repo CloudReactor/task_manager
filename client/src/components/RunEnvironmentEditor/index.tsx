@@ -68,9 +68,22 @@ const RunEnvironmentEditor = ({
 }: Props) => {
   const runEnv = runEnvironment ?? makeNewRunEnvironment();
 
-  const [allowAwsEcsControl, setAllowAwsEcsControl] = useState(
-    !!runEnv.execution_method_capabilities.find(emc =>
-      (emc.type === EXECUTION_METHOD_TYPE_AWS_ECS))
+  const infraByName = runEnv.infrastructure_settings;
+
+  const awsInfraByName = infraByName['AWS'];
+
+  const defaultAws = awsInfraByName ? awsInfraByName['__default__'] : null;
+
+  console.log(`defaultAws = ${JSON.stringify(defaultAws)}`);
+
+  const ems = runEnv.execution_method_settings;
+  const awsEcsEmsByName = ems['AWS ECS'];
+  const defaultAwsEcsEms = awsEcsEmsByName ? awsEcsEmsByName['__default__'] : null;
+
+  console.log(`defaultAwsEcsEms = ${JSON.stringify(defaultAwsEcsEms)}`);
+
+  const [allowAwsControl, setAllowAwsControl] = useState(
+    !!defaultAws || false
   );
 
   const context = useContext(GlobalContext);
@@ -85,7 +98,7 @@ const RunEnvironmentEditor = ({
   if (!isSaveAllowed) {
     return (
       <p>
-        You don't have permission to view this Run Environment's details.
+        You don&apos;t have permission to view this Run Environment&apos;s details.
         Contact the Group administrator to obtain permission.
       </p>
     );
@@ -96,7 +109,20 @@ const RunEnvironmentEditor = ({
     description: Yup.string().max(5000)
   };
 
-  if (allowAwsEcsControl) {
+  if (allowAwsControl) {
+    yupObjectShape['infrastructure_settings'] = Yup.object().shape({
+      'AWS': Yup.object().shape({
+        '__default__': Yup.object().shape({
+          account_id: Yup.number().required().positive().integer(),
+          region: Yup.string().max(20).required(),
+          events_role_arn: Yup.string().max(1000).required(),
+          assumed_role_external_id: Yup.string().max(1000).required(),
+          workflow_starter_lambda_arn: Yup.string().max(1000),
+          workflow_starter_access_key: Yup.string().max(1000),
+        })
+      })
+    });
+
     Object.assign(yupObjectShape, {
       aws_account_id: Yup.number().required().positive().integer(),
       aws_default_region: Yup.string().max(20).required(),
@@ -165,14 +191,14 @@ const RunEnvironmentEditor = ({
         const awsEcsEmc = (emc?.type === EXECUTION_METHOD_TYPE_AWS_ECS) ?
           (emc as any) : null;
 
-        const handleAllowAwsEcsControlChange = () => {
-          const emcs = allowAwsEcsControl ? [] : [{
+        const handleAllowAwsControlChange = () => {
+          const emcs = allowAwsControl ? [] : [{
             type: EXECUTION_METHOD_TYPE_AWS_ECS,
             supported_launch_types: ['FARGATE']
           }];
           setFieldValue('execution_method_capabilities', emcs);
           setErrors({});
-          setAllowAwsEcsControl(!allowAwsEcsControl);
+          setAllowAwsControl(!allowAwsControl);
         };
 
         return (
@@ -191,14 +217,14 @@ const RunEnvironmentEditor = ({
               <div className={styles.formSection}>
                 <h4 className={styles.sectionTitle}>Management</h4>
                 <FormGroup controlId="awsEcsCheckbox">
-                  <FormCheck label="Enable CloudReactor to manage Tasks in AWS ECS"
-                  checked={allowAwsEcsControl}
-                  onChange={handleAllowAwsEcsControlChange} />
+                  <FormCheck label="Enable CloudReactor to manage Tasks in AWS"
+                  checked={allowAwsControl}
+                  onChange={handleAllowAwsControlChange} />
                 </FormGroup>
               </div>
 
               {
-                allowAwsEcsControl && (
+                allowAwsControl && (
                   <Fragment>
                     <SettingsForm items={items1} onChange={handleChange} />
 

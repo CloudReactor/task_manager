@@ -1,7 +1,5 @@
 import _ from 'lodash';
 
-import { CancelToken } from 'axios';
-
 import {
   ACCESS_LEVEL_DEVELOPER,
   ACCESS_LEVEL_SUPPORT
@@ -21,7 +19,7 @@ import {
 } from 'react-bootstrap';
 
 import * as UIC from '../../../utils/ui_constants';
-import useAxiosCleanup from '../../../utils/axios_cleanup_hook';
+import makeAbortable from '../../../utils/abortable_hook';
 
 import {
   accessLevelForCurrentGroup,
@@ -46,7 +44,7 @@ export type FetchPageProps = {
   groupId?: number;
   offset: number;
   maxResults?: number;
-  cancelToken: CancelToken;
+  abortSignal: AbortSignal;
   context: GlobalContextType;
 }
 
@@ -99,13 +97,13 @@ export function makeEntityList<T>({
       document.title = `CloudReactor - ${pluralEntityName}`;
     }, []);
 
-    useAxiosCleanup(async (cancelToken) => {
+    makeAbortable(async (abortSignal) => {
       try {
         const page = await fetchPage({
           groupId: currentGroup?.id,
           offset,
           maxResults: pageSize,
-          cancelToken,
+          abortSignal,
           context
         });
         setPage(page);

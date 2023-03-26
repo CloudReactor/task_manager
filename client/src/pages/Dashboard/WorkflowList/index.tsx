@@ -6,7 +6,7 @@ import {
   RunEnvironment, WorkflowSummary
 } from '../../../types/domain_types';
 
-import cancelTokenHoc, { CancelTokenProps } from '../../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import {
   ResultsPage,
@@ -61,7 +61,7 @@ interface State {
 }
 
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 class WorkflowList extends Component<InnerProps, State> {
   static contextType = GlobalContext;
@@ -104,7 +104,7 @@ class WorkflowList extends Component<InnerProps, State> {
 
   async loadRunEnvironments() {
     const {
-      cancelToken
+      abortSignal
     } = this.props;
 
     const { currentGroup } = this.context;
@@ -112,7 +112,7 @@ class WorkflowList extends Component<InnerProps, State> {
     try {
       const page = await fetchRunEnvironments({
         groupId: currentGroup?.id,
-        cancelToken
+        abortSignal
       });
       this.setState({
         runEnvironments: page.results,
@@ -153,7 +153,7 @@ class WorkflowList extends Component<InnerProps, State> {
         descending,
         offset,
         maxResults: rowsPerPage,
-        cancelToken: this.props.cancelToken
+        abortSignal: this.props.abortSignal
       });
     } catch (error) {
       if (isCancel(error)) {
@@ -451,4 +451,4 @@ class WorkflowList extends Component<InnerProps, State> {
   };
 }
 
-export default withRouter(cancelTokenHoc(WorkflowList));
+export default withRouter(abortableHoc(WorkflowList));

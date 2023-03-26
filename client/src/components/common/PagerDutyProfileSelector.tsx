@@ -7,7 +7,7 @@ import React, { Fragment } from 'react';
 import Form from 'react-bootstrap/Form'
 
 import { GlobalContext } from '../../context/GlobalContext';
-import cancelTokenHoc, { CancelTokenProps } from '../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
 interface Props {
   selectedPagerDutyProfile?: string | null;
@@ -20,7 +20,7 @@ interface State {
   pagerDutyProfiles: PagerDutyProfile[];
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 class PagerDutyProfileSelector extends React.Component<InnerProps, State> {
   static contextType = GlobalContext;
@@ -82,7 +82,7 @@ class PagerDutyProfileSelector extends React.Component<InnerProps, State> {
   }
 
   async loadData() {
-    const { cancelToken, runEnvironmentUuid } = this.props;
+    const { abortSignal, runEnvironmentUuid } = this.props;
     const { currentGroup } = this.context;
     let pagerDutyProfiles: PagerDutyProfile[] = [];
 
@@ -90,7 +90,7 @@ class PagerDutyProfileSelector extends React.Component<InnerProps, State> {
       const page = await fetchPagerDutyProfiles({
         groupId: currentGroup?.id,
         runEnvironmentUuid,
-        cancelToken
+        abortSignal
       });
       pagerDutyProfiles = page.results;
 
@@ -107,4 +107,4 @@ class PagerDutyProfileSelector extends React.Component<InnerProps, State> {
 }
 
 
-export default cancelTokenHoc(PagerDutyProfileSelector);
+export default abortableHoc(PagerDutyProfileSelector);

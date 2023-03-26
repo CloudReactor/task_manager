@@ -1,4 +1,4 @@
-import { CancelToken } from 'axios';
+
 
 import {
   RunEnvironment
@@ -15,7 +15,7 @@ import { withRouter } from 'react-router';
 
 import { EntityDetail, EntityDetailProps } from '../../../components/common/EntityDetail'
 
-import cancelTokenHoc from '../../../hocs/cancelTokenHoc';
+import abortableHoc from '../../../hocs/abortableHoc';
 import RunEnvironmentEditor from '../../../components/RunEnvironmentEditor';
 
 class RunEnvironmentDetail extends EntityDetail<RunEnvironment> {
@@ -23,16 +23,16 @@ class RunEnvironmentDetail extends EntityDetail<RunEnvironment> {
     super(props, 'Run Environment');
   }
 
-  fetchEntity(uuid: string, cancelToken: CancelToken): Promise<RunEnvironment> {
-    return fetchRunEnvironment(uuid, cancelToken);
+  fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<RunEnvironment> {
+    return fetchRunEnvironment(uuid, abortSignal);
   }
 
-  cloneEntity(uuid: string, values: any, cancelToken: CancelToken): Promise<RunEnvironment> {
-    return cloneRunEnvironment(uuid, values, cancelToken);
+  cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<RunEnvironment> {
+    return cloneRunEnvironment(uuid, values, abortSignal);
   }
 
-  deleteEntity(uuid: string, cancelToken: CancelToken): Promise<void> {
-    return deleteRunEnvironment(uuid, cancelToken);
+  deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void> {
+    return deleteRunEnvironment(uuid, abortSignal);
   }
 
   renderEntity() {
@@ -48,4 +48,4 @@ class RunEnvironmentDetail extends EntityDetail<RunEnvironment> {
   }
 }
 
-export default withRouter(cancelTokenHoc(RunEnvironmentDetail));
+export default withRouter(abortableHoc(RunEnvironmentDetail));

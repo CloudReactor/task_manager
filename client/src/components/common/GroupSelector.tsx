@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { Group } from '../../types/website_types';
 import { fetchCurrentUser } from '../../utils/api';
-import cancelTokenHoc, { CancelTokenProps } from '../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
 import React from 'react';
 import Form from 'react-bootstrap/Form'
@@ -13,7 +13,7 @@ interface Props {
   [propName: string]: any;
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 interface State {
   selectedGroupId?: number;
@@ -42,7 +42,7 @@ class GroupSelector extends React.Component<InnerProps, State> {
 
     return (
       <Form.Control
-        {... _.omit(this.props, ['selectedGroupId', 'onSelectedGroupIdChanged','cancelToken'])}
+        {... _.omit(this.props, ['selectedGroupId', 'onSelectedGroupIdChanged','abortSignal'])}
         as="select"
         name="group"
         value={selectedGroupId ?? ''}
@@ -88,10 +88,10 @@ class GroupSelector extends React.Component<InnerProps, State> {
 
   async loadData() {
     const {
-      cancelToken
+      abortSignal
     } = this.props;
 
-    const currentUser = await fetchCurrentUser({ cancelToken });
+    const currentUser = await fetchCurrentUser({ abortSignal });
     const groups = currentUser.groups;
 
     this.setState({
@@ -104,4 +104,4 @@ class GroupSelector extends React.Component<InnerProps, State> {
   }
 }
 
-export default cancelTokenHoc(GroupSelector);
+export default abortableHoc(GroupSelector);

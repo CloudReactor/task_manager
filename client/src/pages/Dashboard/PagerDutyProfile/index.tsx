@@ -20,12 +20,12 @@ import '../../../styles/cardStyles.scss';
 
 const PagerDutyProfileList = makeEntityList<PagerDutyProfile>({
   entityName: 'PagerDuty Profile',
-  fetchPage: ({ groupId, offset, maxResults, cancelToken }) => {
+  fetchPage: ({ groupId, offset, maxResults, abortSignal }) => {
     return fetchPagerDutyProfiles({
       groupId,
       offset,
       maxResults,
-      cancelToken
+      abortSignal
     });
   },
   renderEntities: ({ page, handleSelection }) => {

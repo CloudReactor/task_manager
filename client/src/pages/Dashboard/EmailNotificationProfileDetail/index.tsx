@@ -1,4 +1,4 @@
-import { CancelToken } from 'axios';
+
 
 import {
   EmailNotificationProfile
@@ -15,7 +15,7 @@ import { withRouter } from 'react-router';
 
 import { EntityDetail, EntityDetailProps } from '../../../components/common/EntityDetail'
 
-import cancelTokenHoc from '../../../hocs/cancelTokenHoc';
+import abortableHoc from '../../../hocs/abortableHoc';
 import EmailNotificationProfileEditor from '../../../components/EmailProfileNotificationEditor';
 
 class EmailNotificationProfileDetail extends EntityDetail<EmailNotificationProfile> {
@@ -23,16 +23,16 @@ class EmailNotificationProfileDetail extends EntityDetail<EmailNotificationProfi
     super(props, 'Email Notification Profile');
   }
 
-  fetchEntity(uuid: string, cancelToken: CancelToken): Promise<EmailNotificationProfile> {
-    return fetchEmailNotificationProfile(uuid, cancelToken);
+  fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<EmailNotificationProfile> {
+    return fetchEmailNotificationProfile(uuid, abortSignal);
   }
 
-  cloneEntity(uuid: string, values: any, cancelToken: CancelToken): Promise<EmailNotificationProfile> {
-    return cloneEmailNotificationProfile(uuid, values, cancelToken);
+  cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<EmailNotificationProfile> {
+    return cloneEmailNotificationProfile(uuid, values, abortSignal);
   }
 
-  deleteEntity(uuid: string, cancelToken: CancelToken): Promise<void> {
-    return deleteEmailNotificationProfile(uuid, cancelToken);
+  deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void> {
+    return deleteEmailNotificationProfile(uuid, abortSignal);
   }
 
   renderEntity() {
@@ -49,4 +49,4 @@ class EmailNotificationProfileDetail extends EntityDetail<EmailNotificationProfi
   }
 }
 
-export default withRouter(cancelTokenHoc(EmailNotificationProfileDetail));
+export default withRouter(abortableHoc(EmailNotificationProfileDetail));

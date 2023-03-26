@@ -1,5 +1,3 @@
-import { CancelToken } from 'axios';
-
 import { EntityReference } from '../../../types/domain_types';
 import { ACCESS_LEVEL_DEVELOPER } from '../../../utils/constants';
 
@@ -22,7 +20,7 @@ import { createModal } from 'react-modal-promise';
 
 import { GlobalContext, accessLevelForCurrentGroup } from '../../../context/GlobalContext';
 
-import { CancelTokenProps } from '../../../hocs/cancelTokenHoc';
+import { AbortSignalProps } from '../../../hocs/abortableHoc';
 import { BootstrapVariant } from '../../../types/ui_types';
 import ActionButton from '../ActionButton';
 import BreadcrumbBar from '../../BreadcrumbBar/BreadcrumbBar';
@@ -33,7 +31,7 @@ type PathParamsType = {
   uuid: string;
 };
 
-export type EntityDetailProps = RouteComponentProps<PathParamsType> & CancelTokenProps;
+export type EntityDetailProps = RouteComponentProps<PathParamsType> & AbortSignalProps;
 
 export interface EntityDetailState<T extends EntityReference> {
   entity?: T,
@@ -67,9 +65,9 @@ export abstract class EntityDetail<T extends EntityReference>
 
   readonly entityName: string;
   readonly listPath: string;
-  abstract fetchEntity(uuid: string, cancelToken: CancelToken): Promise<T>
-  abstract cloneEntity(uuid: string, values: any, cancelToken: CancelToken): Promise<T>
-  abstract deleteEntity(uuid: string, cancelToken: CancelToken): Promise<void>
+  abstract fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<T>
+  abstract cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<T>
+  abstract deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void>
 
   componentDidMount() {
     document.title = `CloudReactor - ${this.entityName} Details`
@@ -85,14 +83,14 @@ export abstract class EntityDetail<T extends EntityReference>
 
   async loadEntity(uuid: string) {
     const {
-      cancelToken
+      abortSignal
     } = this.props;
 
     this.setState({
       isLoading: true
     });
     try {
-      const entity = await this.fetchEntity(uuid, cancelToken);
+      const entity = await this.fetchEntity(uuid, abortSignal);
       this.setState({
         entity,
         isLoading: false
@@ -248,7 +246,7 @@ export abstract class EntityDetail<T extends EntityReference>
 
     try {
       const cloned = await this.cloneEntity(entity.uuid, {
-      }, this.props.cancelToken);
+      }, this.props.abortSignal);
 
       this.setState({
         entity: cloned,
@@ -316,7 +314,7 @@ export abstract class EntityDetail<T extends EntityReference>
     });
 
     try {
-      await this.deleteEntity(entity.uuid, this.props.cancelToken);
+      await this.deleteEntity(entity.uuid, this.props.abortSignal);
 
       this.setState({
         isDeleting: false,

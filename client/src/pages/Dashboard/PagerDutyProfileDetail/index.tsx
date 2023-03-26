@@ -1,4 +1,4 @@
-import { CancelToken } from 'axios';
+
 
 import {
   PagerDutyProfile
@@ -15,7 +15,7 @@ import { withRouter } from 'react-router';
 
 import { EntityDetail, EntityDetailProps } from '../../../components/common/EntityDetail'
 
-import cancelTokenHoc from '../../../hocs/cancelTokenHoc';
+import abortableHoc from '../../../hocs/abortableHoc';
 import PagerDutyProfileEditor from '../../../components/PagerDutyProfileEditor';
 
 class PagerDutyProfileDetail extends EntityDetail<PagerDutyProfile> {
@@ -23,16 +23,16 @@ class PagerDutyProfileDetail extends EntityDetail<PagerDutyProfile> {
     super(props, 'PagerDuty Profile');
   }
 
-  fetchEntity(uuid: string, cancelToken: CancelToken): Promise<PagerDutyProfile> {
-    return fetchPagerDutyProfile(uuid, cancelToken);
+  fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<PagerDutyProfile> {
+    return fetchPagerDutyProfile(uuid, abortSignal);
   }
 
-  cloneEntity(uuid: string, values: any, cancelToken: CancelToken): Promise<PagerDutyProfile> {
-    return clonePagerDutyProfile(uuid, values, cancelToken);
+  cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<PagerDutyProfile> {
+    return clonePagerDutyProfile(uuid, values, abortSignal);
   }
 
-  deleteEntity(uuid: string, cancelToken: CancelToken): Promise<void> {
-    return deletePagerDutyProfile(uuid, cancelToken);
+  deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void> {
+    return deletePagerDutyProfile(uuid, abortSignal);
   }
 
   renderEntity() {
@@ -49,4 +49,4 @@ class PagerDutyProfileDetail extends EntityDetail<PagerDutyProfile> {
   }
 }
 
-export default withRouter(cancelTokenHoc(PagerDutyProfileDetail));
+export default withRouter(abortableHoc(PagerDutyProfileDetail));

@@ -2,7 +2,7 @@ import {
   plainToClass
 } from 'class-transformer';
 
-import { CancelToken } from 'axios';
+
 
 import { makeAuthenticatedClient } from '../axios_config';
 
@@ -45,7 +45,7 @@ export function makeEmptyResultsPage<T>(): ResultsPage<T> {
 }
 
 export interface FetchOptions {
-  cancelToken?: CancelToken;
+  abortSignal?: AbortSignal;
 }
 
 export interface PageFetchOptions extends FetchOptions {
@@ -159,12 +159,12 @@ export const itemsPerPageOptions: Array<{ value: number; text: number }> = [
 
 export async function fetchCurrentUser(fetchOptions?: FetchOptions): Promise<User> {
   const {
-    cancelToken
+    abortSignal
   } = fetchOptions ?? {};
 
   const response = await makeAuthenticatedClient().get(
     'auth/users/me/', {
-      cancelToken
+      signal: abortSignal
     });
   return response.data as User;
 }
@@ -174,7 +174,7 @@ export async function fetchUsers(opts? : PageFetchWithGroupIdOptions):
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupParams(opts);
@@ -184,7 +184,7 @@ export async function fetchUsers(opts? : PageFetchWithGroupIdOptions):
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/users/', {
-      cancelToken,
+      signal: abortSignal,
       params
     });
 
@@ -283,7 +283,7 @@ export async function fetchApiKeys(opts? : PageFetchWithGroupIdOptions):
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupParams(opts);
@@ -293,7 +293,7 @@ export async function fetchApiKeys(opts? : PageFetchWithGroupIdOptions):
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/api_keys/', {
-      cancelToken,
+      signal: abortSignal,
       params
     });
 
@@ -311,14 +311,14 @@ export async function fetchWorkflowSummaries(opts?: PageFetchWithGroupIdAndRunEn
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/workflows/', {
-      cancelToken,
+      signal: abortSignal,
       params
     });
 
@@ -361,7 +361,7 @@ export async function fetchWorkflowExecutionSummaries(
   descending?: boolean,
   offset?: number,
   maxResults?: number,
-  cancelToken?: CancelToken
+  abortSignal?: AbortSignal
 ) : Promise<ResultsPage<WorkflowExecutionSummary>> {
 
   descending = descending || false;
@@ -382,7 +382,7 @@ export async function fetchWorkflowExecutionSummaries(
   }
 
   const response = await makeAuthenticatedClient().get('api/v1/workflow_executions/', {
-    cancelToken,
+    signal: abortSignal,
     params
   });
 
@@ -459,29 +459,29 @@ export async function fetchAlertMethods(
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupAndScopedRunEnvironmentParams(opts);
   const response = await makeAuthenticatedClient().get(
     'api/v1/alert_methods/', {
-      cancelToken,
+      signal: abortSignal,
       params
     });
 
   return response.data as ResultsPage<AlertMethod>;
 }
 
-export async function fetchAlertMethod(uuid: string, cancelToken?: CancelToken) {
+export async function fetchAlertMethod(uuid: string, abortSignal?: AbortSignal) {
   const response = await makeAuthenticatedClient().get(
     `api/v1/alert_methods/${uuid}/`, {
-      cancelToken
+      signal: abortSignal
     });
   return response.data as AlertMethod;
 }
 
 export async function saveAlertMethod(uuid: string, values: any,
-    cancelToken?: CancelToken) : Promise<AlertMethod> {
+    abortSignal?: AbortSignal) : Promise<AlertMethod> {
   // remove name & url -- only use UUID to associate selected PD profile with this AlertMethod
   delete values.method_details.profile.name;
   delete values.method_details.profile.url;
@@ -490,28 +490,28 @@ export async function saveAlertMethod(uuid: string, values: any,
 
   const response = await ((!uuid || (uuid === 'new')) ? client.post(
     'api/v1/alert_methods/', values, {
-      cancelToken
+      signal: abortSignal
     }
   ) : client.patch(`api/v1/alert_methods/${uuid}/`, values, {
-      cancelToken
+      signal: abortSignal
     })
   );
 
   return response.data;
 }
 
-export async function cloneAlertMethod(uuid: string, attributes?: any, cancelToken?: CancelToken): Promise<AlertMethod> {
+export async function cloneAlertMethod(uuid: string, attributes?: any, abortSignal?: AbortSignal): Promise<AlertMethod> {
   const response = await makeAuthenticatedClient().post(
     'api/v1/alert_methods/' + uuid + '/clone/', attributes || {}, {
-        cancelToken
+        signal: abortSignal
     });
   return response.data as AlertMethod
 }
 
-export async function deleteAlertMethod(uuid: string, cancelToken?: CancelToken): Promise<void> {
+export async function deleteAlertMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
   return await makeAuthenticatedClient().delete(
     'api/v1/alert_methods/' + uuid + '/', {
-      cancelToken
+      signal: abortSignal
     });
 }
 
@@ -526,7 +526,7 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupParams(opts);
@@ -547,7 +547,7 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/tasks/', {
-      cancelToken,
+      signal: abortSignal,
       params
      });
 
@@ -560,20 +560,20 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
 }
 
 export async function fetchTask(uuid: string,
-    cancelToken?: CancelToken): Promise<TaskImpl> {
+    abortSignal?: AbortSignal): Promise<TaskImpl> {
   const response = await makeAuthenticatedClient().get(
     'api/v1/tasks/' + encodeURIComponent(uuid) + '/', {
-      cancelToken
+      signal: abortSignal
     });
   return plainToClass(TaskImpl, response.data);
 }
 
 export async function updateTask(uuid: string, data: any,
-    cancelToken?: CancelToken): Promise<TaskImpl> {
+    abortSignal?: AbortSignal): Promise<TaskImpl> {
   const response = await makeAuthenticatedClient().patch(
     'api/v1/tasks/' + encodeURIComponent(uuid) + '/',
     data, {
-      cancelToken
+      signal: abortSignal
     });
   return plainToClass(TaskImpl, response.data);
 }
@@ -587,7 +587,7 @@ export async function fetchTaskExecutions(opts?: TaskExecutionPageFetchOptions):
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
@@ -598,7 +598,7 @@ export async function fetchTaskExecutions(opts?: TaskExecutionPageFetchOptions):
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/task_executions/', {
-      cancelToken,
+      signal: abortSignal,
       params
     });
 
@@ -606,16 +606,16 @@ export async function fetchTaskExecutions(opts?: TaskExecutionPageFetchOptions):
 }
 
 export async function fetchTaskExecution(uuid: string,
-    cancelToken?: CancelToken): Promise<TaskExecution> {
+    abortSignal?: AbortSignal): Promise<TaskExecution> {
   const response = await makeAuthenticatedClient().get(
     'api/v1/task_executions/' + encodeURIComponent(uuid) + '/', {
-      cancelToken
+      signal: abortSignal
     });
   return response.data as TaskExecution;
 }
 
 export async function startTaskExecution(taskUuid: string,
-    executionProps?: any, cancelToken?: CancelToken): Promise<TaskExecution> {
+    executionProps?: any, abortSignal?: AbortSignal): Promise<TaskExecution> {
   const response = await makeAuthenticatedClient().post(
     'api/v1/task_executions/',
     Object.assign(executionProps ?? {}, {
@@ -624,20 +624,20 @@ export async function startTaskExecution(taskUuid: string,
        },
        status: C.TASK_EXECUTION_STATUS_MANUALLY_STARTED
     }, {
-      cancelToken
+      signal: abortSignal
     })
   );
   return response.data as TaskExecution;
 }
 
 export async function stopTaskExecution(uuid: string,
-    cancelToken?: CancelToken): Promise<TaskExecution> {
+    abortSignal?: AbortSignal): Promise<TaskExecution> {
   const response = await makeAuthenticatedClient().patch(
     'api/v1/task_executions/' + encodeURIComponent(uuid) + '/',
     {
       status: C.TASK_EXECUTION_STATUS_STOPPING
     }, {
-      cancelToken
+      signal: abortSignal
     }
   );
   return response.data as TaskExecution;
@@ -648,40 +648,40 @@ export async function fetchRunEnvironments(opts? : PageFetchWithGroupIdOptions):
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupParams(opts);
   const response = await makeAuthenticatedClient().get(
     'api/v1/run_environments/', {
-      cancelToken,
+      signal: abortSignal,
       params
     });
   return response.data as ResultsPage<RunEnvironment>;
 }
 
 export async function fetchRunEnvironment(uuid: string,
-    cancelToken?: CancelToken) {
+    abortSignal?: AbortSignal) {
   const response = await makeAuthenticatedClient().get(
     'api/v1/run_environments/' + encodeURIComponent(uuid) + '/', {
-      cancelToken
+      signal: abortSignal
     });
   return response.data as RunEnvironment;
 }
 
 export async function deleteRunEnvironment(uuid: string,
-    cancelToken?: CancelToken): Promise<void> {
+    abortSignal?: AbortSignal): Promise<void> {
   return await makeAuthenticatedClient().delete(
     'api/v1/run_environments/' + uuid + '/', {
-      cancelToken
+      signal: abortSignal
     });
 }
 
 export async function cloneRunEnvironment(uuid: string, attributes: any,
-    cancelToken?: CancelToken): Promise<RunEnvironment> {
+    abortSignal?: AbortSignal): Promise<RunEnvironment> {
   const response = await makeAuthenticatedClient().post(
     'api/v1/run_environments/' + uuid + '/clone/', attributes, {
-      cancelToken
+      signal: abortSignal
     });
   return response.data as RunEnvironment
 }
@@ -691,14 +691,14 @@ export async function fetchPagerDutyProfiles(
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/pagerduty_profiles/', {
-      cancelToken,
+      signal: abortSignal,
       params
     });
 
@@ -706,42 +706,42 @@ export async function fetchPagerDutyProfiles(
 }
 
 export async function fetchPagerDutyProfile(uuid: string,
-    cancelToken?: CancelToken): Promise<PagerDutyProfile> {
+    abortSignal?: AbortSignal): Promise<PagerDutyProfile> {
   const response = await makeAuthenticatedClient().get(
     `api/v1/pagerduty_profiles/${uuid}/`, {
-      cancelToken
+      signal: abortSignal
     });
   return response.data as PagerDutyProfile;
 }
 
 export async function savePagerDutyProfile(uuid: string, values: any,
-    cancelToken?: CancelToken) : Promise<PagerDutyProfile> {
+    abortSignal?: AbortSignal) : Promise<PagerDutyProfile> {
   const client = makeAuthenticatedClient();
 
   const response = await ((!uuid || (uuid === 'new')) ? client.post(
     'api/v1/pagerduty_profiles/', values, {
-      cancelToken
+      signal: abortSignal
     }
   ) : client.patch(`api/v1/pagerduty_profiles/${uuid}/`, values, {
-      cancelToken
+      signal: abortSignal
     }
   ));
 
   return response.data as PagerDutyProfile;
 }
 
-export async function clonePagerDutyProfile(uuid: string, attributes?: any, cancelToken?: CancelToken): Promise<PagerDutyProfile> {
+export async function clonePagerDutyProfile(uuid: string, attributes?: any, abortSignal?: AbortSignal): Promise<PagerDutyProfile> {
   const response = await makeAuthenticatedClient().post(
     'api/v1/pagerduty_profiles/' + uuid + '/clone/', attributes || {}, {
-        cancelToken
+        signal: abortSignal
     });
   return response.data as PagerDutyProfile
 }
 
-export async function deletePagerDutyProfile(uuid: string, cancelToken?: CancelToken): Promise<void> {
+export async function deletePagerDutyProfile(uuid: string, abortSignal?: AbortSignal): Promise<void> {
   return await makeAuthenticatedClient().delete(
     'api/v1/pagerduty_profiles/' + uuid + '/', {
-      cancelToken
+      signal: abortSignal
     });
 }
 
@@ -750,53 +750,53 @@ export async function fetchEmailNotificationProfiles(
   opts = opts ?? {};
 
   const {
-    cancelToken
+    abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
   const response = await makeAuthenticatedClient().get(
     'api/v1/email_notification_profiles/', {
-    cancelToken,
+    signal: abortSignal,
     params
   });
   return response.data as ResultsPage<EmailNotificationProfile>;
 }
 
 export async function fetchEmailNotificationProfile(uuid: string,
-    cancelToken?: CancelToken): Promise<EmailNotificationProfile> {
+    abortSignal?: AbortSignal): Promise<EmailNotificationProfile> {
   const response = await makeAuthenticatedClient().get(
     `api/v1/email_notification_profiles/${uuid}/`, {
-      cancelToken
+      signal: abortSignal
     });
   return response.data as EmailNotificationProfile;
 }
 
 export async function saveEmailNotificationProfile(uuid: string, values: any,
-    cancelToken?: CancelToken) : Promise<EmailNotificationProfile> {
+    abortSignal?: AbortSignal) : Promise<EmailNotificationProfile> {
   const client = makeAuthenticatedClient();
 
   const response = await ((!uuid || (uuid === 'new')) ? client.post(
     'api/v1/email_notification_profiles/',
     values, {
-      cancelToken
+      signal: abortSignal
     }
   ) : client.patch(`api/v1/email_notification_profiles/${uuid}/`, values));
 
   return response.data as EmailNotificationProfile;
 }
 
-export async function cloneEmailNotificationProfile(uuid: string, attributes?: any, cancelToken?: CancelToken): Promise<EmailNotificationProfile> {
+export async function cloneEmailNotificationProfile(uuid: string, attributes?: any, abortSignal?: AbortSignal): Promise<EmailNotificationProfile> {
   const response = await makeAuthenticatedClient().post(
     'api/v1/email_notification_profiles/' + uuid + '/clone/', attributes || {}, {
-        cancelToken
+        signal: abortSignal
     });
   return response.data as EmailNotificationProfile
 }
 
-export async function deleteEmailNotificationProfile(uuid: string, cancelToken?: CancelToken): Promise<void> {
+export async function deleteEmailNotificationProfile(uuid: string, abortSignal?: AbortSignal): Promise<void> {
   return await makeAuthenticatedClient().delete(
     'api/v1/email_notification_profiles/' + uuid + '/', {
-      cancelToken
+      signal: abortSignal
     });
 }
 

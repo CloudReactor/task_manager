@@ -6,7 +6,7 @@ import Chart from "../../../components/Chart/Chart";
 import { fetchWorkflowExecutionSummaries } from "../../../utils/api";
 import { timeFormat } from "../../../utils/index";
 import { WORKFLOW_EXECUTION_STATUS_SUCCEEDED } from "../../../utils/constants";
-import cancelTokenHoc, { CancelTokenProps } from '../../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 import * as UIC from '../../../utils/ui_constants';
 
 interface Props {
@@ -19,7 +19,7 @@ interface State {
   interval: any;
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 const extractChartValues = (filteredData: any[], extractY: (execution: any) => string) => {
   const labels: string[] = [];
@@ -68,7 +68,7 @@ class Charts extends React.Component<InnerProps, State> {
         true,
         undefined,
         undefined,
-        this.props.cancelToken,
+        this.props.abortSignal,
       );
       this.setState({
         data: workflowExecutionsData.results.reverse()
@@ -154,4 +154,4 @@ class Charts extends React.Component<InnerProps, State> {
     return null;
   }
 }
-export default withRouter(cancelTokenHoc(Charts));
+export default withRouter(abortableHoc(Charts));

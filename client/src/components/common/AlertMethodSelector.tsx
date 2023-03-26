@@ -7,7 +7,7 @@ import {
 } from '../../types/domain_types';
 
 import { GlobalContext } from '../../context/GlobalContext';
-import cancelTokenHoc, { CancelTokenProps } from '../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
 import { isCancel } from 'axios';
 
@@ -27,7 +27,7 @@ interface Props {
   onSelectedAlertMethodsChanged: (alertMethods: AlertMethod[]) => void;
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 interface State {
   selectedAlertMethodUuids: string[];
@@ -148,7 +148,7 @@ class AlertMethodSelector extends React.Component<InnerProps, State> {
   async loadData() {
     const {
       runEnvironmentUuid,
-      cancelToken
+      abortSignal
     } = this.props;
     const { currentGroup } = this.context;
     const maxResults = 100;
@@ -163,7 +163,7 @@ class AlertMethodSelector extends React.Component<InnerProps, State> {
           offset,
           maxResults,
           groupId: currentGroup?.id,
-          cancelToken
+          abortSignal
         });
         alertMethods = alertMethods.concat(page.results);
         done = page.results.length < maxResults;
@@ -189,6 +189,6 @@ class AlertMethodSelector extends React.Component<InnerProps, State> {
   }
 }
 
-// cast as React.Component<Props, State> - this drops CancelTokenProps so as to not
-// expose canceltokenprops as outer props
-export default cancelTokenHoc(AlertMethodSelector);
+// cast as React.Component<Props, State> - this drops AbortSignalProps so as to not
+// expose AbortSignalProps as outer props
+export default abortableHoc(AlertMethodSelector);

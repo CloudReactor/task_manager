@@ -20,12 +20,12 @@ import '../../../styles/cardStyles.scss';
 
 const EmailNotificationProfileList = makeEntityList<EmailNotificationProfile>({
   entityName: 'Email Notification Profile',
-  fetchPage: ({ groupId, offset, maxResults, cancelToken }) => {
+  fetchPage: ({ groupId, offset, maxResults, abortSignal }) => {
     return fetchEmailNotificationProfiles({
       groupId,
       offset,
       maxResults,
-      cancelToken
+      abortSignal
     });
   },
   renderEntities: ({ page, handleSelection }) => {

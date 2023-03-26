@@ -22,12 +22,12 @@ import '../../../styles/cardStyles.scss';
 
 const AlertMethodList = makeEntityList<AlertMethod>({
   entityName: 'Alert Method',
-  fetchPage: ({ groupId, offset, maxResults, cancelToken }) => {
+  fetchPage: ({ groupId, offset, maxResults, abortSignal }) => {
     return fetchAlertMethods({
       groupId,
       offset,
       maxResults,
-      cancelToken
+      abortSignal
     });
   },
   renderEntities: ({ page, handleSelection }) => {

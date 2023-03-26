@@ -7,7 +7,7 @@ import React, { Fragment } from 'react';
 import Form from 'react-bootstrap/Form'
 
 import { GlobalContext } from '../../context/GlobalContext';
-import cancelTokenHoc, { CancelTokenProps } from '../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
 
 interface Props {
@@ -16,7 +16,7 @@ interface Props {
   runEnvironmentUuid?: string;
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 interface State {
   selectedEmailNotificationProfile: string | undefined;
@@ -83,14 +83,14 @@ class EmailNotificationProfileSelector extends React.Component<InnerProps, State
   }
 
   async loadData() {
-    const { cancelToken, runEnvironmentUuid } = this.props;
+    const { abortSignal, runEnvironmentUuid } = this.props;
     const { currentGroup } = this.context;
 
     try {
       const page = await fetchEmailNotificationProfiles({
         groupId: currentGroup?.id,
         runEnvironmentUuid,
-        cancelToken
+        abortSignal
       });
       const emailNotificationProfiles = page.results;
 
@@ -106,4 +106,4 @@ class EmailNotificationProfileSelector extends React.Component<InnerProps, State
   }
 }
 
-export default cancelTokenHoc(EmailNotificationProfileSelector);
+export default abortableHoc(EmailNotificationProfileSelector);

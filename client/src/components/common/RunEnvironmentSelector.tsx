@@ -1,6 +1,6 @@
 import { RunEnvironment } from '../../types/domain_types';
 import { fetchRunEnvironments } from '../../utils/api';
-import cancelTokenHoc, { CancelTokenProps } from '../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
 import React from 'react';
 import Form from 'react-bootstrap/Form'
@@ -17,7 +17,7 @@ interface Props {
   noSelectionText?: string;
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 interface State {
   selectedUuid?: string | null;
@@ -100,7 +100,7 @@ class RunEnvironmentSelector extends React.Component<InnerProps, State> {
 
   async loadData() {
     const {
-      cancelToken
+      abortSignal
     } = this.props;
 
     let {
@@ -120,7 +120,7 @@ class RunEnvironmentSelector extends React.Component<InnerProps, State> {
 
     const page = await fetchRunEnvironments({
       groupId,
-      cancelToken
+      abortSignal
     });
     const runEnvironments = page.results;
 
@@ -130,4 +130,4 @@ class RunEnvironmentSelector extends React.Component<InnerProps, State> {
   }
 }
 
-export default cancelTokenHoc(RunEnvironmentSelector);
+export default abortableHoc(RunEnvironmentSelector);

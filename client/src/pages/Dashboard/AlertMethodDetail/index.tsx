@@ -1,4 +1,4 @@
-import { CancelToken } from 'axios';
+
 
 import {
   AlertMethod
@@ -15,7 +15,7 @@ import { withRouter } from 'react-router';
 
 import { EntityDetail, EntityDetailProps } from '../../../components/common/EntityDetail'
 
-import cancelTokenHoc from '../../../hocs/cancelTokenHoc';
+import abortableHoc from '../../../hocs/abortableHoc';
 import AlertMethodEditor from '../../../components/AlertMethodEditor/index';
 
 class AlertMethodDetail extends EntityDetail<AlertMethod> {
@@ -23,16 +23,16 @@ class AlertMethodDetail extends EntityDetail<AlertMethod> {
     super(props, 'Alert Method');
   }
 
-  fetchEntity(uuid: string, cancelToken: CancelToken): Promise<AlertMethod> {
-    return fetchAlertMethod(uuid, cancelToken);
+  fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<AlertMethod> {
+    return fetchAlertMethod(uuid, abortSignal);
   }
 
-  cloneEntity(uuid: string, values: any, cancelToken: CancelToken): Promise<AlertMethod> {
-    return cloneAlertMethod(uuid, values, cancelToken);
+  cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<AlertMethod> {
+    return cloneAlertMethod(uuid, values, abortSignal);
   }
 
-  deleteEntity(uuid: string, cancelToken: CancelToken): Promise<void> {
-    return deleteAlertMethod(uuid, cancelToken);
+  deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void> {
+    return deleteAlertMethod(uuid, abortSignal);
   }
 
   renderEntity() {
@@ -48,4 +48,4 @@ class AlertMethodDetail extends EntityDetail<AlertMethod> {
   }
 }
 
-export default withRouter(cancelTokenHoc(AlertMethodDetail));
+export default withRouter(abortableHoc(AlertMethodDetail));

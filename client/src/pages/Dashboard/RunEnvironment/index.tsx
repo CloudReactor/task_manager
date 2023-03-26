@@ -18,12 +18,12 @@ import '../../../styles/cardStyles.scss';
 const RunEnvironmentList = makeEntityList<RunEnvironment>({
   entityName: 'Run Environment',
   minAccessLevelToViewDetails: ACCESS_LEVEL_DEVELOPER,
-  fetchPage: ({ groupId, offset, maxResults, cancelToken }) => {
+  fetchPage: ({ groupId, offset, maxResults, abortSignal }) => {
     return fetchRunEnvironments({
       groupId,
       offset,
       maxResults,
-      cancelToken
+      abortSignal
     });
   },
   renderEntities: ({ page, handleSelection }) => {

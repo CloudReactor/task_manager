@@ -10,7 +10,7 @@ import { TaskImpl, RunEnvironment } from '../../../types/domain_types';
 
 import React, {Component, Fragment} from 'react';
 import { withRouter, RouteComponentProps } from "react-router";
-import cancelTokenHoc, { CancelTokenProps } from '../../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { Alert } from 'react-bootstrap'
 
@@ -44,7 +44,7 @@ interface State {
   runEnvironments: RunEnvironment[];
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 class TaskList extends Component<InnerProps, State> {
   static contextType = GlobalContext;
@@ -86,7 +86,7 @@ class TaskList extends Component<InnerProps, State> {
 
   async loadRunEnvironments() {
     const {
-      cancelToken
+      abortSignal
     } = this.props;
 
     const { currentGroup } = this.context;
@@ -94,7 +94,7 @@ class TaskList extends Component<InnerProps, State> {
     try {
       const page = await api.fetchRunEnvironments({
         groupId: currentGroup?.id,
-        cancelToken
+        abortSignal
       });
       this.setState({
         runEnvironments: page.results,
@@ -224,7 +224,7 @@ class TaskList extends Component<InnerProps, State> {
         maxResults: rowsPerPage,
         q,
         selectedRunEnvironmentUuid,
-        cancelToken: this.props.cancelToken
+        abortSignal: this.props.abortSignal
       });
 
       this.setState({
@@ -439,4 +439,4 @@ class TaskList extends Component<InnerProps, State> {
   }
 }
 
-export default withRouter(cancelTokenHoc(TaskList));
+export default withRouter(abortableHoc(TaskList));

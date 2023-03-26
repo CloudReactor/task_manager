@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import classNames from 'classnames';
 
 import { GlobalContext } from '../../../context/GlobalContext';
-import cancelTokenHoc, { CancelTokenProps } from '../../../hocs/cancelTokenHoc';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { API_KEYS } from '../../../constants/routes';
 import CustomButton from '../../common/Button/CustomButton';
@@ -20,13 +20,13 @@ import styles from './Onboarding.module.scss';
 interface Props {
 }
 
-type InnerProps = Props & CancelTokenProps;
+type InnerProps = Props & AbortSignalProps;
 
 const Onboarding = (props: InnerProps) => {
   const [keyList, setKeyList] = useState<ResultsPage<ApiKey>>(
     makeEmptyResultsPage());
 
-  const { cancelToken } = props;
+  const { abortSignal } = props;
   const { currentGroup } = useContext(GlobalContext);
 
   useEffect(() => {
@@ -36,12 +36,12 @@ const Onboarding = (props: InnerProps) => {
       const result = await fetchApiKeys({
         groupId: currentGroup?.id,
         maxResults: 1,
-        cancelToken
+        abortSignal
       });
       setKeyList(result);
     }
     fetchKeys();
-  }, [currentGroup, cancelToken]);
+  }, [currentGroup, abortSignal]);
 
   const key = keyList && keyList.results && keyList.results[0] ? keyList.results[0].key : null;
 
@@ -104,4 +104,4 @@ const Onboarding = (props: InnerProps) => {
   );
 }
 
-export default cancelTokenHoc(Onboarding);
+export default abortableHoc(Onboarding);
