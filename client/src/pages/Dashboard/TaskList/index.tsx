@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import axios from 'axios';
+import { isCancel } from 'axios';
 
 import { exceptionToErrorMessages, makeAuthenticatedClient } from '../../../axios_config';
 import * as C from '../../../utils/constants';
@@ -101,7 +101,7 @@ class TaskList extends Component<InnerProps, State> {
         areRunEnvironmentsLoading: false,
       });
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         console.log('Request cancelled: ' + error.message);
         return;
       }
@@ -232,7 +232,7 @@ class TaskList extends Component<InnerProps, State> {
         areTasksLoading: false,
       });
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         console.log('Request cancelled: ' + error.message);
         return;
       }

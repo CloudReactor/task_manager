@@ -14,8 +14,7 @@ type PathParamsType = {
   uuid: string;
 };
 
-type Props = RouteComponentProps<PathParamsType> & {
-}
+type Props = RouteComponentProps<PathParamsType>;
 
 interface State {
   errorMessages: string[];
@@ -73,7 +72,7 @@ class ProfileEditor extends Component<Props, State> {
           </Alert>
         }
         <h1>Change password</h1>
-        
+
         <Formik
           validateOnBlur
           validateonChange
@@ -87,19 +86,19 @@ class ProfileEditor extends Component<Props, State> {
 
             try {
               const response = await makeAuthenticatedClient().post('auth/users/set_password/', values);
-              
+
               if (response.status === 204) {
                 this.setState({
                   success: true,
                 });
               }
               actions.setSubmitting(false);
-              
+
             } catch (ex) {
-              this.setState({                
+              this.setState({
                 errorMessages: exceptionToErrorMessages(ex)
               });
-            }         
+            }
           }}
         >
           {({ isSubmitting, handleChange, handleBlur }) => (

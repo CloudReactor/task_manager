@@ -220,7 +220,7 @@ export async function fetchInvitation(invitationCode: string) : Promise<Invitati
   }
 }
 
-export async function saveInvitation(invitation: any): Promise<Boolean> {
+export async function saveInvitation(invitation: any): Promise<boolean> {
   const client = makeAuthenticatedClient();
   const response = await (invitation.uuid ? client.patch(
     'api/v1/invitations/' + encodeURIComponent(invitation.uuid) + '/', invitation

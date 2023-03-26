@@ -1,16 +1,14 @@
 import React, { Fragment } from "react";
-import { Table } from "react-bootstrap";
+
+import {
+  Form,
+  Table
+} from 'react-bootstrap';
 
 import TablePagination from "@material-ui/core/TablePagination";
 import TableHeader from "./Table/TableHeader";
 import TableBody from "./Table/TableBody";
 import DefaultPagination from "../Pagination/Pagination";
-
-import {
-  Col,
-  Form,
-  Row
-} from 'react-bootstrap';
 
 import {itemsPerPageOptions, ResultsPage} from "../../utils/api";
 import { TaskImpl, RunEnvironment } from "../../types/domain_types";

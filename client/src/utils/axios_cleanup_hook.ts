@@ -11,7 +11,6 @@ function useAxiosCleanup<T>(cb: (cancelToken: CancelToken) => Promise<T>,
       source.cancel('Operation cancelled after unmounting');
     };
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps ?? []);
 }
 

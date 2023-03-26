@@ -53,7 +53,7 @@ type Props = {
   runEnvironment?: RunEnvironment;
   onSaveStarted?: () => void;
   onSaveSuccess?: (runEnvironment: RunEnvironment) => void;
-  onSaveError?: (ex: Error, values: any) => void;
+  onSaveError?: (ex: unknown, values: any) => void;
 }
 
 const leftIcon = {
@@ -141,7 +141,7 @@ const RunEnvironmentEditor = ({
           if (onSaveSuccess) {
             onSaveSuccess(saved);
           }
-        } catch (ex) {
+        } catch (ex: unknown) {
           actions.setSubmitting(false);
           if (onSaveError) {
             onSaveError(ex, values);

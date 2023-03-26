@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { isCancel } from 'axios';
 
 import { EmailNotificationProfile } from '../../types/domain_types';
 import { fetchEmailNotificationProfiles } from '../../utils/api';
@@ -98,7 +98,7 @@ class EmailNotificationProfileSelector extends React.Component<InnerProps, State
         emailNotificationProfiles
       });
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         console.log("Request cancelled: " + error.message);
         return;
       }

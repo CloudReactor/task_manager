@@ -157,8 +157,56 @@ export function makeNewAlertMethod(): AlertMethod {
   })
 }
 
+export interface AwsLoggingOptions {
+  create_group: string | null;
+  datetime_format: string | null;
+  group: string | null;
+  max_buffer_size: number | null;
+  mode: string | null;
+  multiline_pattern: string | null;
+  region: string | null;
+  stream: string | null;
+  stream_infrastructure_website_url: string | null;
+  stream_prefix: string | null;
+}
+
+export interface AwsLoggingSettings {
+  driver: string | null;
+  infrastructure_website_url: string | null;
+  options: AwsLoggingOptions | null;
+}
+
+export interface AwsNetworkSettings {
+  assign_public_ip: boolean | null;
+  availability_zone: string | null;
+  //networks: null
+  region: string | null;
+  security_group_infrastructure_website_urls: string[] | null;
+  security_groups: string[] | null;
+  subnet_infrastructure_website_urls: string[] | null;
+  subnets: string[] | null;
+}
+
+export interface AwsXraySettings {
+  context_missing: string | null;
+  trace_id: string | null;
+}
+
+export interface AwsInfrastructureSettings {
+  logging: AwsLoggingSettings | null;
+  network: AwsNetworkSettings | null;
+  xray: AwsXraySettings | null;
+  tags: object | null;
+}
+
 export interface AwsTags {
   [propName: string]: string;
+}
+
+export interface NamedInfrastructureSettings<T> {
+  [name: string]: {
+    settings: T;
+  }
 }
 
 export interface LegacyExecutionMethodCapability {
@@ -231,18 +279,55 @@ extends LegacyAwsEcsExecutionMethodCapabilityImpl {
   task_definition_infrastructure_website_url = null;
 }
 
+
+
+export interface AwsEcsExecutionMethodSettings {
+    launch_type: string | null;
+    supported_launch_types: string[] | null;
+    cluster_arn: string | null;
+    cluster_infrastructure_website_url: string | null;
+    task_definition_arn: string | null;
+    task_definition_infrastructure_website_url: string | null;
+    infrastructure_website_url: string | null;
+    main_container_name: string | null;
+    execution_role_arn: string | null;
+    execution_role_infrastructure_website_url: string | null;
+    task_role_arn: string | null;
+    task_role_infrastructure_website_url: string | null;
+    platform_version: string | null;
+    enable_ecs_managed_tags: boolean | null;
+}
+
+export interface NamedExecutionMethodSettings<T> {
+  [name: string]: {
+    settings: T;
+    capabilities: string[];
+    infrastructure_name: string;
+  }
+}
+
 export interface RunEnvironment extends EntityReferenceWithDates {
   created_by_group: GroupReference;
-  aws_account_id: string;
-  aws_default_region: string;
-  aws_events_role_arn: string,
-  aws_access_key: string;
-  aws_external_id: string;
-  aws_workflow_starter_lambda_arn: string;
-  aws_workflow_starter_access_key: string;
+  infrastructure_settings: {
+    'AWS'?: NamedExecutionMethodSettings<AwsInfrastructureSettings>;
+    [key: string]: NamedExecutionMethodSettings<any> | undefined;
+  };
+  execution_method_settings: {
+    'AWS ECS'?: NamedExecutionMethodSettings<AwsEcsExecutionMethodSettings>;
+    [key: string]: NamedExecutionMethodSettings<any> | undefined;
+  };
   default_alert_methods: EntityReference[];
-  execution_method_capabilities: LegacyExecutionMethodCapability[];
-  tags: AwsTags | null;
+
+  aws_account_id: string; // deprecated
+  aws_default_region: string; // deprecated
+  aws_events_role_arn: string, // deprecated
+  aws_access_key: string; // deprecated
+  aws_external_id: string; // deprecated
+  aws_workflow_starter_lambda_arn: string; // deprecated
+  aws_workflow_starter_access_key: string; // deprecated
+  execution_method_capabilities: LegacyExecutionMethodCapability[]; // deprecated
+  tags: AwsTags | null; // deprecated
+
   [propName: string]: any;
 }
 
@@ -258,6 +343,8 @@ export function makeNewRunEnvironment(): RunEnvironment {
     aws_workflow_starter_lambda_arn: '',
     aws_workflow_starter_access_key: '',
     execution_method_capabilities: [],
+    execution_method_settings: {},
+    infrastructure_settings: {},
     default_alert_methods: [],
     tags: null,
   });
@@ -312,48 +399,6 @@ export interface AwsLambdaExecutionMethodCapability {
   function_memory_mb: string | null;
   time_zone_name: string | null;
   infrastructure_website_url: string | null;
-}
-
-export interface AwsLoggingOptions {
-  create_group: string | null;
-  datetime_format: string | null;
-  group: string | null;
-  max_buffer_size: number | null;
-  mode: string | null;
-  multiline_pattern: string | null;
-  region: string | null;
-  stream: string | null;
-  stream_infrastructure_website_url: string | null;
-  stream_prefix: string | null;
-}
-
-export interface AwsLoggingSettings {
-  driver: string | null;
-  infrastructure_website_url: string | null;
-  options: AwsLoggingOptions | null;
-}
-
-export interface AwsNetworkSettings {
-  assign_public_ip: boolean | null;
-  availability_zone: string | null;
-  //networks: null
-  region: string | null;
-  security_group_infrastructure_website_urls: string[] | null;
-  security_groups: string[] | null;
-  subnet_infrastructure_website_urls: string[] | null;
-  subnets: string[] | null;
-}
-
-export interface AwsXraySettings {
-  context_missing: string | null;
-  trace_id: string | null;
-}
-
-export interface AwsInfrastructureSettings {
-  logging: AwsLoggingSettings | null;
-  network: AwsNetworkSettings | null;
-  xray: AwsXraySettings | null;
-  tags: object | null;
 }
 
 export interface Task extends EntityReferenceWithDates, Executable {

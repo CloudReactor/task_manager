@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import axios from 'axios';
+import { isCancel } from 'axios';
 
 import * as C from '../../../utils/constants';
 
@@ -102,7 +102,7 @@ class ApiKeyList extends Component<InnerProps, State> {
         cancelToken: this.props.cancelToken
       });
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         console.log('Request cancelled: ' + error.message);
         return;
       }
@@ -258,7 +258,7 @@ class ApiKeyList extends Component<InnerProps, State> {
       children: (
         <div>
           <p>
-            <strong>Are you sure you want to delete the API Key '{apiKey.key}'?</strong>
+            <strong>Are you sure you want to delete the API Key &lsquo;{apiKey.key}&rsquo;?</strong>
           </p>
           <p>
             Once deleted, any tasks configured with this API Key may stop reporting progress to CloudReactor, or may not start at all.
@@ -297,10 +297,9 @@ class ApiKeyList extends Component<InnerProps, State> {
     }
   }
 
-  handleAddApiKey = (action: String | undefined, cbData: any) => {
+  handleAddApiKey = (action: string | undefined, cbData: any) => {
     this.props.history.push('/api_keys/new')
   };
 }
 
 export default withRouter(cancelTokenHoc(ApiKeyList));
-

@@ -54,8 +54,7 @@ type PathParamsType = {
   id: string;
 };
 
-type Props = RouteComponentProps<PathParamsType> & {
-};
+type Props = RouteComponentProps<PathParamsType>;
 
 interface State {
   isLoading: boolean;
@@ -471,7 +470,7 @@ class TaskDetail extends Component<Props, State> {
                           </Fragment>
                         ) : (
                           <h2 className="my-5 text-center">
-                            This Task has not run yet. When it does, you'll be able to see
+                            This Task has not run yet. When it does, you&apos;ll be able to see
                             a table of past executions here.
                           </h2>
                         )

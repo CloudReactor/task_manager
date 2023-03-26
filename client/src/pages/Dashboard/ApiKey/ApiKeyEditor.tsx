@@ -29,8 +29,7 @@ type PathParamsType = {
   uuid: string;
 };
 
-type Props = RouteComponentProps<PathParamsType> & {
-}
+type Props = RouteComponentProps<PathParamsType>;
 
 interface State {
   apiKey: ApiKey | any;
@@ -84,9 +83,17 @@ class ApiKeyEditor extends Component<Props, State> {
         apiKey,
         isLoading: false
       });
-    } catch (ex) {
+    } catch (ex: unknown) {
+      let msg = '';
+
+      if (typeof(ex) === 'string') {
+        msg = ex;
+      } else if (ex instanceof Error) {
+        msg = ex.message;
+      }
+
       this.setState({
-        errorComponent: <div>'Failed to load API Key: ' + ex.message</div>,
+        errorComponent: <div>Failed to load API Key: ${msg}</div>,
         isLoading: false
       });
     }
@@ -104,7 +111,7 @@ class ApiKeyEditor extends Component<Props, State> {
     const accessLevel = accessLevelForCurrentGroup(this.context);
 
     if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
-      return <p>You don't have permission to access this page.</p>;
+      return <p>You don&apos;t have permission to access this page.</p>;
     }
 
     const initialValues = {
@@ -210,7 +217,7 @@ class ApiKeyEditor extends Component<Props, State> {
                       {
                         isNew ?
                         <Fragment>Select the Group the API Key will have access to.</Fragment> :
-                        <Fragment>The Group of an API Key can't be changed after creation.</Fragment>
+                        <Fragment>The Group of an API Key can&apos;t be changed after creation.</Fragment>
                       }
                     </Form.Text>
 
@@ -233,7 +240,7 @@ class ApiKeyEditor extends Component<Props, State> {
                       Select the Run Environment the API key will have access to.
                       The API key will be only able to perform operations on Tasks and
                       Workflows in the selected group.
-                      You may choose "Any" in which case the API key will have access
+                      You may choose &quot;Any&quot; in which case the API key will have access
                       to all Tasks and Workflows in the selected Group above.
                     </Form.Text>
 

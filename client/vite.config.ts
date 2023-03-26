@@ -10,7 +10,10 @@ export default defineConfig({
     react(), viteTsconfigPaths(), svgrPlugin(),
     checker({
       typescript: true,
-    })
+      eslint: {
+        lintCommand: 'eslint "./src/**/*.{ts,tsx}"',
+      }
+    }),
   ],
 
   resolve: {
@@ -36,4 +39,4 @@ export default defineConfig({
     outDir: 'build',
     manifest: true
   }
-});
+})

@@ -41,8 +41,7 @@ type PathParamsType = {
   uuid: string;
 };
 
-type Props = RouteComponentProps<PathParamsType> & {
-};
+type Props = RouteComponentProps<PathParamsType>;
 
 interface State {
   workflow?: Workflow;
@@ -359,8 +358,8 @@ class WorkflowDetail extends Component<Props, State> {
   renderNoExecutionsSection() {
     return (
       <h2 className="mt-5">
-        This workflow has not run yet. When it does, you'll be able to see
-        a table of past executions here.
+        This Workflow has not run yet. When it does, you&apos;ll be able to see
+        a table of Workflow Executions here.
       </h2>
     );
   }

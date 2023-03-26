@@ -41,8 +41,7 @@ const WORKFLOW_EXECUTION_COLUMNS: TableColumnInfo[] = [
   { name: 'Actions', ordering: '' }
 ];
 
-type PathParamsType = {
-};
+type PathParamsType = Record<string, never>;
 
 interface Props extends RouteComponentProps<PathParamsType> {
   workflow: Workflow,
@@ -100,7 +99,7 @@ class WorkflowExecutionsTable extends Component<Props, State> {
       onWorkflowExecutionUpdated
     } = this.props;
 
-    let {
+    const {
       workflowExecutionUuidsPendingStop,
       workflowExecutionUuidsPendingRetry
     } = this.state;

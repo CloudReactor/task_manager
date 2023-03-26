@@ -199,8 +199,7 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
   }
 
   renderNodeText = (data: any, id: string | number, isSelected: boolean) => {
-    //const title = data.title;
-    let title = data.title;
+    const title = data.title;
     const className = GraphUtils.classNames('node-text', {
       selected: isSelected,
     });

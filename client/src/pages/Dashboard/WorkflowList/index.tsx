@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import axios from 'axios';
+import { isCancel } from 'axios';
 
 import {
   RunEnvironment, WorkflowSummary
@@ -119,7 +119,7 @@ class WorkflowList extends Component<InnerProps, State> {
         areRunEnvironmentsLoading: false,
       });
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         console.log('Request cancelled: ' + error.message);
         return;
       }
@@ -156,7 +156,7 @@ class WorkflowList extends Component<InnerProps, State> {
         cancelToken: this.props.cancelToken
       });
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         console.log('Request cancelled: ' + error.message);
         return;
       }
@@ -446,10 +446,9 @@ class WorkflowList extends Component<InnerProps, State> {
 
   }
 
-  handleCreateWorkflow = (action: String | undefined, cbData: any) => {
+  handleCreateWorkflow = (action: string | undefined, cbData: any) => {
     this.props.history.push('/workflows/new')
   };
 }
 
 export default withRouter(cancelTokenHoc(WorkflowList));
-

@@ -1,21 +1,21 @@
-import * as C from './constants';
-import * as api from './api';
-import {TaskExecution, Task} from '../types/domain_types';
+import moment from 'moment';
 
+import React from 'react';
 import { Link } from 'react-router-dom';
-
 import { createModal } from 'react-modal-promise';
 
 import swal from 'sweetalert';
 
-import StartTaskModal from '../components/StartTaskModal/StartTaskModal';
+import * as C from './constants';
+import * as api from './api';
+import {TaskExecution, Task} from '../types/domain_types';
 
-import moment from 'moment';
+import StartTaskModal from '../components/StartTaskModal/StartTaskModal';
 
 export const displayStatus = (
   status: string,
   isService: boolean,
-  forExecutionDetail: boolean = false
+  forExecutionDetail = false
 ): string => {
 
   if (status === C.TASK_EXECUTION_STATUS_MANUALLY_STARTED) {
@@ -132,7 +132,7 @@ export const timeDuration = (start: Date | null, end: Date | null) => {
 };
 
 export function formatDuration(x: number | null,
-  fallback: string = 'N/A', negative_value = 'Unlimited') : String {
+  fallback: string = 'N/A', negative_value = 'Unlimited') : string {
   if (typeof x === 'number') {
     if (negative_value && (x < 0)) {
       return negative_value;

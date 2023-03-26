@@ -30,7 +30,7 @@ const WorkflowTableBody = ({
 	handleStopRequest
 }: Props) => {
 
-	const handleActionRequested = (action: String | undefined, cbData: any) => {
+	const handleActionRequested = (action: string | undefined, cbData: any) => {
 	  switch (action) {
 	    case 'start':
 		    handleStartRequest(cbData);

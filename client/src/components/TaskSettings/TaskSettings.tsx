@@ -70,7 +70,7 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
 
   if (execMethodType === EXECUTION_METHOD_TYPE_AWS_ECS) {
     const awsEcsEmc = execMethod as LegacyTaskAwsEcsExecutionMethodCapability;
-    let execMethodRows = [
+    const execMethodRows = [
       pair('ECS task definition ARN', makeLink(awsEcsEmc.task_definition_arn,
         awsEcsEmc.task_definition_infrastructure_website_url)),
       pair('Supported launch types',
@@ -158,7 +158,7 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
     rows = rows.concat(execMethodRows);
   } else if (execMethodType === EXECUTION_METHOD_TYPE_AWS_LAMBDA) {
     const awsLambdaEmc = execMethodDetails as AwsLambdaExecutionMethodCapability;
-    let execMethodRows = [
+    const execMethodRows = [
       pair('Function ARN', makeLink(awsLambdaEmc.function_arn,
         awsLambdaEmc.infrastructure_website_url)),
       pair('Function version', awsLambdaEmc.function_version),

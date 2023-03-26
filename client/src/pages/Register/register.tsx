@@ -81,7 +81,7 @@ class Register extends Component<Props, State> {
         await makeConfiguredClient().post('api/v1/invitations/accept/', values);
         history.replace(path.LOGIN + '?status=activated');
       } else {
-        // Use email as username so we don't have to ask user to come up with a username
+        // Use email as username so we don&apos;t have to ask user to come up with a username
         const bodyObj = Object.assign(values, { username: values.email });
         await makeConfiguredClient().post('auth/users/', bodyObj);
 
@@ -119,7 +119,7 @@ class Register extends Component<Props, State> {
                 <Alert variant="warning">
                   <Alert.Heading>Invitation not found</Alert.Heading>
                   <p>
-                    We couldn't find your invitation. Please ensure you copied the
+                    We couldn&apos;t find your invitation. Please ensure you copied the
                     signup link in your email correctly. You may also create an accoount now
                     and ask your Group administrator to invite you later.
                   </p>
@@ -131,7 +131,8 @@ class Register extends Component<Props, State> {
                 <Alert variant="info">
                   <Alert.Heading>Invitation found</Alert.Heading>
                   <p>
-                    We found your invitation to the Group '{invitation.group.name}'.
+                    We found your invitation to the Group
+                    &lsquo;{invitation.group.name}&rsquo;.
                     Please choose a password to complete your account creation.
                   </p>
                 </Alert>

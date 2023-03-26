@@ -21,8 +21,7 @@ type PathParamsType = {
   uuid: string;
 };
 
-type Props = RouteComponentProps<PathParamsType> & {
-};
+type Props = RouteComponentProps<PathParamsType>;
 
 interface State {
   taskExecution?: TaskExecution;

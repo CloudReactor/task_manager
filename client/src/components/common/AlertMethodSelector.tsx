@@ -9,7 +9,7 @@ import {
 import { GlobalContext } from '../../context/GlobalContext';
 import cancelTokenHoc, { CancelTokenProps } from '../../hocs/cancelTokenHoc';
 
-import axios from 'axios';
+import { isCancel } from 'axios';
 
 import {
   fetchAlertMethods
@@ -169,7 +169,7 @@ class AlertMethodSelector extends React.Component<InnerProps, State> {
         done = page.results.length < maxResults;
         offset += maxResults;
       } catch (error) {
-        if (axios.isCancel(error)) {
+        if (isCancel(error)) {
           console.log("Request cancelled: " + error.message);
           return;
         }

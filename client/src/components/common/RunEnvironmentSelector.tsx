@@ -99,8 +99,12 @@ class RunEnvironmentSelector extends React.Component<InnerProps, State> {
   }
 
   async loadData() {
+    const {
+      cancelToken
+    } = this.props;
+
     let {
-      cancelToken,
+
       groupId
     } = this.props;
 

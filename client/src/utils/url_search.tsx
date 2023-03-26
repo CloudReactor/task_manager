@@ -19,7 +19,7 @@ export const getParams = (location: any) => {
   const rowsPerPage = { rowsPerPage: Number(params.get('rows_per_page')) || UIC.DEFAULT_PAGE_SIZE };
   const currentPage = { currentPage: Number(params.get('page') || 1) - 1 }
 
-  let queryParams: urlParams = { };
+  const queryParams: urlParams = { };
   Object.assign(queryParams, q);
   Object.assign(queryParams, sortBy);
   Object.assign(queryParams, descending);

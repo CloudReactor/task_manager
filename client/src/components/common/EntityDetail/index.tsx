@@ -33,8 +33,7 @@ type PathParamsType = {
   uuid: string;
 };
 
-export type EntityDetailProps = RouteComponentProps<PathParamsType> & CancelTokenProps & {
-};
+export type EntityDetailProps = RouteComponentProps<PathParamsType> & CancelTokenProps;
 
 export interface EntityDetailState<T extends EntityReference> {
   entity?: T,
@@ -222,7 +221,7 @@ export abstract class EntityDetail<T extends EntityReference>
       faIconName: 'copy',
       children: (
         <p>
-          Clone the {this.entityName} '{entity.name}'?
+          Clone the {this.entityName} &lsquo;{entity.name}&rsquo;?
         </p>
       )
     });
@@ -289,8 +288,8 @@ export abstract class EntityDetail<T extends EntityReference>
       faIconName: 'trash',
       children: (
         <p>
-          Are you sure you want to delete the {this.entityName} '{entity.name}'?
-          All Tasks and Workflows using this {this.entityName} won't use
+          Are you sure you want to delete the {this.entityName} &lsquo;{entity.name}&rsquo;?
+          All Tasks and Workflows using this {this.entityName} won&apos;t use
           this {this.entityName} anymore.
         </p>
       )
@@ -349,7 +348,7 @@ export abstract class EntityDetail<T extends EntityReference>
     }, this.pushToListView);
   };
 
-  handleSaveError = (ex: Error, values: any) => {
+  handleSaveError = (ex: unknown, values: any) => {
     const flashBody = makeErrorElement(ex);
 
     this.setState({

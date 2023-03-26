@@ -84,4 +84,6 @@ const Chart = memo(
     )
 );
 
+Chart.displayName = 'Chart';
+
 export default Chart;

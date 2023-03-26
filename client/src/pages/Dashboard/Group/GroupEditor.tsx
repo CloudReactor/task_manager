@@ -33,8 +33,7 @@ type PathParamsType = {
   id: string;
 };
 
-type Props = RouteComponentProps<PathParamsType> & {
-}
+type Props = RouteComponentProps<PathParamsType>;
 
 interface State {
   group: Group | any;

@@ -7,7 +7,7 @@ import {
   ACCESS_LEVEL_SUPPORT
 } from '../../../utils/constants';
 
-import { makeEmptyResultsPage } from '../../../utils/api';
+import { ResultsPage, makeEmptyResultsPage } from '../../../utils/api';
 
 import React, { useContext, useEffect, useState, Fragment } from 'react';
 import { withRouter, RouteComponentProps } from 'react-router';
@@ -33,14 +33,9 @@ import BreadcrumbBar from '../../BreadcrumbBar/BreadcrumbBar';
 
 import styles from './index.module.scss';
 
+type PathParamsType = Record<string, never>;
 
-import { ResultsPage } from '../../../utils/api';
-
-type PathParamsType = {
-};
-
-type Props = RouteComponentProps<PathParamsType> & {
-};
+type Props = RouteComponentProps<PathParamsType>;
 
 export type ListRenderProps<T> = {
   handleSelection: (string) => void;
@@ -86,7 +81,7 @@ export function makeEntityList<T>({
 
     if (!accessLevel) {
       return (
-        <p>You don't have permission to access to this page.</p>
+        <p>You don&apos;t have permission to access to this page.</p>
       );
     }
 

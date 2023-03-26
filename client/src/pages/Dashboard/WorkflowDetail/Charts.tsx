@@ -1,6 +1,6 @@
 import moment from "moment";
 import React, { Fragment } from "react";
-import axios from 'axios';
+import { isCancel } from 'axios';
 import { withRouter } from 'react-router';
 import Chart from "../../../components/Chart/Chart";
 import { fetchWorkflowExecutionSummaries } from "../../../utils/api";
@@ -74,7 +74,7 @@ class Charts extends React.Component<InnerProps, State> {
         data: workflowExecutionsData.results.reverse()
       });
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         console.log('Request cancelled: ' + error.message);
         return;
       } else {

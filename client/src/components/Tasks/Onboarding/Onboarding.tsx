@@ -58,7 +58,7 @@ const Onboarding = (props: InnerProps) => {
           </div>
           <hr />
           <div className={styles.para}>
-            The getting started guide will walk you through everything you need to start using CloudReactor. You'll need:
+            The getting started guide will walk you through everything you need to start using CloudReactor. You&apos;ll need:
           </div>
           <div className={classNames({
             [styles.para]: true,
@@ -68,7 +68,7 @@ const Onboarding = (props: InnerProps) => {
               <i className={'fa fa-chevron-right pl-3 pr-3'} />
             </div>
             <div>
-              Your AWS credentials. This should have admin privileges, since you'll be setting up an ECS cluster to run tasks.
+              Your AWS credentials. This should have admin privileges, since you&apos;ll be setting up an ECS cluster to run tasks.
             </div>
           </div>
           <div className={classNames({

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { isCancel } from 'axios';
 
 import { PagerDutyProfile } from '../../types/domain_types';
 import { fetchPagerDutyProfiles } from '../../utils/api';
@@ -98,7 +98,7 @@ class PagerDutyProfileSelector extends React.Component<InnerProps, State> {
         pagerDutyProfiles
       });
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         console.log("Request cancelled: " + error.message);
         return;
       }

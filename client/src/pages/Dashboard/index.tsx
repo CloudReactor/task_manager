@@ -97,8 +97,7 @@ const AlertMethodDetail = lazy( () =>
   import('./AlertMethodDetail')
 );
 
-type PathParamsType = {
-};
+type PathParamsType = Record<string, never>;
 
 type Props = RouteComponentProps<PathParamsType>;
 

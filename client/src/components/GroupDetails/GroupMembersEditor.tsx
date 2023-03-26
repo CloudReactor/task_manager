@@ -237,7 +237,7 @@ class GroupMembersEditor extends Component<Props, State> {
     });
   }
 
-  accessLevelForUsername = (username: String) => {
+  accessLevelForUsername = (username: string) => {
     const {
       group
     } = this.props;
@@ -317,8 +317,8 @@ class GroupMembersEditor extends Component<Props, State> {
       faIconName: 'user-minus',
       children: (
         <p>
-          Are you sure you want to remove the User '{username}' from the Group
-          '{group.name}'? This user will lose all access to Tasks and Workflows
+          Are you sure you want to remove the User &lsquo;{username}&rsquo; from the Group
+          &lsquo;{group.name}&rsquo;? This user will lose all access to Tasks and Workflows
           in the Group.
         </p>
       )

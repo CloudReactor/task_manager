@@ -10,8 +10,7 @@ import {
   getSavedCurrentGroupId
 } from '../context/GlobalContext';
 
-type PathParamsType = {
-};
+type PathParamsType = Record<string, never>;
 
 type Props = RouteComponentProps<PathParamsType>;
 
