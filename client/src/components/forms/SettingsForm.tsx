@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { Field } from 'formik';
 import CustomInput from './CustomInput';
 import styles from './SettingsForm.module.scss';
@@ -6,11 +6,10 @@ import styles from './SettingsForm.module.scss';
 interface Props {
   items: any;
   onChange?: any;
-  handleBlur?: any;
+  onBlur?: any;
 }
 
 export const SettingsForm = (props: Props) => {
-
   const { items } = props || {};
 
   return items?.map((item: any, i: any) => {
@@ -36,21 +35,14 @@ export const SettingsForm = (props: Props) => {
         <div>
           {controls?.map((control: any, j: any) => {
             return (
-              <Field
-                key={`control-${title}-element-${j}`}
-                id={control.name}
-                name={control.name}
-                type={control.type}
-                label={control.label}
-                placeholder={control.placeholder}
-                component={CustomInput}
-                addOptionsCase={control.addOptionsCase}
-                options={control.options}
-                subText={control.subText}
-                onChange={props.onChange}
-                onBlur={props.handleBlur}
-                min={control.min}
-              />
+              <Fragment key={`control-${title}-element-${j}`}>
+                <Field
+                  {...control}
+                  component={CustomInput}
+                  onChange={props.onChange}
+                  onBlur={props.onBlur}>
+                </Field>
+              </Fragment>
             );
           })}
         </div>

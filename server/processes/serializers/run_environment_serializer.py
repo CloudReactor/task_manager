@@ -135,7 +135,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
         if run_env.aws_settings:
             aws_settings_dict = run_env.aws_settings.copy()
             for p in PROTECTED_AWS_SETTINGS_PROPERTIES:
-                aws_settings_dict.pop(p)
+                aws_settings_dict.pop(p, None)
 
             rv[INFRASTRUCTURE_TYPE_AWS] = {
                 self.DEFAULT_LABEL: {
@@ -182,30 +182,34 @@ class RunEnvironmentSerializer(SerializerHelpers,
         infra_settings = data.get('infrastructure_settings')
 
         if infra_settings:
-            name_to_aws_settings = infra_settings.get(INFRASTRUCTURE_TYPE_AWS)
-            if name_to_aws_settings:
-                for name, aws_settings in name_to_aws_settings.items():
+            name_to_aws_settings_container = infra_settings.get(INFRASTRUCTURE_TYPE_AWS)
+            if name_to_aws_settings_container:
+                for name, aws_settings_container in name_to_aws_settings_container.items():
                     if name == self.DEFAULT_LABEL:
-                        # TODO: sanitize
-                        validated['aws_settings'] = aws_settings
+                        aws_settings = aws_settings_container.get('settings')
 
-                        # Remove once JSON settings are the source of truth
-                        self.copy_props_with_prefix(dest_dict=validated,
-                                src_dict=aws_settings,
-                                dest_prefix='aws_',
-                                included_keys=['account_id', 'default_region',
-                                'access_key', 'secret_key', 'events_role_arn',
-                                'assumed_role_external_id',
-                                'workflow_starter_lambda_arn',
-                                'workflow_starter_access_key',
-                                ])
+                        if aws_settings is None:
+                            logger.warning('No settings found inside default AWS settings container')
+                        else:
+                            validated['aws_settings'] = aws_settings
 
-                        default_aws_network = aws_settings.get('network')
+                            # Remove once RunEnvironmentSerializer gets these from aws_settings
+                            self.copy_props_with_prefix(dest_dict=validated,
+                                    src_dict=aws_settings,
+                                    dest_prefix='aws_',
+                                    included_keys=['account_id', 'default_region',
+                                    'access_key', 'secret_key', 'events_role_arn',
+                                    'assumed_role_external_id',
+                                    'workflow_starter_lambda_arn',
+                                    'workflow_starter_access_key',
+                                    ], none_to_empty_strings=True)
 
-                        if default_aws_network:
-                            validated['aws_default_subnets'] = default_aws_network['subnets']
-                            validated['aws_ecs_default_security_groups'] = default_aws_network['security_groups']
-                            validated['aws_ecs_default_assign_public_ip'] = default_aws_network['assign_public_ip']
+                            default_aws_network = aws_settings.get('network')
+
+                            if default_aws_network:
+                                validated['aws_default_subnets'] = default_aws_network['subnets']
+                                validated['aws_ecs_default_security_groups'] = default_aws_network['security_groups']
+                                validated['aws_ecs_default_assign_public_ip'] = default_aws_network['assign_public_ip']
                     else:
                         raise serializers.ValidationError({
                             'infrastructure_settings': ['Non-default infrastructure settings not supported yet']
@@ -236,7 +240,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
                         if emt == AwsEcsExecutionMethod.NAME:
                             validated['default_aws_ecs_configuration'] = em_settings
 
-                            # Remove after default_aws_ecs_configuration becomes source of truth
+                            # Remove after aws_settings becomes source of truth
                             self.copy_props_with_prefix(dest_dict=validated,
                                     src_dict=em_settings,
                                     dest_prefix='aws_ecs_default_',
@@ -244,7 +248,7 @@ class RunEnvironmentSerializer(SerializerHelpers,
 
                             self.copy_props_with_prefix(dest_dict=validated,
                                     src_dict=em_settings,
-                                    dest_prefix='default_aws_ecs_',
+                                    dest_prefix='aws_ecs_',
                                     included_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
                         elif emt == AwsLambdaExecutionMethod.NAME:
                             validated['default_aws_lambda_configuration'] = em_settings

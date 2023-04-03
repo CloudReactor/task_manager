@@ -125,11 +125,15 @@ class SerializerHelpers(serializers.BaseSerializer):
     def copy_props_with_prefix(dest_dict: dict[str, Any],
             src_dict: Mapping[str, Any], dest_prefix='',
             included_keys: Optional[Collection[str]] = None,
-            except_keys: Optional[Collection[str]] = None) -> dict[str, Any]:
+            except_keys: Optional[Collection[str]] = None,
+            none_to_empty_strings: bool = False) -> dict[str, Any]:
         included_key_set = None if (included_keys is None) else set(included_keys)
         except_key_set = set(except_keys or [])
         for key, value in src_dict.items():
             if ((included_key_set is None) or (key in included_key_set)) \
                     and (key not in except_key_set):
+                if none_to_empty_strings and (value is None):
+                    value = ''
+
                 dest_dict[dest_prefix + key] = value
         return dest_dict

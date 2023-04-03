@@ -74,3 +74,65 @@ export const EXECUTION_CAPABILITY_SCHEDULING = 'SCHEDULING';
 export const EXECUTION_CAPABILITY_SETUP_SERVICE = 'SETUP_SERVICE';
 
 export const INFRASTRUCTURE_TYPE_AWS = 'AWS';
+
+export const AWS_REGIONS = [
+  'us-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
+  'us-gov-east-1',
+  'us-gov-west-1',
+  'ap-west-1',
+  'ap-south-1',
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-northeast-3',
+  'eu-central-1',
+  'eu-west-1',
+  'eu-west-2',
+  'eu-west-3',
+  'eu-north-1',
+  'me-south-1',
+  'sa-east-1',
+  'ca-central-1',
+  'cn-north-1',
+  'cn-northwest-1'
+];
+
+const AWS_ACCOUNT_ID_REGEXP_CHARS = "\\d{12}";
+const AWS_REGION_REGEXP_CHARS = AWS_REGIONS.join('|');
+const AWS_ARN_REGEXP_PREFIX = '^arn:aws(-us-gov)?:';
+const LOWER_HEX_DIGIT_REGEXP_CHAR = "[0-9a-f]";
+
+export const AWS_ACCOUNT_ID_REGEXP = new RegExp('^' + AWS_ACCOUNT_ID_REGEXP_CHARS + '$');
+export const AWS_ROLE_ARN_REGEXP = new RegExp(AWS_ARN_REGEXP_PREFIX + 'iam::' +
+  AWS_ACCOUNT_ID_REGEXP_CHARS + ':role/[\\w-]+$');
+export const AWS_SUBNET_REGEXP = new RegExp('^subnet-(' +
+  LOWER_HEX_DIGIT_REGEXP_CHAR + '{8}|' +
+  LOWER_HEX_DIGIT_REGEXP_CHAR + '{17})$');
+
+export const AWS_SECURITY_GROUP_REGEXP = new RegExp('^sg-(' +
+  LOWER_HEX_DIGIT_REGEXP_CHAR + '{8}|' +
+  LOWER_HEX_DIGIT_REGEXP_CHAR + '{17})$');
+
+export const AWS_LAMBDA_ARN_REGEXP = new RegExp(AWS_ARN_REGEXP_PREFIX +
+  "lambda:(" + AWS_REGION_REGEXP_CHARS + '):' + AWS_ACCOUNT_ID_REGEXP_CHARS +
+  ":function:[\\w-]+(:\\d+)?$");
+
+export const AWS_ECS_CLUSTER_ARN_REGEXP = new RegExp(AWS_ARN_REGEXP_PREFIX +
+  'ecs:(' + AWS_REGION_REGEXP_CHARS + '):' + AWS_ACCOUNT_ID_REGEXP_CHARS +
+  ':cluster/[\\w-.]{1,255}$');
+
+export const AWS_ECS_LAUNCH_TYPE_FARGATE = 'FARGATE';
+export const AWS_ECS_LAUNCH_TYPE_EC2 = 'EC2';
+export const AWS_ECS_LAUNCH_TYPE_EXTERNAL = 'EXTERNAL';
+export const AWS_ECS_ALL_SUPPORTED_LAUNCH_TYPES = [
+  AWS_ECS_LAUNCH_TYPE_FARGATE,
+  AWS_ECS_LAUNCH_TYPE_EC2,
+  AWS_ECS_LAUNCH_TYPE_EXTERNAL
+];
+export const AWS_ECS_PLATFORM_VERSIONS = [
+  '1.3.0',
+  '1.4.0',
+  'LATEST'
+];

@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import React, { Fragment } from "react";
 import Form from 'react-bootstrap/Form';
 import styles from './CustomInput.module.scss';
@@ -66,6 +68,10 @@ const CustomInput = ({
     );
   });
 
+  const fieldTouched = _.get(touched, field.name);
+  const fieldErrors = _.get(errors, field.name);
+  const isInvalid = fieldTouched && fieldErrors;
+
   return (
     <FormGroup controlId={controlId}>
       {
@@ -76,7 +82,7 @@ const CustomInput = ({
               as="select"
               {...field}
               {...props}
-              isInvalid={touched[field.name] && errors[field.name]}
+              isInvalid={isInvalid}
             >
               {optionsList}
             </Form.Control>
@@ -87,7 +93,7 @@ const CustomInput = ({
             label={label}
             {...field}
             {...props}
-            isInvalid={touched[field.name] && errors[field.name]}
+            isInvalid={isInvalid}
           />
         ) : (type === 'radio') ? (
           <Form.Check
@@ -95,7 +101,7 @@ const CustomInput = ({
             label={label}
             {...field}
             {...props}
-            isInvalid={touched[field.name] && errors[field.name]}
+            isInvalid={isInvalid}
           />
         ) : (
           <Fragment>
@@ -106,16 +112,18 @@ const CustomInput = ({
               name={field.name}
               min={min}
               {...props}
-              isInvalid={touched[field.name] && errors[field.name]}
+              isInvalid={isInvalid}
             />
           </Fragment>
         )
       }
 
-      {touched[field.name] && errors[field.name] && (
-        <div className="error text-danger">{errors[field.name]}</div>
-      )}
       {subText && <FormText className={styles.subText}>{subText}</FormText>}
+
+      {isInvalid && (
+        <div className="error text-danger">{fieldErrors}</div>
+      )}
+
     </FormGroup>
   );
 }

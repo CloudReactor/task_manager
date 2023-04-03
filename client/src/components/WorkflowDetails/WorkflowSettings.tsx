@@ -95,7 +95,7 @@ const WorkflowSettings = ({ workflow, formikProps }: Props) => {
         </Form.Text>
 
         <SettingsForm items={Items} onChange={handleChange}
-         handleBlur={handleBlur} />
+         onBlur={handleBlur} />
       </fieldset>
 
       {

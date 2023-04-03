@@ -105,7 +105,6 @@ def extract_aws_ecs_configuration(run_environment: RunEnvironment) -> dict[str, 
         'execution_role_arn': run_environment.aws_ecs_default_execution_role,
         'task_role_arn': run_environment.aws_ecs_default_task_role,
         'platform_version': run_environment.aws_ecs_default_platform_version,
-        'enable_ecs_managed_tags': run_environment.aws_ecs_enable_ecs_managed_tags
     })
 
 
@@ -134,7 +133,6 @@ def extract_emc(task: Task) -> dict[str, Any]:
         'execution_role_arn': task.aws_ecs_default_execution_role,
         'task_role_arn': task.aws_ecs_default_task_role,
         'platform_version': task.aws_ecs_default_platform_version,
-        'enable_ecs_managed_tags': task.aws_ecs_enable_ecs_managed_tags,
         'task_definition_arn': task.aws_ecs_task_definition_arn,
         'main_container_name': task.aws_ecs_main_container_name,
     })

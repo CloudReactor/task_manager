@@ -53,7 +53,6 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     task_role_arn: Optional[str] = None
     task_role_infrastructure_website_url: Optional[str] = None
     platform_version: Optional[str] = None
-    enable_ecs_managed_tags: Optional[bool] = None
 
     def update_derived_attrs(self):
         self.cluster_infrastructure_website_url = \
@@ -1329,6 +1328,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         args = self.make_common_args(include_launch_type=include_launch_type)
         args['desiredCount'] = task.service_instance_count
 
+        managed_tags = ss.enable_ecs_managed_tags
+        if managed_tags is not None:
+            args['enableECSManagedTags'] = managed_tags
+
         dc = ss.deployment_configuration or AwsEcsServiceDeploymentConfiguration()
         dcb = dc.deployment_circuit_breaker or AwsEcsServiceDeploymentCircuitBreaker()
 
@@ -1360,10 +1363,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         #         'containerPort': 123
         #     },
         # ],
-
-        managed_tags = self.settings.enable_ecs_managed_tags
-        if managed_tags is not None:
-            args['enableECSManagedTags'] = managed_tags
 
         return args
 

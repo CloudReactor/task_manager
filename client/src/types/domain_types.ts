@@ -1,4 +1,5 @@
 import {
+  AWS_ECS_LAUNCH_TYPE_FARGATE,
   EXECUTION_CAPABILITY_MANUAL_START,
   EXECUTION_METHOD_TYPE_UNKNOWN
 } from '../utils/constants';
@@ -158,45 +159,47 @@ export function makeNewAlertMethod(): AlertMethod {
 }
 
 export interface AwsLoggingOptions {
-  create_group: string | null;
-  datetime_format: string | null;
-  group: string | null;
-  max_buffer_size: number | null;
-  mode: string | null;
-  multiline_pattern: string | null;
-  region: string | null;
-  stream: string | null;
-  stream_infrastructure_website_url: string | null;
-  stream_prefix: string | null;
+  create_group?: string | null;
+  datetime_format?: string | null;
+  group?: string | null;
+  max_buffer_size?: number | null;
+  mode?: string | null;
+  multiline_pattern?: string | null;
+  region?: string | null;
+  stream?: string | null;
+  stream_infrastructure_website_url?: string | null;
+  stream_prefix?: string | null;
 }
 
 export interface AwsLoggingSettings {
-  driver: string | null;
-  infrastructure_website_url: string | null;
-  options: AwsLoggingOptions | null;
+  driver?: string | null;
+  infrastructure_website_url?: string | null;
+  options?: AwsLoggingOptions | null;
 }
 
 export interface AwsNetworkSettings {
-  assign_public_ip: boolean | null;
-  availability_zone: string | null;
+  assign_public_ip?: boolean | null;
+  availability_zone?: string | null;
   //networks: null
-  region: string | null;
-  security_group_infrastructure_website_urls: string[] | null;
-  security_groups: string[] | null;
-  subnet_infrastructure_website_urls: string[] | null;
-  subnets: string[] | null;
+  region?: string | null;
+  security_group_infrastructure_website_urls?: string[] | null;
+  security_groups?: string[] | null;
+  subnet_infrastructure_website_urls?: string[] | null;
+  subnets?: string[] | null;
 }
 
 export interface AwsXraySettings {
-  context_missing: string | null;
-  trace_id: string | null;
+  context_missing?: string | null;
+  trace_id?: string | null;
 }
 
 export interface AwsInfrastructureSettings {
-  logging: AwsLoggingSettings | null;
-  network: AwsNetworkSettings | null;
-  xray: AwsXraySettings | null;
-  tags: object | null;
+  logging?: AwsLoggingSettings | null;
+  network?: AwsNetworkSettings | null;
+  xray?: AwsXraySettings | null;
+  tags?: {
+    [propName: string]: string;
+  } | null;
 }
 
 export interface AwsTags {
@@ -248,8 +251,8 @@ implements LegacyAwsEcsExecutionMethodCapability {
   allocated_memory_mb = 512;
   default_subnets = [];
   default_subnet_infrastructure_website_urls? = null;
-  default_launch_type = 'FARGATE';
-  supported_launch_types = ['FARGATE'];
+  default_launch_type = AWS_ECS_LAUNCH_TYPE_FARGATE;
+  supported_launch_types = [AWS_ECS_LAUNCH_TYPE_FARGATE];
   default_cluster_arn = '';
   default_cluster_infrastructure_website_url? = null;
   default_security_groups = [];
@@ -279,38 +282,36 @@ extends LegacyAwsEcsExecutionMethodCapabilityImpl {
   task_definition_infrastructure_website_url = null;
 }
 
-
-
 export interface AwsEcsExecutionMethodSettings {
-    launch_type: string | null;
-    supported_launch_types: string[] | null;
-    cluster_arn: string | null;
-    cluster_infrastructure_website_url: string | null;
-    task_definition_arn: string | null;
-    task_definition_infrastructure_website_url: string | null;
-    infrastructure_website_url: string | null;
-    main_container_name: string | null;
-    execution_role_arn: string | null;
-    execution_role_infrastructure_website_url: string | null;
-    task_role_arn: string | null;
-    task_role_infrastructure_website_url: string | null;
-    platform_version: string | null;
-    enable_ecs_managed_tags: boolean | null;
+    launch_type?: string | null;
+    supported_launch_types?: string[] | null;
+    cluster_arn?: string | null;
+    cluster_infrastructure_website_url?: string | null;
+    task_definition_arn?: string | null;
+    task_definition_infrastructure_website_url?: string | null;
+    infrastructure_website_url?: string | null;
+    main_container_name?: string | null;
+    execution_role_arn?: string | null;
+    execution_role_infrastructure_website_url?: string | null;
+    task_role_arn?: string | null;
+    task_role_infrastructure_website_url?: string | null;
+    platform_version?: string | null;
+    enable_ecs_managed_tags?: boolean | null;
 }
 
 export interface NamedExecutionMethodSettings<T> {
   [name: string]: {
     settings: T;
-    capabilities: string[];
-    infrastructure_name: string;
+    capabilities?: string[];
+    infrastructure_name?: string;
   }
 }
 
 export interface RunEnvironment extends EntityReferenceWithDates {
   created_by_group: GroupReference;
   infrastructure_settings: {
-    'AWS'?: NamedExecutionMethodSettings<AwsInfrastructureSettings>;
-    [key: string]: NamedExecutionMethodSettings<any> | undefined;
+    'AWS'?: NamedInfrastructureSettings<AwsInfrastructureSettings>;
+    [key: string]: NamedInfrastructureSettings<any> | undefined;
   };
   execution_method_settings: {
     'AWS ECS'?: NamedExecutionMethodSettings<AwsEcsExecutionMethodSettings>;
@@ -318,7 +319,7 @@ export interface RunEnvironment extends EntityReferenceWithDates {
   };
   default_alert_methods: EntityReference[];
 
-  aws_account_id: string; // deprecated
+  /*aws_account_id: string; // deprecated
   aws_default_region: string; // deprecated
   aws_events_role_arn: string, // deprecated
   aws_access_key: string; // deprecated
@@ -326,7 +327,7 @@ export interface RunEnvironment extends EntityReferenceWithDates {
   aws_workflow_starter_lambda_arn: string; // deprecated
   aws_workflow_starter_access_key: string; // deprecated
   execution_method_capabilities: LegacyExecutionMethodCapability[]; // deprecated
-  tags: AwsTags | null; // deprecated
+  tags: AwsTags | null; // deprecated */
 
   [propName: string]: any;
 }
@@ -335,16 +336,31 @@ export function makeNewRunEnvironment(): RunEnvironment {
   return Object.assign(makeEmptyEntityReferenceWithDates(), {
     created_by_group: makeEmptyGroupReference(),
     description: '',
-    aws_account_id: '',
-    aws_default_region: 'us-west-2',
-    aws_events_role_arn: '',
-    aws_access_key: '',
-    aws_external_id: '',
-    aws_workflow_starter_lambda_arn: '',
-    aws_workflow_starter_access_key: '',
-    execution_method_capabilities: [],
-    execution_method_settings: {},
-    infrastructure_settings: {},
+    execution_method_settings: {
+      'AWS ECS': {
+        '__default__': {
+          settings: {
+            launch_type: AWS_ECS_LAUNCH_TYPE_FARGATE,
+            supported_launch_types: [AWS_ECS_LAUNCH_TYPE_FARGATE],
+            platform_version: '1.4.0'
+          },
+          infrastructure_name: '__default__'
+        }
+      }
+    },
+    infrastructure_settings: {
+      'AWS': {
+        '__default__': {
+          settings: {
+            network: {
+              subnets: [],
+              security_groups: [],
+              assign_public_ip: false
+            }
+          }
+        }
+      }
+    },
     default_alert_methods: [],
     tags: null,
   });
