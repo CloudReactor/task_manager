@@ -1,5 +1,5 @@
 import {
-  plainToClass
+  plainToInstance
 } from 'class-transformer';
 
 
@@ -553,9 +553,9 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
 
   const page =  response.data as ResultsPage<Task>;
 
-  return plainToClass(ResultsPageImpl, {
+  return plainToInstance(ResultsPageImpl, {
     count: page.count,
-    results:  plainToClass(TaskImpl, page.results)
+    results: plainToInstance(TaskImpl, page.results)
   });
 }
 
@@ -565,7 +565,7 @@ export async function fetchTask(uuid: string,
     'api/v1/tasks/' + encodeURIComponent(uuid) + '/', {
       signal: abortSignal
     });
-  return plainToClass(TaskImpl, response.data);
+  return plainToInstance(TaskImpl, response.data);
 }
 
 export async function updateTask(uuid: string, data: any,
@@ -575,7 +575,7 @@ export async function updateTask(uuid: string, data: any,
     data, {
       signal: abortSignal
     });
-  return plainToClass(TaskImpl, response.data);
+  return plainToInstance(TaskImpl, response.data);
 }
 
 export interface TaskExecutionPageFetchOptions
