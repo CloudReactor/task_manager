@@ -25,18 +25,20 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
     aws_settings = models.JSONField(null=True, blank=True)
 
+    # Deprecated
     aws_account_id = models.CharField(max_length=200, blank=True)
     aws_default_region = models.CharField(max_length=20, blank=True)
     aws_access_key = models.CharField(max_length=100, blank=True)
     aws_secret_key = models.CharField(max_length=100, blank=True)
     aws_events_role_arn = models.CharField(max_length=100, blank=True)
     aws_assumed_role_external_id = models.CharField(max_length=1000, blank=True)
+    aws_workflow_starter_lambda_arn = models.CharField(max_length=1000, blank=True)
+    aws_workflow_starter_access_key = models.CharField(max_length=1000, blank=True)
+    # End deprecated
 
     default_aws_ecs_configuration = models.JSONField(null=True, blank=True)
     default_aws_lambda_configuration = models.JSONField(null=True, blank=True)
 
-    aws_workflow_starter_lambda_arn = models.CharField(max_length=1000, blank=True)
-    aws_workflow_starter_access_key = models.CharField(max_length=1000, blank=True)
     default_alert_methods = models.ManyToManyField('AlertMethod', blank=True)
 
     # Deprecated, use InfrastructureSettings.can_manage_infrastructure()

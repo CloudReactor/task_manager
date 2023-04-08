@@ -539,7 +539,7 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     params['run_environment__uuid'] = opts.selectedRunEnvironmentUuid;
   }
 
-  params['omit'] = 'execution_method_capability.details,alert_methods,links';
+  params['omit'] = 'execution_method_capability.details,current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,input_value_schema,alert_methods,links';
 
   if (opts.otherParams) {
     Object.assign(params, opts.otherParams);
@@ -596,6 +596,8 @@ export async function fetchTaskExecutions(opts?: TaskExecutionPageFetchOptions):
     params.task__uuid = opts.taskUuid;
   }
 
+  params['omit'] = 'debug_log_tail,environment_variables_overrides,execution_method,execution_method_details,infrastructure_settings';
+
   const response = await makeAuthenticatedClient().get(
     'api/v1/task_executions/', {
       signal: abortSignal,
@@ -643,6 +645,10 @@ export async function stopTaskExecution(uuid: string,
   return response.data as TaskExecution;
 }
 
+const DEFAULT_RUN_ENVIRONMENT_PARAMS = {
+  omit: 'aws_account_id,aws_default_region,execution_method_capabilities'
+}
+
 export async function fetchRunEnvironments(opts? : PageFetchWithGroupIdOptions):
   Promise<ResultsPage<RunEnvironment>> {
   opts = opts ?? {};
@@ -655,7 +661,7 @@ export async function fetchRunEnvironments(opts? : PageFetchWithGroupIdOptions):
   const response = await makeAuthenticatedClient().get(
     'api/v1/run_environments/', {
       signal: abortSignal,
-      params
+      params: Object.assign(DEFAULT_RUN_ENVIRONMENT_PARAMS, params)
     });
   return response.data as ResultsPage<RunEnvironment>;
 }
@@ -664,7 +670,8 @@ export async function fetchRunEnvironment(uuid: string,
     abortSignal?: AbortSignal) {
   const response = await makeAuthenticatedClient().get(
     'api/v1/run_environments/' + encodeURIComponent(uuid) + '/', {
-      signal: abortSignal
+      signal: abortSignal,
+      params: DEFAULT_RUN_ENVIRONMENT_PARAMS
     });
   return response.data as RunEnvironment;
 }

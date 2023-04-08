@@ -6,6 +6,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ParseError
 from rest_framework.fields import empty
 
+from rest_flex_fields.serializers import FlexFieldsSerializerMixin
+
 from drf_spectacular.utils import (
     extend_schema_field,
     # PolymorphicProxySerializer,
@@ -30,7 +32,8 @@ from .serializer_helpers import SerializerHelpers
 logger = logging.getLogger(__name__)
 
 
-class RunEnvironmentSerializer(SerializerHelpers,
+class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
+        SerializerHelpers,
         serializers.HyperlinkedModelSerializer):
     """
     RunEnvironments contain common settings for running a set of
@@ -53,8 +56,6 @@ class RunEnvironmentSerializer(SerializerHelpers,
             'infrastructure_settings',
             'aws_account_id',
             'aws_default_region',
-            'aws_assumed_role_external_id', 'aws_events_role_arn',
-            'aws_workflow_starter_lambda_arn', 'aws_workflow_starter_access_key',
             'default_alert_methods',
             'execution_method_capabilities',
             'execution_method_settings',
@@ -66,9 +67,6 @@ class RunEnvironmentSerializer(SerializerHelpers,
             'created_at', 'updated_at'
         ]
 
-        extra_kwargs = {
-            'aws_access_key': { 'write_only': True }
-        }
 
     created_by_user = serializers.ReadOnlyField(source='created_by_user.username')
     created_by_group = GroupSerializer(read_only=True, include_users=False)
@@ -79,7 +77,9 @@ class RunEnvironmentSerializer(SerializerHelpers,
 
     infrastructure_settings = serializers.SerializerMethodField()
 
-    # Deprecated
+    # Deprecated, maintained for compatibility with aws-ecs-cloudreactor-deployer
+    aws_account_id = serializers.SerializerMethodField()
+    aws_default_region = serializers.SerializerMethodField()
     execution_method_capabilities = serializers.SerializerMethodField()
 
     execution_method_settings = serializers.SerializerMethodField()
@@ -95,7 +95,9 @@ class RunEnvironmentSerializer(SerializerHelpers,
             forced_access_level: Optional[int] = None, **kwargs) -> None:
         context = context or {}
 
-        # instance can either be a list of Run Environment or a single Run Environment
+        super().__init__(instance, data, context=context, **kwargs)
+
+        # instance can either be a list of Run Environments or a single Run Environment
         # We assume the list has already pre-filtered so if the API key was only
         # for a single Run Environment, the list would only have a single
         # Run Environment.
@@ -115,7 +117,24 @@ class RunEnvironmentSerializer(SerializerHelpers,
                 for prop in (self.fields.keys() - self.SUMMARY_PROPS):
                     del self.fields[prop]
 
-        super().__init__(instance, data, context=context, **kwargs)
+
+    # Deprecated
+    def get_aws_account_id(self, run_env: RunEnvironment) -> str:
+        try:
+            return run_env.infrastructure_settings[INFRASTRUCTURE_TYPE_AWS][self.DEFAULT_LABEL][self.SETTINGS_KEY]['account_id']
+        except KeyError:
+            return None
+        except TypeError:
+            return None
+
+    # Deprecated
+    def get_aws_default_region(self, run_env: RunEnvironment) -> str:
+        try:
+            return run_env.infrastructure_settings[INFRASTRUCTURE_TYPE_AWS][self.DEFAULT_LABEL][self.SETTINGS_KEY]['region']
+        except KeyError:
+            return None
+        except TypeError:
+            return None
 
     # Deprecated
     # TODO: use PolymorphicProxySerializer when it is supported
@@ -257,27 +276,6 @@ class RunEnvironmentSerializer(SerializerHelpers,
                         'execution_method_settings': [f"Found {execution_method_name=}, but only '{self.DEFAULT_LABEL}' is supported for now"],
                     })
 
-        # For legacy AWS setup wizard / Dashboard UI
-        try:
-            caps = data.get('execution_method_capabilities')
-
-            if caps is not None:
-                # TODO: clear existing properties
-                found_cap_types: list[str] = []
-                for cap in caps:
-                    cap_type = cap['type']
-                    found_cap_types.append(cap_type)
-                    if cap_type == AwsEcsExecutionMethod.NAME:
-                        validated = self.copy_aws_ecs_properties(validated, cap)
-                    else:
-                        raise serializers.ValidationError(f"Unknown execution method capability type '{cap_type}'")
-
-                if AwsEcsExecutionMethod.NAME not in found_cap_types:
-                    validated['aws_events_role_arn'] = ''
-
-        except serializers.ValidationError as validation_error:
-            self.handle_to_internal_value_exception(validation_error,
-                                                    field_name='execution_method_capabilities')
 
         self.set_validated_alert_methods(data=data, validated=validated,
             run_environment=cast(Optional[RunEnvironment], self.instance),

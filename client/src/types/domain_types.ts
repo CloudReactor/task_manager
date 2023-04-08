@@ -318,17 +318,6 @@ export interface RunEnvironment extends EntityReferenceWithDates {
     [key: string]: NamedExecutionMethodSettings<any> | undefined;
   };
   default_alert_methods: EntityReference[];
-
-  /*aws_account_id: string; // deprecated
-  aws_default_region: string; // deprecated
-  aws_events_role_arn: string, // deprecated
-  aws_access_key: string; // deprecated
-  aws_external_id: string; // deprecated
-  aws_workflow_starter_lambda_arn: string; // deprecated
-  aws_workflow_starter_access_key: string; // deprecated
-  execution_method_capabilities: LegacyExecutionMethodCapability[]; // deprecated
-  tags: AwsTags | null; // deprecated */
-
   [propName: string]: any;
 }
 

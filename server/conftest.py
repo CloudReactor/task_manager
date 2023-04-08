@@ -264,6 +264,11 @@ COPIED_AWS_NETWORK_ATTRIBUTES = [
     'assign_public_ip',
 ]
 
+COPIED_RUN_ENVIRONMENT_ATTRIBUTES = [
+    'name', 'description',
+]
+
+OUTPUT_RUN_ENVIRONMENT_ATTRIBUTES = COPIED_RUN_ENVIRONMENT_ATTRIBUTES
 
 EXECUTABLE_ATTRIBUTES = [
     'enabled',
@@ -374,6 +379,71 @@ def make_common_task_request_body(run_environment_name: str = 'Staging',
             }
         ]
     }
+
+
+def validate_serialized_run_environment(body_re: dict[str, Any], model_re: run_environment,
+        context: Optional[dict[str, Any]] = None) -> None:
+    context = context or context_with_request()
+
+    ensure_attributes_match(body_re, model_re, OUTPUT_RUN_ENVIRONMENT_ATTRIBUTES)
+
+    assert body_re['created_by_group'] == GroupSerializer(
+            model_re.created_by_group,
+            include_users=False, context=context).data
+
+    assert model_re.created_by_user is not None # for mypy
+
+    assert body_re['created_by_user'] == model_re.created_by_user.username
+
+    if model_re.aws_settings:
+        expected_aws_settings = model_re.aws_settings.copy()
+        del expected_aws_settings['secret_key']
+
+        assert body_re['infrastructure_settings'][INFRASTRUCTURE_TYPE_AWS][
+            RunEnvironmentSerializer.DEFAULT_LABEL][RunEnvironmentSerializer.SETTINGS_KEY] == expected_aws_settings
+
+    if model_re.default_aws_ecs_configuration:
+        assert body_re['execution_method_settings'][AwsEcsExecutionMethod.NAME][
+            RunEnvironmentSerializer.DEFAULT_LABEL][RunEnvironmentSerializer.SETTINGS_KEY] == model_re.default_aws_ecs_configuration
+
+
+def validate_saved_run_environment(body_re: dict[str, Any],
+        model_re: RunEnvironment,
+        context: Optional[dict[str, Any]] = None) -> None:
+    context = context or context_with_request()
+
+    ensure_attributes_match(body_re, model_re, COPIED_RUN_ENVIRONMENT_ATTRIBUTES,
+            partial=True)
+
+    assert body_re['created_by_group'] == GroupSerializer(
+            model_re.created_by_group,
+            include_users=False, context=context).data
+
+    assert model_re.created_by_user is not None # for mypy
+
+    assert body_re['created_by_user'] == model_re.created_by_user.username
+
+    infra_settings = body_re.get('infrastructure_settings')
+    if infra_settings:
+        name_to_aws_settings_container = infra_settings.get(INFRASTRUCTURE_TYPE_AWS)
+        if name_to_aws_settings_container:
+            for name, aws_settings_container in name_to_aws_settings_container.items():
+                if name == RunEnvironmentSerializer.DEFAULT_LABEL:
+                    aws_settings = aws_settings_container.get(RunEnvironmentSerializer.SETTINGS_KEY)
+                    if aws_settings is None:
+                        assert_deep_subset(aws_settings, model_re.aws_settings)
+
+    em_defaults = body_re.get('execution_method_settings')
+
+    if em_defaults is not None:
+        for emt, em_settings in em_defaults.items():
+            for execution_method_name, meta_settings in em_settings.items():
+                if execution_method_name == RunEnvironmentSerializer.DEFAULT_LABEL:
+                    meta_settings = meta_settings or {}
+                    em_settings = meta_settings.get(RunEnvironmentSerializer.SETTINGS_KEY)
+
+                    if emt == AwsEcsExecutionMethod.NAME:
+                        assert_deep_subset(em_settings, model_re.default_aws_ecs_configuration)
 
 
 class AwsEcsSetup(NamedTuple):
@@ -621,14 +691,6 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
             assert model_task.run_environment.name == body_run_environment['name']
 
     for attr in ENHANCED_TASK_ATTRIBUTES:
-        # We don't extract service_settings into the deprecated columns,
-        # so they will be set to their default values. Then
-        # populate_task_emc_and_infra() will set service_settings with the
-        # default values, causing the settings in the request body to be lost.
-        # So skip validating service_settings for now.
-        if attr == 'service_settings':
-            continue
-
         if attr in body_task:
             assert_deep_subset(body_task[attr], getattr(model_task, attr), attr)
 

@@ -21,10 +21,6 @@ from rest_framework.test import APIClient
 
 from conftest import *
 
-PROTECTED_PROPERTIES = [
-  'execution_method_capabilities',
-  'aws_workflow_starter_access_key'
-]
 
 def ensure_serialized_run_environment_valid(response_re: dict[str, Any],
         run_environment: RunEnvironment, user: User,
@@ -43,11 +39,8 @@ def ensure_serialized_run_environment_valid(response_re: dict[str, Any],
     assert response_re == RunEnvironmentSerializer(run_environment,
             context=context).data
 
-    for prop in PROTECTED_PROPERTIES:
-        if access_level < UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER:
-            assert prop not in response_re
-        else:
-            assert prop in response_re
+    validate_saved_run_environment(response_re, run_environment)
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
