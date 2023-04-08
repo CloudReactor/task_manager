@@ -351,8 +351,8 @@ const RunEnvironmentEditor = ({
                           <Fragment>
                             {
                               (defaultAwsSettings?.network?.subnets || []).map((item: any, index: any) => (
-                                <Fragment>
-                                  <InputGroup key={index} className="mb-1">
+                                <Fragment key={index}>
+                                  <InputGroup className="mb-1">
                                     <Field
                                       name={`infrastructure_settings.${INFRASTRUCTURE_TYPE_AWS}.__default__.settings.network.subnets.${index}`}
                                       type="text"
@@ -393,8 +393,8 @@ const RunEnvironmentEditor = ({
                           <Fragment>
                             {
                               (defaultAwsSettings?.network?.security_groups || []).map((item: any, index: any) => (
-                                <Fragment>
-                                  <InputGroup key={index} className="mb-1">
+                                <Fragment key={index}>
+                                  <InputGroup className="mb-1">
                                     <Field
                                       name={`infrastructure_settings.${INFRASTRUCTURE_TYPE_AWS}.__default__.settings.network.security_groups.${index}`}
                                       type="text"
