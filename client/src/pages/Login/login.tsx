@@ -1,6 +1,5 @@
-import React, { Component } from "react";
-import { withRouter } from 'react-router-dom';
-import { RouteComponentProps } from 'react-router';
+import React, { useContext, useState } from "react";
+import { useHistory, useLocation } from 'react-router-dom';
 
 import {
   Alert
@@ -20,82 +19,67 @@ const DEPLOYMENT = import.meta.env.VITE_DEPLOYMENT ?? 'N/A';
 const VERSION_SIGNATURE = import.meta.env.VITE_VERSION_SIGNATURE ?? 'N/A';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/';
 
-interface Props extends RouteComponentProps {
-}
+type Props = Record<string, never>;
 
-interface State {
-  errorMessage?: string;
-}
+export default function Login(props: Props) {
+  const context = useContext(GlobalContext);
+  const { setCurrentUser, setCurrentGroup } = context;
 
- class Login extends Component<Props, State> {
-  static contextType = GlobalContext;
+  const history = useHistory();
 
-  constructor(props: Props) {
-    super(props);
+  const [
+    errorMessage,
+    setErrorMessage
+  ] = useState('');
 
-    this.state = {};
-  }
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const nextPath = params.get('next') || '/';
 
-  private handleSubmit = async (values: { email: string; password: string; }): Promise<void> => {
-    this.setState({errorMessage: undefined});
+  const handleSubmit = async (values: { email: string; password: string; }): Promise<void> => {
+    setErrorMessage('');
     const userLogin = { username: values.email, password: values.password }
 
     try {
       const tokenResponse = await makeConfiguredClient().post('auth/jwt/create/', userLogin);
       JwtUtils.saveToken(tokenResponse.data);
-
       const user = await fetchCurrentUser();
-
-      const { setCurrentUser, setCurrentGroup } = this.context;
       setCurrentUser(user);
       setCurrentGroup(user.groups[0]);
-
-      const nextPath = new URL(window.location.href).searchParams.get('next') || '/';
-      this.setState({ errorMessage: undefined }, () => {
-        this.props.history.push(nextPath, user);
-      });
+      history.push(nextPath, user);
     } catch (error) {
       console.log(error);
-      this.setState({errorMessage: 'Incorrect username or password'});
+      setErrorMessage('Incorrect username or password');
     }
   }
 
-  public render() {
-    const {
-      location
-    } = this.props;
+  const status = params.get('status');
 
-    const params = new URLSearchParams(location.search);
-    const status = params.get('status');
+  return (
+    <RegistrationLoginContainer heading="Sign in to your account">
+      {
+        (status === 'activated') &&
+        <Alert variant='info'>
+          <Alert.Heading>Account activated</Alert.Heading>
+          <p>
+            Your account has been activated. Please sign in with the credentials
+            you just entered.
+          </p>
+        </Alert>
+      }
 
-    return (
-      <RegistrationLoginContainer heading="Sign in to your account">
-        {
-          (status === 'activated') &&
-          <Alert variant='info'>
-            <Alert.Heading>Account activated</Alert.Heading>
-            <p>
-              Your account has been activated. Please sign in with the credentials
-              you just entered.
-            </p>
-          </Alert>
-        }
-
-        <LoginForm
-          handleSubmit={this.handleSubmit}
-          errorMessage={this.state.errorMessage}
-          formItems={formItems}
-        />
-        {
-          (DEPLOYMENT !== 'production') &&
-          <div>
-            <p>Version: {VERSION_SIGNATURE}</p>
-            <p>API Base URL: {API_BASE_URL ?? 'Undefined'}</p>
-          </div>
-        }
-      </RegistrationLoginContainer>
-    );
-  }
+      <LoginForm
+        handleSubmit={handleSubmit}
+        errorMessage={errorMessage}
+        formItems={formItems}
+      />
+      {
+        (DEPLOYMENT !== 'production') &&
+        <div>
+          <p>Version: {VERSION_SIGNATURE}</p>
+          <p>API Base URL: {API_BASE_URL ?? 'Undefined'}</p>
+        </div>
+      }
+    </RegistrationLoginContainer>
+  );
 }
-
-export default withRouter(Login);
