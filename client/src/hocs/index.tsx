@@ -73,7 +73,9 @@ export const isAuth = <P extends object>(
 
       if (!success) {
         JwtUtils.removeTokenContainer();
-        history.push('/login');
+        const location = history.location;
+        history.push('/login?next=' + encodeURIComponent(
+          location.pathname + location.search + location.hash));
       }
     }
 

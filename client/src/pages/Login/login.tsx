@@ -50,11 +50,12 @@ interface State {
       setCurrentUser(user);
       setCurrentGroup(user.groups[0]);
 
+      const nextPath = new URL(window.location.href).searchParams.get('next') || '/';
       this.setState({ errorMessage: undefined }, () => {
-        this.props.history.push('/', user);
+        this.props.history.push(nextPath, user);
       });
     } catch (error) {
-      console.log(error.message);
+      console.log(error);
       this.setState({errorMessage: 'Incorrect username or password'});
     }
   }

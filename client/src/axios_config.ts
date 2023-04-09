@@ -29,6 +29,10 @@ const refreshAuthLogic = (failedRequest: any): Promise<any> => {
     JwtUtils.saveToken(tokenRefreshResponse.data);
     failedRequest.response.config.headers['Authorization'] = 'JWT ' + tokenRefreshResponse.data.access;
     return Promise.resolve();
+  }).catch(e => {
+    console.log('Failed to refresh authorization, redirecting to login page ...');
+    window.location.href = '/login?next=' + encodeURIComponent(
+      window.location.pathname + window.location.search + window.location.hash);
   });
 }
 
