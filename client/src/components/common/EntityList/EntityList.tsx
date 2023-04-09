@@ -8,7 +8,7 @@ import {
 import { ResultsPage, makeEmptyResultsPage } from '../../../utils/api';
 
 import React, { useContext, useEffect, useState, Fragment } from 'react';
-import { withRouter, RouteComponentProps } from 'react-router';
+import { useHistory, useLocation } from 'react-router-dom';
 
 import {
   Alert,
@@ -31,9 +31,7 @@ import BreadcrumbBar from '../../BreadcrumbBar/BreadcrumbBar';
 
 import styles from './index.module.scss';
 
-type PathParamsType = Record<string, never>;
-
-type Props = RouteComponentProps<PathParamsType>;
+type Props = Record<string, never>;
 
 export type ListRenderProps<T> = {
   handleSelection: (string) => void;
@@ -69,7 +67,8 @@ export function makeEntityList<T>({
   minAccessLevelToCreate = minAccessLevelToCreate ?? ACCESS_LEVEL_DEVELOPER
   minAccessLevelToViewDetails = minAccessLevelToViewDetails ?? ACCESS_LEVEL_SUPPORT
 
-  return withRouter( ({ history, location }: Props) => {
+  const EntityList = (props: Props) => {
+    const location = useLocation();
     const params = new URLSearchParams(location.search);
     const pageSize = Number(params.get('max_results') ?? UIC.DEFAULT_PAGE_SIZE);
     const initialOffset = (Number(params.get('page') ?? 1) - 1) * UIC.DEFAULT_PAGE_SIZE;
@@ -96,6 +95,8 @@ export function makeEntityList<T>({
     useEffect(() => {
       document.title = `CloudReactor - ${pluralEntityName}`;
     }, []);
+
+    const history = useHistory();
 
     makeAbortable(async (abortSignal) => {
       try {
@@ -238,5 +239,7 @@ export function makeEntityList<T>({
         </div>
       </div>
     );
-  });
+  };
+
+  return EntityList;
 }
