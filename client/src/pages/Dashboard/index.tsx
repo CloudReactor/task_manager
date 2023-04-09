@@ -156,7 +156,7 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.RUN_ENVIRONMENTS}
-              render={props => <RunEnvironmentList {... props} />}
+              render={props => <RunEnvironmentList/>}
             />
             <Route
               exact
@@ -167,7 +167,7 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.GROUPS}
-              render={props => <GroupList {... props} />}
+              render={props => <GroupList/>}
             />
             <Route
               exact
@@ -177,7 +177,7 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.EMAIL_NOTIFICATION_PROFILES}
-              render={props => <EmailNotificationProfileList {... props} />}
+              render={props => <EmailNotificationProfileList/>}
             />
             <Route
               exact
@@ -187,7 +187,7 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.PAGERDUTY_PROFILES}
-              render={props => <PagerDutyProfileList {... props} />}
+              render={props => <PagerDutyProfileList/>}
             />
             <Route
               exact
@@ -197,7 +197,7 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.ALERT_METHODS}
-              render={props => <AlertMethodList {... props} />}
+              render={props => <AlertMethodList/>}
             />
             <Route
               exact
