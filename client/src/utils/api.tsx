@@ -2,8 +2,6 @@ import {
   plainToInstance
 } from 'class-transformer';
 
-
-
 import { makeAuthenticatedClient } from '../axios_config';
 
 import React from 'react'

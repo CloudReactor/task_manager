@@ -151,7 +151,7 @@ export const stringToNullOrInt = (s: string): number | null => {
   return parseInt(x);
 }
 
-export function makeLink(value: string | null, url?: string | null): any {
+export function makeLink(value?: string | null, url?: string | null): any {
   const v = value ?? 'N/A';
   if (!url) {
     return v;

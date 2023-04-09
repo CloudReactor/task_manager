@@ -20,7 +20,6 @@ import { GlobalContext, accessLevelForCurrentGroup } from '../../context/GlobalC
 
 import CustomButton from '../../components/common/Button/CustomButton';
 import WorkflowGraphEditor from './WorkflowGraphEditor';
-import { values } from 'lodash';
 
 interface Props {
   workflow: Workflow;
