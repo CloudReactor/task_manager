@@ -177,7 +177,7 @@ const AWS_ECS_EXECUTION_METHOD_ITEMS = [{
 
 type Props = {
   runEnvironment?: RunEnvironment;
-  onSaveStarted?: () => void;
+  onSaveStarted?: (runEnvironment: RunEnvironment) => void;
   onSaveSuccess?: (runEnvironment: RunEnvironment) => void;
   onSaveError?: (ex: unknown, values: any) => void;
 }
@@ -289,7 +289,7 @@ const RunEnvironmentEditor = ({
           }
 
           if (onSaveStarted) {
-            onSaveStarted();
+            onSaveStarted(values);
           }
 
           actions.setSubmitting(true);

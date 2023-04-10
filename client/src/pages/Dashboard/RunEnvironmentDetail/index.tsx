@@ -1,5 +1,3 @@
-
-
 import {
   RunEnvironment
 } from '../../../types/domain_types';
@@ -11,41 +9,36 @@ import {
 } from '../../../utils/api';
 
 import React from 'react';
-import { withRouter } from 'react-router';
 
-import { EntityDetail, EntityDetailProps } from '../../../components/common/EntityDetail'
+import { makeEntityDetailComponent, EntityDetailProps } from '../../../components/common/EntityDetailHoc'
 
 import abortableHoc from '../../../hocs/abortableHoc';
 import RunEnvironmentEditor from '../../../components/RunEnvironmentEditor';
 
-class RunEnvironmentDetail extends EntityDetail<RunEnvironment> {
-  constructor(props: EntityDetailProps) {
-    super(props, 'Run Environment');
-  }
-
-  fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<RunEnvironment> {
-    return fetchRunEnvironment(uuid, abortSignal);
-  }
-
-  cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<RunEnvironment> {
-    return cloneRunEnvironment(uuid, values, abortSignal);
-  }
-
-  deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void> {
-    return deleteRunEnvironment(uuid, abortSignal);
-  }
-
-  renderEntity() {
-    const {
-      entity
-    } = this.state;
+const RunEnvironmentDetail = makeEntityDetailComponent<RunEnvironment>(
+  (props: EntityDetailProps<RunEnvironment>) => {
     return (
-      <RunEnvironmentEditor runEnvironment={entity}
-        onSaveStarted={this.handleSaveStarted}
-        onSaveSuccess={this.handleSaveSuccess}
-        onSaveError={this.handleSaveError} />
+      <RunEnvironmentEditor runEnvironment={props.entity ?? undefined}
+        onSaveStarted={props.onSaveStarted}
+        onSaveSuccess={props.onSaveSuccess}
+        onSaveError={props.onSaveError} />
     );
-  }
-}
 
-export default withRouter(abortableHoc(RunEnvironmentDetail));
+
+  }, {
+    entityName: 'Run Environment',
+    fetchEntity: (uuid: string, abortSignal: AbortSignal): Promise<RunEnvironment> => {
+      return fetchRunEnvironment(uuid, abortSignal);
+    },
+
+    cloneEntity: (uuid: string, values: any, abortSignal: AbortSignal): Promise<RunEnvironment> => {
+      return cloneRunEnvironment(uuid, values, abortSignal);
+    },
+
+    deleteEntity: (uuid: string, abortSignal: AbortSignal): Promise<void> => {
+      return deleteRunEnvironment(uuid, abortSignal);
+    }
+  }
+);
+
+export default abortableHoc(RunEnvironmentDetail);
