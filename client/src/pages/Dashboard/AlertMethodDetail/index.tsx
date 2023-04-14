@@ -1,5 +1,3 @@
-
-
 import {
   AlertMethod
 } from '../../../types/domain_types';
@@ -11,41 +9,25 @@ import {
 } from '../../../utils/api';
 
 import React from 'react';
-import { withRouter } from 'react-router';
 
-import { EntityDetail, EntityDetailProps } from '../../../components/common/EntityDetail'
+import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../components/common/EntityDetailHoc'
 
-import abortableHoc from '../../../hocs/abortableHoc';
 import AlertMethodEditor from '../../../components/AlertMethodEditor/index';
 
-class AlertMethodDetail extends EntityDetail<AlertMethod> {
-  constructor(props: EntityDetailProps) {
-    super(props, 'Alert Method');
-  }
-
-  fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<AlertMethod> {
-    return fetchAlertMethod(uuid, abortSignal);
-  }
-
-  cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<AlertMethod> {
-    return cloneAlertMethod(uuid, values, abortSignal);
-  }
-
-  deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void> {
-    return deleteAlertMethod(uuid, abortSignal);
-  }
-
-  renderEntity() {
-    const {
-      entity
-    } = this.state;
+const AlertMethodDetail = makeEntityDetailComponent<AlertMethod, EntityDetailInnerProps<AlertMethod>>(
+  (props: EntityDetailInnerProps<AlertMethod>) => {
     return (
-      <AlertMethodEditor alertMethod={entity}
-        onSaveStarted={this.handleSaveStarted}
-        onSaveSuccess={this.handleSaveSuccess}
-        onSaveError={this.handleSaveError} />
+      <AlertMethodEditor alertMethod={props.entity ?? undefined}
+        onSaveStarted={props.onSaveStarted}
+        onSaveSuccess={props.onSaveSuccess}
+        onSaveError={props.onSaveError} />
     );
+  }, {
+    entityName: 'Alert Method',
+    fetchEntity: fetchAlertMethod,
+    cloneEntity: cloneAlertMethod,
+    deleteEntity: deleteAlertMethod
   }
-}
+);
 
-export default withRouter(abortableHoc(AlertMethodDetail));
+export default AlertMethodDetail;

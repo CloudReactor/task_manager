@@ -53,7 +53,7 @@ import '../Tasks/style.scss';
 
 type Props = {
   emailNotificationProfile?: EmailNotificationProfile;
-  onSaveStarted?: () => void;
+  onSaveStarted?: (enp: EmailNotificationProfile) => void;
   onSaveSuccess?: (enp: EmailNotificationProfile) => void;
   onSaveError?: (ex: Error, values: any) => void;
 }
@@ -119,7 +119,7 @@ const EmailNotificationProfileEditor = ({
             } : null;
 
             if (onSaveStarted) {
-              onSaveStarted();
+              onSaveStarted(values);
             }
 
             actions.setSubmitting(true);

@@ -1,13 +1,14 @@
 import pluralize from "pluralize";
 
 import { EntityReference } from '../../../types/domain_types';
+import { catchableToString } from '../../../utils';
 import { ACCESS_LEVEL_DEVELOPER } from '../../../utils/constants';
 
 import {
   makeErrorElement
 } from '../../../utils/api';
 
-import React, {  useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { Link, useHistory, useLocation, useParams } from 'react-router-dom';
 
 import {
@@ -21,11 +22,12 @@ import { createModal } from 'react-modal-promise';
 
 import { GlobalContext, accessLevelForCurrentGroup } from '../../../context/GlobalContext';
 
-import { AbortSignalProps } from '../../../hocs/abortableHoc';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 import { BootstrapVariant } from '../../../types/ui_types';
 import ActionButton from '../ActionButton';
 import BreadcrumbBar from '../../BreadcrumbBar/BreadcrumbBar';
 import AsyncConfirmationModal from '../AsyncConfirmationModal';
+import AccessDenied from '../../AccessDenied';
 import Loading from '../../Loading';
 
 type PathParamsType = {
@@ -39,29 +41,31 @@ export interface EntityDetailConfig<T extends EntityReference> {
   deleteEntity: (uuid: string, abortSignal: AbortSignal) => Promise<void>;
 }
 
-export type EntityDetailProps<T extends EntityReference> = AbortSignalProps & {
+export interface EntityDetailInnerProps<T extends EntityReference> {
   entity: T | null;
   onSaveStarted: (T) => void;
   onSaveSuccess: (T) => void;
   onSaveError: (ex: unknown, values: any) => void;
 }
 
+export const makeEntityDetailComponent = <T extends EntityReference, P>(
+  WrappedComponent: React.ComponentType<P & EntityDetailInnerProps<T>>, config: EntityDetailConfig<T>) => {
 
-export const makeEntityDetailComponent = <T extends EntityReference>(
-  WrappedComponent: React.ComponentType<EntityDetailProps<T>>, config: EntityDetailConfig<T>) => {
-
-  const EntityDetail = (props: AbortSignalProps) => {
+  const EntityDetail = (props: P & AbortSignalProps) => {
     const context = useContext(GlobalContext);
 
     const accessLevel = accessLevelForCurrentGroup(context);
 
     if (!accessLevel) {
-      return null;
+      return <AccessDenied />;
     }
 
     const {
-      abortSignal
+      abortSignal,
+      ...rest
     } = props;
+
+    const pRest = rest as unknown as P;
 
     const {
       entityName,
@@ -74,6 +78,7 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
     const [flashBody, setFlashBody] = useState<string | null>(null);
     const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>('info');
     const [isLoading, setLoading] = useState(false);
+    const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
     const [isCloning, setCloning] = useState(false);
     const [isDeleting, setDeleting] = useState(false);
     const [isSaving, setSaving] = useState(false);
@@ -88,33 +93,32 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
 
     const history = useHistory();
 
-    const loadEntity = async () => {
+    const loadEntity = useCallback(async () => {
       setLoading(true);
+      setLoadErrorMessage(null);
 
       try {
         const fetchedEntity = await fetchEntity(uuid, abortSignal);
         setEntity(fetchedEntity);
-        setLoading(false);
+        setFlashBody(null);
       } catch (ex) {
-        const message = (ex instanceof Error) ? ex.message :
-          ((typeof ex === 'string') ? ex : 'Unknown error');
-
-        setFlashBody(`Failed to load ${entityName}: ` + message);
-        setFlashAlertVariant('danger'),
+        const message = `Failed to load ${entityName}: ` + catchableToString(ex);
+        setLoadErrorMessage(message);
+        setFlashBody(message);
+        setFlashAlertVariant('danger');
+      } finally {
         setLoading(false);
       }
-    }
+    }, [uuid, abortSignal])
 
 
-    const handleCloneRequested = async () => {
+    const handleCloneRequested = useCallback(async () => {
       if (!entity) {
         console.error(`No ${entityName} to clone`);
         return;
       }
 
       const modal = createModal(AsyncConfirmationModal);
-
-      // TODO: extra warning if removing current user
 
       const rv = await modal({
         title: `Clone ${entityName}`,
@@ -130,9 +134,9 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
       if (rv) {
         return await handleCloneConfirmed();
       }
-    }
+    }, [entity]);
 
-    const handleCloneConfirmed = async () => {
+    const handleCloneConfirmed = useCallback(async () => {
       if (!entity) {
         console.error(`No ${entityName} to clone`);
         return;
@@ -156,13 +160,13 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
         setFlashAlertVariant('danger')
         setFlashBody(makeErrorElement(ex));
       }
-    }
+    }, [entity, abortSignal, history])
 
-    const pushToListView = () => {
+    const pushToListView = useCallback(() => {
       history.push(listPath);
-    };
+    }, [history, listPath]);
 
-    const handleDeletionConfirmed = async () => {
+    const handleDeletionConfirmed = useCallback(async () => {
       if (!entity) {
         console.error(`No ${entityName} to delete`);
         return;
@@ -183,9 +187,9 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
         setFlashBody(makeErrorElement(ex));
         setFlashAlertVariant('danger');
       }
-    }
+    }, [entity, abortSignal])
 
-    const handleDeletionRequested = async () => {
+    const handleDeletionRequested = useCallback(async () => {
       if (!entity) {
         console.error(`No ${entityName} to delete`);
         return;
@@ -209,26 +213,26 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
       if (rv) {
         return await handleDeletionConfirmed();
       }
-    }
+    }, [entity]);
 
-    const handleSaveStarted = (t: T) => {
+    const handleSaveStarted = useCallback((t: T) => {
       setSaving(true);
       setFlashBody(null);
-    };
+    }, []);
 
-    const handleSaveSuccess = (t: T) => {
+    const handleSaveSuccess = useCallback((t: T) => {
       setSaving(false);
       setFlashBody(null);
       pushToListView();
-    };
+    }, []);
 
-    const handleSaveError = (ex: unknown, values: any) => {
+    const handleSaveError = useCallback((ex: unknown, values: any) => {
       setSaving(false);
       setFlashBody(makeErrorElement(ex));
       setFlashAlertVariant('danger');
-    };
+    }, []);
 
-    const handleActionRequested = async (action: string | undefined, cbData: any):
+    const handleActionRequested = useCallback(async (action: string | undefined, cbData: any):
       Promise<void> => {
       switch (action) {
           case 'clone':
@@ -243,13 +247,13 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
           console.error(`Unknown action '${action}'`);
           break;
       }
-    }
+    }, []);
 
 
     useEffect(() => {
       if (uuid === 'new') {
         document.title = `CloudReactor - Create ${entityName}`
-      } else if (!entity && !isLoading) {
+      } else if (!entity && !isLoading && !loadErrorMessage) {
         loadEntity();
       }
     });
@@ -257,12 +261,12 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
     const breadcrumbLink = (uuid === 'new') ?
       'Create New' : entity?.name;
 
-    const EntitysLink = <Link to={listPath}>{ pluralize(entityName) }</Link>
+    const EntitiesLink = <Link to={listPath}>{ pluralize(entityName) }</Link>
 
     return (
       <div>
         <BreadcrumbBar
-         firstLevel={EntitysLink}
+         firstLevel={EntitiesLink}
          secondLevel={breadcrumbLink} />
 
         {
@@ -303,12 +307,12 @@ export const makeEntityDetailComponent = <T extends EntityReference>(
              onSaveStarted={handleSaveStarted}
              onSaveSuccess={handleSaveSuccess}
              onSaveError={handleSaveError}
-             {...props} />
+             {...pRest} />
           ) :
           (<Loading />)
         }
       </div>
     );
   }
-  return EntityDetail;
+  return abortableHoc(EntityDetail);
 }

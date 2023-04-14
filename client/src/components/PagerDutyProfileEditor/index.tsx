@@ -41,9 +41,9 @@ import '../Tasks/style.scss';
 
 type Props = {
   pagerDutyProfile?: PagerDutyProfile;
-  onSaveStarted?: () => void;
+  onSaveStarted?: (pagerDutyProfile: PagerDutyProfile) => void;
   onSaveSuccess?: (pagerDutyProfile: PagerDutyProfile) => void;
-  onSaveError?: (ex: Error, values: any) => void;
+  onSaveError?: (ex: unknown, values: any) => void;
 }
 
 const validationSchema = Yup.object().shape({
@@ -92,7 +92,7 @@ const PagerDutyProfileEditor = ({
             } : null;
 
             if (onSaveStarted) {
-              onSaveStarted();
+              onSaveStarted(values);
             }
 
             const uuid = pdp.uuid || 'new';

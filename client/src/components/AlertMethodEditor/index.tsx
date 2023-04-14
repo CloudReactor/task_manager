@@ -45,7 +45,7 @@ import FormikErrorsSummary from '../common/FormikErrorsSummary';
 
 type Props = {
   alertMethod?: AlertMethod;
-  onSaveStarted?: () => void;
+  onSaveStarted?: (alertMethod: AlertMethod) => void;
   onSaveSuccess?: (alertMethod: AlertMethod) => void;
   onSaveError?: (ex: Error, values: any) => void;
 }
@@ -106,7 +106,7 @@ const AlertMethodEditor = ({
             delete v.runEnvironmentUuid;
 
             if (onSaveStarted) {
-              onSaveStarted();
+              onSaveStarted(values);
             }
 
             actions.setSubmitting(true);

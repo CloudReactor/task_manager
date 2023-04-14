@@ -11,42 +11,25 @@ import {
 } from '../../../utils/api';
 
 import React from 'react';
-import { withRouter } from 'react-router';
 
-import { EntityDetail, EntityDetailProps } from '../../../components/common/EntityDetail'
+import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../components/common/EntityDetailHoc'
 
-import abortableHoc from '../../../hocs/abortableHoc';
 import PagerDutyProfileEditor from '../../../components/PagerDutyProfileEditor';
 
-class PagerDutyProfileDetail extends EntityDetail<PagerDutyProfile> {
-  constructor(props: EntityDetailProps) {
-    super(props, 'PagerDuty Profile');
-  }
-
-  fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<PagerDutyProfile> {
-    return fetchPagerDutyProfile(uuid, abortSignal);
-  }
-
-  cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<PagerDutyProfile> {
-    return clonePagerDutyProfile(uuid, values, abortSignal);
-  }
-
-  deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void> {
-    return deletePagerDutyProfile(uuid, abortSignal);
-  }
-
-  renderEntity() {
-    const {
-      entity
-    } = this.state;
-
+const PagerDutyProfileDetail = makeEntityDetailComponent<PagerDutyProfile, EntityDetailInnerProps<PagerDutyProfile>>(
+  (props: EntityDetailInnerProps<PagerDutyProfile>) => {
     return (
-      <PagerDutyProfileEditor pagerDutyProfile={entity}
-        onSaveStarted={this.handleSaveStarted}
-        onSaveSuccess={this.handleSaveSuccess}
-        onSaveError={this.handleSaveError} />
+      <PagerDutyProfileEditor pagerDutyProfile={props.entity ?? undefined}
+        onSaveStarted={props.onSaveStarted}
+        onSaveSuccess={props.onSaveSuccess}
+        onSaveError={props.onSaveError} />
     );
+  }, {
+    entityName: 'PagerDuty Profile',
+    fetchEntity: fetchPagerDutyProfile,
+    cloneEntity: clonePagerDutyProfile,
+    deleteEntity: deletePagerDutyProfile
   }
-}
+);
 
-export default withRouter(abortableHoc(PagerDutyProfileDetail));
+export default PagerDutyProfileDetail;

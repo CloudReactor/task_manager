@@ -1,8 +1,7 @@
 import { makeConfiguredClient, exceptionToErrorMessages } from '../axios_config';
 
-import React, { Component, Fragment } from 'react';
-import { RouteComponentProps } from 'react-router';
-import { withRouter, Link } from 'react-router-dom';
+import React, { Fragment, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import {
   Alert,
@@ -13,103 +12,83 @@ import RegistrationLoginContainer from '../components/RegistrationLogin/Registra
 
 import * as path from '../constants/routes';
 import styles from './registration_activation.module.scss';
+import abortableHoc, { AbortSignalProps } from '../hocs/abortableHoc';
 
-interface Props extends RouteComponentProps {
-}
+const RegistrationActivation = (props: AbortSignalProps) => {
+  const {
+    abortSignal
+  } = props;
 
-interface State {
-  activated: boolean,
-  errorMessages: string[],
-  header: string;
-}
+  const [activated, setActivated] = useState(false);
+  const [header, setHeader] = useState('Email verified!');
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
-class RegistrationActivation extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const uid = urlParams.get('uid');
+  const token = urlParams.get('token');
 
-    this.state = {
-      activated: false,
-      header: 'Email verified!',
-      errorMessages: [] as string[]
-    };
-  }
+  console.log(`uid = ${uid}, token = ${token}`);
 
-  private handleSubmit = async (): Promise<void> => {
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
-    const uid = urlParams.get('uid');
-    const token = urlParams.get('token');
-
+  const handleSubmit = async () => {
     console.log(`submitted activation for user ${uid}`);
 
     try {
-      await makeConfiguredClient().post(
-        'auth/users/activation/', {
-          uid,
-          token
-        });
+      await makeConfiguredClient().post('auth/users/activation/', {
+        uid,
+        token
+      }, {
+        signal: abortSignal
+      });
 
-      this.setState({
-        activated: true,
-        header: 'Account activated!'
-      });
+      setActivated(true);
+      setHeader('Account activated!');
     } catch (ex) {
-      this.setState({
-        errorMessages: exceptionToErrorMessages(ex)
-      });
+      setErrorMessages(exceptionToErrorMessages(ex));
     }
   }
 
-  public render() {
-    const {
-      activated,
-      errorMessages,
-      header,
-    } = this.state;
+  return (
+    <RegistrationLoginContainer heading={header}>
+      <div className={styles.activation}>
+        {
+          activated ? (
+            <div>
+              <p>
+                Thanks for activating your CloudReactor account. You may
+                now <Link to={path.LOGIN + '?status=activated'}>sign in</Link>.
+              </p>
+            </div>
+          ) : (
+            <Fragment>
+              {
+                (errorMessages.length > 0) &&
+                <Alert variant="danger">
+                  <ul>
+                    {
+                      errorMessages.map(err => {
+                        const s = (err || '').toString();
+                        return <li key={s}>{s}</li>;
+                      })
+                    }
+                  </ul>
+                </Alert>
+              }
 
-    return (
-
-      <RegistrationLoginContainer heading={header}>
-        <div className={styles.activation}>
-          {
-            activated ? (
               <div>
                 <p>
-                  Thanks for activating your CloudReactor account. You may
-                  now <Link to={path.LOGIN + '?status=activated'}>sign in</Link>.
+                  Click the button below to finish creating your CloudReactor account.
                 </p>
               </div>
-            ) : (
-              <Fragment>
-                {
-                  (errorMessages.length > 0) &&
-                  <Alert variant="danger">
-                    <ul>
-                      {
-                        errorMessages.map(err => {
-                          const s = (err || '').toString();
-                          return <li key={s}>{s}</li>;
-                        })
-                      }
-                    </ul>
-                  </Alert>
-                }
-
-                <div>
-                  <p>
-                    Click the button below to finish creating your CloudReactor account.
-                  </p>
-                </div>
-                <div style={{display: 'flex', justifyContent: 'center', marginTop: '40px'}}>
-                  <Button size="lg" onClick={this.handleSubmit}>Activate</Button>
-                </div>
-              </Fragment>
-            )
-          }
-        </div>
-      </RegistrationLoginContainer>
-    );
-  }
+              <div style={{display: 'flex', justifyContent: 'center', marginTop: '40px'}}>
+                <Button size="lg" onClick={handleSubmit}>Activate</Button>
+              </div>
+            </Fragment>
+          )
+        }
+      </div>
+    </RegistrationLoginContainer>
+  );
 }
 
-export default withRouter(RegistrationActivation);
+export default abortableHoc(RegistrationActivation);

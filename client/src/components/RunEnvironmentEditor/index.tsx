@@ -220,14 +220,14 @@ const RunEnvironmentEditor = ({
         '__default__': Yup.object().shape({
           settings: Yup.object().shape({
             account_id: Yup.string().matches(AWS_ACCOUNT_ID_REGEXP,
-              'AWS Account ID must be 12 digits'),
+              'AWS Account ID must be 12 digits').nullable(),
             region: Yup.string().oneOf(AWS_REGIONS),
             events_role_arn: Yup.string().max(1000).matches(AWS_ROLE_ARN_REGEXP,
               'CloudReactor Role ARN is invalid'),
-            assumed_role_external_id: Yup.string().max(1000),
+            assumed_role_external_id: Yup.string().max(1000).nullable(),
             workflow_starter_lambda_arn: Yup.string().max(1000).matches(AWS_LAMBDA_ARN_REGEXP,
               'Workflow Starter Lambda ARN is invalid'),
-            workflow_starter_access_key: Yup.string().max(1000),
+            workflow_starter_access_key: Yup.string().max(1000).nullable(),
             network: Yup.object().shape({
               subnets: Yup.array().of(Yup.string().required(
                 'Subnet must not be blank').matches(
@@ -240,11 +240,11 @@ const RunEnvironmentEditor = ({
               assign_public_ip: Yup.boolean().default(false)
             }).nullable(),
             logging: Yup.object().shape({
-              driver: Yup.string(),
+              driver: Yup.string().nullable(),
               options: Yup.object().shape({
-                create_group: Yup.string(),
-                datetime_format: Yup.string(),
-                multiline_pattern: Yup.string(),
+                create_group: Yup.string().nullable(),
+                datetime_format: Yup.string().nullable(),
+                multiline_pattern: Yup.string().nullable(),
                 // mode: Yup.string(),
                 // max_buffer_size: Yup.string(),
               }).nullable()
@@ -262,11 +262,11 @@ const RunEnvironmentEditor = ({
               .default(AWS_ECS_LAUNCH_TYPE_FARGATE),
             'supported_launch_types': Yup.array(Yup.string().oneOf(AWS_ECS_ALL_SUPPORTED_LAUNCH_TYPES)),
             'cluster_arn': Yup.string().matches(AWS_ECS_CLUSTER_ARN_REGEXP,
-              'AWS ECS Cluster ARN is invalid, must be in the format "arn:aws:ecs:us-east-1:012345678901:cluster/example"'),
+              'AWS ECS Cluster ARN is invalid, must be in the format "arn:aws:ecs:us-east-1:012345678901:cluster/example"').nullable(),
             'execution_role_arn': Yup.string().matches(AWS_ROLE_ARN_REGEXP,
-              'Task Execution Role ARN is invalid, must start with "arn:"'),
+              'Task Execution Role ARN is invalid, must start with "arn:"').nullable(),
             'task_role_arn': Yup.string().matches(AWS_ROLE_ARN_REGEXP,
-              'Default Task Role ARN is invalid, must start with "arn:"'),
+              'Default Task Role ARN is invalid, must start with "arn:"').nullable(),
             'platform_version': Yup.string()
           }).nullable()
         }).nullable()

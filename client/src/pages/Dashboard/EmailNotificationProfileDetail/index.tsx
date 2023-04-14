@@ -1,5 +1,3 @@
-
-
 import {
   EmailNotificationProfile
 } from '../../../types/domain_types';
@@ -11,42 +9,25 @@ import {
 } from '../../../utils/api';
 
 import React from 'react';
-import { withRouter } from 'react-router';
 
-import { EntityDetail, EntityDetailProps } from '../../../components/common/EntityDetail'
+import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../components/common/EntityDetailHoc'
 
-import abortableHoc from '../../../hocs/abortableHoc';
 import EmailNotificationProfileEditor from '../../../components/EmailProfileNotificationEditor';
 
-class EmailNotificationProfileDetail extends EntityDetail<EmailNotificationProfile> {
-  constructor(props: EntityDetailProps) {
-    super(props, 'Email Notification Profile');
-  }
-
-  fetchEntity(uuid: string, abortSignal: AbortSignal): Promise<EmailNotificationProfile> {
-    return fetchEmailNotificationProfile(uuid, abortSignal);
-  }
-
-  cloneEntity(uuid: string, values: any, abortSignal: AbortSignal): Promise<EmailNotificationProfile> {
-    return cloneEmailNotificationProfile(uuid, values, abortSignal);
-  }
-
-  deleteEntity(uuid: string, abortSignal: AbortSignal): Promise<void> {
-    return deleteEmailNotificationProfile(uuid, abortSignal);
-  }
-
-  renderEntity() {
-    const {
-      entity
-    } = this.state;
-
+const EmailNotificationProfileDetail = makeEntityDetailComponent<EmailNotificationProfile, EntityDetailInnerProps<EmailNotificationProfile>>(
+  (props: EntityDetailInnerProps<EmailNotificationProfile>) => {
     return (
-      <EmailNotificationProfileEditor emailNotificationProfile={entity}
-        onSaveStarted={this.handleSaveStarted}
-        onSaveSuccess={this.handleSaveSuccess}
-        onSaveError={this.handleSaveError} />
+      <EmailNotificationProfileEditor emailNotificationProfile={props.entity ?? undefined}
+        onSaveStarted={props.onSaveStarted}
+        onSaveSuccess={props.onSaveSuccess}
+        onSaveError={props.onSaveError} />
     );
+  }, {
+    entityName: 'Email Notification Profile',
+    fetchEntity: fetchEmailNotificationProfile,
+    cloneEntity: cloneEmailNotificationProfile,
+    deleteEntity: deleteEmailNotificationProfile
   }
-}
+);
 
-export default withRouter(abortableHoc(EmailNotificationProfileDetail));
+export default EmailNotificationProfileDetail;

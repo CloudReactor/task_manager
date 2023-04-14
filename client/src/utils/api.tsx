@@ -387,9 +387,12 @@ export async function fetchWorkflowExecutionSummaries(
   return response.data as ResultsPage<WorkflowExecutionSummary>;
 }
 
-export async function fetchWorkflowExecution(uuid: string): Promise<WorkflowExecution> {
+export async function fetchWorkflowExecution(uuid: string,
+    abortSignal?: AbortSignal): Promise<WorkflowExecution> {
   const response = await makeAuthenticatedClient().get(
-      'api/v1/workflow_executions/' + encodeURIComponent(uuid) + '/');
+      'api/v1/workflow_executions/' + encodeURIComponent(uuid) + '/', {
+    signal: abortSignal
+  });
   return response.data as WorkflowExecution;
 }
 

@@ -1,16 +1,25 @@
-import React, { Component } from 'react';
-import { RouteComponentProps, withRouter } from 'react-router';
-import { Link } from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 
 import { WorkflowExecution } from '../../../types/domain_types';
+
+import { GlobalContext, accessLevelForCurrentGroup } from '../../../context/GlobalContext';
+
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import {
   fetchWorkflowExecution, retryWorkflowExecution, stopWorkflowExecution
 } from '../../../utils/api'
 
-import * as UIC from '../../../utils/ui_constants';
+import {
+  Alert
+} from 'react-bootstrap/'
 
+import * as UIC from '../../../utils/ui_constants';
+import { BootstrapVariant } from '../../../types/ui_types';
+import AccessDenied from '../../../components/AccessDenied';
 import BreadcrumbBar from "../../../components/BreadcrumbBar/BreadcrumbBar";
+import Loading from '../../../components/Loading';
 import WorkflowExecutionDetailsTable from '../../../components/WorkflowExecutionDetails/WorkflowExecutionDetailsTable';
 import WorkflowExecutionDiagram from '../../../components/WorkflowExecutionDetails/WorkflowExecutionDiagram';
 import {
@@ -19,194 +28,181 @@ import {
 import {shouldRefreshWorkflowExecution} from '../../../utils/domain_utils';
 import ActionButton from '../../../components/common/ActionButton';
 import styles from './index.module.scss';
+import _ from 'lodash';
+import { catchableToString } from '../../../utils';
 
 
 type PathParamsType = {
   uuid: string;
 };
 
-type Props = RouteComponentProps<PathParamsType>;
+const WorkflowExecutionDetail = (props: AbortSignalProps) => {
+  const {
+    abortSignal
+  } = props;
 
-interface State {
-  workflowExecution: WorkflowExecution | null;
-  isStopping: boolean;
-  isRetryRequested: boolean;
-  interval: any;
-}
+  const context = useContext(GlobalContext);
 
-class WorkflowExecutionDetail extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  const accessLevel = accessLevelForCurrentGroup(context);
 
-    this.state = {
-      workflowExecution: null,
-      isStopping: false,
-      isRetryRequested: false,
-      interval: null
-    };
+  if (!accessLevel) {
+    return <AccessDenied />;
   }
 
-  async componentDidMount() {
-    document.title = 'Task Execution Details';
-    await this.fetchExecutionDetails();
-  }
+  const [isLoading, setLoading] = useState(false);
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
+  const [flashBody, setFlashBody] = useState<string | null>(null);
+  const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>('info');
+  const [workflowExecution, setWorkflowExecution] = useState<WorkflowExecution | null>(null);
+  const [isStopping, setStopping] = useState(false);
+  const [isRetryRequested, setRetryRequested] = useState(false);
+  const [selfInterval, setSelfInterval] = useState<any>(null);
 
-  componentWillUnmount() {
-    if (this.state.interval) {
-      clearInterval(this.state.interval);
-    }
-  }
+  const {
+    uuid
+  }  = useParams<PathParamsType>();
 
-  setupRefresh = () => {
-    const {
-     workflowExecution,
-     interval
-    } = this.state;
-
-    let updatedInterval = interval;
-
-    if (workflowExecution &&
-        shouldRefreshWorkflowExecution(workflowExecution)) {
-      if (!interval) {
-        updatedInterval = setInterval(this.fetchExecutionDetails,
+  const setupRefresh = (execution: WorkflowExecution) => {
+    if (execution && shouldRefreshWorkflowExecution(execution)) {
+      if (!selfInterval) {
+        const updatedInterval = setInterval(fetchExecutionDetails,
           UIC.TASK_REFRESH_INTERVAL_MILLIS);
+        setSelfInterval(updatedInterval);
       }
-    } else {
-       if (interval) {
-         clearInterval(interval)
-         updatedInterval = null;
-       }
+    } else if (selfInterval) {
+      clearInterval(selfInterval)
+      setSelfInterval(null);
     }
-
-    this.setState({
-      interval: updatedInterval
-    });
   }
 
-  fetchExecutionDetails = async () => {
-    const uuid = this.props.match.params.uuid;
-
+  const fetchExecutionDetails = async () => {
+    setLoadErrorMessage(null);
+    setLoading(true);
     try {
-      const workflowExecution = await fetchWorkflowExecution(uuid);
-
-      this.setState({
-        workflowExecution
-      }, this.setupRefresh);
-    } catch (error) {
-      console.log(error);
+      const execution = await fetchWorkflowExecution(uuid, abortSignal);
+      setWorkflowExecution(execution);
+      setupRefresh(execution);
+      setFlashBody(null);
+      return execution;
+    } catch (ex) {
+      const message = "Failed to fetch WorkflowExecution: " + catchableToString(ex);
+      setLoadErrorMessage(message);
+      setFlashBody(message);
+      setFlashAlertVariant('danger');
+      throw new Error(message);
+    } finally {
+      setLoading(false);
     }
   }
 
-  public render() {
-    const {
-      workflowExecution,
-      isStopping,
-      isRetryRequested
-    } = this.state;
-
-    if (!workflowExecution) {
-      return <div>Loading ...</div>
+  useEffect(() => {
+    document.title = 'Task Execution Details';
+    if (!isLoading && !workflowExecution && !loadErrorMessage) {
+      fetchExecutionDetails();
     }
 
-    const workflowLink = (
-        <Link to={`/workflows/${workflowExecution.workflow.uuid}`}>
-          {workflowExecution.workflow.name}
-        </Link>
-    );
+    return () => {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+      }
+    };
+  });
 
-    const inProgress = WORKFLOW_EXECUTION_STATUSES_IN_PROGRESS.includes(workflowExecution.status);
-
-    return (
-      <div className={styles.container}>
-        <BreadcrumbBar
-          rootUrl="/workflows" rootLabel="Workflows"
-          firstLevel={workflowLink}
-          secondLevel={'Execution ' + workflowExecution.uuid}
-        />
-        <div>
-          <ActionButton action="stop" faIconName="stop" label="Stop"
-            onActionRequested={this.handleActionRequested}
-            inProgress={isStopping} inProgressLabel="Stopping"
-            disabled={!inProgress}
-          />
-          <ActionButton action="retry" faIconName="redo" label="Retry"
-            onActionRequested={this.handleActionRequested}
-            inProgress={isRetryRequested} inProgressLabel="Retrying"
-            disabled={inProgress}
-          />
-        </div>
-        <WorkflowExecutionDetailsTable workflowExecution={workflowExecution} />
-        <WorkflowExecutionDiagram workflowExecution={workflowExecution}
-          onWorkflowExecutionUpdated={this.handleWorkflowExecutionUpdated}/>
-      </div>
-    );
+  if (!workflowExecution) {
+    return <Loading />;
   }
 
-  handleWorkflowExecutionUpdated = async (workflowExecutionUuid: string, workflowExecution?: WorkflowExecution) => {
-    if (workflowExecution) {
-      this.setState({
-        workflowExecution
-      }, this.setupRefresh);
+  const workflowLink = (
+    <Link to={`/workflows/${workflowExecution.workflow.uuid}`}>
+      {workflowExecution.workflow.name}
+    </Link>
+  );
+
+  const inProgress = WORKFLOW_EXECUTION_STATUSES_IN_PROGRESS.includes(workflowExecution.status);
+
+  const handleWorkflowExecutionUpdated = async (workflowExecutionUuid: string, execution?: WorkflowExecution) => {
+    if (execution) {
+      setWorkflowExecution(execution);
+      setupRefresh(execution);
     } else {
-      await this.fetchExecutionDetails();
+      await fetchExecutionDetails();
     }
   }
 
-  handleActionRequested = (action: string | undefined, cbData: any) => {
-    const {
-      workflowExecution
-    } = this.state;
-
+  const handleActionRequested = (action: string | undefined, cbData: any) => {
     if (!workflowExecution) {
       return;
     }
 
     switch (action) {
       case 'stop':
-        this.setState({
-          isStopping: true
-        }, async () => {
-          try {
-            const we = await stopWorkflowExecution(workflowExecution.uuid);
-            this.setState({
-              workflowExecution: we,
-              isStopping: false
-            });
-          } catch (e) {
-            this.setState({
-              isStopping: false
-            });
-          }
-        });
+        setStopping(true);
+        stopWorkflowExecution(uuid).then(we => {
+          setFlashBody('Stopped Workflow Execution successfully.');
+          setFlashAlertVariant('info');
+          setWorkflowExecution(we);
+        }).catch (reason => {
+          const message = catchableToString(reason);
+          setFlashBody(message);
+        }).finally(() => setStopping(false));
         break;
 
       case 'retry':
-        this.setState({
-          isRetryRequested: true
-        }, async () => {
-          try {
-            const we = await retryWorkflowExecution(workflowExecution.uuid);
-            this.setState({
-              workflowExecution: we,
-              isRetryRequested: false
-            });
-          } catch (e) {
-            this.setState({
-              isRetryRequested: false
-            });
-            return;
-          }
+        setRetryRequested(true);
 
-          this.setupRefresh();
-        });
+        retryWorkflowExecution(uuid).then(we => {
+          setWorkflowExecution(we);
+          setFlashBody('Restarted Workflow Execution successfully.');
+          setFlashAlertVariant('info');
+        }).catch (reason => {
+          const message = catchableToString(reason);
+          setFlashBody(message);
+        }).finally(() => setRetryRequested(false));
         break;
 
       default:
         console.error(`Unknown action ${action}`);
         break;
     }
-
   }
+
+
+  return (
+    <div className={styles.container}>
+      <BreadcrumbBar
+        rootUrl="/workflows" rootLabel="Workflows"
+        firstLevel={workflowLink}
+        secondLevel={'Execution ' + workflowExecution.uuid}
+      />
+      {
+        (flashBody && !isLoading && !isStopping && !isRetryRequested) &&
+        <Alert
+          variant={flashAlertVariant || 'success'}
+          onClose={() => {
+            setFlashBody(null);
+          }}
+          dismissible>
+          {flashBody}
+        </Alert>
+      }
+
+      <div>
+        <ActionButton action="stop" faIconName="stop" label="Stop"
+          onActionRequested={handleActionRequested}
+          inProgress={isStopping} inProgressLabel="Stopping"
+          disabled={!inProgress}
+        />
+        <ActionButton action="retry" faIconName="redo" label="Retry"
+          onActionRequested={handleActionRequested}
+          inProgress={isRetryRequested} inProgressLabel="Retrying"
+          disabled={inProgress}
+        />
+      </div>
+      <WorkflowExecutionDetailsTable workflowExecution={workflowExecution} />
+      <WorkflowExecutionDiagram workflowExecution={workflowExecution}
+        onWorkflowExecutionUpdated={handleWorkflowExecutionUpdated}/>
+    </div>
+  );
 }
 
-export default withRouter(WorkflowExecutionDetail);
+export default abortableHoc(WorkflowExecutionDetail);

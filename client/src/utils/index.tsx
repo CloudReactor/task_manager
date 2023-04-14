@@ -53,10 +53,14 @@ export const displayStatus = (
 
 export const colorPicker = (status: string, isService: boolean): string => {
   if (isService) {
-    if (status === C.TASK_EXECUTION_STATUS_RUNNING) {
-      return 'success';
+    switch (status) {
+      case C.TASK_EXECUTION_STATUS_RUNNING:
+      case C.TASK_EXECUTION_STATUS_ABORTED:
+        return 'success';
+
+      default:
+        return 'danger';
     }
-    return 'danger';
   } else {
     switch (status) {
       case C.TASK_EXECUTION_STATUS_RUNNING:
@@ -149,6 +153,11 @@ export const stringToNullOrInt = (s: string): number | null => {
   }
 
   return parseInt(x);
+}
+
+export const catchableToString = (ex: any): string => {
+  return (ex instanceof Error) ? ex.message :
+    ((typeof ex === 'string') ? ex : 'Unknown error');
 }
 
 export function makeLink(value?: string | null, url?: string | null): any {
