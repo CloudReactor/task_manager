@@ -342,7 +342,7 @@ class WorkflowDetail extends Component<Props, State> {
   renderExecutionsSection(workflow: Workflow) {
     return (
       <Fragment>
-        <Charts uuid={this.props.match.params.uuid} history={this.props.history} />
+        <Charts uuid={this.props.match.params.uuid} />
         <section>
           <hr/>
           <h2>Executions</h2>

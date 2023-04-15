@@ -41,7 +41,7 @@ export interface EntityDetailConfig<T extends EntityReference> {
   deleteEntity: (uuid: string, abortSignal: AbortSignal) => Promise<void>;
 }
 
-export interface EntityDetailInnerProps<T extends EntityReference> {
+export interface EntityDetailInnerProps<T extends EntityReference> extends AbortSignalProps {
   entity: T | null;
   onSaveStarted: (T) => void;
   onSaveSuccess: (T) => void;
@@ -254,9 +254,12 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
       if (uuid === 'new') {
         document.title = `CloudReactor - Create ${entityName}`
       } else if (!entity && !isLoading && !loadErrorMessage) {
+        document.title = `CloudReactor - Loading ${entityName} ...`
         loadEntity();
+      } else {
+        document.title = `CloudReactor - ${entityName} not found`
       }
-    });
+    }, [entity, isLoading, loadErrorMessage]);
 
     const breadcrumbLink = (uuid === 'new') ?
       'Create New' : entity?.name;
@@ -303,7 +306,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
 
         {
           (entity || (uuid === 'new')) ? (
-            <WrappedComponent entity={entity}
+            <WrappedComponent abortSignal={abortSignal} entity={entity}
              onSaveStarted={handleSaveStarted}
              onSaveSuccess={handleSaveSuccess}
              onSaveError={handleSaveError}

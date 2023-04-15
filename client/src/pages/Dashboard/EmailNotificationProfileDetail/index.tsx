@@ -14,7 +14,10 @@ import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../comp
 
 import EmailNotificationProfileEditor from '../../../components/EmailProfileNotificationEditor';
 
-const EmailNotificationProfileDetail = makeEntityDetailComponent<EmailNotificationProfile, EntityDetailInnerProps<EmailNotificationProfile>>(
+interface Props {
+}
+
+const EmailNotificationProfileDetail = makeEntityDetailComponent<EmailNotificationProfile, Props>(
   (props: EntityDetailInnerProps<EmailNotificationProfile>) => {
     return (
       <EmailNotificationProfileEditor emailNotificationProfile={props.entity ?? undefined}

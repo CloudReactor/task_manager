@@ -16,7 +16,10 @@ import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../comp
 
 import PagerDutyProfileEditor from '../../../components/PagerDutyProfileEditor';
 
-const PagerDutyProfileDetail = makeEntityDetailComponent<PagerDutyProfile, EntityDetailInnerProps<PagerDutyProfile>>(
+interface Props {
+}
+
+const PagerDutyProfileDetail = makeEntityDetailComponent<PagerDutyProfile, Props>(
   (props: EntityDetailInnerProps<PagerDutyProfile>) => {
     return (
       <PagerDutyProfileEditor pagerDutyProfile={props.entity ?? undefined}

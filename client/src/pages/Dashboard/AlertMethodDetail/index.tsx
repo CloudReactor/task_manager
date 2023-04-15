@@ -14,7 +14,10 @@ import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../comp
 
 import AlertMethodEditor from '../../../components/AlertMethodEditor/index';
 
-const AlertMethodDetail = makeEntityDetailComponent<AlertMethod, EntityDetailInnerProps<AlertMethod>>(
+interface Props {
+}
+
+const AlertMethodDetail = makeEntityDetailComponent<AlertMethod, Props>(
   (props: EntityDetailInnerProps<AlertMethod>) => {
     return (
       <AlertMethodEditor alertMethod={props.entity ?? undefined}

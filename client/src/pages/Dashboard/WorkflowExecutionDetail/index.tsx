@@ -31,12 +31,14 @@ import styles from './index.module.scss';
 import _ from 'lodash';
 import { catchableToString } from '../../../utils';
 
-
 type PathParamsType = {
   uuid: string;
 };
 
-const WorkflowExecutionDetail = (props: AbortSignalProps) => {
+interface Props {
+}
+
+const WorkflowExecutionDetail = (props: Props & AbortSignalProps) => {
   const {
     abortSignal
   } = props;

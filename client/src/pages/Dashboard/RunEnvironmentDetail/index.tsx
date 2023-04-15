@@ -14,7 +14,10 @@ import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../comp
 
 import RunEnvironmentEditor from '../../../components/RunEnvironmentEditor';
 
-const RunEnvironmentDetail = makeEntityDetailComponent<RunEnvironment, EntityDetailInnerProps<RunEnvironment>>(
+interface Props {
+}
+
+const RunEnvironmentDetail = makeEntityDetailComponent<RunEnvironment, Props>(
   (props: EntityDetailInnerProps<RunEnvironment>) => {
     return (
       <RunEnvironmentEditor runEnvironment={props.entity ?? undefined}

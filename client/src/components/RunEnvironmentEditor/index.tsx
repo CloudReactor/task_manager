@@ -448,6 +448,7 @@ const RunEnvironmentEditor = ({
                         <FieldArray name="default_alert_methods" render={arrayHelpers => {
                           return (
                             <AlertMethodSelector
+                              entityTypeLabel="Run Environment"
                               runEnvironmentUuid={runEnvironment?.uuid}
                               noAlertMethodsText="No Alert Methods scoped to this Run Environment are available."
                               selectedAlertMethodUuids={(values.default_alert_methods ?? []).map((am: any) => am.uuid)}
