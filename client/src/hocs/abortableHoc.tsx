@@ -1,20 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 export interface AbortSignalProps {
 	abortSignal: AbortSignal;
 }
 
-export default function abortableHoc(Component: React.ComponentType<any>): React.ComponentClass<any> {
-  class AbortableComponent extends React.Component {
-    abortController = new AbortController();
+export default function abortableHoc<P>(WrappedComponent: React.ComponentType<P & AbortSignalProps>): React.ComponentType<P> {
+  const AbortableComponent = (props: P) => {
+    const [abortController, setAbortController] = useState(new AbortController());
 
-    componentWillUnmount() {
-      this.abortController.abort('Operation cancelled after component unmounted');
-    }
+    useEffect(() => {
+      return () => abortController.abort('Operation cancelled after component unmounted');
+    }, []);
 
-    render() {
-      return <Component abortSignal={this.abortController.signal} {...this.props} />;
-    }
+    return <WrappedComponent abortSignal={abortController.signal} {...props} />;
   };
 
   return AbortableComponent;
