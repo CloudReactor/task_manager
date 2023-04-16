@@ -170,7 +170,7 @@ class AlertMethodSelector extends React.Component<InnerProps, State> {
         offset += maxResults;
       } catch (error) {
         if (isCancel(error)) {
-          console.log("Request cancelled: " + error.message);
+          console.log("Request canceled: " + error.message);
           return;
         }
       }

@@ -283,20 +283,20 @@ extends LegacyAwsEcsExecutionMethodCapabilityImpl {
 }
 
 export interface AwsEcsExecutionMethodSettings {
-    launch_type?: string | null;
-    supported_launch_types?: string[] | null;
-    cluster_arn?: string | null;
-    cluster_infrastructure_website_url?: string | null;
-    task_definition_arn?: string | null;
-    task_definition_infrastructure_website_url?: string | null;
-    infrastructure_website_url?: string | null;
-    main_container_name?: string | null;
-    execution_role_arn?: string | null;
-    execution_role_infrastructure_website_url?: string | null;
-    task_role_arn?: string | null;
-    task_role_infrastructure_website_url?: string | null;
-    platform_version?: string | null;
-    enable_ecs_managed_tags?: boolean | null;
+  launch_type?: string | null;
+  supported_launch_types?: string[] | null;
+  cluster_arn?: string | null;
+  cluster_infrastructure_website_url?: string | null;
+  task_definition_arn?: string | null;
+  task_definition_infrastructure_website_url?: string | null;
+  infrastructure_website_url?: string | null;
+  main_container_name?: string | null;
+  execution_role_arn?: string | null;
+  execution_role_infrastructure_website_url?: string | null;
+  task_role_arn?: string | null;
+  task_role_infrastructure_website_url?: string | null;
+  platform_version?: string | null;
+  enable_ecs_managed_tags?: boolean | null;
 }
 
 export interface NamedExecutionMethodSettings<T> {

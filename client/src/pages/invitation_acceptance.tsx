@@ -1,8 +1,8 @@
 import { makeConfiguredClient, exceptionToErrorMessages } from '../axios_config';
 
-import React, { Component, Fragment } from 'react';
-import { RouteComponentProps } from 'react-router';
-import { withRouter, Link } from 'react-router-dom';
+import React, { Fragment, useState } from 'react';
+import { useLocation } from 'react-router';
+import { Link } from 'react-router-dom';
 
 import {
   Alert,
@@ -13,29 +13,18 @@ import RegistrationLoginContainer from '../components/RegistrationLogin/Registra
 
 import * as path from '../constants/routes';
 
-interface Props extends RouteComponentProps {
+interface Props {
 }
 
-interface State {
-  activated: boolean,
-  errorMessages: string[],
-  header: string;
-}
+const InvitationAcceptance = (props: Props) => {
+  const [activated, setActivated] = useState(false);
+  const [header, setHeader] = useState('Email verified!');
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
-class InvitationAcceptance extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  const location = useLocation();
 
-    this.state = {
-      activated: false,
-      header: 'Email verified!',
-      errorMessages: [] as string[]
-    };
-  }
-
-  private handleSubmit = async (): Promise<void> => {
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
+  const handleSubmit = async (): Promise<void> => {
+    const urlParams = new URLSearchParams(location.search);
     const code = urlParams.get('code');
 
     console.log('submitting invitation acceptance');
@@ -46,66 +35,54 @@ class InvitationAcceptance extends Component<Props, State> {
           confirmation_code: code
         });
 
-      this.setState({
-        activated: true,
-        header: 'Account activated!'
-      });
+      setActivated(true);
+      setHeader('Account activated!');
     } catch (ex) {
-      this.setState({
-        errorMessages: exceptionToErrorMessages(ex)
-      });
+      setErrorMessages(exceptionToErrorMessages(ex));
     }
   }
 
-  public render() {
-    const {
-      activated,
-      errorMessages,
-      header,
-    } = this.state;
+  return (
 
-    return (
+    <RegistrationLoginContainer heading={header}>
+      <Fragment>
+        {
+          activated ? (
+            <div style={{textAlign: 'center'}}>
+              <p>
+                Thanks for activating your CloudReactor account. You may now <Link to={path.LOGIN}>sign in</Link>.
+              </p>
+            </div>
+          ) : (
+            <Fragment>
+              {
+                (errorMessages.length > 0) &&
+                <Alert variant="danger">
+                  <ul>
+                    {
+                      errorMessages.map(err => {
+                        const s = (err || '').toString();
+                        return <li key={s}>{s}</li>;
+                      })
+                    }
+                  </ul>
+                </Alert>
+              }
 
-      <RegistrationLoginContainer heading={header}>
-        <Fragment>
-          {
-            activated ? (
               <div style={{textAlign: 'center'}}>
                 <p>
-                  Thanks for activating your CloudReactor account. You may now <Link to={path.LOGIN}>sign in</Link>.
+                  Click the button below to finish creating your CloudReactor account.
                 </p>
               </div>
-            ) : (
-              <Fragment>
-                {
-                  (errorMessages.length > 0) &&
-                  <Alert variant="danger">
-                    <ul>
-                      {
-                        errorMessages.map(err => {
-                          const s = (err || '').toString();
-                          return <li key={s}>{s}</li>;
-                        })
-                      }
-                    </ul>
-                  </Alert>
-                }
-
-                <div style={{textAlign: 'center'}}>
-                  <p>
-                    Click the button below to finish creating your CloudReactor account.
-                  </p>
-                </div>
-                <div style={{display: 'flex', justifyContent: 'center', marginTop: '40px'}}>
-                  <Button size="lg" onClick={this.handleSubmit}>Activate</Button>
-                </div>
-              </Fragment>
-            )
-          }
-        </Fragment>
-      </RegistrationLoginContainer>
-    );
-  }
+              <div style={{display: 'flex', justifyContent: 'center', marginTop: '40px'}}>
+                <Button size="lg" onClick={handleSubmit}>Activate</Button>
+              </div>
+            </Fragment>
+          )
+        }
+      </Fragment>
+    </RegistrationLoginContainer>
+  );
 }
 
-export default withRouter(InvitationAcceptance);
+export default InvitationAcceptance;

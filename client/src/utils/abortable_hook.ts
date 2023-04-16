@@ -7,7 +7,7 @@ function makeAbortable<T>(cb: (abortSignal: AbortSignal) => Promise<T>,
     cb(abortController.signal);
 
     return () => {
-      abortController.abort('Operation cancelled after unmounting');
+      abortController.abort('Operation canceled after unmounting');
     };
 
   }, deps ?? []);

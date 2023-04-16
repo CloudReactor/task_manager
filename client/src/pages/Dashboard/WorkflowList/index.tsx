@@ -120,7 +120,7 @@ class WorkflowList extends Component<InnerProps, State> {
       });
     } catch (error) {
       if (isCancel(error)) {
-        console.log('Request cancelled: ' + error.message);
+        console.log('Request canceled: ' + error.message);
         return;
       }
     }
@@ -157,7 +157,7 @@ class WorkflowList extends Component<InnerProps, State> {
       });
     } catch (error) {
       if (isCancel(error)) {
-        console.log('Request cancelled: ' + error.message);
+        console.log('Request canceled: ' + error.message);
         return;
       }
     }

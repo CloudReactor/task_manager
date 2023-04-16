@@ -9,7 +9,7 @@ export default function abortableHoc<P>(WrappedComponent: React.ComponentType<P 
     const [abortController, setAbortController] = useState(new AbortController());
 
     useEffect(() => {
-      return () => abortController.abort('Operation cancelled after component unmounted');
+      return () => abortController.abort('Operation canceled after component unmounted');
     }, []);
 
     return <WrappedComponent abortSignal={abortController.signal} {...props} />;
