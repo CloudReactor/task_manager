@@ -1,11 +1,10 @@
 import { UserRegistration, Invitation } from '../../types/website_types';
 import { makeConfiguredClient, exceptionToErrorMessages } from '../../axios_config';
+import { fetchInvitation } from '../../utils/api';
 
-import React, { Component, Fragment } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 
-import { withRouter } from 'react-router-dom';
-
-import { RouteComponentProps } from 'react-router';
+import { useHistory, useLocation } from 'react-router-dom';
 
 import { Row, Col, Alert } from 'react-bootstrap'
 
@@ -14,70 +13,38 @@ import RegistrationLoginContainer from '../../components/RegistrationLogin/Regis
 import RegistrationForm from '../../components/RegistrationLogin/RegistrationForm';
 
 import * as path from '../../constants/routes';
-import { fetchInvitation } from '../../utils/api';
 
-interface Props extends RouteComponentProps {
+import styles from './register.module.scss';
+
+interface Props {
 }
 
-interface State {
-  isLoadingInvitation: boolean;
-  invitation?: Invitation | null;
-  errorMessages: string[];
-}
+const Register = (props: Props) => {
+  const location = useLocation();
 
-class Register extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  const params = new URLSearchParams(location.search);
+  const invitationCode = params.get('invitation_code');
+  const [isLoadingInvitation, setIsLoadingInvitation] = useState(false);
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
+  const [invitation, setInvitation] = useState<Invitation | null>(null);
+  const history = useHistory();
 
-    const params = new URLSearchParams(props.location.search);
-    const invitationCode = params.get('invitation_code');
+  useEffect(() => {
+    if (invitationCode && !isLoadingInvitation) {
 
-    this.state = {
-      isLoadingInvitation: !!invitationCode,
-      errorMessages: [] as string[]
-    };
-  }
-
-  async componentDidMount() {
-    const {
-      location
-    } = this.props;
-
-    const params = new URLSearchParams(location.search);
-    const invitationCode = params.get('invitation_code');
-
-    if (invitationCode) {
-      const invitation = await fetchInvitation(invitationCode);
-
-      console.log('got invitation');
-      console.dir(invitation);
-
-      this.setState({
-        isLoadingInvitation: false,
-        invitation
+      fetchInvitation(invitationCode).then(i => {
+        setInvitation(i);
+        setIsLoadingInvitation(false);
       });
     }
-  }
+  }, [invitationCode, isLoadingInvitation]);
 
-  private handleSubmit = async (values: UserRegistration): Promise<void> => {
-    const {
-      location,
-      history
-    } = this.props;
-
-    const {
-      invitation
-    } = this.state;
-
-    this.setState({
-      errorMessages: []
-    });
+  const handleSubmit = async (values: UserRegistration) => {
+    setErrorMessages([]);
 
     try {
       if (invitation) {
-        const params = new URLSearchParams(location.search);
-        const confirmation_code = params.get('invitation_code');
-        Object.assign(values, { confirmation_code });
+        Object.assign(values, { confirmation_code: invitationCode });
         await makeConfiguredClient().post('api/v1/invitations/accept/', values);
         history.replace(path.LOGIN + '?status=activated');
       } else {
@@ -89,68 +56,61 @@ class Register extends Component<Props, State> {
           '?email=' + encodeURIComponent(values.email));
       }
     } catch (ex) {
-      this.setState({
-        errorMessages: exceptionToErrorMessages(ex)
-      });
+      setErrorMessages(exceptionToErrorMessages(ex));
     }
   }
 
-  public render() {
-    const {
-      isLoadingInvitation,
-      invitation
-    } = this.state;
+  return (
+    <RegistrationLoginContainer heading="Create your account">
+      <div>
+      {
 
-    return (
-      <RegistrationLoginContainer heading="Create your account">
-        {
-          isLoadingInvitation ? (
-            <Row>
-              <Col>
-                <i className="fas fa-spin fa-circle-notch" />
-                Loading your CloudReactor invitation ...
-              </Col>
-            </Row>
-          ) : (
+        isLoadingInvitation ? (
+          <Row>
+            <Col className={styles.loading}>
+              <i className="fas fa-spin fa-circle-notch" />
+              Loading your CloudReactor invitation ...
+            </Col>
+          </Row>
+        ) : (
 
-            <Fragment>
-              {
-                (invitation === null) &&
-                <Alert variant="warning">
-                  <Alert.Heading>Invitation not found</Alert.Heading>
-                  <p>
-                    We couldn&apos;t find your invitation. Please ensure you copied the
-                    signup link in your email correctly. You may also create an accoount now
-                    and ask your Group administrator to invite you later.
-                  </p>
-                </Alert>
-              }
+          <Fragment>
+            {
+              (invitationCode && !invitation && !isLoadingInvitation) &&
+              <Alert variant="warning">
+                <Alert.Heading>Invitation not found</Alert.Heading>
+                <p>
+                  We couldn&apos;t find your invitation. Please ensure you copied the
+                  signup link in your email correctly. You may also create an account now
+                  and ask your Group administrator to invite you later.
+                </p>
+              </Alert>
+            }
 
-              {
-                invitation &&
-                <Alert variant="info">
-                  <Alert.Heading>Invitation found</Alert.Heading>
-                  <p>
-                    We found your invitation to the Group
-                    &lsquo;{invitation.group.name}&rsquo;.
-                    Please choose a password to complete your account creation.
-                  </p>
-                </Alert>
-              }
+            {
+              invitation &&
+              <Alert variant="info">
+                <Alert.Heading>Invitation found</Alert.Heading>
+                <p>
+                  We found your invitation to the Group
+                  &lsquo;{invitation.group.name}&rsquo;.
+                  Please choose a password to complete your account creation.
+                </p>
+              </Alert>
+            }
 
-              <RegistrationForm
-                handleSubmit={this.handleSubmit}
-                errorMessages={this.state.errorMessages}
-                items={items}
-                invitation={invitation}
-              />
-            </Fragment>
-          )
-        }
-      </RegistrationLoginContainer>
-    );
-  }
+            <RegistrationForm
+              handleSubmit={handleSubmit}
+              errorMessages={errorMessages}
+              items={items}
+              invitation={invitation}
+            />
+          </Fragment>
+        )
+      }
+      </div>
+    </RegistrationLoginContainer>
+  );
 }
 
-
-export default withRouter(Register);
+export default Register;
