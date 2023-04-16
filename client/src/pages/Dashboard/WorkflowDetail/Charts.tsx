@@ -58,7 +58,7 @@ const Charts = (props: Props & AbortSignalProps) => {
     uuid
   } = props;
 
-  const [data, setData] = useState<Array<WorkflowExecutionSummary> | null>(null);
+  const [weSummaries, setWeSummaries] = useState<Array<WorkflowExecutionSummary> | null>(null);
   const [selfInterval, setSelfInterval] = useState<any>(null);
 
   const loadWorkflowExecutions = async () => {
@@ -71,7 +71,7 @@ const Charts = (props: Props & AbortSignalProps) => {
         undefined,
         abortSignal,
       );
-      setData(workflowExecutionsData.results.reverse());
+      setWeSummaries(workflowExecutionsData.results.reverse());
     } catch (error) {
       if (!isCancel(error)) {
         console.log(error);
@@ -81,7 +81,7 @@ const Charts = (props: Props & AbortSignalProps) => {
   }
 
   useEffect(() => {
-    if (data === null) {
+    if (weSummaries === null) {
       loadWorkflowExecutions();
     }
 
@@ -101,8 +101,8 @@ const Charts = (props: Props & AbortSignalProps) => {
 
   const history = useHistory();
 
-  if (data) {
-    const filteredData = data.filter((item: {status: string, finished_at: Date}) => {
+  if (weSummaries) {
+    const filteredData = weSummaries.filter((item: {status: string, finished_at: Date}) => {
       return item.finished_at;
     });
 
