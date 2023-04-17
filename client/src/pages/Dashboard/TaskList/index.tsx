@@ -1,5 +1,4 @@
-import _ from 'lodash';
-import { isCancel } from 'axios';
+import { AxiosError, isCancel } from 'axios';
 
 import { exceptionToErrorMessages, makeAuthenticatedClient } from '../../../axios_config';
 import * as C from '../../../utils/constants';
@@ -8,8 +7,8 @@ import * as api from '../../../utils/api';
 import { fetchTasks, ResultsPage, updateTask } from '../../../utils/api'
 import { TaskImpl, RunEnvironment } from '../../../types/domain_types';
 
-import React, {Component, Fragment} from 'react';
-import { withRouter, RouteComponentProps } from "react-router";
+import React, {Fragment, useCallback, useContext, useEffect, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { Alert } from 'react-bootstrap'
@@ -28,110 +27,117 @@ import Onboarding from '../../../components/Tasks/Onboarding/Onboarding';
 import Loading from '../../../components/Loading';
 import styles from './index.module.scss';
 
-interface Props extends RouteComponentProps<any> {
-};
+const TaskList = (props: AbortSignalProps) => {
+  const {
+    abortSignal
+  } = props;
 
-interface State {
-  areTasksLoading: boolean;
-  areRunEnvironmentsLoading: boolean;
-  taskPage: ResultsPage<TaskImpl>;
-  shouldShowConfigModal: boolean;
-  task: TaskImpl | null;
-  interval: any;
-  taskUuidToInProgressOperation: any;
-  lastErrorMessage: string | null;
-  lastLoadErrorMessage: string | null;
-  runEnvironments: RunEnvironment[];
-}
+  const { currentGroup } = useContext(GlobalContext);
 
-type InnerProps = Props & AbortSignalProps;
+  const [areTasksLoading, setAreTasksLoading] = useState(true);
+  const [areRunEnvironmentsLoading, setAreRunEnvironmentsLoading] = useState(false);
+  const [taskPage, setTaskPage] = useState<ResultsPage<TaskImpl>>({
+    count: 0,
+    results: []
+  });
+  const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
+  const [task, setTask] = useState<TaskImpl | null>(null);
+  const [selfInterval, setSelfInterval] = useState<any>(null);
+  const [taskUuidToInProgressOperation, setTaskUuidToInProgressOperation] =
+    useState<Record<string, string>>({});
+  const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
+  const [lastLoadErrorMessage, setLastLoadErrorMessage] = useState<string | null>(null);
+  const [runEnvironments, setRunEnvironments] = useState<Array<RunEnvironment>>([]);
 
-class TaskList extends Component<InnerProps, State> {
-  static contextType = GlobalContext;
+  const history = useHistory();
 
-  constructor(props: InnerProps) {
-    super(props);
-
-    this.state = {
-      areTasksLoading: true,
-      areRunEnvironmentsLoading: true,
-      taskPage: { count: 0, results: [] },
-      shouldShowConfigModal: false,
-      task: null,
-      interval: null,
-      taskUuidToInProgressOperation: {},
-      lastErrorMessage: null,
-      lastLoadErrorMessage: null,
-      runEnvironments: [],
-    };
-
-    this.loadTasks = _.debounce(this.loadTasks, 250) as () => Promise<void>;
-  }
-
-  async componentDidMount() {
-    await this.loadTasks();
-    await this.loadRunEnvironments();
-    const interval = setInterval(this.loadTasks,
-      UIC.TASK_REFRESH_INTERVAL_MILLIS);
-    this.setState({
-      interval,
-    });
-  }
-
-  componentWillUnmount() {
-    if (this.state.interval) {
-      clearInterval(this.state.interval);
-    }
-  }
-
-  async loadRunEnvironments() {
-    const {
-      abortSignal
-    } = this.props;
-
-    const { currentGroup } = this.context;
-
+  const loadRunEnvironments = useCallback(async () => {
+    setAreRunEnvironmentsLoading(true);
     try {
       const page = await api.fetchRunEnvironments({
         groupId: currentGroup?.id,
         abortSignal
       });
-      this.setState({
-        runEnvironments: page.results,
-        areRunEnvironmentsLoading: false,
-      });
+
+      setRunEnvironments(page.results);
     } catch (error) {
       if (isCancel(error)) {
-        console.log('Request cancelled: ' + error.message);
+        console.log('Request canceled: ' + error.message);
+      }
+    } finally {
+      setAreRunEnvironmentsLoading(false);
+    }
+  }, []);
+
+  const loadTasks = useCallback(async () => {
+    // This would cause the search input to lose focus, because it would be
+    // temporarily replaced with a loading indicator.
+    //setAreTasksLoading(true);
+    const {
+      q,
+      sortBy,
+      descending,
+      selectedRunEnvironmentUuid,
+      rowsPerPage,
+      currentPage,
+    } = getParams(history.location.search);
+
+    const offset = currentPage * rowsPerPage;
+
+    try {
+      const taskPage = await fetchTasks({
+        groupId: currentGroup?.id,
+        sortBy,
+        descending,
+        offset,
+        maxResults: rowsPerPage,
+        q,
+        selectedRunEnvironmentUuid,
+        abortSignal
+      });
+
+      setTaskPage(taskPage);
+      setAreTasksLoading(false);
+    } catch (error) {
+      if (isCancel(error)) {
+        console.log('Request canceled: ' + error.message);
         return;
       }
-    }
-  }
 
-  private handleActionRequested = async (action: string | undefined, cbData: any): Promise<void> => {
-    const task = cbData as TaskImpl;
+      if (selfInterval) {
+        clearInterval(selfInterval);
+        setSelfInterval(null);
+      }
+
+      setLastLoadErrorMessage('Failed to load Tasks');
+    } finally {
+      setAreTasksLoading(false);
+    }
+
+    return;
+  }, []);
+
+  const handleActionRequested = useCallback(async (action: string | undefined, cbData: any) => {
+    const cbTask = cbData as TaskImpl;
     if (action === 'config') {
-      this.setState({
-        task: task,
-        shouldShowConfigModal: true
-      });
+      setTask(cbTask);
+      setShouldShowConfigModal(true);
       return;
     }
 
-    const uuid = task.uuid;
-
-    const {
-      taskUuidToInProgressOperation
-    } = this.state;
+    const uuid = cbTask.uuid;
 
     const updatedTaskUuidToInProgressOperation = Object.assign({},
-        taskUuidToInProgressOperation);
-    updatedTaskUuidToInProgressOperation[uuid] = action;
+      taskUuidToInProgressOperation);
 
-    this.setState({
-      taskUuidToInProgressOperation: updatedTaskUuidToInProgressOperation,
-      lastErrorMessage: null
-    });
+    if (action) {
+      updatedTaskUuidToInProgressOperation[uuid] = action;
+    } else {
+      delete updatedTaskUuidToInProgressOperation[uuid];
+    }
+
+    setTaskUuidToInProgressOperation(updatedTaskUuidToInProgressOperation);
+    setLastErrorMessage(null);
 
     let errorMessage = 'Failed';
 
@@ -139,14 +145,14 @@ class TaskList extends Component<InnerProps, State> {
       switch (action) {
         case 'start':
           errorMessage += ' to start Task Execution';
-          await utils.startTaskExecution(task);
+          await utils.startTaskExecution(cbTask);
           break;
 
         case 'stop':
-          if (task?.latest_task_execution) {
+          if (cbTask?.latest_task_execution) {
             errorMessage += ' to stop Task Execution';
-            await utils.stopTaskExecution(task,
-              (task.latest_task_execution as any).uuid);
+            await utils.stopTaskExecution(cbTask,
+              (cbTask.latest_task_execution as any).uuid);
           }
           break;
 
@@ -161,9 +167,7 @@ class TaskList extends Component<InnerProps, State> {
           break;
 
         case 'config':
-          this.setState({
-            shouldShowConfigModal: true
-          });
+          setShouldShowConfigModal(true);
           break;
 
         default:
@@ -171,7 +175,7 @@ class TaskList extends Component<InnerProps, State> {
           break;
       }
 
-      return this.loadTasks();
+      await loadTasks();
     } catch (err) {
       const messages = exceptionToErrorMessages(err);
 
@@ -180,113 +184,65 @@ class TaskList extends Component<InnerProps, State> {
         errorMessage += messages.join('\n');
       }
 
-      this.setState({
-        lastErrorMessage: errorMessage
-      });
+      setLastErrorMessage(errorMessage);
     } finally {
       const inProgressObj = Object.assign({},
         updatedTaskUuidToInProgressOperation);
 
       delete inProgressObj[uuid];
 
-      this.setState({
-        taskUuidToInProgressOperation: inProgressObj
-      });
+      setTaskUuidToInProgressOperation(inProgressObj);
     }
-  }
+  }, [taskUuidToInProgressOperation]);
 
-  private handleSortChanged = async (ordering?: string, toggleDirection?: boolean) => {
-    setURL(this.props.location, this.props.history, ordering, 'sort_by')
-    this.loadTasks();
-  };
+  const handleSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
+    setURL(history.location, history, ordering, 'sort_by');
+    loadTasks();
+  }, []);
 
-  private loadTasks = async () => {
-    // get query params (if any) from url -- to load process types with
-    const {
-      q,
-      sortBy,
-      descending,
-      selectedRunEnvironmentUuid,
-      rowsPerPage = UIC.DEFAULT_PAGE_SIZE,
-      currentPage = 0,
-    } = getParams(this.props.location.search);
-
-    const offset = currentPage * rowsPerPage;
-
-    const { currentGroup } = this.context;
-
-    try {
-      const taskPage = await fetchTasks({
-        groupId: currentGroup?.id,
-        sortBy,
-        descending,
-        offset,
-        maxResults: rowsPerPage,
-        q,
-        selectedRunEnvironmentUuid,
-        abortSignal: this.props.abortSignal
-      });
-
-      this.setState({
-        taskPage: taskPage,
-        areTasksLoading: false,
-      });
-    } catch (error) {
-      if (isCancel(error)) {
-        console.log('Request cancelled: ' + error.message);
-        return;
-      }
-
-      if (this.state.interval) {
-        clearInterval(this.state.interval);
-      }
-
-      this.setState({
-        lastLoadErrorMessage: 'Failed to load Tasks',
-        interval: null
-      });
-    }
-  }
-
-  handleSelectItemsPerPage = (
+  const handleSelectItemsPerPage = useCallback((
     event: React.ChangeEvent<HTMLSelectElement>
-  ): void => {
-    setURL(this.props.location, this.props.history, parseInt(event.target.value), 'rows_per_page');
-    this.loadTasks();
-  };
+  ) => {
+    const rowsPerPage = parseInt(event.target.value);
+    setURL(history.location, history, rowsPerPage, 'rows_per_page');
+    loadTasks();
+  }, []);
 
-  handleQueryChanged = (
+  const handleQueryChanged = useCallback((
     event: React.ChangeEvent<HTMLInputElement>
-  ): void => {
-    setURL(this.props.location, this.props.history, event.target.value, 'q');
-    this.loadTasks();
-  };
+  ) => {
+    const q = event.target.value;
+    setURL(history.location, history, q, 'q');
+    loadTasks();
+  }, []);
 
-  handleRunEnvironmentChanged = (
+  const handleRunEnvironmentChanged = useCallback((
     event: React.ChangeEvent<HTMLInputElement>
-  ): void => {
-    setURL(this.props.location, this.props.history, event.target.value, 'selected_run_environment_uuid');
-    this.loadTasks();
-  };
+  ) => {
+    const selectedRunEnvironmentUuid = event.target.value;
+    setURL(history.location, history, selectedRunEnvironmentUuid, 'selected_run_environment_uuid');
+    loadTasks();
+  }, []);
 
-  handlePageChanged = (currentPage: number): void => {
-    setURL(this.props.location, this.props.history, currentPage + 1, 'page');
-    this.loadTasks();
+  const handlePageChanged = useCallback((currentPage: number) => {
+    setURL(history.location, history, currentPage + 1, 'page');
+    loadTasks();
+  }, []);
+
+  /*
+  const handlePrev = () => {
+    const { currentPage = 0 } = getParams(history.location);
+    setURL(history.location, history, currentPage, 'page');
+    loadTasks();
   }
 
-  handlePrev = (): void => {
-    const { currentPage = 0 } = getParams(this.props.location);
-    setURL(this.props.location, this.props.history, currentPage, 'page');
-    this.loadTasks();
-  }
+  const handleNext = () => {
+    const { currentPage = 0 } = getParams(history.location);
+    setURL(history.location, history, currentPage + 2, 'page');
+    loadTasks();
+  } */
 
-  handleNext = (): void => {
-    const { currentPage = 0 } = getParams(this.props.location);
-    setURL(this.props.location, this.props.history, currentPage + 2, 'page');
-    this.loadTasks();
-  }
-
-  failedTaskCount = (tasks: TaskImpl[]): number => {
+  const failedTaskCount = useCallback((tasks: TaskImpl[]): number => {
     let count = 0;
     tasks.forEach(task => {
       if (task.enabled && task.latest_task_execution &&
@@ -297,9 +253,9 @@ class TaskList extends Component<InnerProps, State> {
     });
 
     return count;
-  };
+  }, []);
 
-  private handleDeletion = async (uuid: string) => {
+  const handleDeletion = useCallback(async (uuid: string) => {
     const approveDeletion = await swal({
       title: 'Are you sure you want to delete this Task?',
       buttons: ['no', 'yes'],
@@ -308,135 +264,135 @@ class TaskList extends Component<InnerProps, State> {
     });
 
     if (approveDeletion) {
-      this.setState({
-        lastErrorMessage: null
-      });
+      setLastErrorMessage(null);
 
       try {
         await makeAuthenticatedClient().delete(`api/v1/tasks/${uuid}/`);
       } catch (err) {
-        this.setState({
-          lastErrorMessage: 'Failed to delete Task'
-        });
+        setLastErrorMessage('Failed to delete Task');
       }
 
-      return this.loadTasks();
+      await loadTasks();
     }
-  };
+  }, []);
 
-  private editTask = async (uuid: string, data: any) => {
+  const editTask = useCallback(async (uuid: string, data: any) => {
     try {
       await updateTask(uuid, data);
-      this.loadTasks();
+      await loadTasks();
     } catch (err) {
       let lastErrorMessage = 'Failed to update Task';
 
-      if (err.response && err.response.data) {
+      if ((err instanceof AxiosError) && err.response && err.response.data) {
          lastErrorMessage += ': ' + JSON.stringify(err.response.data);
       }
 
-      this.setState({
-        lastErrorMessage
-      });
+      setLastErrorMessage(lastErrorMessage);
     }
-  };
+  }, []);
 
-  handleCloseConfigModal = () => {
-    this.setState({
-      shouldShowConfigModal: false
+  const handleCloseConfigModal = useCallback(() => {
+    setShouldShowConfigModal(false);
+  }, []);
+
+  useEffect(() => {
+    loadRunEnvironments()
+  }, []);
+
+  useEffect(() => {
+    loadTasks().then(_dummy => {
+      const interval = setInterval(loadTasks,
+        UIC.TASK_REFRESH_INTERVAL_MILLIS);
+      setSelfInterval(interval);
     });
+
+    return () => {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+        setSelfInterval(null);
+      }
+    };
+  }, []);
+
+  const {
+    q,
+    sortBy,
+    descending,
+    selectedRunEnvironmentUuid,
+    rowsPerPage,
+    currentPage
+  } = getParams(history.location.search);
+
+  const taskTableProps = {
+    handleRunEnvironmentChanged,
+    handleQueryChanged,
+    loadTasks,
+    handleSortChanged,
+    handlePageChanged,
+    handleSelectItemsPerPage,
+    handleDeletion,
+    handleActionRequested,
+    editTask,
+    q,
+    sortBy,
+    descending,
+    currentPage,
+    rowsPerPage,
+    taskPage,
+    shouldShowConfigModal,
+    task,
+    taskUuidToInProgressOperation,
+    runEnvironments,
+    selectedRunEnvironmentUuid
   };
 
-  renderTaskTable() {
-    const {
-      lastLoadErrorMessage,
-      lastErrorMessage,
-      task,
-      taskPage,
-      shouldShowConfigModal
-    } = this.state;
+  return (
+    <Fragment>
+      {
+        areTasksLoading || areRunEnvironmentsLoading
+        ? (<Loading />)
+        : !runEnvironments.length
+          ? (<Onboarding />)
+          : (
+              <div className={styles.container}>
+                <FailureCountAlert itemName="Task" count={failedTaskCount(taskPage.results)} />
 
-    const failedProcessCount = this.failedTaskCount(taskPage.results);
+                {
+                  lastErrorMessage &&
+                  <Alert variant="danger">
+                    { lastErrorMessage }
+                  </Alert>
+                }
 
-    // initialise page based on URL query parameters. Destructure with defaults, otherwise typescript throws error
-    const {
-      q = '',
-      sortBy = '',
-      descending = false,
-      selectedRunEnvironmentUuid = '',
-      rowsPerPage = UIC.DEFAULT_PAGE_SIZE,
-      currentPage = 0,
-    } = getParams(this.props.location.search);
+                {
+                  lastLoadErrorMessage &&
+                  <Alert variant="warning">
+                    { lastLoadErrorMessage }
+                  </Alert>
+                }
 
-    return (
-      <div className={styles.container}>
-        <FailureCountAlert itemName="Task" count={failedProcessCount} />
+                <TaskTable {...taskTableProps} />
 
-        {
-          lastErrorMessage &&
-          <Alert variant="danger">
-            { lastErrorMessage }
-          </Alert>
-        }
-
-        {
-          lastLoadErrorMessage &&
-          <Alert variant="warning">
-            { lastLoadErrorMessage }
-          </Alert>
-        }
-
-        <TaskTable
-          handleRunEnvironmentChanged={this.handleRunEnvironmentChanged}
-          handleQueryChanged={this.handleQueryChanged}
-          loadTasks={this.loadTasks}
-          handleSortChanged={this.handleSortChanged}
-          handlePageChanged={this.handlePageChanged}
-          handleSelectItemsPerPage={this.handleSelectItemsPerPage}
-          handleDeletion={this.handleDeletion}
-          handleActionRequested={this.handleActionRequested}
-          editTask={this.editTask}
-          selectedRunEnvironmentUuid={selectedRunEnvironmentUuid}
-          q={q}
-          sortBy={sortBy}
-          descending={descending}
-          rowsPerPage={rowsPerPage}
-          currentPage={currentPage}
-          {...this.state}
-        />
-        {
-          task && (
-            <ConfigModalContainer
-              isOpen={shouldShowConfigModal}
-              handleClose={this.handleCloseConfigModal}
-              title={task.name}
-            >
-              <ConfigModalBody
-                task={task}
-                editTask={this.editTask}
-                handleClose={this.handleCloseConfigModal}
-              />
-            </ConfigModalContainer>
-          )
-        }
-      </div>
-    );
-  }
-
-  public render() {
-
-    return (
-      <Fragment>
-        {
-          this.state.areTasksLoading || this.state.areRunEnvironmentsLoading
-          ? (<Loading />)
-          : !this.state.runEnvironments.length
-            ? (<Onboarding />)
-            : this.renderTaskTable()
-        }
-      </Fragment>
-    );
-  }
+                {
+                  task && (
+                    <ConfigModalContainer
+                      isOpen={shouldShowConfigModal}
+                      handleClose={handleCloseConfigModal}
+                      title={task.name}
+                    >
+                      <ConfigModalBody
+                        task={task}
+                        editTask={editTask}
+                        handleClose={handleCloseConfigModal}
+                      />
+                    </ConfigModalContainer>
+                  )
+                }
+              </div>
+            )
+      }
+    </Fragment>
+  );
 }
 
-export default withRouter(abortableHoc(TaskList));
+export default abortableHoc(TaskList);

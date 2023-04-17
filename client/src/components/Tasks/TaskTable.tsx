@@ -5,12 +5,14 @@ import {
   Table
 } from 'react-bootstrap';
 
+import { DebounceInput } from 'react-debounce-input';
+
 import TablePagination from "@material-ui/core/TablePagination";
 import TableHeader from "./Table/TableHeader";
 import TableBody from "./Table/TableBody";
 import DefaultPagination from "../Pagination/Pagination";
 
-import {itemsPerPageOptions, ResultsPage} from "../../utils/api";
+import { itemsPerPageOptions, ResultsPage } from "../../utils/api";
 import { TaskImpl, RunEnvironment } from "../../types/domain_types";
 import styles from './TaskTable.module.scss';
 
@@ -36,13 +38,13 @@ interface Props {
   ) => void;
   handleDeletion: (uuid: string) => Promise<void>;
   handleActionRequested: (action: string | undefined, cbData: any) => Promise<void>;
-  taskUuidToInProgressOperation: any;
+  taskUuidToInProgressOperation: Record<string, string>;
   runEnvironments: RunEnvironment[];
   selectedRunEnvironmentUuid: string;
 }
 
 const TaskTable = (props: Props) => (
-  <Fragment>
+  <Fragment key="taskTable">
     <div>
       <Form inline>
         <Form.Label>Run Environment:</Form.Label>
@@ -71,8 +73,7 @@ const TaskTable = (props: Props) => (
     </div>
     <div className="d-flex justify-content-between align-items-center">
       <div className={styles.searchContainer}>
-        <Form.Control
-          type="text"
+        <Form.Control type="text" as={DebounceInput}
           onChange={props.handleQueryChanged}
           onKeyDown={(keyEvent: any) => {
             if (keyEvent.key === 'Enter') {
@@ -81,6 +82,7 @@ const TaskTable = (props: Props) => (
           }}
           placeholder="Search Tasks"
           value={props.q || ''}
+          debounceTimeout={250}
         />
       </div>
       <TablePagination

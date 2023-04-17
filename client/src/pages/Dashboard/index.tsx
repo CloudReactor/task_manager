@@ -124,7 +124,7 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.DASHBOARD}
-              render={props => <TaskList {...props} />}
+              render={props => <TaskList />}
             />
             <Route
               exact

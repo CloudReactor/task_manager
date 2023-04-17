@@ -209,7 +209,7 @@ export const stopTaskExecution = async (task: Task,
     return api.stopTaskExecution(taskExecutionUuid);
   }
 
-  return Promise.resolve(null);
+  return null;
 };
 
 export const startTaskExecution = async (task: Task, onConfirmation?: (confirmed: boolean) => void): Promise<TaskExecution | null> => {
@@ -225,5 +225,5 @@ export const startTaskExecution = async (task: Task, onConfirmation?: (confirmed
     return api.startTaskExecution(task.uuid, taskExecutionProps);
   }
 
-  return Promise.resolve(null);
+  return null;
 };

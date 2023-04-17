@@ -51,6 +51,7 @@
     "react-bootstrap-table2-paginator": "^2.1.2",
     "react-chartjs-2": "^2.11.2",
     "react-copy-to-clipboard": "^5.1.0",
+    "react-debounce-input": "^3.3.0",
     "react-digraph": "^7.2.1",
     "react-dom": "^16.14.0",
     "react-dropdown": "^1.10.0",
