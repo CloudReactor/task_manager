@@ -70,9 +70,6 @@ class WorkflowDetails extends Component<Props, State> {
       values
     } = formikProps;
 
-    console.log('WorkflowDetails rendering Workflow')
-    console.dir(workflow);
-
     const mdSize = (accessLevel >= C.ACCESS_LEVEL_DEVELOPER) ? 9 : 12;
 
     return (
@@ -133,7 +130,6 @@ class WorkflowDetails extends Component<Props, State> {
       pendingSaveUpdate
     } = this.state;
 
-    console.log('WorkflowDetails: componentDidUpdate, pendingSaveUpdate = ' + pendingSaveUpdate);
     if ((prevProps.workflow !== workflow) && pendingSaveUpdate) {
       console.log('Copying workflow internals after pending save update');
       this.setState({

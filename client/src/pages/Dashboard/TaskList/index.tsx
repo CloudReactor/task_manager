@@ -36,10 +36,7 @@ const TaskList = (props: AbortSignalProps) => {
 
   const [areTasksLoading, setAreTasksLoading] = useState(true);
   const [areRunEnvironmentsLoading, setAreRunEnvironmentsLoading] = useState(false);
-  const [taskPage, setTaskPage] = useState<ResultsPage<TaskImpl>>({
-    count: 0,
-    results: []
-  });
+  const [taskPage, setTaskPage] = useState(api.makeEmptyResultsPage<TaskImpl>());
   const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
   const [task, setTask] = useState<TaskImpl | null>(null);
   const [selfInterval, setSelfInterval] = useState<any>(null);

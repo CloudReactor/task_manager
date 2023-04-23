@@ -25,7 +25,7 @@ import WorkflowSettings from '../../components/WorkflowDetails/WorkflowSettings'
 
 type Props = {
   workflow: Workflow;
-  workflowExecution?: WorkflowExecution;
+  workflowExecution: WorkflowExecution | null;
   onTabChanged?: (tabKey: string | null) => void;
   onWorkflowChanged?: (workflow: Workflow) => void;
 };
@@ -104,7 +104,7 @@ export default class WorkflowEditor extends Component<Props, State> {
                   <Tab eventKey="graph" title="Graph">
                     <WorkflowDetails
                      workflow={workflow}
-                     workflowExecution={workflowExecution}
+                     workflowExecution={workflowExecution ?? undefined}
                      formikProps={formikProps}
                      onWorkflowChanged={this.handleWorkflowChanged} />
                   </Tab>

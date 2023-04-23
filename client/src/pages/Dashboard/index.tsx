@@ -129,12 +129,12 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.WORKFLOWS}
-              render={props => <WorkflowList {...props} />}
+              render={props => <WorkflowList />}
             />
             <Route
               exact
               path={path.WORKFLOW}
-              render={props => <WorkflowDetail {...props} />}
+              render={props => <WorkflowDetail />}
             />
 
             <Route

@@ -323,9 +323,11 @@ export async function fetchWorkflowSummaries(opts?: PageFetchWithGroupIdAndRunEn
   return response.data as ResultsPage<WorkflowSummary>;
 }
 
-export async function fetchWorkflow(uuid: string): Promise<Workflow> {
+export async function fetchWorkflow(uuid: string, abortSignal?: AbortSignal): Promise<Workflow> {
   const response = await makeAuthenticatedClient().get(
-      'api/v1/workflows/' + encodeURIComponent(uuid) + '/');
+      'api/v1/workflows/' + encodeURIComponent(uuid) + '/', {
+        signal: abortSignal
+      });
   return response.data as Workflow;
 }
 
@@ -347,9 +349,12 @@ export async function deleteWorkflow(uuid: string): Promise<void> {
   return response.data;
 }
 
-export async function cloneWorkflow(uuid: string, attributes: any): Promise<Workflow> {
+export async function cloneWorkflow(uuid: string, attributes: any,
+    abortSignal?: AbortSignal): Promise<Workflow> {
   const response = await makeAuthenticatedClient().post(
-    'api/v1/workflows/' + uuid + '/clone/', attributes);
+    'api/v1/workflows/' + uuid + '/clone/', attributes, {
+      signal: abortSignal
+    });
   return response.data as Workflow;
 }
 
@@ -396,7 +401,8 @@ export async function fetchWorkflowExecution(uuid: string,
   return response.data as WorkflowExecution;
 }
 
-export async function startWorkflowExecution(workflowUuid: string): Promise<WorkflowExecution> {
+export async function startWorkflowExecution(workflowUuid: string,
+    abortSignal?: AbortSignal): Promise<WorkflowExecution> {
   const response = await makeAuthenticatedClient().post(
     'api/v1/workflow_executions/',
     {
@@ -404,6 +410,8 @@ export async function startWorkflowExecution(workflowUuid: string): Promise<Work
          uuid: workflowUuid
        },
        status: C.WORKFLOW_EXECUTION_STATUS_MANUALLY_STARTED
+    }, {
+      signal: abortSignal
     }
   );
   return response.data as WorkflowExecution;
@@ -435,11 +443,12 @@ export async function startWorkflowTaskInstances(
 }
 
 export async function retryWorkflowExecution(
-    workflowExecutionUuid: string): Promise<WorkflowExecution> {
+    workflowExecutionUuid: string, abortSignal?: AbortSignal): Promise<WorkflowExecution> {
 
   const response = await makeAuthenticatedClient().post(
-    'api/v1/workflow_executions/' + workflowExecutionUuid + '/retry/'
-  );
+    'api/v1/workflow_executions/' + workflowExecutionUuid + '/retry/', null, {
+      signal: abortSignal
+    });
   return response.data as WorkflowExecution;
 }
 
@@ -501,7 +510,8 @@ export async function saveAlertMethod(uuid: string, values: any,
   return response.data;
 }
 
-export async function cloneAlertMethod(uuid: string, attributes?: any, abortSignal?: AbortSignal): Promise<AlertMethod> {
+export async function cloneAlertMethod(uuid: string, attributes?: any,
+    abortSignal?: AbortSignal): Promise<AlertMethod> {
   const response = await makeAuthenticatedClient().post(
     'api/v1/alert_methods/' + uuid + '/clone/', attributes || {}, {
         signal: abortSignal
