@@ -3,9 +3,7 @@ import { ACCESS_LEVEL_DEVELOPER } from '../../utils/constants';
 import React, { lazy, useContext, Suspense } from 'react';
 import {
   Route,
-  Switch,
-  withRouter,
-  RouteComponentProps
+  Switch
 } from 'react-router-dom';
 
 import {
@@ -18,7 +16,7 @@ import {
 } from '../../context/GlobalContext';
 
 import * as path from '../../constants/routes';
-import { isAuth } from '../../hocs/index';
+import isAuth from '../../hocs/index';
 
 import NavBar from '../../components/NavBar';
 import Loading from '../../components/Loading';
@@ -97,9 +95,7 @@ const AlertMethodDetail = lazy( () =>
   import('./AlertMethodDetail')
 );
 
-type PathParamsType = Record<string, never>;
-
-type Props = RouteComponentProps<PathParamsType>;
+type Props = Record<string, never>;
 
 const Dashboard = (p: Props) => {
   const context = useContext(GlobalContext);
@@ -146,12 +142,12 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.TASK}
-              render={props => <TaskDetail {...props} />}
+              render={props => <TaskDetail />}
             />
             <Route
               exact
               path={path.TASK_EXECUTION}
-              render={props => <TaskExecutionDetail {...props} />}
+              render={props => <TaskExecutionDetail />}
             />
             <Route
               exact
@@ -172,7 +168,7 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.GROUP}
-              render={props => <GroupEditor {... props} />}
+              render={props => <GroupEditor/>}
             />
             <Route
               exact
@@ -209,7 +205,7 @@ const Dashboard = (p: Props) => {
                 <Route
                   exact
                   path={path.API_KEYS}
-                  render={props => <ApiKeyList {... props} />}
+                  render={props => <ApiKeyList />}
                 />
               )
             }
@@ -218,14 +214,14 @@ const Dashboard = (p: Props) => {
                 <Route
                   exact
                   path={path.API_KEY}
-                  render={props => <ApiKeyEditor {... props} />}
+                  render={props => <ApiKeyEditor />}
                 />
               )
             }
             <Route
               exact
               path={path.PROFILE}
-              render={props => <Profile {... props} />}
+              render={props => <Profile />}
             />
 
             <Route path="*">
@@ -250,4 +246,4 @@ const Dashboard = (p: Props) => {
   );
 }
 
-export default withRouter(isAuth(Dashboard));
+export default isAuth(Dashboard);

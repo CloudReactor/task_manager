@@ -1,6 +1,5 @@
 import React from 'react';
-import { withRouter } from 'react-router-dom';
-import { RouteComponentProps } from 'react-router';
+import { useHistory } from 'react-router-dom';
 
 import { Switch } from '@material-ui/core';
 
@@ -13,7 +12,7 @@ import ActionButton from "../common/ActionButton";
 
 import "../../styles/tableStyles.scss";
 
-interface Props extends RouteComponentProps<any> {
+type Props = {
   workflowPage: WorkflowSummary[];
   handleEditRequest: (workflow: WorkflowSummary, data: any) => Promise<void>;
   handleDeletionRequest: (workflow: WorkflowSummary) => void;
@@ -23,12 +22,12 @@ interface Props extends RouteComponentProps<any> {
 
 const WorkflowTableBody = ({
 	workflowPage,
-	history,
 	handleEditRequest,
 	handleDeletionRequest,
 	handleStartRequest,
 	handleStopRequest
 }: Props) => {
+  const history = useHistory();
 
 	const handleActionRequested = (action: string | undefined, cbData: any) => {
 	  switch (action) {
@@ -120,4 +119,4 @@ const WorkflowTableBody = ({
 	);
 };
 
-export default withRouter(WorkflowTableBody);
+export default WorkflowTableBody;

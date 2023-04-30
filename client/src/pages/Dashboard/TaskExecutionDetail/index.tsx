@@ -5,13 +5,14 @@ import { TaskExecution } from '../../../types/domain_types';
 import * as UIC from '../../../utils/ui_constants';
 import { fetchTaskExecution } from '../../../utils/api';
 
-import React, { Component } from "react";
-import { withRouter, RouteComponentProps } from "react-router";
-import { Link } from 'react-router-dom'
+import React, {  useEffect, useState } from "react";
+import { Link, useParams } from 'react-router-dom'
 
 import { Row, Col } from 'react-bootstrap';
 
-import BreadcrumbBar from "../../../components/BreadcrumbBar/BreadcrumbBar";
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
+import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
+import Loading from '../../../components/Loading';
 import TaskExecutionDetails from "../../../components/TaskExecutionDetails/TaskExecutionDetails";
 
 import styles from './index.module.scss';
@@ -21,95 +22,80 @@ type PathParamsType = {
   uuid: string;
 };
 
-type Props = RouteComponentProps<PathParamsType>;
+type Props = AbortSignalProps;
 
-interface State {
-  taskExecution?: TaskExecution;
-  interval: any;
-}
+const TaskExecutionDetail = ({
+  abortSignal
+}: Props) => {
+  const {
+    uuid
+  } = useParams<PathParamsType>();
 
-class TaskExecutionDetail extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  const [taskExecution, setTaskExecution] = useState<TaskExecution | null>(null);
+  const [selfInterval, setSelfInterval] = useState<any>(null);
 
-    this.state = {
-      interval: null
-    };
-  }
-
-  componentDidMount() {
-    document.title = 'Task Execution Details';
-    this.fetchExecutionDetails();
-    const interval = setInterval(this.fetchExecutionDetails,
-        UIC.TASK_REFRESH_INTERVAL_MILLIS);
-
-    this.setState({
-      interval
-    });
-  }
-
-  componentWillUnmount() {
-    if (this.state.interval) {
-      clearInterval(this.state.interval);
-    }
-  }
-
-  fetchExecutionDetails = async () => {
-    const {
-      interval
-    } = this.state;
-
-    const uuid = this.props.match.params.uuid;
-
+  const fetchExecutionDetails = async () => {
     try {
-      const taskExecution = await fetchTaskExecution(uuid);
+      const fetchedExecution = await fetchTaskExecution(uuid, abortSignal);
 
-      this.setState({
-        taskExecution
-      });
+      setTaskExecution(fetchedExecution);
 
-      if (interval &&
-          !TASK_EXECUTION_STATUSES_IN_PROGRESS.includes(taskExecution.status)) {
-        clearInterval(interval);
-        this.setState({
-          interval: null
-        });
+      if (TASK_EXECUTION_STATUSES_IN_PROGRESS.includes(fetchedExecution.status)) {
+        if (!selfInterval) {
+          const interval = setInterval(fetchExecutionDetails,
+            UIC.TASK_REFRESH_INTERVAL_MILLIS);
+          setSelfInterval(interval);
+        }
+      } else {
+        if (selfInterval) {
+          clearInterval(selfInterval);
+          setSelfInterval(null);
+        }
       }
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
-
-  public render() {
-    const {
-      taskExecution
-    } = this.state;
-
+  useEffect(() => {
+    document.title = 'Task Execution Details';
     if (!taskExecution) {
-      return <div>Loading ...</div>
+      fetchExecutionDetails();
     }
+  }, [taskExecution]);
 
-    const taskLink = (
-      <Link to={path.TASKS + '/' + taskExecution.task.uuid}>
-        {taskExecution.task.name}
-      </Link>
-    );
+  useEffect(() => {
+    return () => {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+        setSelfInterval(null);
+      }
+    };
+  }, []);
 
-    return (
-        <div className={styles.container}>
-          <BreadcrumbBar
-            firstLevel={taskLink}
-            secondLevel={'Execution ' + taskExecution.uuid}
-          />
-          <Row>
-            <Col>
-              <TaskExecutionDetails taskExecution={taskExecution} />
-            </Col>
-          </Row>
-        </div>
-      );
+  if (!taskExecution) {
+    return <Loading />
   }
+
+  const taskLink = (
+    <Link to={path.TASKS + '/' + taskExecution.task.uuid}>
+      {taskExecution.task.name}
+    </Link>
+  );
+
+  return (
+    <div className={styles.container}>
+      <BreadcrumbBar
+        firstLevel={taskLink}
+        secondLevel={'Execution ' + taskExecution.uuid}
+      />
+      <Row>
+        <Col>
+          <TaskExecutionDetails taskExecution={taskExecution} />
+        </Col>
+      </Row>
+    </div>
+  );
 }
 
-export default withRouter(TaskExecutionDetail);
+export default abortableHoc(TaskExecutionDetail);

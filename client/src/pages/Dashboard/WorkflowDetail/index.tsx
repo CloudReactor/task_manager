@@ -15,8 +15,8 @@ import * as C from '../../../utils/constants';
 
 import { shouldRefreshWorkflowExecution } from '../../../utils/domain_utils';
 
-import React, { Fragment, useCallback, useContext, useEffect, useState } from 'react';
-import { useHistory, useParams } from 'react-router';
+import React, { Fragment, useContext, useEffect, useState } from 'react';
+import { useHistory, useParams } from 'react-router-dom';
 
 import {
   Alert,
@@ -51,7 +51,9 @@ type PathParamsType = {
 
 type Props = AbortSignalProps;
 
-const WorkflowDetail = (props: Props) => {
+const WorkflowDetail = ({
+  abortSignal
+}: Props) => {
   const context = useContext(GlobalContext);
 
   const accessLevel = accessLevelForCurrentGroup(context);
@@ -63,10 +65,6 @@ const WorkflowDetail = (props: Props) => {
   const {
     uuid
   } = useParams<PathParamsType>();
-
-  const {
-    abortSignal
-  } = props;
 
   const [workflow, setWorkflow] = useState<Workflow | null>(
     (uuid == 'new') ? makeNewWorkflow() : null);

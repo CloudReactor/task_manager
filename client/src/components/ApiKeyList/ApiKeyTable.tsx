@@ -21,32 +21,14 @@ import './ApiKeyTable.css'
 import styles from './ApiKeyTable.module.scss';
 
 interface Props {
-  q: string;
-  sortBy: string;
-  descending: boolean;
   apiKeyPage: ResultsPage<ApiKey>;
-  currentPage: number;
-  rowsPerPage: number;
-  handleSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
-  loadApiKeys: (
-    ordering?: string,
-    toggleDirection?: boolean
-  ) => Promise<void>;
   handlePageChanged: (currentPage: number) => void;
-  handleSelectItemsPerPage: (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => void;
   handleDeletionRequest: (apiKey: ApiKey) => void;
 }
 
 const ApiKeyTable = ({
-  q,
-  sortBy,
-  descending,
-  loadApiKeys,
   apiKeyPage,
-  handleDeletionRequest,
-  handleSortChanged,
+  handleDeletionRequest
 }: Props) => {
   const [keyCopiedAt, setKeyCopiedAt] = useState(null as number | null);
 

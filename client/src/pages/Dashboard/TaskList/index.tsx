@@ -4,7 +4,7 @@ import { exceptionToErrorMessages, makeAuthenticatedClient } from '../../../axio
 import * as C from '../../../utils/constants';
 import * as utils from '../../../utils';
 import * as api from '../../../utils/api';
-import { fetchTasks, ResultsPage, updateTask } from '../../../utils/api'
+import { fetchTasks, updateTask } from '../../../utils/api'
 import { TaskImpl, RunEnvironment } from '../../../types/domain_types';
 
 import React, {Fragment, useCallback, useContext, useEffect, useState } from 'react';
@@ -27,11 +27,9 @@ import Onboarding from '../../../components/Tasks/Onboarding/Onboarding';
 import Loading from '../../../components/Loading';
 import styles from './index.module.scss';
 
-const TaskList = (props: AbortSignalProps) => {
-  const {
-    abortSignal
-  } = props;
-
+const TaskList = ({
+  abortSignal
+}: AbortSignalProps) => {
   const { currentGroup } = useContext(GlobalContext);
 
   const [areTasksLoading, setAreTasksLoading] = useState(true);

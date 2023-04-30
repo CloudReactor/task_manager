@@ -36,6 +36,9 @@ export const setURL = (
     // user is clicking on the column that's already sorted. So, toggle the sort order
     const isDescending = params.get('descending') === 'true' ? 'false' : 'true';
     params.set('descending', isDescending);
+
+  } else if ((changeParam === 'page') && (value === 1)) {
+    params.delete('page');
   } else {
     // user is clicking on a different column than what's already sorted, or is entering a new search query.
 

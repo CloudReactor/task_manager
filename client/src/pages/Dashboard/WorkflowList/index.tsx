@@ -6,7 +6,6 @@ import {
 
 
 import {
-  ResultsPage,
   makeEmptyResultsPage,
   fetchRunEnvironments,
   deleteWorkflow,

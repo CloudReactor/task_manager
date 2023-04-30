@@ -192,7 +192,9 @@ export function makeLinks(labels: string[] | null, urls?: (string | null)[] | nu
 }
 
 export const stopTaskExecution = async (task: Task,
-  taskExecutionUuid: string, onConfirmation?: (confirmed: boolean) => void):
+  taskExecutionUuid: string,
+  onConfirmation?: (confirmed: boolean) => void,
+  abortSignal?: AbortSignal):
   Promise<TaskExecution | null> => {
   const changeStatus = await swal({
     title: `Are you sure you want to stop the Task '${task.name}'?`,
@@ -206,13 +208,15 @@ export const stopTaskExecution = async (task: Task,
   }
 
   if (changeStatus) {
-    return api.stopTaskExecution(taskExecutionUuid);
+    return api.stopTaskExecution(taskExecutionUuid, abortSignal);
   }
 
   return null;
 };
 
-export const startTaskExecution = async (task: Task, onConfirmation?: (confirmed: boolean) => void): Promise<TaskExecution | null> => {
+export const startTaskExecution = async (task: Task,
+    onConfirmation?: (confirmed: boolean) => void,
+    abortSignal?: AbortSignal): Promise<TaskExecution | null> => {
   const modal = createModal(StartTaskModal);
 
   const taskExecutionProps = await modal({task});
@@ -222,7 +226,8 @@ export const startTaskExecution = async (task: Task, onConfirmation?: (confirmed
   }
 
   if (taskExecutionProps) {
-    return api.startTaskExecution(task.uuid, taskExecutionProps);
+    return api.startTaskExecution(task.uuid, taskExecutionProps,
+      abortSignal);
   }
 
   return null;

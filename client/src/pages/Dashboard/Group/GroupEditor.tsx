@@ -4,10 +4,10 @@ import { saveGroup, fetchGroup } from '../../../utils/api';
 import * as Yup from 'yup';
 
 import { Group } from '../../../types/website_types';
+import { catchableToString } from '../../../utils';
 
-import React, { Component } from 'react';
-import { withRouter, RouteComponentProps } from 'react-router';
-import { Link } from 'react-router-dom'
+import React, { useContext, useEffect, useState } from 'react';
+import { Link, useHistory, useParams } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 
 import {
@@ -24,23 +24,19 @@ import {
 } from '../../../context/GlobalContext';
 
 import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
+import Loading from '../../../components/Loading';
 import FormikErrorsSummary from '../../../components/common/FormikErrorsSummary';
 import GroupMembersEditor from '../../../components/GroupDetails/GroupMembersEditor';
 
 import '../../../components/Tasks/style.scss';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
+import AccessDenied from '../../../components/AccessDenied';
 
 type PathParamsType = {
   id: string;
 };
 
-type Props = RouteComponentProps<PathParamsType>;
-
-interface State {
-  group: Group | any;
-  isLoading: boolean;
-  errorMessage?: string;
-  isSaving: boolean;
-}
+type Props = AbortSignalProps;
 
 const validationSchema = Yup.object().shape({
   name: Yup.string().max(200)
@@ -53,64 +49,55 @@ const validationSchema = Yup.object().shape({
   body_template: Yup.string().max(1000)
 });
 
-class GroupEditor extends Component<Props, State> {
-  static contextType = GlobalContext;
+const GroupEditor = ({
+  abortSignal
+}: Props) => {
+  const {
+    id
+  } = useParams<PathParamsType>();
 
-  constructor(props: Props) {
-      super(props);
+  const {
+    currentUser,
+    setCurrentUser,
+    currentGroup,
+    setCurrentGroup
+  } = useContext(GlobalContext);
 
-      this.state = {
-        group: null,
-        isLoading: false,
-        isSaving: false
-      };
+  if (!currentUser || !currentGroup) {
+    return <AccessDenied />;
   }
 
-  componentDidMount() {
-    const id = this.props.match.params.id;
+  const [group, setGroup] = useState<Group>(currentGroup);
+  const [isLoading, setLoading] = useState(false);
+  const [isSaving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    if (id === 'new') {
-      // user is creating new Group
-      // create group object matching form fields; Formik requires, even though inputs are empty
-      this.setState({
-        group: {}
-      })
-    } else {
-      // user is editing existing Group profile
-      this.loadGroup(parseInt(id));
-    }
-  }
+  const history = useHistory();
 
-  async loadGroup(id: number) {
-    this.setState({
-      isLoading: true
-    });
+  const loadGroup = async () => {
+    setLoading(true);
     try {
-      const group = await fetchGroup(id);
-
-      this.setState({
-        group,
-        errorMessage: undefined,
-        isLoading: false
-      });
-    } catch (ex) {
-      this.setState({
-        errorMessage: "Failed to load Group: " + ex.message,
-        isLoading: false
-      });
+      const fetchedGroup = await fetchGroup(parseInt(id), abortSignal);
+      setGroup(fetchedGroup);
+      setErrorMessage(null);
+    } catch (err) {
+      setErrorMessage("Failed to load Group: "  + catchableToString(err));
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  renderGroupForm() {
-    const {
-      group,
-      errorMessage
-    } = this.state;
+  useEffect(() => {
+    if (id !== 'new') {
+      // user is editing existing Group profile
+      loadGroup();
+    }
+  }, []);
 
-    const creatingNew =  (this.props.match.params.id === 'new');
+  const renderGroupForm = () => {
+    const creatingNew =  (id === 'new');
 
-    const pushToGroupsIndex = () =>
-      this.props.history.push('/groups');
+    const pushToGroupsIndex = () => history.push('/groups');
 
     return (
       <Container>
@@ -125,20 +112,12 @@ class GroupEditor extends Component<Props, State> {
           validationSchema={validationSchema}
           onSubmit={async (values, actions) => {
             try {
-              this.setState({
-                isSaving: true,
-                errorMessage: undefined
-              });
+              setSaving(true);
+              setErrorMessage(null);
 
               const createdGroup = await saveGroup(values)
 
               if (creatingNew) {
-                const {
-                  currentUser,
-                  setCurrentUser,
-                  setCurrentGroup
-                } = this.context;
-
                 currentUser.groups.push(createdGroup);
                 currentUser.group_access_levels[createdGroup.id] = ACCESS_LEVEL_ADMIN;
                 setCurrentUser(currentUser);
@@ -146,17 +125,12 @@ class GroupEditor extends Component<Props, State> {
               }
 
               pushToGroupsIndex();
-
-              this.setState({
-                errorMessage: undefined,
-                isSaving: false
-              });
-            } catch (error) {
-              console.log(error);
-              this.setState({
-                errorMessage: "Failed to save Group: " + error.message,
-                isSaving: false
-              });
+              setErrorMessage(null);
+            } catch (err) {
+              console.log(err);
+              setErrorMessage("Failed to save Group: "  + catchableToString(err));
+            } finally {
+              setSaving(false);
             }
           }}
         >
@@ -209,54 +183,42 @@ class GroupEditor extends Component<Props, State> {
         </Formik>
       </Container>
     );
-  }
+  };
 
-  public render() {
-    const {
-      group
-    } = this.state;
+  const handleGroupMembersChanged = async () => {
+    await loadGroup();
+  };
 
-     const {
-      currentUser
-    } = this.context;
+  const creatingNew = (id === 'new');
 
-    const creatingNew = (this.props.match.params.id === 'new');
+  const accessLevel = group?.id ?
+    (currentUser.group_access_levels[group.id] ?? null) : null;
 
-    const accessLevel = group?.id ?
-      (currentUser.group_access_levels[group.id] ?? null) : null;
+  const isGroupAdmin = accessLevel && (accessLevel >= ACCESS_LEVEL_ADMIN);
 
-    const isGroupAdmin = accessLevel && (accessLevel >= ACCESS_LEVEL_ADMIN);
+  const breadcrumbLink = creatingNew ? 'Create New' : (group?.name || id);
 
-    const breadcrumbLink = creatingNew ? 'Create New' :
-       (group?.name || this.props.match.params.id);
+  const groupsLink = <Link to="/groups">Groups</Link>
 
-    const groupsLink = <Link to="/groups">Groups</Link>
-
-    return (
-      <div>
-        <BreadcrumbBar
-         firstLevel={groupsLink}
-         secondLevel={breadcrumbLink}
-        />
-        {
-          (!group || isGroupAdmin || creatingNew) && (
-            this.state.isLoading ? (<div>Loading ...</div>) :
-            this.renderGroupForm()
-          )
-        }
-        {
-          group?.id &&
-          <GroupMembersEditor group={group}
-           onGroupMembersChanged={this.handleGroupMembersChanged} />
-        }
-      </div>
-    );
-  }
-
-  handleGroupMembersChanged = async () => {
-    const id = this.props.match.params.id;
-    await this.loadGroup(parseInt(id));
-  }
+  return (
+    <div>
+      <BreadcrumbBar
+        firstLevel={groupsLink}
+        secondLevel={breadcrumbLink}
+      />
+      {
+        (!group || isGroupAdmin || creatingNew) && (
+          isLoading ? (<Loading />) :
+          renderGroupForm()
+        )
+      }
+      {
+        group?.id &&
+        <GroupMembersEditor group={group}
+          onGroupMembersChanged={handleGroupMembersChanged} />
+      }
+    </div>
+  );
 }
 
-export default withRouter(GroupEditor);
+export default abortableHoc(GroupEditor);

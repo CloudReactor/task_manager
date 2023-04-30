@@ -189,9 +189,11 @@ export async function fetchUsers(opts? : PageFetchWithGroupIdOptions):
   return response.data as ResultsPage<User>;
 }
 
-export async function fetchGroup(id: number): Promise<Group> {
+export async function fetchGroup(id: number, abortSignal?: AbortSignal): Promise<Group> {
   const response = await makeAuthenticatedClient().get(
-    'api/v1/groups/' + id + '/');
+    'api/v1/groups/' + id + '/', {
+    signal: abortSignal
+  });
   return response.data as Group;
 }
 
@@ -260,18 +262,20 @@ export async function updateGroupAccessLevelOfUser(username: string,
   });
 }
 
-export async function fetchApiKey(uuid: string) {
+export async function fetchApiKey(uuid: string, abortSignal?: AbortSignal) {
   const response = await makeAuthenticatedClient().get(
-    `api/v1/api_keys/${uuid}/`);
+    `api/v1/api_keys/${uuid}/`, {
+    signal: abortSignal
+  });
   return response.data as ApiKey;
 }
 
-export async function saveApiKey(apiKey: any) : Promise<ApiKey> {
+export async function saveApiKey(apiKey: any, abortSignal?: AbortSignal) : Promise<ApiKey> {
   const client = makeAuthenticatedClient();
   const response = await (apiKey.uuid ? client.patch(
     'api/v1/api_keys/' + encodeURIComponent(apiKey.uuid) + '/',
-    apiKey
-  ) : client.post('api/v1/api_keys/', apiKey));
+    apiKey, { signal: abortSignal }
+  ) : client.post('api/v1/api_keys/', apiKey, { signal: abortSignal }));
 
   return response.data as ApiKey;
 }
@@ -298,10 +302,12 @@ export async function fetchApiKeys(opts? : PageFetchWithGroupIdOptions):
   return response.data as ResultsPage<ApiKey>;
 }
 
-export async function deleteApiKey(uuid: string): Promise<void> {
+export async function deleteApiKey(uuid: string, abortSignal?: AbortSignal): Promise<void> {
   const client = makeAuthenticatedClient();
   await client.delete(
-    'api/v1/api_keys/' + encodeURIComponent(uuid) + '/');
+    'api/v1/api_keys/' + encodeURIComponent(uuid) + '/', {
+      signal: abortSignal
+    });
 }
 
 export async function fetchWorkflowSummaries(opts?: PageFetchWithGroupIdAndRunEnvironmentOptions)

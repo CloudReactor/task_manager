@@ -1,12 +1,12 @@
 import { ApiKey } from '../../../types/domain_types';
 import { saveApiKey, fetchApiKey, makeErrorElement } from '../../../utils/api';
 import * as C from '../../../utils/constants';
+import { catchableToString } from '../../../utils';
 
 import * as Yup from 'yup';
 
-import React, { Component, Fragment } from "react";
-import { withRouter, RouteComponentProps } from "react-router";
-import { Link } from 'react-router-dom';
+import React, { Fragment, useContext, useEffect, useState } from "react";
+import { Link, useHistory, useParams } from 'react-router-dom';
 
 import { Alert, Row, Col, Form, FormCheck } from 'react-bootstrap/';
 
@@ -17,10 +17,12 @@ import {
   accessLevelForCurrentGroup
 } from '../../../context/GlobalContext';
 
+import Loading from '../../../components/Loading';
 import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
 import GroupSelector from '../../../components/common/GroupSelector';
 import RunEnvironmentSelector from '../../../components/common/RunEnvironmentSelector';
 import AccessLevelSelector from '../../../components/common/AccessLevelSelector';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 import CustomButton from '../../../components/common/Button/CustomButton';
 import styles from './ApiKeyEditor.module.scss';
 import FormikErrorsSummary from '../../../components/common/FormikErrorsSummary';
@@ -29,7 +31,7 @@ type PathParamsType = {
   uuid: string;
 };
 
-type Props = RouteComponentProps<PathParamsType>;
+type Props = AbortSignalProps;
 
 interface State {
   apiKey: ApiKey | any;
@@ -42,73 +44,42 @@ const validationSchema = Yup.object().shape({
   name: Yup.string().max(200),
   enabled: Yup.boolean(),
   groupId: Yup.number().required(),
-  runEnvironmentUuid: Yup.string(),
+  runEnvironmentUuid: Yup.string().nullable(),
   description: Yup.string().max(1000)
 });
 
-class ApiKeyEditor extends Component<Props, State> {
-  static contextType = GlobalContext;
+const ApiKeyEditor = ({
+  abortSignal
+}: Props) => {
+  const {
+    uuid
+  } = useParams<PathParamsType>();
 
-  constructor(props: Props) {
-    super(props);
+  const isNew = (uuid === 'new');
 
-    this.state = {
-      apiKey: null,
-      isLoading: false,
-      isSaving: false
-    };
-  }
+  const history = useHistory();
 
-  componentDidMount() {
-    const uuid = this.props.match.params.uuid;
+  const context = useContext(GlobalContext);
 
-    if (uuid === 'new') {
-      // create ApiKey object matching form fields; Formik requires, even though inputs are empty
-      this.setState({
-        apiKey: {}
-      })
-    } else {
-      // user is editing existing API Key
-      this.fetchApiKey(uuid);
-    }
-  }
+  const [apiKey, setApiKey] = useState<ApiKey | any>(null);
+  const [isLoading, setLoading] = useState(false);
+  const [isSaving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async fetchApiKey(uuid: string) {
-    this.setState({
-      isLoading: true
-    });
+  const loadApiKey = async () => {
+    setLoading(true);
     try {
-      const apiKey = await fetchApiKey(uuid);
-      this.setState({
-        apiKey,
-        isLoading: false
-      });
-    } catch (ex: unknown) {
-      let msg = '';
-
-      if (typeof(ex) === 'string') {
-        msg = ex;
-      } else if (ex instanceof Error) {
-        msg = ex.message;
-      }
-
-      this.setState({
-        errorComponent: <div>Failed to load API Key: ${msg}</div>,
-        isLoading: false
-      });
+      const updatedApiKey = await fetchApiKey(uuid, abortSignal);
+      setApiKey(updatedApiKey);
+    } catch (err) {
+      setErrorMessage("Failed to load API Key: "  + catchableToString(err));
+    } finally {
+      setLoading(false);
     }
   }
 
-  renderApiKeyForm() {
-    const uuid = this.props.match.params.uuid;
-    const isNew = (uuid === 'new');
-
-    const {
-      apiKey,
-      errorComponent
-    } = this.state;
-
-    const accessLevel = accessLevelForCurrentGroup(this.context);
+  const renderApiKeyForm = () => {
+    const accessLevel = accessLevelForCurrentGroup(context);
 
     if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
       return <p>You don&apos;t have permission to access this page.</p>;
@@ -127,9 +98,9 @@ class ApiKeyEditor extends Component<Props, State> {
     return (
       <Fragment>
         {
-          errorComponent &&
+          errorMessage &&
           <Alert variant="danger">
-            { errorComponent }
+            { errorMessage }
           </Alert>
         }
 
@@ -139,40 +110,33 @@ class ApiKeyEditor extends Component<Props, State> {
             validationSchema={validationSchema}
             enableReinitialize={true}
             onSubmit={async (values, actions) => {
+              setSaving(true);
+              setErrorMessage(null);
 
-              this.setState({
-                isSaving: true,
-                errorComponent: undefined
-              });
-
-              const apiKey = Object.assign({
+              const apiKeyToSave = Object.assign({
                 group: {
                   id: values.groupId
                 }
               }, values);
 
-              delete apiKey.groupId;
+              delete apiKeyToSave.groupId;
 
               if (values.runEnvironmentUuid) {
-                apiKey['run_environment'] = {
+                apiKeyToSave['run_environment'] = {
                   uuid: values.runEnvironmentUuid
                 };
-                delete apiKey.runEnvironmentUuid;
+                delete apiKeyToSave.runEnvironmentUuid;
               }
 
               try {
-                await saveApiKey(apiKey);
-                this.setState({
-                  errorComponent: undefined,
-                  isSaving: false
-                });
+                await saveApiKey(apiKeyToSave);
+                setErrorMessage(null);
 
-                this.props.history.push('/api_keys/');
-              } catch (ex) {
-                this.setState({
-                  errorComponent: makeErrorElement(ex),
-                  isSaving: false
-                });
+                history.push('/api_keys/');
+              } catch (err) {
+                setErrorMessage("Failed to save API Key: "  + catchableToString(err));
+              } finally {
+                setSaving(false);
               }
             }}
           >
@@ -311,38 +275,41 @@ class ApiKeyEditor extends Component<Props, State> {
     );
   }
 
-  public render() {
-    const {
-      apiKey
-    } = this.state;
+  useEffect(() => {
+    if (isNew) {
+      // create ApiKey object matching form fields; Formik requires, even though inputs are empty
+      setApiKey({});
+    } else {
+      // user is editing existing API Key
+      loadApiKey();
+    }
+  }, []);
 
-    const breadcrumbLink = this.props.match.params.uuid === 'new' ?
-      'Create New' : (apiKey?.name || this.props.match.params.uuid);
+  const breadcrumbLink = isNew ? 'Create New' : (apiKey?.name || uuid);
 
-    const ApiKeysLink = <Link to="/api_keys">API Keys</Link>
+  const ApiKeysLink = <Link to="/api_keys">API Keys</Link>
 
-    return (
-      <div className={styles.container}>
-        <Row>
-          <Col>
-            <BreadcrumbBar
-              firstLevel={ApiKeysLink}
-              secondLevel={breadcrumbLink}
-            />
-          </Col>
-        </Row>
+  return (
+    <div className={styles.container}>
+      <Row>
+        <Col>
+          <BreadcrumbBar
+            firstLevel={ApiKeysLink}
+            secondLevel={breadcrumbLink}
+          />
+        </Col>
+      </Row>
 
-        <Row>
-          <Col>
-            {
-              this.state.isLoading ? (<div>Loading ...</div>) :
-              this.renderApiKeyForm()
-            }
-          </Col>
-        </Row>
-      </div>
-    );
-  }
+      <Row>
+        <Col>
+          {
+            isLoading ? (<Loading />) :
+            renderApiKeyForm()
+          }
+        </Col>
+      </Row>
+    </div>
+  );
 }
 
-export default withRouter(ApiKeyEditor);
+export default abortableHoc(ApiKeyEditor);

@@ -6,8 +6,7 @@ import * as path from '../../../constants/routes';
 import { TaskImpl } from '../../../types/domain_types';
 
 import React, { Fragment, useContext } from 'react';
-import { withRouter } from 'react-router-dom';
-import { RouteComponentProps } from 'react-router';
+import { useHistory } from 'react-router-dom';
 
 import {
   Tooltip,
@@ -25,7 +24,7 @@ import Status from '../../Status/Status';
 import "../../../styles/tableStyles.scss";
 
 
-interface Props extends RouteComponentProps<any> {
+interface Props {
   tasks: TaskImpl[];
   task: TaskImpl | null;
   editTask: (uuid: string, data: any) => Promise<void>;
@@ -56,7 +55,6 @@ const timeOrDuration = (
 const TableBody = ({
   tasks,
   handleDeletion,
-  history,
   handleActionRequested,
   taskUuidToInProgressOperation,
   editTask
@@ -67,6 +65,8 @@ const TableBody = ({
   const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
 
   const numberFormat = new Intl.NumberFormat();
+
+  const history = useHistory();
 
   return (
     <tbody>
@@ -196,4 +196,4 @@ const TableBody = ({
   );
 };
 
-export default withRouter(TableBody);
+export default TableBody;

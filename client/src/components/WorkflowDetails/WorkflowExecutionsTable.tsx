@@ -1,7 +1,13 @@
 import _ from 'lodash';
 
-import React, { Component } from 'react';
-import {RouteComponentProps, withRouter} from 'react-router';
+import { getParams, setURL } from '../../utils/url_search';
+import { catchableToString, colorPicker, timeDuration, timeFormat } from '../../utils';
+
+import React, { useCallback, useEffect, useState } from 'react';
+
+import { useHistory } from 'react-router-dom';
+
+import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
 import {
   Table
@@ -12,16 +18,16 @@ import DefaultPagination from '../Pagination/Pagination';
 
 import {
   fetchWorkflowExecutionSummaries,
+  makeEmptyResultsPage,
   stopWorkflowExecution,
   retryWorkflowExecution,
-  itemsPerPageOptions,
-  ResultsPage
+  itemsPerPageOptions
 } from '../../utils/api';
 
 import {Workflow, WorkflowExecution, WorkflowExecutionSummary} from '../../types/domain_types';
 import * as C from '../../utils/constants';
 import * as UIC from '../../utils/ui_constants';
-import {colorPicker, timeDuration, timeFormat} from '../../utils';
+
 
 import ActionButton from '../../components/common/ActionButton';
 
@@ -41,163 +47,61 @@ const WORKFLOW_EXECUTION_COLUMNS: TableColumnInfo[] = [
   { name: 'Actions', ordering: '' }
 ];
 
-type PathParamsType = Record<string, never>;
-
-interface Props extends RouteComponentProps<PathParamsType> {
+interface Props {
   workflow: Workflow,
   onActionError: (action: string, cbData: any, errorMessage: string) => void,
   onWorkflowExecutionUpdated: (workflowExecution: WorkflowExecution) => void
 }
 
-interface State {
-  workflowExecutionsPage: ResultsPage<WorkflowExecutionSummary>;
-  currentPage: number;
-  rowsPerPage: number;
-  sortBy: string;
-  descending: boolean;
-  selectedExecution: WorkflowExecutionSummary | null;
-  workflowExecutionUuidsPendingStop: string[],
-  workflowExecutionUuidsPendingRetry: string[],
-  interval: any;
+interface InternalProps extends Props, AbortSignalProps {
 }
 
-class WorkflowExecutionsTable extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+const WorkflowExecutionsTable = ({
+  workflow,
+  onActionError,
+  onWorkflowExecutionUpdated,
+  abortSignal
+}: InternalProps) => {
+  const [workflowExecutionsPage, setWorkflowExecutionsPage] = useState(
+    makeEmptyResultsPage<WorkflowExecutionSummary>());
+  const [workflowExecutionUuidsPendingStop, setWorkflowExecutionUuidsPendingStop] = useState<string []>([]);
+  const [workflowExecutionUuidsPendingRetry, setWorkflowExecutionUuidsPendingRetry] = useState<string []>([]);
+  const [selfInterval, setSelfInterval] = useState<any>(null);
 
-    this.state = {
-      workflowExecutionsPage: { count: 0, results: [] },
-      currentPage: 0,
-      rowsPerPage: UIC.DEFAULT_PAGE_SIZE,
-      sortBy: 'started_at',
-      descending: true,
-      selectedExecution: null,
-      workflowExecutionUuidsPendingStop: [],
-      workflowExecutionUuidsPendingRetry: [],
-      interval: null
-    };
-  }
+  const history = useHistory();
 
-  async componentDidMount() {
-    await this.loadWorkflowExecutions();
-    const interval = setInterval(this.loadWorkflowExecutions,
-      UIC.TASK_REFRESH_INTERVAL_MILLIS);
-    this.setState({
-      interval
-    });
-  }
-
-  componentWillUnmount() {
-    if (this.state.interval) {
-      clearInterval(this.state.interval);
-    }
-  }
-
-  handleActionRequested = async (action: string | undefined, cbData: any): Promise<void> => {
+  const loadWorkflowExecutions = useCallback(async () => {
     const {
-      onActionError,
-      onWorkflowExecutionUpdated
-    } = this.props;
-
-    const {
-      workflowExecutionUuidsPendingStop,
-      workflowExecutionUuidsPendingRetry
-    } = this.state;
-
-    switch (action) {
-      case 'stop':
-        this.setState({
-          workflowExecutionUuidsPendingStop:
-            workflowExecutionUuidsPendingStop.concat(['' + cbData.uuid])
-        });
-
-        try {
-          const stoppedWorkflowExecution = await stopWorkflowExecution(cbData.uuid);
-
-          onWorkflowExecutionUpdated(stoppedWorkflowExecution);
-
-          this.setState({
-            workflowExecutionUuidsPendingStop:
-              _.pull(this.state.workflowExecutionUuidsPendingStop,
-                  stoppedWorkflowExecution.uuid)
-          });
-        } catch (e) {
-          onActionError(action, cbData, e.message);
-        }
-        await this.loadWorkflowExecutions();
-        break;
-
-      case 'retry':
-        this.setState({
-          workflowExecutionUuidsPendingRetry:
-            workflowExecutionUuidsPendingRetry.concat(['' + cbData.uuid])
-        });
-
-        try {
-          const retriedWorkflowExecution = await retryWorkflowExecution(cbData.uuid);
-
-          onWorkflowExecutionUpdated(retriedWorkflowExecution);
-
-          this.setState({
-            workflowExecutionUuidsPendingRetry:
-              _.pull(this.state.workflowExecutionUuidsPendingRetry,
-                  retriedWorkflowExecution.uuid)
-          });
-        } catch (e) {
-          onActionError(action, cbData, e.message);
-        }
-        await this.loadWorkflowExecutions();
-        break;
-
-      default:
-        console.error(`Unknown action: "${action}"`);
-        break;
-    }
-  }
-
-  loadWorkflowExecutions = async (ordering?: string,
-                                  toggleDirection?: boolean) => {
-    const {
-      workflow,
-      onActionError
-    } = this.props;
-
-    const {
-      currentPage,
-      rowsPerPage
-    } = this.state;
-
-    let {
       sortBy,
-      descending
-    } = this.state;
-
-    sortBy = ordering || sortBy;
-
-    if (toggleDirection) {
-      descending = !descending;
-    }
+      descending,
+      rowsPerPage,
+      currentPage,
+    } = getParams(history.location.search);
 
     const offset = currentPage * rowsPerPage;
 
     try {
-      const workflowExecutionsPage = await fetchWorkflowExecutionSummaries(workflow.uuid, sortBy,
+      const updatedWorkflowExecutionsPage = await fetchWorkflowExecutionSummaries(workflow.uuid, sortBy,
         descending, offset, rowsPerPage);
 
-      this.setState({
-        descending,
-        workflowExecutionsPage,
-        sortBy
-      });
+      setWorkflowExecutionsPage(updatedWorkflowExecutionsPage);
     } catch (err) {
-      onActionError('loadWorkflowExecutions', workflow, err.message);
+
+      onActionError('loadWorkflowExecutions', workflow, catchableToString(err));
     }
-  }
+  }, []);
 
-  handlePageChanged = (currentPage: number): void => {
-    this.setState({ currentPage }, this.loadWorkflowExecutions);
-  }
+  const handlePageChanged = useCallback((currentPage: number) => {
+    setURL(history.location, history, currentPage + 1, 'page');
+    loadWorkflowExecutions();
+  }, []);
 
+  const handlePageChangeEvent = useCallback((event: React.MouseEvent<HTMLButtonElement> | null, page: number) => {
+    setURL(history.location, history, page + 1, 'page');
+    loadWorkflowExecutions();
+  }, []);
+
+  /*
   handlePrev = (): void =>
     this.setState({
       currentPage: this.state.currentPage - 1
@@ -206,137 +110,210 @@ class WorkflowExecutionsTable extends Component<Props, State> {
   handleNext = (): void =>
     this.setState({
       currentPage: this.state.currentPage + 1
-    }, this.loadWorkflowExecutions);
+    }, this.loadWorkflowExecutions); */
 
-  handleSelectItemsPerPage = (
+  const handleSelectItemsPerPage = useCallback((
     event: React.ChangeEvent<HTMLSelectElement>
   ): void => {
-    const value: any = event.target.value;
-    this.setState({
-      rowsPerPage: parseInt(value)
-    }, this.loadWorkflowExecutions);
-  };
+    const rowsPerPage = parseInt(event.target.value);
+    setURL(history.location, history, rowsPerPage, 'rows_per_page');
+    loadWorkflowExecutions();
+  }, []);
 
-  public render() {
-    const {
-      history
-    } = this.props;
+  const handleRowsPerChangeEvent = useCallback((
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ): void => {
+    const rowsPerPage = parseInt(event.target.value);
+    setURL(history.location, history, rowsPerPage, 'rows_per_page');
+    loadWorkflowExecutions();
+  }, []);
 
-    const {
-      workflowExecutionsPage,
-      currentPage,
-      rowsPerPage,
-      sortBy,
-      descending,
-      workflowExecutionUuidsPendingStop,
-      workflowExecutionUuidsPendingRetry
-    } = this.state;
+  const handleActionRequested = async (action: string | undefined, cbData: any) => {
+    switch (action) {
+      case 'stop': {
+        const updated = workflowExecutionUuidsPendingStop.concat(['' + cbData.uuid]);
+        setWorkflowExecutionUuidsPendingStop(updated);
 
-    if (workflowExecutionsPage.results.length === 0) {
-      return <div>This Workflow has not run yet.</div>
+        try {
+          const stoppedWorkflowExecution = await stopWorkflowExecution(cbData.uuid);
+
+          onWorkflowExecutionUpdated(stoppedWorkflowExecution);
+
+          setWorkflowExecutionUuidsPendingStop(
+              _.pull(workflowExecutionUuidsPendingStop,
+                  stoppedWorkflowExecution.uuid)
+          );
+        } catch (err) {
+          onActionError(action, cbData, catchableToString(err));
+        }
+        await loadWorkflowExecutions();
+      }
+      break;
+
+      case 'retry': {
+        const updated = workflowExecutionUuidsPendingRetry.concat(['' + cbData.uuid]);
+        setWorkflowExecutionUuidsPendingRetry(updated);
+
+        try {
+          const retriedWorkflowExecution = await retryWorkflowExecution(cbData.uuid);
+
+          onWorkflowExecutionUpdated(retriedWorkflowExecution);
+
+          setWorkflowExecutionUuidsPendingRetry(
+              _.pull(workflowExecutionUuidsPendingRetry,
+                  retriedWorkflowExecution.uuid)
+          );
+        } catch (err) {
+          onActionError(action, cbData, catchableToString(err));
+        }
+        await loadWorkflowExecutions();
+      }
+      break;
+
+      default:
+      console.error(`Unknown action: "${action}"`);
+      break;
     }
-
-    return (
-      <div>
-        <DefaultPagination
-          currentPage={currentPage}
-          pageSize={rowsPerPage}
-          count={workflowExecutionsPage.count}
-          handleClick={this.handlePageChanged}
-          handleSelectItemsPerPage={this.handleSelectItemsPerPage}
-          itemsPerPageOptions={itemsPerPageOptions}
-        />
-        <Table striped bordered responsive hover size="sm">
-          <thead>
-            <tr>
-              {WORKFLOW_EXECUTION_COLUMNS.map(
-                (item: TableColumnInfo) => (
-                  <th
-                    key={item.name}
-                    onClick={item.ordering ? async () => {
-                      await this.loadWorkflowExecutions(item.ordering, true)
-                    } : undefined
-                  }
-                    className={'th-header' + (item.textAlign ? ` ${item.textAlign}`: '')}
-                  >
-                    {item.name}
-                    {
-                      (sortBy === item.ordering) &&
-                      <span>
-                        &nbsp;
-                        <i className={'fas fa-arrow-' + (descending ?  'down' : 'up')} />
-                      </span>
-
-                    }
-                  </th>
-                )
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {workflowExecutionsPage.results.map(
-              (
-                we: WorkflowExecutionSummary,
-                index: number
-              ) => {
-                // isService: TODO
-                const colors = colorPicker(we.status, false);
-                const pushToDetailPage = () => history.push(`/workflow_executions/${we.uuid}`, { we });
-                return (
-                  <tr key={index} className="custom_status_bg">
-                    <td onClick={pushToDetailPage}>
-                      {we.started_at ? timeFormat(we.started_at) : "Never started"}
-                    </td>
-                    <td onClick={pushToDetailPage}>
-                      {we.finished_at ? timeFormat(we.finished_at) : "Not finished"}
-                    </td>
-                    <td onClick={pushToDetailPage}>
-                      {timeDuration(we.started_at, we.finished_at)}
-                    </td>
-                    <td className={colors} onClick={pushToDetailPage}>
-                      {we
-                        ? <Status isService={false} status={we.status}
-                           forExecutionDetail={true} />
-                        : null}
-                    </td>
-                    <td className="text-right" onClick={pushToDetailPage}>
-                      {we.failed_attempts}
-                    </td>
-                    <td className="text-right" onClick={pushToDetailPage}>
-                      {we.timed_out_attempts}
-                    </td>
-                    <td>
-                      <ActionButton cbData={we} onActionRequested={this.handleActionRequested}
-                       action="stop" faIconName="stop" label="Stop"
-                       inProgress={workflowExecutionUuidsPendingStop.indexOf(we.uuid) >= 0}
-                       inProgressLabel="Stopping ..."
-                       disabled={we.status !== C.WORKFLOW_EXECUTION_STATUS_RUNNING} />
-
-                      <ActionButton cbData={we} action="retry" faIconName="redo" label="Retry"
-                       onActionRequested={this.handleActionRequested}
-                       inProgress={workflowExecutionUuidsPendingRetry.indexOf(we.uuid) >= 0}
-                       inProgressLabel="Retrying ..."
-                       disabled={!we || (we.status === WORKFLOW_EXECUTION_STATUS_RUNNING)} />
-                    </td>
-                  </tr>
-                );
-              }
-            )}
-          </tbody>
-        </Table>
-        <div className="d-flex justify-content-between align-items-center">
-          <TablePagination
-            component="div"
-            labelRowsPerPage="Showing "
-            count={workflowExecutionsPage.count}
-            rowsPerPage={rowsPerPage}
-            page={currentPage}
-            onPageChange={(event) => null}
-          />
-        </div>
-      </div>
-    );
   }
+
+  useEffect(() => {
+    const loadExecutions = async () => {
+      await loadWorkflowExecutions();
+      const interval = setInterval(loadWorkflowExecutions,
+        UIC.TASK_REFRESH_INTERVAL_MILLIS);
+      setSelfInterval(interval);
+    };
+
+    loadExecutions();
+
+    return () => {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+        setSelfInterval(null);
+      }
+    };
+  }, []);
+
+  if (workflowExecutionsPage.results.length === 0) {
+    return <div>This Workflow has not run yet.</div>
+  }
+
+  const {
+    sortBy,
+    descending,
+    rowsPerPage,
+    currentPage,
+  } = getParams(history.location.search);
+
+  return (
+    <div>
+      <DefaultPagination
+        currentPage={currentPage}
+        pageSize={rowsPerPage}
+        count={workflowExecutionsPage.count}
+        handleClick={handlePageChanged}
+        handleSelectItemsPerPage={handleSelectItemsPerPage}
+        itemsPerPageOptions={itemsPerPageOptions}
+      />
+      <Table striped bordered responsive hover size="sm">
+        <thead>
+          <tr>
+            {WORKFLOW_EXECUTION_COLUMNS.map(
+              (item: TableColumnInfo) => (
+                <th
+                  key={item.name}
+                  onClick={item.ordering ? async () => {
+                    const {
+                      descending
+                    } = getParams(history.location.search);
+                    setURL(history.location, history, 1, 'page');
+                    setURL(history.location, history, item.ordering, 'sort_by');
+                    setURL(history.location, history, !descending, 'descending');
+
+                    await loadWorkflowExecutions();
+                  } : undefined
+                }
+                  className={'th-header' + (item.textAlign ? ` ${item.textAlign}`: '')}
+                >
+                  {item.name}
+                  {
+                    (sortBy === item.ordering) &&
+                    <span>
+                      &nbsp;
+                      <i className={'fas fa-arrow-' + (descending ?  'down' : 'up')} />
+                    </span>
+
+                  }
+                </th>
+              )
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {workflowExecutionsPage.results.map(
+            (
+              we: WorkflowExecutionSummary,
+              index: number
+            ) => {
+              // isService: TODO
+              const colors = colorPicker(we.status, false);
+              const pushToDetailPage = () => history.push(`/workflow_executions/${we.uuid}`, { we });
+              return (
+                <tr key={index} className="custom_status_bg">
+                  <td onClick={pushToDetailPage}>
+                    {we.started_at ? timeFormat(we.started_at) : "Never started"}
+                  </td>
+                  <td onClick={pushToDetailPage}>
+                    {we.finished_at ? timeFormat(we.finished_at) : "Not finished"}
+                  </td>
+                  <td onClick={pushToDetailPage}>
+                    {timeDuration(we.started_at, we.finished_at)}
+                  </td>
+                  <td className={colors} onClick={pushToDetailPage}>
+                    {we
+                      ? <Status isService={false} status={we.status}
+                          forExecutionDetail={true} />
+                      : null}
+                  </td>
+                  <td className="text-right" onClick={pushToDetailPage}>
+                    {we.failed_attempts}
+                  </td>
+                  <td className="text-right" onClick={pushToDetailPage}>
+                    {we.timed_out_attempts}
+                  </td>
+                  <td>
+                    <ActionButton cbData={we} onActionRequested={handleActionRequested}
+                      action="stop" faIconName="stop" label="Stop"
+                      inProgress={workflowExecutionUuidsPendingStop.indexOf(we.uuid) >= 0}
+                      inProgressLabel="Stopping ..."
+                      disabled={we.status !== C.WORKFLOW_EXECUTION_STATUS_RUNNING} />
+
+                    <ActionButton cbData={we} action="retry" faIconName="redo" label="Retry"
+                      onActionRequested={handleActionRequested}
+                      inProgress={workflowExecutionUuidsPendingRetry.indexOf(we.uuid) >= 0}
+                      inProgressLabel="Retrying ..."
+                      disabled={!we || (we.status === WORKFLOW_EXECUTION_STATUS_RUNNING)} />
+                  </td>
+                </tr>
+              );
+            }
+          )}
+        </tbody>
+      </Table>
+      <div className="d-flex justify-content-between align-items-center">
+        <TablePagination
+          component="div"
+          labelRowsPerPage="Showing "
+          count={workflowExecutionsPage.count}
+          rowsPerPage={rowsPerPage}
+          page={currentPage}
+          onPageChange={handlePageChangeEvent}
+          onRowsPerPageChange={handleRowsPerChangeEvent}
+          rowsPerPageOptions={[25, 50, 100]}
+        />
+      </div>
+    </div>
+  );
 }
 
-export default withRouter(WorkflowExecutionsTable);
+export default abortableHoc<Props>(WorkflowExecutionsTable);

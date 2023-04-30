@@ -8,11 +8,12 @@ import { ApiKey } from '../../../types/domain_types';
 import {
   deleteApiKey,
   fetchApiKeys,
-  ResultsPage
+  makeEmptyResultsPage
 } from "../../../utils/api";
 
-import React, { Component } from "react";
-import { RouteComponentProps, withRouter } from "react-router";
+import React, { useContext, useEffect, useState } from "react";
+
+import { useHistory, useLocation } from 'react-router-dom';
 
 import { Alert, Row, Col } from 'react-bootstrap';
 
@@ -30,6 +31,7 @@ import AsyncConfirmationModal from '../../../components/common/AsyncConfirmation
 import { BootstrapVariant } from '../../../types/ui_types';
 import * as UIC from '../../../utils/ui_constants';
 
+import AccessDenied from '../../../components/AccessDenied';
 import Loading from '../../../components/Loading';
 import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
 import CustomButton from '../../../components/common/Button/CustomButton';
@@ -39,216 +41,98 @@ import { getParams, setURL } from '../../../utils/url_search';
 import classNames from 'classnames';
 import styles from './index.module.scss'
 
-interface Props extends RouteComponentProps<any> {
-}
+type Props = AbortSignalProps;
 
-type InnerProps = Props & AbortSignalProps;
+const ApiKeyList = ({
+  abortSignal
+}: Props) => {
+  const context = useContext(GlobalContext);
+  const {
+    currentGroup
+  } = context;
 
-interface State {
-  isLoading: boolean;
-  flashBody?: any;
-  flashAlertVariant?: BootstrapVariant;
-  apiKeyPage: ResultsPage<ApiKey>;
-  currentPage: number;
-  rowsPerPage: number;
-}
+  const history = useHistory();
+  const location = useLocation();
 
-class ApiKeyList extends Component<InnerProps, State> {
-  static contextType = GlobalContext;
+  const [flashBody, setFlashBody] = useState<string | null>(null);
+  const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>('info');
+  const [isLoading, setLoading] = useState(true);
+  const [page, setPage] = useState(makeEmptyResultsPage<ApiKey>());
 
-  constructor(props: InnerProps) {
-    super(props);
-
-    this.state = {
-      isLoading: false,
-      apiKeyPage: { count: 0, results: [] },
-      currentPage: 0,
-      rowsPerPage: UIC.DEFAULT_PAGE_SIZE,
-    };
-
-    this.loadApiKeys = _.debounce(this.loadApiKeys, 250) as () => Promise<void>;
-  }
-
-  loadApiKeys = async (): Promise<void> => {
-    const { currentGroup } = this.context;
-
+  const loadApiKeys = async () => {
     const {
-      currentPage,
-      rowsPerPage
-    } = this.state;
-
-    // get params from URL
-    const { q } = getParams(this.props.location.search);
+      q,
+      rowsPerPage,
+      currentPage
+    } = getParams(history.location.search);
 
     // user can't sort API keys, so just set here
     const sortBy = 'key';
     const descending = false;
-    const offset = currentPage * rowsPerPage;
 
-    let apiKeyPage: any = [];
+    console.log(`loadApiKeys, q = ${q}`);
 
-    this.setState({
-      isLoading: true
-    });
+    setLoading(true);
 
     try {
-      apiKeyPage = await fetchApiKeys({
+      const fetchedPage = await fetchApiKeys({
         groupId: currentGroup?.id,
-        q,
+        q: q ?? undefined,
         sortBy,
         descending,
-        offset,
+        offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
-        abortSignal: this.props.abortSignal
+        abortSignal
       });
+
+      setPage(fetchedPage);
     } catch (error) {
       if (isCancel(error)) {
         console.log('Request canceled: ' + error.message);
         return;
       }
+    } finally {
+      setLoading(false);
     }
 
-    this.setState({
-      isLoading: false,
-      apiKeyPage
-    });
-  }
-
-  handleSelectItemsPerPage = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ): void => {
-    const value = event.target.value;
-    this.setState({
-      rowsPerPage: parseInt(value)
-    }, this.loadApiKeys);
+    console.log('done loadApiKeys');
   };
 
-  handleSortChanged = async (ordering?: string, toggleDirection?: boolean) => {
-    // this.setURL(undefined, ordering, toggleDirection);
-    // this.loadApiKeys();
-  };
-
-  handleQueryChanged = (
+  const handleQueryChanged = (
     event: React.ChangeEvent<HTMLInputElement>
   ): void => {
-    setURL(this.props.location, this.props.history, event.target.value, 'q');
-    this.loadApiKeys();
+    setURL(history.location, history, 1, 'page');
+    setURL(history.location, history, event.target.value, 'q');
+
+    loadApiKeys();
   };
 
-  handlePageChanged = (currentPage: number): void => {
-    this.setState({ currentPage }, this.loadApiKeys);
-  }
+  const handlePageChanged = (currentPage: number) => {
+    setURL(history.location, history, currentPage + 1, 'page');
+    loadApiKeys();
+  };
 
-  handlePrev = (): void =>
+  /*const handlePrev = (): void =>
     this.setState({
       currentPage: Math.max(this.state.currentPage - 1, 0)
     }, this.loadApiKeys);
 
-  handleNext = (): void =>
+  const handleNext = (): void =>
     this.setState({
       currentPage: this.state.currentPage + 1
-    }, this.loadApiKeys);
+    }, this.loadApiKeys); */
 
-  componentDidMount() {
-    this.loadApiKeys();
+  useEffect(() => {
+    loadApiKeys();
+  }, []);
+
+  const accessLevel = accessLevelForCurrentGroup(context);
+
+  if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
+    return <AccessDenied />;
   }
 
-  public render() {
-    const {
-      apiKeyPage,
-      currentPage,
-      isLoading,
-      flashBody,
-      flashAlertVariant,
-    } = this.state;
-
-    const accessLevel = accessLevelForCurrentGroup(this.context);
-
-    if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
-      return null;
-    }
-
-    // initialise page based on URL query parameters. Destructure with defaults, otherwise typescript throws error
-    const {q = '', sortBy = '', descending = false} = getParams(
-      this.props.location.search);
-
-    return (
-      <div key="aktcon" className={styles.container}>
-        {
-          flashBody &&
-          <Alert variant={flashAlertVariant || 'success'}>
-            {flashBody}
-          </Alert>
-        }
-
-        <Row>
-          <Col>
-            <BreadcrumbBar
-              firstLevel="API Keys"
-              secondLevel={null}
-            />
-          </Col>
-        </Row>
-
-        <Row>
-          <Col>
-            <input key="searchInput"
-              className={classNames({
-                'p-2': true,
-                [styles.searchInput]: true
-              })}
-              onChange={this.handleQueryChanged}
-              onKeyDown={keyEvent => {
-                if (keyEvent.key === 'Enter') {
-                  this.loadApiKeys();
-                }
-              }}
-              placeholder="Search"
-              value={q}
-            />
-          </Col>
-        </Row>
-
-        {
-          isLoading ? <Loading /> :
-          (!q && (currentPage === 0) && (apiKeyPage.count === 0)) ?
-          <p>You have no API keys.</p> : (
-            <ApiKeyTable
-              q={q}
-              sortBy={sortBy}
-              descending={descending}
-              handleSortChanged={this.handleSortChanged}
-              loadApiKeys={this.loadApiKeys}
-              handlePageChanged={this.handlePageChanged}
-              handleSelectItemsPerPage={this.handleSelectItemsPerPage}
-              handleDeletionRequest={this.handleDeletionRequest}
-              {... this.state}
-            />
-          )
-        }
-
-        {
-          (accessLevel >= C.ACCESS_LEVEL_DEVELOPER) && (
-            <Row>
-              <Col>
-                <CustomButton
-                  action="create"
-                  className="mt-3"
-                  faIconName="plus-square"
-                  label="Add new API Key ..."
-                  onActionRequested={this.handleAddApiKey}
-                  variant="outlined"
-                  size="small"
-                />
-              </Col>
-            </Row>
-          )
-        }
-      </div>
-    );
-  }
-
-  private handleDeletionRequest = async (apiKey: ApiKey) => {
+  const handleDeletionRequest = async (apiKey: ApiKey) => {
     const modal = createModal(AsyncConfirmationModal);
 
     const rv = await modal({
@@ -271,35 +155,104 @@ class ApiKeyList extends Component<InnerProps, State> {
     });
 
     if (rv) {
-      return await this.handleDeletionConfirmed(apiKey);
+      return await handleDeletionConfirmed(apiKey);
     }
 
-    return Promise.resolve(null);
+    return null;
   };
 
-  private handleDeletionConfirmed = async (apiKey: ApiKey) => {
-    this.setState({
-      flashBody: null
-    });
+  const handleDeletionConfirmed = async (apiKey: ApiKey) => {
+    setFlashBody(null);
 
     try {
       await deleteApiKey(apiKey.uuid);
 
-      this.setState({
-        flashAlertVariant: 'success',
-        flashBody: `Successfully deleted API Key "${apiKey.key}".`
-      }, () => this.loadApiKeys());
+      setFlashAlertVariant('success');
+      setFlashBody(`Successfully deleted API Key "${apiKey.key}".`);
+      loadApiKeys();
     } catch (e) {
-      this.setState({
-        flashAlertVariant: 'danger',
-        flashBody: `Failed to deleted API Key "${apiKey.key}".`
-      });
+      setFlashAlertVariant('danger');
+      setFlashBody(`Failed to deleted API Key "${apiKey.key}".`);
     }
   }
 
-  handleAddApiKey = (action: string | undefined, cbData: any) => {
-    this.props.history.push('/api_keys/new')
+  const handleAddApiKey = (action: string | undefined, cbData: any) => {
+    history.push('/api_keys/new')
   };
+
+  const {
+    q,
+    currentPage
+  } = getParams(location.search);
+
+  return (
+    <div key="aktcon" className={styles.container}>
+      {
+        flashBody &&
+        <Alert variant={flashAlertVariant || 'success'}>
+          {flashBody}
+        </Alert>
+      }
+
+      <Row>
+        <Col>
+          <BreadcrumbBar
+            firstLevel="API Keys"
+            secondLevel={null}
+          />
+        </Col>
+      </Row>
+
+      <Row>
+        <Col>
+          <input key="searchInput"
+            className={classNames({
+              'p-2': true,
+              [styles.searchInput]: true
+            })}
+            onChange={handleQueryChanged}
+            onKeyDown={keyEvent => {
+              if (keyEvent.key === 'Enter') {
+                loadApiKeys();
+              }
+            }}
+            placeholder="Search"
+            value={q}
+          />
+        </Col>
+      </Row>
+
+      {
+        isLoading ? <Loading /> :
+        (!q && (currentPage === 1) && (page.count === 0)) ?
+        <p>You have no API keys.</p> : (
+          <ApiKeyTable
+            apiKeyPage={page}
+            handlePageChanged={handlePageChanged}
+            handleDeletionRequest={handleDeletionRequest}
+          />
+        )
+      }
+
+      {
+        (accessLevel >= C.ACCESS_LEVEL_DEVELOPER) && (
+          <Row>
+            <Col>
+              <CustomButton
+                action="create"
+                className="mt-3"
+                faIconName="plus-square"
+                label="Add new API Key ..."
+                onActionRequested={handleAddApiKey}
+                variant="outlined"
+                size="small"
+              />
+            </Col>
+          </Row>
+        )
+      }
+    </div>
+  );
 }
 
-export default withRouter(abortableHoc(ApiKeyList));
+export default abortableHoc(ApiKeyList);

@@ -1,3 +1,5 @@
+import { AxiosError, isCancel } from 'axios';
+
 import * as C from '../../../utils/constants'
 
 import {
@@ -10,14 +12,19 @@ import {
   fetchTask,
   fetchTaskExecutions,
   itemsPerPageOptions,
+  makeEmptyResultsPage,
   ResultsPage,
   updateTask
 } from '../../../utils/api';
 
-import { stopTaskExecution, startTaskExecution } from '../../../utils/index';
+import {
+  catchableToString,
+  startTaskExecution,
+  stopTaskExecution
+} from '../../../utils';
 
-import React, { Component, Fragment } from 'react';
-import { withRouter, RouteComponentProps } from 'react-router';
+import React, { Fragment, useCallback, useContext, useEffect, useState } from 'react';
+import { useHistory, useParams } from 'react-router-dom';
 
 import { Alert } from 'react-bootstrap';
 
@@ -27,6 +34,8 @@ import {
   GlobalContext,
   accessLevelForCurrentGroup
 } from '../../../context/GlobalContext';
+
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { BootstrapVariant } from '../../../types/ui_types';
 import * as UIC from '../../../utils/ui_constants';
@@ -49,12 +58,11 @@ import { Switch } from '@material-ui/core';
 import styles from './index.module.scss'
 import TaskExecutionTable from './TaskExecutionTable';
 
-
 type PathParamsType = {
-  id: string;
+  uuid: string;
 };
 
-type Props = RouteComponentProps<PathParamsType>;
+type Props = AbortSignalProps;
 
 interface State {
   isLoading: boolean;
@@ -74,427 +82,365 @@ interface State {
   flashAlertVariant?: BootstrapVariant;
 }
 
-class TaskDetail extends Component<Props, State> {
-  static contextType = GlobalContext;
+const TaskDetail = ({
+  abortSignal
+}: Props) => {
+  const [isLoading, setLoading] = useState(false);
+  const [task, setTask] = useState<TaskImpl | null>(null);
+  const [runEnvironment, setRunEnvironment] = useState<RunEnvironment | null>(null);
+  const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
+  const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>('info');
+  const [isStarting, setStarting] = useState(false);
 
-  constructor(props: Props) {
-    super(props);
+  const [taskExecutionsPage, setTaskExecutionsPage] = useState(
+    makeEmptyResultsPage<TaskExecution>());
+  const [currentPage, setCurrentPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(UIC.DEFAULT_PAGE_SIZE);
+  const [sortBy, setSortBy] = useState('started_at');
+  const [descending, setDescending] = useState(true);
+  const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
+  const [stoppingTaskExecutionUuids, setStoppingTaskExecutionUuids] =
+    useState(new Set<string>());
+  const [selectedTab, setSelectedTab] = useState('overview');
+  const [selfInterval, setSelfInterval] = useState<any>(null);
 
-    this.state = {
-      isLoading: false,
-      taskExecutionsPage: { count: 0, results: [] },
-      currentPage: 0,
-      rowsPerPage: UIC.DEFAULT_PAGE_SIZE,
-      sortBy: 'started_at',
-      descending: true,
-      shouldShowConfigModal: false,
-      isStarting: false,
-      stoppingTaskExecutionUuids: new Set(),
-      lastErrorMessage: null,
-      selectedTab: 'overview'
-    };
-  }
+  const context = useContext(GlobalContext);
+  const history = useHistory();
 
-  async componentDidMount() {
-    await this.loadTask();
-    await this.loadRunEnvironment()
-    await this.loadTaskExecutions();
-    const interval = setInterval(this.loadTaskExecutions,
-      UIC.TASK_REFRESH_INTERVAL_MILLIS);
-    this.setState({
-      interval
-    });
-  }
+  const {
+    uuid
+  }  = useParams<PathParamsType>();
 
-  componentWillUnmount() {
-    if (this.state.interval) {
-      clearInterval(this.state.interval);
-    }
-  }
-
-  handleActionRequested = async (action: string | undefined, cbData: any): Promise<void> => {
-    const {
-      task: process
-    } = this.state;
-
-    if (!process) {
+  const handleActionRequested = async (action: string | undefined, cbData: any): Promise<void> => {
+    if (!task) {
       return;
     }
 
-    this.setState({
-      lastErrorMessage: null
-    });
+    setLastErrorMessage(null);
 
     switch (action) {
       case 'configure':
-        this.openConfigModal();
+        openConfigModal();
         break;
 
       case 'start':
         try {
           await startTaskExecution(cbData, (confirmed: boolean) => {
             if (confirmed) {
-              this.setState({
-                isStarting: true
-              });
+              setStarting(true);
             }
           });
 
-          this.loadTaskExecutions();
+          loadTaskExecutions();
         } catch (err) {
-          this.setState({
-            lastErrorMessage: err.message || 'Failed to start Task'
-          });
+          setLastErrorMessage('Failed to start Task: ' +
+            catchableToString(err));
         } finally {
-          this.setState({
-            isStarting: false
-          });
+          setStarting(false);
         }
         break;
 
       case 'stop':
         try {
-          await stopTaskExecution(process, cbData.uuid, (confirmed: boolean) => {
+          await stopTaskExecution(task, cbData.uuid, (confirmed: boolean) => {
             if (confirmed) {
-              const {
-                stoppingTaskExecutionUuids
-              } = this.state;
-
               const updatedSet = new Set(stoppingTaskExecutionUuids);
               updatedSet.add(cbData.uuid);
-
-              this.setState({
-                isStarting: true,
-                stoppingTaskExecutionUuids: updatedSet
-              });
+              setStarting(true);
+              setStoppingTaskExecutionUuids(updatedSet);
             }
           });
         } catch (err) {
-          this.setState({
-            lastErrorMessage: 'Failed to stop Task Execution' || err.message
-          });
+          setLastErrorMessage('Failed to stop Task Execution: ' +
+            catchableToString(err));
         } finally {
-          const {
-            stoppingTaskExecutionUuids
-          } = this.state;
-
           const updatedSet = new Set(stoppingTaskExecutionUuids);
           updatedSet.delete(cbData.uuid);
 
-          this.setState({
-            stoppingTaskExecutionUuids: updatedSet
-          });
+          setStoppingTaskExecutionUuids(updatedSet);
         }
-        await this.loadTaskExecutions();
+        await loadTaskExecutions();
         break;
 
       default:
         console.error(`Unknown action: "${action}"`);
         break;
     }
-  }
+  };
 
-  async loadTask() {
-    this.setState({
-      isLoading: false,
-      lastErrorMessage: null
-    });
-
-    const uuid = this.props.match.params.id;
+  const loadTask = async () => {
+    setLoading(false); // CHECKME
+    setLastErrorMessage(null);
 
     try {
-      const task = await fetchTask(uuid);
+      const fetchedTask = await fetchTask(uuid, abortSignal);
 
-      this.setState({ task, lastErrorMessage: null });
+      setTask(fetchedTask);
+      setLastErrorMessage(null);
 
-      document.title = `CloudReactor - Task ${task.name}`;
+      document.title = `CloudReactor - Task ${fetchedTask.name}`;
+
+      return fetchedTask;
     } catch (err) {
-
-      this.setState({
-        lastErrorMessage: 'Failed to load Task. It may have been removed previously.'
-      });
+      setLastErrorMessage('Failed to load Task. It may have been removed previously.');
+      return null;
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  async loadRunEnvironment() {
-    const {
-      task
-    } = this.state;
-
-    if (!task) {
+  const loadRunEnvironment = async (t: TaskImpl) => {
+    if (!t) {
       return;
     }
 
     try {
-      const runEnvironment = await fetchRunEnvironment(task.run_environment.uuid);
-      this.setState({ runEnvironment });
+      const runEnvironment = await fetchRunEnvironment(
+        t.run_environment.uuid, abortSignal);
+      setRunEnvironment(runEnvironment);
     } catch (err) {
-
-      this.setState({
-        lastErrorMessage: 'Failed to load Run Environment.'
-      });
+      setFlashAlertVariant('danger');
+      setLastErrorMessage('Failed to load Run Environment.');
     }
   }
 
-  loadTaskExecutions = async (ordering?: string, toggleDirection?: boolean) => {
-    const {
-      currentPage,
-      rowsPerPage
-    } = this.state;
-
-    let {
-      sortBy,
-      descending
-    } = this.state;
-
-    sortBy = ordering || sortBy;
-
-    if (toggleDirection) {
-      descending = !descending;
-    }
-
+  const loadTaskExecutions = async (ordering?: string, toggleDirection?: boolean) => {
+    const updatedSortBy = ordering || sortBy;
+    const updatedDescending = toggleDirection ? !descending : descending;
     const offset = currentPage * rowsPerPage;
 
     try {
       const taskExecutionsPage = await fetchTaskExecutions({
-        taskUuid: this.props.match.params.id,
-        sortBy,
-        descending,
+        taskUuid: uuid,
+        sortBy: updatedSortBy,
+        descending: updatedDescending,
         offset,
-        maxResults: rowsPerPage
+        maxResults: rowsPerPage,
+        abortSignal
       });
 
-      this.setState({
-        descending,
-        taskExecutionsPage,
-        sortBy
-      });
+      setDescending(updatedDescending);
+      setSortBy(updatedSortBy);
+      setTaskExecutionsPage(taskExecutionsPage);
     } catch (error) {
       console.log(error);
     }
   }
 
-  handlePageChanged = (currentPage: number): void => {
-    this.setState({ currentPage }, this.loadTaskExecutions);
-  }
+  const handlePageChanged = (updatedCurrentPage: number) => {
+    setCurrentPage(updatedCurrentPage);
+    loadTaskExecutions();
+  };
 
-  handlePrev = (): void =>
-    this.setState({
-      currentPage: this.state.currentPage - 1
-    }, this.loadTaskExecutions);
+  const handlePrev = () => {
+    setCurrentPage(currentPage - 1);
+    loadTaskExecutions();
+  };
 
-  handleNext = (): void =>
-    this.setState({
-      currentPage: this.state.currentPage + 1
-    }, this.loadTaskExecutions);
+  const handleNext = () => {
+    setCurrentPage(currentPage + 1);
+    loadTaskExecutions();
+  };
 
-  handleSelectItemsPerPage = (
+  const handleSelectItemsPerPage = (
     event: React.ChangeEvent<HTMLSelectElement>
-  ): void => {
+  ) => {
     const value: any = event.target.value;
-    this.setState({
-      rowsPerPage: parseInt(value)
-    }, this.loadTaskExecutions);
+    setRowsPerPage(parseInt(value));
+    loadTaskExecutions();
   };
 
-  handleCloseConfigModal = () => {
-    this.setState({
-      shouldShowConfigModal: false
-    });
+  const handleCloseConfigModal = () => {
+    setShouldShowConfigModal(false);
   };
 
-  openConfigModal = () => {
-    this.setState({
-      shouldShowConfigModal: true
-    })
-  }
+  const openConfigModal = () => {
+    setShouldShowConfigModal(true);
+  };
 
-  editTask = async (uuid: string, data: any): Promise<void> => {
+  const editTask = async (uuid: string, data: any) => {
     try {
-      const task = await updateTask(uuid, data)
-      this.setState({
-        flashAlertVariant: 'success',
-        lastErrorMessage: 'Updated Task settings'
-      });
-      this.setState({ task: task }, () =>
-        this.props.history.push("#", { item: task })
-      );
+      const updatedTask = await updateTask(uuid, data, abortSignal);
+      setFlashAlertVariant('success');
+      setLastErrorMessage('Updated Task settings');
+      setTask(updatedTask);
+
+      history.push("#", { item: updatedTask })
     } catch (err) {
+      if (isCancel(err)) {
+        console.log("Request canceled: " + err.message);
+        return;
+      }
+
       let errorMessage = 'Failed to update settings';
-      if (err.response && err.response.data) {
+      if ((err instanceof AxiosError) && err.response && err.response.data) {
          errorMessage += ': ' + JSON.stringify(err.response.data) + ' ' + JSON.stringify(err.response.status);
       }
-      this.setState({
-        flashAlertVariant: 'danger',
-        lastErrorMessage: errorMessage
-      })
+      setFlashAlertVariant('danger'),
+      setLastErrorMessage(errorMessage);
     }
   }
 
-  onTabChange = (selectedTab: string) => {
-    const value = selectedTab.toLowerCase();
-    this.setState({
-      selectedTab: value
+  const onTabChange = (selectedTab: string) => {
+    setSelectedTab(selectedTab.toLowerCase());
+  }
+
+  useEffect(() => {
+    loadTask().then(t => {
+      if (t) {
+        loadRunEnvironment(t);
+        loadTaskExecutions().then(() => {
+          const interval = setInterval(loadTaskExecutions,
+            UIC.TASK_REFRESH_INTERVAL_MILLIS);
+          setSelfInterval(interval);
+        });
+      }
     });
+
+    return () => {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+        setSelfInterval(null);
+      }
+    };
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading ...</div>
   }
 
-  public render() {
-    const {
-      isLoading,
-      currentPage,
-      rowsPerPage,
-      descending,
-      sortBy,
-      stoppingTaskExecutionUuids,
-      task,
-      runEnvironment,
-      taskExecutionsPage,
-      isStarting,
-      shouldShowConfigModal,
-      lastErrorMessage,
-      selectedTab,
-      flashAlertVariant
-    } = this.state;
+  const name = task?.name;
 
-    if (isLoading) {
-      return <div>Loading ...</div>
-    }
+  const accessLevel = accessLevelForCurrentGroup(context);
+  const isStartAllowed = !!accessLevel && (accessLevel >= C.ACCESS_LEVEL_TASK);
+  const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
 
-    const name = task?.name;
+  const navItems = ['Overview', 'Settings', 'Alerts'];
 
-    const accessLevel = accessLevelForCurrentGroup(this.context);
-    const isStartAllowed = !!accessLevel && (accessLevel >= C.ACCESS_LEVEL_TASK);
-    const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
+  return (
+    <div className={styles.container}>
+      {
+        lastErrorMessage &&
+        <Alert
+          variant={flashAlertVariant || "danger"}
+          onClose={() => {
+            setLastErrorMessage(null);
+          }}
+          dismissible
+        >
+          { lastErrorMessage }
+        </Alert>
+      }
 
-    const navItems = ['Overview', 'Settings', 'Alerts'];
+      {
+        task && (
+          <Fragment>
+            <div className={styles.breadcrumbContainer}>
+              <BreadcrumbBar
+                firstLevel={name}
+                secondLevel={null}
+              />
 
-    return (
-      <div className={styles.container}>
-        {
-          lastErrorMessage &&
-          <Alert
-            variant={flashAlertVariant || "danger"}
-            onClose={() => {
-              this.setState({
-                lastErrorMessage: null
-              });
-            }}
-            dismissible
-          >
-            { lastErrorMessage }
-          </Alert>
-        }
-
-        {
-          task && (
-            <Fragment>
-              <div className={styles.breadcrumbContainer}>
-                <BreadcrumbBar
-                  firstLevel={name}
-                  secondLevel={null}
-                />
-
-                <div>
-                  <Switch
-                    color="primary"
-                    checked={task.enabled}
-                    disabled={!isMutationAllowed}
-                    className={styles.switch}
-                    onChange={event => {
-                      this.editTask(
-                        task.uuid,
-                        { enabled: event.target.checked }
-                      )}
-                    }
-                  />
-                  <ActionButton cbData={task} onActionRequested={this.handleActionRequested}
-                    action="configure" faIconName="wrench" label="Configuration"
-                    tooltip={ (isMutationAllowed ? 'Modify' : 'View') + " this Task's configuration" } />
-
-                  <ActionButton cbData={task} onActionRequested={this.handleActionRequested}
-                    action="start" disabled={!isStartAllowed || !task.canManuallyStart()} inProgress={isStarting}
-                    faIconName="play" label="Start" inProgressLabel="Starting ..."
-                    tooltip={ isStartAllowed ? (
-                      task.canManuallyStart() ?
-                        'Start a new Execution of this Task' :
-                        'This Task cannot be manually started'
-                    ) : 'You do not have permission to manually start this Task' } />
-                </div>
-              </div>
-
-              <TaskSummary task={task} />
-
-              <TaskLinks links={task.links} />
               <div>
-                <Tabs selectedTab={selectedTab} navItems={navItems} onTabChange={this.onTabChange} />
-              </div>
-              <div>
-                {(() => {
-                  switch (selectedTab) {
-                    case 'settings':
-                      return <TaskSettings task={task} runEnvironment={runEnvironment} />;
-                    case 'alerts':
-                      return <TaskAlerts task={task} editTask={this.editTask} />;
-                    default:
-                      return (
-                        (taskExecutionsPage.count > 0) ? (
-                          <Fragment>
-                            <Charts id={this.props.match.params.id} history={this.props.history} />
-                            <h2 className="mt-5">Executions</h2>
-
-                            <DefaultPagination
-                              currentPage={currentPage}
-                              pageSize={rowsPerPage}
-                              count={taskExecutionsPage.count}
-                              handleClick={this.handlePageChanged}
-                              handleSelectItemsPerPage={this.handleSelectItemsPerPage}
-                              itemsPerPageOptions={itemsPerPageOptions}
-                            />
-                            <TaskExecutionTable
-                              taskExecutions={taskExecutionsPage.results}
-                              task={task}
-                              onStopRequested={this.handleActionRequested}
-                              stoppingTaskExecutionUuids={stoppingTaskExecutionUuids}
-                              handleSort={this.loadTaskExecutions}
-                              sortBy={sortBy}
-                              descending={descending}
-                            />
-                            <TablePagination
-                              component="div"
-                              labelRowsPerPage="Showing"
-                              count={taskExecutionsPage.count}
-                              rowsPerPage={rowsPerPage}
-                              page={currentPage}
-                              onPageChange={(event) => null}
-                            />
-                          </Fragment>
-                        ) : (
-                          <h2 className="my-5 text-center">
-                            This Task has not run yet. When it does, you&apos;ll be able to see
-                            a table of past executions here.
-                          </h2>
-                        )
-                      );
+                <Switch
+                  color="primary"
+                  checked={task.enabled}
+                  disabled={!isMutationAllowed}
+                  className={styles.switch}
+                  onChange={event => {
+                    editTask(
+                      task.uuid,
+                      { enabled: event.target.checked }
+                    )}
                   }
-                })()}
-              </div>
-              <ConfigModalContainer
-                isOpen={shouldShowConfigModal}
-                handleClose={this.handleCloseConfigModal}
-                title={task.name}
-              >
-                <ConfigModalBody
-                  task={task}
-                  editTask={this.editTask}
-                  handleClose={this.handleCloseConfigModal}
                 />
-              </ConfigModalContainer>
-            </Fragment>
-          )
-        }
-      </div>
-    );
-  }
+                <ActionButton cbData={task} onActionRequested={handleActionRequested}
+                  action="configure" faIconName="wrench" label="Configuration"
+                  tooltip={ (isMutationAllowed ? 'Modify' : 'View') + " this Task's configuration" } />
+
+                <ActionButton cbData={task} onActionRequested={handleActionRequested}
+                  action="start" disabled={!isStartAllowed || !task.canManuallyStart()} inProgress={isStarting}
+                  faIconName="play" label="Start" inProgressLabel="Starting ..."
+                  tooltip={ isStartAllowed ? (
+                    task.canManuallyStart() ?
+                      'Start a new Execution of this Task' :
+                      'This Task cannot be manually started'
+                  ) : 'You do not have permission to manually start this Task' } />
+              </div>
+            </div>
+
+            <TaskSummary task={task} />
+
+            <TaskLinks links={task.links} />
+            <div>
+              <Tabs selectedTab={selectedTab} navItems={navItems} onTabChange={onTabChange} />
+            </div>
+            <div>
+              {(() => {
+                switch (selectedTab) {
+                  case 'settings':
+                    return <TaskSettings task={task} runEnvironment={runEnvironment ?? undefined} />;
+                  case 'alerts':
+                    return <TaskAlerts task={task} editTask={editTask} />;
+                  default:
+                    return (
+                      (taskExecutionsPage.count > 0) ? (
+                        <Fragment>
+                          <Charts id={uuid} history={history} />
+                          <h2 className="mt-5">Executions</h2>
+
+                          <DefaultPagination
+                            currentPage={currentPage}
+                            pageSize={rowsPerPage}
+                            count={taskExecutionsPage.count}
+                            handleClick={handlePageChanged}
+                            handleSelectItemsPerPage={handleSelectItemsPerPage}
+                            itemsPerPageOptions={itemsPerPageOptions}
+                          />
+                          <TaskExecutionTable
+                            taskExecutions={taskExecutionsPage.results}
+                            task={task}
+                            onStopRequested={handleActionRequested}
+                            stoppingTaskExecutionUuids={stoppingTaskExecutionUuids}
+                            handleSort={loadTaskExecutions}
+                            sortBy={sortBy}
+                            descending={descending}
+                          />
+                          <TablePagination
+                            component="div"
+                            labelRowsPerPage="Showing"
+                            count={taskExecutionsPage.count}
+                            rowsPerPage={rowsPerPage}
+                            page={currentPage}
+                            onPageChange={(event) => null}
+                          />
+                        </Fragment>
+                      ) : (
+                        <h2 className="my-5 text-center">
+                          This Task has not run yet. When it does, you&apos;ll be able to see
+                          a table of past executions here.
+                        </h2>
+                      )
+                    );
+                }
+              })()}
+            </div>
+            <ConfigModalContainer
+              isOpen={shouldShowConfigModal}
+              handleClose={handleCloseConfigModal}
+              title={task.name}
+            >
+              <ConfigModalBody
+                task={task}
+                editTask={editTask}
+                handleClose={handleCloseConfigModal}
+              />
+            </ConfigModalContainer>
+          </Fragment>
+        )
+      }
+    </div>
+  );
 }
 
-export default withRouter(TaskDetail);
+export default abortableHoc(TaskDetail);

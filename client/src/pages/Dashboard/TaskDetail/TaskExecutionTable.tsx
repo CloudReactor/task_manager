@@ -6,8 +6,7 @@ import { Task, TaskExecution } from '../../../types/domain_types';
 import { colorPicker, timeFormat, timeDuration } from '../../../utils/index';
 
 import React, { useContext } from 'react';
-import { withRouter } from 'react-router-dom';
-import { RouteComponentProps } from 'react-router';
+import { useHistory } from 'react-router-dom';
 
 import { Table } from 'react-bootstrap';
 
@@ -22,7 +21,7 @@ import ActionButton from '../../../components/common/ActionButton';
 import '../../../styles/tableStyles.scss';
 import { TableColumnInfo } from '../../../types/ui_types';
 
-interface Props extends RouteComponentProps<any> {
+interface Props {
   taskExecutions: TaskExecution[];
   task: Task,
   stoppingTaskExecutionUuids: Set<string>,
@@ -36,13 +35,14 @@ const TaskExecutionTable = ({
   taskExecutions, task,
   stoppingTaskExecutionUuids,
   onStopRequested,
-  handleSort, sortBy, descending,
-  history
+  handleSort, sortBy, descending
 }: Props) => {
   const context = useContext(GlobalContext);
 
   const accessLevel = accessLevelForCurrentGroup(context);
   const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_TASK);
+
+  const history = useHistory();
 
   const numberFormat = new Intl.NumberFormat();
 
@@ -181,4 +181,4 @@ const TaskExecutionTable = ({
   );
 }
 
-export default withRouter(TaskExecutionTable);
+export default TaskExecutionTable;
