@@ -55,7 +55,7 @@ type Props = {
   emailNotificationProfile?: EmailNotificationProfile;
   onSaveStarted?: (enp: EmailNotificationProfile) => void;
   onSaveSuccess?: (enp: EmailNotificationProfile) => void;
-  onSaveError?: (ex: Error, values: any) => void;
+  onSaveError?: (err: unknown, values: any) => void;
 }
 
 interface State {
@@ -130,10 +130,10 @@ const EmailNotificationProfileEditor = ({
             if (onSaveSuccess) {
               onSaveSuccess(saved);
             }
-          } catch (ex) {
+          } catch (err) {
             actions.setSubmitting(false);
             if (onSaveError) {
-              onSaveError(ex, values);
+              onSaveError(err, values);
             }
           }
         }}

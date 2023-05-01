@@ -73,7 +73,7 @@ const TaskTable = (props: Props) => (
     </div>
     <div className="d-flex justify-content-between align-items-center">
       <div className={styles.searchContainer}>
-        <Form.Control type="text" as={DebounceInput}
+        <Form.Control type="search" as={DebounceInput}
           onChange={props.handleQueryChanged}
           onKeyDown={(keyEvent: any) => {
             if (keyEvent.key === 'Enter') {

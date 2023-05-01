@@ -8,16 +8,19 @@ import {
   Modal,
   ModalBody,
   ModalFooter,
-  ModalTitle,
-  ModalProps
+  ModalTitle
 } from "react-bootstrap";
+
+import { ModalProps } from 'react-bootstrap/Modal';
+
+import { InstanceProps } from 'react-modal-promise';
 
 import {
   BootstrapButtonVariant
 } from '../../types/ui_types';
 
-interface Props extends ModalProps {
-  onResolve: (proceed: boolean) => void,
+
+type Props = ModalProps & InstanceProps<boolean> & {
   disabled?: boolean;
   title: string;
   confirmLabel?: any;
@@ -27,23 +30,30 @@ interface Props extends ModalProps {
   submittingLabel?: string;
   cancelLabel?: any;
   cancelButtonVariant?: BootstrapButtonVariant;
+  children?: React.ReactElement;
 }
 
 // Properties in props but that shouldn't be passed to Modal
 const EXTRA_PROPS = [
-  'onResolve', 'disabled', 'title',
+  'disabled', 'title',
   'confirmLabel', 'confirmButtonVariant',
   'faIconName',
   'submittingFaIconName', 'submittingLabel',
   'cancelLabel', 'cancelButtonVariant',
 
   // From react-modal-promise
-  'isOpen', 'close', 'enterTimeout', 'exitTimeout',
+  'isOpen', 'enterTimeout', 'exitTimeout',
+  'instanceId', 'onResolve', 'onReject',
+  // From react-modal-promise (deprecated)
+  'open', 'close',
 ];
 
 export default function AsyncConfirmationModal(props: Props) {
   const {
     isOpen,
+    onResolve,
+    size,
+    backdrop,
     disabled,
     title,
     confirmLabel,
@@ -53,21 +63,11 @@ export default function AsyncConfirmationModal(props: Props) {
     cancelButtonVariant,
     submittingFaIconName,
     submittingLabel,
-    onResolve,
     children
   } = props;
 
-  // Set defaults
-  let {
-    size,
-    backdrop
-  } = props;
-
-  size = size || 'lg';
-
-  if (backdrop === undefined) {
-    backdrop = 'static'
-  }
+  const resolvedSize = size || 'lg';
+  const resolvedBackdrop = backdrop || 'static';
 
   const [isSubmitting, setSubmitting] = useState(false);
 
@@ -91,8 +91,8 @@ export default function AsyncConfirmationModal(props: Props) {
   };
 
   return (
-    <Modal {... _.omit(props, EXTRA_PROPS)} show={isOpen} size={size}
-     backdrop={backdrop} onHide={() => onResolve(false)}>
+    <Modal {... _.omit(props, EXTRA_PROPS)} show={isOpen} size={resolvedSize}
+     backdrop={resolvedBackdrop} onHide={() => onResolve(false)}>
       <Modal.Header closeButton>
         <ModalTitle>{title}</ModalTitle>
       </Modal.Header>

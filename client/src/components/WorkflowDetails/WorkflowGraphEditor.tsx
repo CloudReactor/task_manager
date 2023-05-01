@@ -151,8 +151,7 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
     return (
       <div>
         <div id='graph' className="graph-view">
-          <GraphView  ref='GraphView'
-                      nodeKey={WorkflowGraph.NODE_KEY}
+          <GraphView  nodeKey={WorkflowGraph.NODE_KEY}
                       nodes={nodes}
                       edges={edges}
                       selected={selected}

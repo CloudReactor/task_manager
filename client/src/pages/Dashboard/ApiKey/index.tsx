@@ -15,9 +15,11 @@ import React, { useContext, useEffect, useState } from "react";
 
 import { useHistory, useLocation } from 'react-router-dom';
 
-import { Alert, Row, Col } from 'react-bootstrap';
+import { Alert, Form, Row, Col } from 'react-bootstrap';
 
 import { createModal } from 'react-modal-promise';
+
+import { DebounceInput } from 'react-debounce-input';
 
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
@@ -40,6 +42,7 @@ import { getParams, setURL } from '../../../utils/url_search';
 
 import classNames from 'classnames';
 import styles from './index.module.scss'
+
 
 type Props = AbortSignalProps;
 
@@ -186,7 +189,7 @@ const ApiKeyList = ({
   } = getParams(location.search);
 
   return (
-    <div key="aktcon" className={styles.container}>
+    <div className={styles.container}>
       {
         flashBody &&
         <Alert variant={flashAlertVariant || 'success'}>
@@ -204,8 +207,8 @@ const ApiKeyList = ({
       </Row>
 
       <Row>
-        <Col>
-          <input key="searchInput"
+        <Col xs={6} xl={4}>
+          <Form.Control type="search" as={DebounceInput}
             className={classNames({
               'p-2': true,
               [styles.searchInput]: true
@@ -216,7 +219,7 @@ const ApiKeyList = ({
                 loadApiKeys();
               }
             }}
-            placeholder="Search"
+            placeholder="Search API Keys"
             value={q}
           />
         </Col>

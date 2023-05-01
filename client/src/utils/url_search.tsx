@@ -51,7 +51,7 @@ export const setURL = (
 
   const newQueryString = '?' + params.toString();
   history.replace({
-    pathname: location.pathname,
+    //pathname: location.pathname,
     search: newQueryString,
   })
 }

@@ -7,7 +7,10 @@ import checker from 'vite-plugin-checker';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react(), viteTsconfigPaths(), svgrPlugin(),
+    react(),
+    viteTsconfigPaths({
+      loose: true
+    }), svgrPlugin(),
     checker({
       typescript: true,
       eslint: {

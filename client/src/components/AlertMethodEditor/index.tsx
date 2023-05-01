@@ -47,7 +47,7 @@ type Props = {
   alertMethod?: AlertMethod;
   onSaveStarted?: (alertMethod: AlertMethod) => void;
   onSaveSuccess?: (alertMethod: AlertMethod) => void;
-  onSaveError?: (ex: Error, values: any) => void;
+  onSaveError?: (err: unknown, values: any) => void;
 }
 
 const validationSchema = Yup.object().shape({

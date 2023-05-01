@@ -45,7 +45,7 @@ export interface EntityDetailInnerProps<T extends EntityReference> extends Abort
   entity: T | null;
   onSaveStarted: (T) => void;
   onSaveSuccess: (T) => void;
-  onSaveError: (ex: unknown, values: any) => void;
+  onSaveError: (err: unknown, values: any) => void;
 }
 
 export const makeEntityDetailComponent = <T extends EntityReference, P>(
@@ -124,7 +124,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
         title: `Clone ${entityName}`,
         confirmLabel: 'Clone',
         faIconName: 'copy',
-        children: (
+        body: (
           <p>
             Clone the {entityName} &lsquo;{entity.name}&rsquo;?
           </p>

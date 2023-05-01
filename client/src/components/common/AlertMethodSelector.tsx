@@ -189,6 +189,4 @@ class AlertMethodSelector extends React.Component<InnerProps, State> {
   }
 }
 
-// cast as React.Component<Props, State> - this drops AbortSignalProps so as to not
-// expose AbortSignalProps as outer props
 export default abortableHoc(AlertMethodSelector);

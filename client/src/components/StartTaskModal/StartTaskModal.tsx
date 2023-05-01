@@ -3,6 +3,8 @@ import { Task } from '../../types/domain_types';
 import React, { useState } from 'react';
 import { Button, ButtonGroup, ButtonToolbar, Modal } from 'react-bootstrap'
 
+import { InstanceProps } from 'react-modal-promise';
+
 import BootstrapTable from 'react-bootstrap-table-next';
 import cellEditFactory from 'react-bootstrap-table2-editor';
 
@@ -26,9 +28,7 @@ interface EnvironmentRow {
   value: string;
 }
 
-interface Props {
-  isOpen: boolean;
-  onResolve: (taskExecutionProps: any) => void,
+type Props = InstanceProps<any> & {
   task: Task
 }
 

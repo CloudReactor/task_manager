@@ -11,6 +11,7 @@ import {
 import { BootstrapButtonVariant } from '../../types/ui_types';
 
 interface Props {
+  children?: React.ReactElement;
   shouldShow: boolean;
   disabled?: boolean;
   title: string;
@@ -28,6 +29,7 @@ interface State {
 class ConfirmationModal extends Component<Props, State> {
   public render() {
     const {
+      children,
       shouldShow,
       disabled,
       title,
@@ -46,7 +48,7 @@ class ConfirmationModal extends Component<Props, State> {
         </Modal.Header>
 
         <ModalBody>
-          { this.props.children || body }
+          { children || body }
         </ModalBody>
 
         <ModalFooter>

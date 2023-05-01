@@ -67,11 +67,13 @@ const WorkflowExecutionDetail = (props: Props & AbortSignalProps) => {
   const setupRefresh = (execution: WorkflowExecution) => {
     if (execution && shouldRefreshWorkflowExecution(execution)) {
       if (!selfInterval) {
+        console.log('setupRefresh: setInterval');
         const updatedInterval = setInterval(fetchExecutionDetails,
           UIC.TASK_REFRESH_INTERVAL_MILLIS);
         setSelfInterval(updatedInterval);
       }
     } else if (selfInterval) {
+      console.log('setupRefresh: clear');
       clearInterval(selfInterval)
       setSelfInterval(null);
     }
@@ -105,10 +107,11 @@ const WorkflowExecutionDetail = (props: Props & AbortSignalProps) => {
 
     return () => {
       if (selfInterval) {
+        console.log('useEffect: clear');
         clearInterval(selfInterval);
       }
     };
-  });
+  }, []);
 
   if (!workflowExecution) {
     return <Loading />;

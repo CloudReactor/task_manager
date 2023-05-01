@@ -120,8 +120,7 @@ export default class WorkflowExecutionDiagram extends Component<Props, State> {
       <Row>
         <Col md={8} lg={9}>
           <div id='graph' className="graph-view">
-            <GraphView  ref='GraphView'
-                        nodeKey={WorkflowGraph.NODE_KEY}
+            <GraphView  nodeKey={WorkflowGraph.NODE_KEY}
                         nodes={nodes}
                         edges={edges}
                         selected={selected}

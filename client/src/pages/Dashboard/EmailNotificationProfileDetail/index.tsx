@@ -12,7 +12,7 @@ import React from 'react';
 
 import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../components/common/EntityDetailHoc'
 
-import EmailNotificationProfileEditor from '../../../components/EmailProfileNotificationEditor';
+import EmailNotificationProfileEditor from '../../../components/EmailNotificationProfileEditor';
 
 interface Props {
 }
