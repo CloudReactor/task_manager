@@ -18,7 +18,7 @@ import {
   Col
 } from 'react-bootstrap/'
 
-import { createModal } from 'react-modal-promise';
+import { create } from 'react-modal-promise';
 
 import { GlobalContext, accessLevelForCurrentGroup } from '../../../context/GlobalContext';
 
@@ -118,13 +118,13 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
         return;
       }
 
-      const modal = createModal(AsyncConfirmationModal);
+      const modal = create(AsyncConfirmationModal);
 
       const rv = await modal({
         title: `Clone ${entityName}`,
         confirmLabel: 'Clone',
         faIconName: 'copy',
-        body: (
+        children: (
           <p>
             Clone the {entityName} &lsquo;{entity.name}&rsquo;?
           </p>
@@ -195,7 +195,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
         return;
       }
 
-      const modal = createModal(AsyncConfirmationModal);
+      const modal = create(AsyncConfirmationModal);
 
       const rv = await modal({
         title: `Delete ${entityName}`,
@@ -247,7 +247,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
           console.error(`Unknown action '${action}'`);
           break;
       }
-    }, []);
+    }, [handleCloneRequested, handleDeletionRequested]);
 
 
     useEffect(() => {
