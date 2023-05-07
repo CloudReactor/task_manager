@@ -68,7 +68,6 @@ const TaskExecutionDetail = ({
     return () => {
       if (selfInterval) {
         clearInterval(selfInterval);
-        setSelfInterval(null);
       }
     };
   }, []);

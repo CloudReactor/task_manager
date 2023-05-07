@@ -189,7 +189,6 @@ const WorkflowExecutionsTable = ({
     return () => {
       if (selfInterval) {
         clearInterval(selfInterval);
-        setSelfInterval(null);
       }
     };
   }, []);

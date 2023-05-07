@@ -302,7 +302,6 @@ const WorkflowList = (props: AbortSignalProps) => {
     return () => {
       if (selfInterval) {
         clearInterval(selfInterval);
-        setSelfInterval(null);
       }
     };
   }, []);

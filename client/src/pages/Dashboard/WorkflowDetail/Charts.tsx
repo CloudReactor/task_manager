@@ -94,7 +94,6 @@ const Charts = (props: Props & AbortSignalProps) => {
     return () => {
       if (selfInterval) {
         clearInterval(selfInterval);
-        setSelfInterval(null);
       }
     };
   }, []);

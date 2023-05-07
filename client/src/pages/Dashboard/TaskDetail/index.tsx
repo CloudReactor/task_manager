@@ -300,7 +300,6 @@ const TaskDetail = ({
     return () => {
       if (selfInterval) {
         clearInterval(selfInterval);
-        setSelfInterval(null);
       }
     };
   }, []);

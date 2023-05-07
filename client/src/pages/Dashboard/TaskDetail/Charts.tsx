@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import * as path from '../../../constants/routes';
 
-import React, { Fragment } from 'react';
+import React, { Component, Fragment } from 'react';
 import Chart from '../../../components/Chart/Chart';
 import { timeFormat } from '../../../utils/index';
 import { fetchTaskExecutions } from '../../../utils/api';
@@ -43,7 +43,7 @@ const extractChartValues = (filteredData: any[], extractY: (execution: any) => s
   };
 };
 
-export default class Charts extends React.Component<Props, State> {
+export default class Charts extends Component<Props, State> {
   constructor(props: any) {
     super(props);
 

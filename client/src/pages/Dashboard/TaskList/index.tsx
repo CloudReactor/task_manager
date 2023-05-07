@@ -304,7 +304,6 @@ const TaskList = ({
     return () => {
       if (selfInterval) {
         clearInterval(selfInterval);
-        setSelfInterval(null);
       }
     };
   }, []);
