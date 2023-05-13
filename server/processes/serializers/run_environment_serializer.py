@@ -226,9 +226,13 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
                             default_aws_network = aws_settings.get('network')
 
                             if default_aws_network:
-                                validated['aws_default_subnets'] = default_aws_network['subnets']
-                                validated['aws_ecs_default_security_groups'] = default_aws_network['security_groups']
-                                validated['aws_ecs_default_assign_public_ip'] = default_aws_network['assign_public_ip']
+                                if 'subnets' in default_aws_network:
+                                    validated['aws_default_subnets'] = default_aws_network['subnets']
+
+                                self.copy_props_with_prefix(dest_dict=validated,
+                                    src_dict=default_aws_network,
+                                    dest_prefix='aws_ecs_default_',
+                                    included_keys=['security_groups', 'assign_public_ip'])
                     else:
                         raise serializers.ValidationError({
                             'infrastructure_settings': ['Non-default infrastructure settings not supported yet']
@@ -263,12 +267,19 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
                             self.copy_props_with_prefix(dest_dict=validated,
                                     src_dict=em_settings,
                                     dest_prefix='aws_ecs_default_',
-                                    except_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
+                                    except_keys=['supported_launch_types', 'enable_ecs_managed_tags', 'execution_role_arn', 'task_role_arn'])
 
                             self.copy_props_with_prefix(dest_dict=validated,
                                     src_dict=em_settings,
                                     dest_prefix='aws_ecs_',
                                     included_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
+
+                            if 'execution_role_arn' in em_settings:
+                                validated['aws_ecs_default_execution_role'] = em_settings['execution_role_arn']
+
+                            if 'task_role_arn' in em_settings:
+                                validated['aws_ecs_default_task_role'] = em_settings['task_role_arn']
+
                         elif emt == AwsLambdaExecutionMethod.NAME:
                             validated['default_aws_lambda_configuration'] = em_settings
                 else:
