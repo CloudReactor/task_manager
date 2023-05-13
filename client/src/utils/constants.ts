@@ -73,6 +73,8 @@ export const EXECUTION_CAPABILITY_MANUAL_START = 'MANUAL_START';
 export const EXECUTION_CAPABILITY_SCHEDULING = 'SCHEDULING';
 export const EXECUTION_CAPABILITY_SETUP_SERVICE = 'SETUP_SERVICE';
 
+export const DEFAULT_NAME = '__default__';
+
 export const INFRASTRUCTURE_TYPE_AWS = 'AWS';
 
 export const AWS_REGIONS = [
@@ -136,3 +138,4 @@ export const AWS_ECS_PLATFORM_VERSIONS = [
   '1.4.0',
   'LATEST'
 ];
+export const SERVICE_PROVIDER_AWS_ECS = 'AWS ECS';

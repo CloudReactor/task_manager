@@ -6,16 +6,24 @@ import {
 } from "../../utils";
 
 import {
+  DEFAULT_NAME,
+  INFRASTRUCTURE_TYPE_AWS,
+  EXECUTION_METHOD_TYPE_AWS_ECS,
+  EXECUTION_METHOD_TYPE_AWS_LAMBDA,
+  SERVICE_PROVIDER_AWS_ECS
+} from '../../utils/constants';
+
+import {
   RunEnvironment, Task,
-  LegacyTaskAwsEcsExecutionMethodCapability,
+  AwsEcsExecutionMethodSettings,
   AwsLambdaExecutionMethodCapability,
-  AwsInfrastructureSettings
+  AwsInfrastructureSettings,
+  AwsEcsServiceSettings
 } from '../../types/domain_types';
 
 import { Table } from 'react-bootstrap';
 
 import BooleanIcon from '../common/BooleanIcon';
-import { EXECUTION_METHOD_TYPE_AWS_ECS, EXECUTION_METHOD_TYPE_AWS_LAMBDA, INFRASTRUCTURE_TYPE_AWS } from '../../utils/constants';
 
 interface NameValuePair {
   name: string;
@@ -32,10 +40,19 @@ interface Props {
 }
 
 const TaskSettings = ({ task, runEnvironment }: Props) => {
-  const execMethod = task.execution_method_capability;
+  const runEnvInfraSettings = runEnvironment?.infrastructure_settings;
+  const runEnvExecMethodSettings = runEnvironment?.execution_method_settings;
+
+  const runEnvAwsSettings = runEnvInfraSettings?.[INFRASTRUCTURE_TYPE_AWS];
+  const runEnvDefaultAwsNetworkSettings = runEnvAwsSettings?.[DEFAULT_NAME]?.settings?.network;
+
+  const infraType = task.infrastructure_type;
+  const infraSettings = task.infrastructure_settings;
+
   const execMethodType = task.execution_method_type;
   const execMethodDetails = task.execution_method_capability_details;
-  const runEnvExecMethod = (runEnvironment?.execution_method_capabilities ?? [])[0] as any;
+  const serviceProviderType = task.service_provider_type;
+  const serviceSettings = task.service_settings;
 
   let rows = [
     pair('Created by', task.created_by_user ?? 'N/A'),
@@ -69,86 +86,75 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
   ];
 
   if (execMethodType === EXECUTION_METHOD_TYPE_AWS_ECS) {
-    const awsEcsEmc = execMethod as LegacyTaskAwsEcsExecutionMethodCapability;
+    const awsEcsEmc = execMethodDetails as AwsEcsExecutionMethodSettings;
+    const runEnvAwsEcsSettings = runEnvExecMethodSettings?.[EXECUTION_METHOD_TYPE_AWS_ECS]?.[DEFAULT_NAME]?.settings;
+
     const execMethodRows = [
       pair('ECS task definition ARN', makeLink(awsEcsEmc.task_definition_arn,
         awsEcsEmc.task_definition_infrastructure_website_url)),
       pair('Supported launch types',
         awsEcsEmc.supported_launch_types ? awsEcsEmc.supported_launch_types.join(', ') : 'N/A'),
-      pair('Default launch type', awsEcsEmc.default_launch_type),
-      pair('ECS cluster ARN', awsEcsEmc.default_cluster_arn ?
-        makeLink(awsEcsEmc.default_cluster_arn, awsEcsEmc.default_cluster_infrastructure_website_url) :
+      pair('Default launch type', awsEcsEmc.launch_type),
+      pair('ECS cluster ARN', awsEcsEmc.cluster_arn ?
+        makeLink(awsEcsEmc.cluster_arn, awsEcsEmc.cluster_infrastructure_website_url) :
         <span>Default ({
-          makeLink(runEnvExecMethod?.default_cluster_arn ?? 'N/A',
-            runEnvExecMethod?.default_cluster_infrastructure_website_url)
+          makeLink(runEnvAwsEcsSettings?.cluster_arn ?? 'N/A',
+            runEnvAwsEcsSettings?.cluster_infrastructure_website_url)
         })
         </span>),
-      pair('ECS execution role ARN', awsEcsEmc.default_execution_role ?
-        makeLink(awsEcsEmc.default_execution_role, awsEcsEmc.default_execution_role_infrastructure_website_url) :
+      pair('ECS execution role ARN', awsEcsEmc.execution_role_arn ?
+        makeLink(awsEcsEmc.execution_role_arn, awsEcsEmc.execution_role_infrastructure_website_url) :
         <span>Default ({
-          makeLink(runEnvExecMethod.default_execution_role, runEnvExecMethod.default_execution_role_infrastructure_website_url)
+          makeLink(runEnvAwsEcsSettings?.execution_role_arn, runEnvAwsEcsSettings?.execution_role_infrastructure_website_url)
         })
         </span>),
-      pair('ECS task role ARN', awsEcsEmc.default_task_role ?
-        makeLink(awsEcsEmc.default_task_role, awsEcsEmc.default_task_role_infrastructure_website_url) :
+      pair('ECS task role ARN', awsEcsEmc.task_role_arn ?
+        makeLink(awsEcsEmc.task_role_arn, awsEcsEmc.task_role_infrastructure_website_url) :
         <span>Default ({
-          makeLink(runEnvExecMethod.default_task_role || '[None]',
-            runEnvExecMethod.default_task_role_infrastructure_website_url)
+          makeLink(runEnvAwsEcsSettings?.task_role_arn || '[None]',
+            runEnvAwsEcsSettings?.task_role_infrastructure_website_url)
         })
         </span>),
       pair('ECS platform version',
-        awsEcsEmc.default_platform_version ??
-        runEnvExecMethod.default_platform_version ?? 'LATEST'),
-      pair('Subnets', Array.isArray(awsEcsEmc.default_subnets) ?
-        makeLinks(awsEcsEmc.default_subnets,
-          awsEcsEmc.default_subnet_infrastructure_website_urls) :
-        <span>Default ({
-          makeLinks(runEnvExecMethod?.default_subnets ?? 'N/A',
-            runEnvExecMethod?.default_subnet_infrastructure_website_urls)
-        })
-        </span>),
-      pair('Security groups', Array.isArray(awsEcsEmc.default_security_groups) ?
-        makeLinks(awsEcsEmc.default_security_groups,
-          awsEcsEmc.default_security_group_infrastructure_website_urls) :
-        <span>Default ({
-          makeLinks(runEnvExecMethod?.default_security_groups ?? 'N/A',
-            runEnvExecMethod?.default_security_group_infrastructure_website_urls)
-        })
-        </span>),
-      pair('Assign public IP?', <BooleanIcon checked={awsEcsEmc.default_assign_public_ip} />),
+        awsEcsEmc.platform_version ??
+        runEnvAwsEcsSettings?.platform_version ?? 'LATEST'),
     ];
 
-    const serviceInfo = task.current_service_info;
+    if (serviceProviderType === SERVICE_PROVIDER_AWS_ECS) {
+      const awsEcsServiceSettings = serviceSettings as AwsEcsServiceSettings;
 
-    if (serviceInfo) {
-      execMethodRows.push(pair('Current service info', <span/>))
-      execMethodRows.push(pair('  ECS service ARN',
-        makeLink(serviceInfo.service_arn, serviceInfo.service_infrastructure_website_url)));
-    }
+      const serviceArn = awsEcsServiceSettings.service_arn;
 
-    const serviceOptions = awsEcsEmc.service_options;
+      if (serviceArn) {
+        execMethodRows.push(pair('Current service info', <span/>))
+        execMethodRows.push(pair('  ECS service ARN',
+          makeLink(serviceArn, awsEcsServiceSettings.infrastructure_website_url)));
+      }
 
-    if (serviceOptions) {
       execMethodRows.push(pair('Service options', <span/>));
 
       execMethodRows.push(pair('Propagate tags',
-         serviceOptions.propagate_tags || 'Default'));
+        awsEcsServiceSettings.propagate_tags || 'Default'));
 
       execMethodRows.push(pair('Deployment options', <span/>));
       execMethodRows.push(pair('Force new deployment?',
-         <BooleanIcon checked={serviceOptions.force_new_deployment} />));
+        <BooleanIcon checked={awsEcsServiceSettings?.force_new_deployment ?? false} />));
       execMethodRows.push(pair('Enable circuit breaker?',
-         <BooleanIcon checked={serviceOptions.deploy_enable_circuit_breaker} />));
+        <BooleanIcon checked={awsEcsServiceSettings?.deployment_configuration?.deployment_circuit_breaker?.enable ?? false} />));
       execMethodRows.push(pair('Rollback on failure?',
-         <BooleanIcon checked={serviceOptions.deploy_rollback_on_failure} />));
+        <BooleanIcon checked={awsEcsServiceSettings?.deployment_configuration?.deployment_circuit_breaker?.rollback_on_failure ?? false} />));
 
-      if (serviceOptions.load_balancers.length > 0) {
+      const loadBalancerSettings = awsEcsServiceSettings?.load_balancer_settings;
+      const loadBalancers = loadBalancerSettings?.load_balancers;
+
+      if (loadBalancerSettings && loadBalancers?.length) {
         execMethodRows.push(pair('Load balancer health check grace period',
-          formatDuration(serviceOptions.load_balancer_health_check_grace_period_seconds)));
+          formatDuration(loadBalancerSettings.health_check_grace_period_seconds)));
 
-        serviceOptions.load_balancers.forEach((loadBalancer, index) => {
+        loadBalancers.forEach((loadBalancer, index) => {
           execMethodRows.push(pair('Load balancer ' + (index + 1), <span />))
-          execMethodRows.push(pair('  Target group ARN', loadBalancer.target_group_arn));
+          execMethodRows.push(pair('  Target group ARN',
+            makeLink(loadBalancer.target_group_arn, loadBalancer.target_group_infrastructure_website_url)));
           execMethodRows.push(pair('  Container name', loadBalancer.container_name || '(Default)'));
           execMethodRows.push(pair('  Container port', loadBalancer.container_port));
         })
@@ -158,28 +164,45 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
     rows = rows.concat(execMethodRows);
   } else if (execMethodType === EXECUTION_METHOD_TYPE_AWS_LAMBDA) {
     const awsLambdaEmc = execMethodDetails as AwsLambdaExecutionMethodCapability;
-    const execMethodRows = [
+    rows = rows.concat([
       pair('Function ARN', makeLink(awsLambdaEmc.function_arn,
         awsLambdaEmc.infrastructure_website_url)),
       pair('Function version', awsLambdaEmc.function_version),
       pair('Init type', awsLambdaEmc.init_type),
       pair('Runtime ID', awsLambdaEmc.runtime_id),
       pair('.NET PreJIT', awsLambdaEmc.dotnet_prejit),
-    ]
-
-    rows = rows.concat(execMethodRows);
+    ]);
   }
 
-  const infrastructureType = task.infrastructure_type;
-
-  if (infrastructureType && task.infrastructure_settings) {
+  if (infraType && task.infrastructure_settings) {
     let infraRows: NameValuePair[] = [];
 
-    switch (infrastructureType) {
+    switch (infraType) {
       case INFRASTRUCTURE_TYPE_AWS: {
         const awsSettings = task.infrastructure_settings as AwsInfrastructureSettings;
+        const awsNetworkSettings = awsSettings?.network;
 
-        // TODO: Network
+        if (awsNetworkSettings) {
+          infraRows = infraRows.concat([
+            pair('Subnets', Array.isArray(awsNetworkSettings.subnets) ?
+              makeLinks(awsNetworkSettings.subnets,
+                awsNetworkSettings.subnet_infrastructure_website_urls) :
+              <span>Default ({
+                makeLinks(runEnvDefaultAwsNetworkSettings?.subnets ?? [],
+                  runEnvDefaultAwsNetworkSettings?.subnet_infrastructure_website_urls)
+              })
+              </span>),
+            pair('Security groups', Array.isArray(awsNetworkSettings.security_groups) ?
+              makeLinks(awsNetworkSettings.security_groups,
+                awsNetworkSettings.security_group_infrastructure_website_urls) :
+              <span>Default ({
+                makeLinks(runEnvDefaultAwsNetworkSettings?.security_groups ?? [],
+                  runEnvDefaultAwsNetworkSettings?.security_group_infrastructure_website_urls)
+              })
+              </span>),
+            pair('Assign public IP?', <BooleanIcon checked={awsNetworkSettings.assign_public_ip ?? false} />),
+          ]);
+        }
 
         const awsLogging = awsSettings.logging;
 
@@ -209,7 +232,7 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
           }
         }
 
-        const tags = awsSettings.tags;
+        const tags = awsSettings?.tags;
 
         if (tags) {
           infraRows.push(pair('Tags', ''));

@@ -1,7 +1,9 @@
 import {
   AWS_ECS_LAUNCH_TYPE_FARGATE,
+  DEFAULT_NAME,
   EXECUTION_CAPABILITY_MANUAL_START,
-  EXECUTION_METHOD_TYPE_UNKNOWN
+  EXECUTION_METHOD_TYPE_UNKNOWN,
+  INFRASTRUCTURE_TYPE_AWS
 } from '../utils/constants';
 
 export interface EntityReference {
@@ -223,65 +225,6 @@ implements LegacyExecutionMethodCapabilityImpl {
   type = EXECUTION_METHOD_TYPE_UNKNOWN;
 }
 
-export interface LegacyAwsEcsExecutionMethodCapability
-extends LegacyExecutionMethodCapability {
-  allocated_cpu_units: number | null;
-  allocated_memory_mb: number | null;
-  default_subnets: string[];
-  default_subnet_infrastructure_website_urls?: (string[] | null);
-  default_launch_type: string;
-  supported_launch_types: string[];
-  default_cluster_arn: string;
-  default_cluster_infrastructure_website_url?: string | null;
-  default_security_groups: string[];
-  default_security_group_infrastructure_website_urls?: (string[] | null);
-  default_assign_public_ip: boolean;
-  default_execution_role: string;
-  default_execution_role_infrastructure_website_url?: string | null;
-  default_task_role?: string;
-  default_task_role_infrastructure_website_url?: string | null;
-  default_platform_version: string;
-  tags: AwsTags | null;
-}
-
-export class LegacyAwsEcsExecutionMethodCapabilityImpl
-extends LegacyExecutionMethodCapabilityImpl
-implements LegacyAwsEcsExecutionMethodCapability {
-  allocated_cpu_units = 256;
-  allocated_memory_mb = 512;
-  default_subnets = [];
-  default_subnet_infrastructure_website_urls? = null;
-  default_launch_type = AWS_ECS_LAUNCH_TYPE_FARGATE;
-  supported_launch_types = [AWS_ECS_LAUNCH_TYPE_FARGATE];
-  default_cluster_arn = '';
-  default_cluster_infrastructure_website_url? = null;
-  default_security_groups = [];
-  default_security_group_infrastructure_website_urls? = null;
-  default_assign_public_ip = false;
-  default_execution_role = '';
-  default_execution_role_infrastructure_website_url? = null;
-  default_task_role?: string;
-  default_task_role_infrastructure_website_url?: string | null;
-  default_platform_version = '';
-  tags = null;
-}
-
-export class LegacyTaskAwsEcsExecutionMethodCapability
-extends LegacyAwsEcsExecutionMethodCapabilityImpl {
-  service_options: {
-    load_balancer_health_check_grace_period_seconds: number | null;
-    load_balancers: AwsLoadBalancer[],
-    force_new_deployment: boolean | null;
-    deploy_enable_circuit_breaker: boolean | null,
-    deploy_rollback_on_failure: boolean | null,
-    enable_ecs_managed_tags: boolean | null,
-    propagate_tags: string | null,
-    tags: AwsTags | null,
-  } | null = null;
-  task_definition_arn = '';
-  task_definition_infrastructure_website_url = null;
-}
-
 export interface AwsEcsExecutionMethodSettings {
   launch_type?: string | null;
   supported_launch_types?: string[] | null;
@@ -310,7 +253,7 @@ export interface NamedExecutionMethodSettings<T> {
 export interface RunEnvironment extends EntityReferenceWithDates {
   created_by_group: GroupReference;
   infrastructure_settings: {
-    'AWS'?: NamedInfrastructureSettings<AwsInfrastructureSettings>;
+    [INFRASTRUCTURE_TYPE_AWS]?: NamedInfrastructureSettings<AwsInfrastructureSettings>;
     [key: string]: NamedInfrastructureSettings<any> | undefined;
   };
   execution_method_settings: {
@@ -326,20 +269,20 @@ export function makeNewRunEnvironment(): RunEnvironment {
     created_by_group: makeEmptyGroupReference(),
     description: '',
     execution_method_settings: {
-      'AWS ECS': {
-        '__default__': {
+      [INFRASTRUCTURE_TYPE_AWS]: {
+        [DEFAULT_NAME]: {
           settings: {
             launch_type: AWS_ECS_LAUNCH_TYPE_FARGATE,
             supported_launch_types: [AWS_ECS_LAUNCH_TYPE_FARGATE],
             platform_version: '1.4.0'
           },
-          infrastructure_name: '__default__'
+          infrastructure_name: DEFAULT_NAME
         }
       }
     },
     infrastructure_settings: {
-      'AWS': {
-        '__default__': {
+      [INFRASTRUCTURE_TYPE_AWS]: {
+        [DEFAULT_NAME]: {
           settings: {
             network: {
               subnets: [],
@@ -387,11 +330,39 @@ export interface ExternalLink extends EntityReferenceWithDates {
   rank: number;
 }
 
-export interface LegacyCurrentServiceInfo {
-  type: string,
-  service_arn: string;
-  service_arn_updated_at: Date | null;
-  service_infrastructure_website_url: string | null;
+export interface AwsEcsServiceDeploymentCircuitBreaker {
+  enable: boolean | null;
+  rollback_on_failure: boolean | null;
+}
+
+export interface AwsEcsServiceDeploymentConfiguration {
+  maximum_percent: number | null;
+  minimum_healthy_percent: number | null;
+  deployment_circuit_breaker: AwsEcsServiceDeploymentCircuitBreaker | null;
+}
+
+export interface AwsApplicationLoadBalancer {
+  target_group_arn: string | null;
+  target_group_infrastructure_website_url: string | null;
+  container_name: string | null;
+  container_port: number | null;
+}
+
+export interface AwsApplicationLoadBalancerSettings {
+  health_check_grace_period_seconds: number | null;
+  load_balancers: AwsApplicationLoadBalancer[] | null;
+}
+
+export interface AwsEcsServiceSettings {
+  deployment_configuration: AwsEcsServiceDeploymentConfiguration | null;
+  scheduling_strategy: string | null;
+  force_new_deployment: boolean | null;
+  load_balancer_settings: AwsApplicationLoadBalancerSettings | null;
+  enable_ecs_managed_tags: boolean | null;
+  propagate_tags: string | null;
+  tags: Record<string, string> | null
+  service_arn: string | null;
+  infrastructure_website_url: string | null;
 }
 
 export interface AwsLambdaExecutionMethodCapability {
@@ -413,9 +384,7 @@ export interface Task extends EntityReferenceWithDates, Executable {
   capabilities: string[];
   created_by_group: GroupReference;
   created_by_user?: string;
-  current_service_info: LegacyCurrentServiceInfo | null;
   description: string;
-  execution_method_capability: LegacyExecutionMethodCapability;
   execution_method_capability_details: object | null;
   execution_method_type: string;
   heartbeat_interval_seconds: number;
@@ -456,8 +425,6 @@ implements Task {
   default_max_retries = 0;
   description = '';
   enabled = true;
-  execution_method_capability: LegacyExecutionMethodCapability =
-    new LegacyExecutionMethodCapabilityImpl();
   execution_method_capability_details = null;
   execution_method_type = EXECUTION_METHOD_TYPE_UNKNOWN;
   heartbeat_interval_seconds = 0;
