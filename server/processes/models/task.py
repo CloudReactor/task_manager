@@ -18,7 +18,7 @@ from ..execution_methods import (
     ExecutionMethod,
     AwsEcsExecutionMethod
 )
-from ..exception.unprocessable_entity import UnprocessableEntity
+from ..exception import CommittableException, UnprocessableEntity
 
 from .subscription import Subscription
 from .aws_ecs_configuration import AwsEcsConfiguration
@@ -435,8 +435,12 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                     old_execution_method and old_self and \
                     old_self.is_active_managed_service():
                 # TODO: option to ignore error tearing down
+
+                logger.info("synchronize_with_run_environment(): tearing service down before setup")
                 torndown_service_settings, service_teardown_result = old_execution_method.teardown_service()
                 service_teardown_completed_at = timezone.now()
+
+            logger.info(f"synchronize_with_run_environment(): {will_be_managed_service=}, {torndown_service_settings=}, {service_teardown_result=}")
 
             if will_be_managed_service:
                 try:
@@ -445,25 +449,29 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                             force_creation=should_force_create_service,
                             teardown_result=service_teardown_result)
                 except Exception as ex:
-                    logger.exception(f"Failed to setup service for Task {self.uuid}")
+                    msg = f"Failed to setup service for Task {self.uuid}"
+                    logger.exception(msg)
 
-                    # FIXME: due to AtomicUpdateModelMixin all changes will
-                    # probably be rolled back.
                     if service_teardown_completed_at:
+                        logger.info("Saving torndown service settings locally ...")
                         self.service_settings = torndown_service_settings
                         self.aws_ecs_service_updated_at = service_teardown_completed_at
                         if self.pk:
+                            logger.info("Saving torndown service settings in DB ...")
                             self.save_without_sync()
-                    raise ex
+                            logger.info("Done saving torndown service settings in DB")
+
+                    raise CommittableException(msg) from ex
 
                 self.is_service_managed = True
             else:
                 if old_execution_method:
-                    # FIXME: this overwrites settings
+                    logger.info("synchronize_with_run_environment(): tearing down service because Task will no longer be managed ...")
+
                     self.service_settings, _teardown_result = \
                             old_execution_method.teardown_service()
 
-                if self.is_service_managed is not False:
+                if self.is_service_managed:
                     self.is_service_managed = None
         else:
             logger.debug("Not updating service params")

@@ -690,6 +690,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 old_aws_ecs_execution_method.service_settings and \
                 old_aws_ecs_execution_method.service_settings.service_arn)
 
+        logger.info(f"should_update_or_force_recreate_service(): {was_managed_ecs_service=}, {will_be_managed_service=}")
+
         if not will_be_managed_service:
             return (was_managed_ecs_service, False)
 
@@ -698,14 +700,19 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         ss = self.service_settings
 
+        logger.info(f"should_update_or_force_recreate_service(): service_settings = {ss}")
+
         if (not ss) or (not ss.service_arn):
+            logger.info("should_update_or_force_recreate_service(): missing ss.service_arn, forcing recreate")
             return (True, True)
 
         if not was_managed_ecs_service:
+            logger.info("should_update_or_force_recreate_service(): was_managed_ecs_service=false, forcing recreate")
             return (True, True)
 
         if (not old_task) or (old_task.service_settings is None) or \
                 (not old_aws_ecs_execution_method):
+            logger.info("should_update_or_force_recreate_service(): missing old_aws_ecs_execution_method, forcing recreate")
             return (True, True)
 
         try:
@@ -720,52 +727,49 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if (not old_ss) or (not old_ss.service_arn):
                 return (True, True)
 
-            old_aws_settings = old_aws_ecs_execution_method.aws_settings
+            # old_aws_settings = old_aws_ecs_execution_method.aws_settings
 
-            # TODO: network can change for ECS deployment controller
+            # old_network = old_aws_settings.network
+            # TODO: network cannot change for non-ECS deployment controllers
+            # if (not old_network) or (not old_network.subnets):
+            #     return (True, True)
 
-            old_network = old_aws_settings.network
+            # TODO: load balancers cannot change for non-ECS deployment controllers
+            # old_lbs = old_ss.load_balancer_settings
+            # lbs = ss.load_balancer_settings
 
-            if (not old_network) or (not old_network.subnets):
-                return (True, True)
+            # if lbs:
+            #     lb_list = lbs.load_balancers or []
 
-            # TODO: load balancers can change for ECS deployment controller
+            #     if not old_lbs:
+            #         return (True, bool(lb_list))
 
-            old_lbs = old_ss.load_balancer_settings
-            lbs = ss.load_balancer_settings
+            #     old_lb_list = old_lbs.load_balancers or []
+            #     old_target_group_arn_to_lb: dict[str, AwsApplicationLoadBalancer] = {}
+            #     for old_lb in old_lb_list:
+            #         if old_lb.target_group_arn:
+            #             old_target_group_arn_to_lb[old_lb.target_group_arn] = old_lb
 
-            if lbs:
-                lb_list = lbs.load_balancers or []
+            #     for lb in lb_list:
+            #         if not lb.target_group_arn:
+            #             continue
 
-                if not old_lbs:
-                    return (True, bool(lb_list))
+            #         old_lb_2 = old_target_group_arn_to_lb.pop(lb.target_group_arn, None)
 
-                old_lb_list = old_lbs.load_balancers or []
-                old_target_group_arn_to_lb: dict[str, AwsApplicationLoadBalancer] = {}
-                for old_lb in old_lb_list:
-                    if old_lb.target_group_arn:
-                        old_target_group_arn_to_lb[old_lb.target_group_arn] = old_lb
+            #         if old_lb_2:
+            #             if (old_lb_2.container_name != lb.container_name) or \
+            #                     (old_lb_2.container_port != lb.container_port):
+            #                 logger.info(f"Found different details for target group ARN: '{lb.target_group_arn}': {lb}")
+            #                 return (True, True)
+            #         else:
+            #             logger.info(f"Found new target group ARN: '{lb.target_group_arn}', must recreate service")
+            #             return (True, True)
 
-                for lb in lb_list:
-                    if not lb.target_group_arn:
-                        continue
-
-                    old_lb_2 = old_target_group_arn_to_lb.pop(lb.target_group_arn, None)
-
-                    if old_lb_2:
-                        if (old_lb_2.container_name != lb.container_name) or \
-                                (old_lb_2.container_port != lb.container_port):
-                            logger.info(f"Found different details for target group ARN: '{lb.target_group_arn}': {lb}")
-                            return (True, True)
-                    else:
-                        logger.info(f"Found new target group ARN: '{lb.target_group_arn}', must recreate service")
-                        return (True, True)
-
-                if bool(old_target_group_arn_to_lb) or \
-                        (old_lbs.health_check_grace_period_seconds != lbs.health_check_grace_period_seconds):
-                    return (True, True)
-            elif old_lbs:
-                return (True, True)
+            #     if bool(old_target_group_arn_to_lb) or \
+            #             (old_lbs.health_check_grace_period_seconds != lbs.health_check_grace_period_seconds):
+            #         return (True, True)
+            # elif old_lbs:
+            #     return (True, True)
 
             # recreate is False from here down
 
@@ -781,21 +785,24 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if (not network) or (not network.subnets):
                 raise APIException("Missing network settings for service")
 
-            if (not old_network.subnets) or \
-                    (set(old_network.subnets) != set(network.subnets)):
-                return (True, False)
+            # if (not old_network) or (not old_network.subnets) or \
+            #         (set(old_network.subnets) != set(network.subnets)):
+            #     return (True, False)
 
-            if set(network.security_groups or []) != set(old_network.security_groups or []):
-                return (True, False)
+            # if set(network.security_groups or []) != set(old_network.security_groups or []):
+            #     return (True, False)
 
             dc = ss.deployment_configuration
             old_dc = old_ss.deployment_configuration
 
             if dc != old_dc:
+                logger.info(f"should_update_or_force_recreate_service(): {dc=} != {old_dc=}, requires update but no recreate")
                 return (True, False)
         except Exception:
             logger.warning(f"Can't parse old Task service settings: {old_ss}", exc_info=True)
             return (True, True)
+
+        logger.info("should_update_or_force_recreate_service(): no update or recreate required")
 
         return (False, False)
 
