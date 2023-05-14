@@ -360,6 +360,8 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                 execution_method.should_update_or_force_recreate_scheduled_execution(
                         old_execution_method=old_execution_method)
 
+        logger.info(f"synchronize_with_run_environment(): {self.uuid=} Updating scheduled execution, {self.schedule=}, {should_update_scheduled_execution=}, {should_force_create_scheduled_execution=} ...")
+
         if should_update_scheduled_execution:
             logger.info(f"synchronize_with_run_environment(): Updating scheduled_execution, {self.is_scheduling_managed=}, {self.enabled=} ...")
 
@@ -417,8 +419,10 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
             execution_method.should_update_or_force_recreate_service(
                     old_execution_method=old_execution_method)
 
+        logger.info(f"synchronize_with_run_environment(): {self.uuid=} Updating service, {self.is_service=}, {should_update_service=}, {should_force_create_service=} ...")
+
         if should_update_service:
-            logger.info(f"synchronize_with_run_environment(): Updating service, {self.is_service=}, {self.enabled=}, {self.is_service_managed=} ...")
+            logger.info(f"synchronize_with_run_environment(): {self.uuid=} Updating service, {self.is_service=}, {self.enabled=}, {self.is_service_managed=} ...")
 
             service_teardown_completed_at: Optional[datetime] = None
             service_teardown_result: Optional[Any] = None
@@ -436,11 +440,11 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                     old_self.is_active_managed_service():
                 # TODO: option to ignore error tearing down
 
-                logger.info("synchronize_with_run_environment(): tearing service down before setup")
+                logger.info(f"synchronize_with_run_environment(): {self.uuid=} tearing service down before setup")
                 torndown_service_settings, service_teardown_result = old_execution_method.teardown_service()
                 service_teardown_completed_at = timezone.now()
 
-            logger.info(f"synchronize_with_run_environment(): {will_be_managed_service=}, {torndown_service_settings=}, {service_teardown_result=}")
+            logger.info(f"synchronize_with_run_environment(): {self.uuid=} {will_be_managed_service=}, {torndown_service_settings=}, {service_teardown_result=}")
 
             if will_be_managed_service:
                 try:
@@ -453,20 +457,20 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                     logger.exception(msg)
 
                     if service_teardown_completed_at:
-                        logger.info("Saving torndown service settings locally ...")
+                        logger.info(f"Saving torndown service settings locally {self.uuid=} ...")
                         self.service_settings = torndown_service_settings
                         self.aws_ecs_service_updated_at = service_teardown_completed_at
                         if self.pk:
-                            logger.info("Saving torndown service settings in DB ...")
+                            logger.info(f"Saving torndown service settings in DB {self.uuid=} ...")
                             self.save_without_sync()
-                            logger.info("Done saving torndown service settings in DB")
+                            logger.info(f"Done saving torndown service settings in DB {self.uuid=}")
 
-                    raise CommittableException(msg) from ex
+                    raise CommittableException(cause=ex)
 
                 self.is_service_managed = True
             else:
                 if old_execution_method:
-                    logger.info("synchronize_with_run_environment(): tearing down service because Task will no longer be managed ...")
+                    logger.info(f"synchronize_with_run_environment(): {self.uuid=} tearing down service because Task will no longer be managed ...")
 
                     self.service_settings, _teardown_result = \
                             old_execution_method.teardown_service()
@@ -474,7 +478,7 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
                 if self.is_service_managed:
                     self.is_service_managed = None
         else:
-            logger.debug("Not updating service params")
+            logger.info(f"Not updating service params {self.uuid=}")
 
         if is_saving:
             self.save_without_sync()

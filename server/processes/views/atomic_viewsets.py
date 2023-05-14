@@ -4,6 +4,7 @@ from typing import Any, Optional
 from django.db import transaction
 
 from rest_framework import mixins
+from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -25,7 +26,7 @@ class AtomicContextManager:
     def __exit__(self, exc_type: Optional[Any], exc_value: Optional[Exception], exc_tb: Optional[Any]):
         if isinstance(exc_value, CommittableException):
             transaction.savepoint_commit(self.sid)
-            raise exc_value.cause
+            raise exc_value.cause or APIException("Partial failure")
         elif exc_value:
             transaction.savepoint_rollback(self.sid)
             raise exc_value

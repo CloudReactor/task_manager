@@ -7,6 +7,7 @@ class CommittableException(Exception):
 
         self.cause = self.__cause__
         self.message = message or f"CommitableException: cause={self.cause}"
+        super().__init__(self.message)
 
     def __str__(self):
         return self.message

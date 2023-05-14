@@ -690,7 +690,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 old_aws_ecs_execution_method.service_settings and \
                 old_aws_ecs_execution_method.service_settings.service_arn)
 
-        logger.info(f"should_update_or_force_recreate_service(): {was_managed_ecs_service=}, {will_be_managed_service=}")
+        logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {was_managed_ecs_service=}, {will_be_managed_service=}")
 
         if not will_be_managed_service:
             return (was_managed_ecs_service, False)
@@ -700,31 +700,35 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         ss = self.service_settings
 
-        logger.info(f"should_update_or_force_recreate_service(): service_settings = {ss}")
+        logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} service_settings = {ss}")
 
         if (not ss) or (not ss.service_arn):
-            logger.info("should_update_or_force_recreate_service(): missing ss.service_arn, forcing recreate")
+            logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} missing ss.service_arn, forcing recreate")
             return (True, True)
 
         if not was_managed_ecs_service:
-            logger.info("should_update_or_force_recreate_service(): was_managed_ecs_service=false, forcing recreate")
+            logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} was_managed_ecs_service=false, forcing recreate")
             return (True, True)
 
         if (not old_task) or (old_task.service_settings is None) or \
                 (not old_aws_ecs_execution_method):
-            logger.info("should_update_or_force_recreate_service(): missing old_aws_ecs_execution_method, forcing recreate")
+            logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} missing old_aws_ecs_execution_method, forcing recreate")
             return (True, True)
+
+        logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {old_settings=}")
 
         try:
             old_settings = old_aws_ecs_execution_method.settings
 
             if (old_settings.launch_type != self.settings.launch_type) or \
                   (old_settings.cluster_arn != self.settings.cluster_arn):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} launch type or cluster differs, forcing recreate")
                 return (True, True)
 
             old_ss = old_aws_ecs_execution_method.service_settings
 
             if (not old_ss) or (not old_ss.service_arn):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} old service settings = {old_ss} missing service_arn, forcing recreate")
                 return (True, True)
 
             # old_aws_settings = old_aws_ecs_execution_method.aws_settings
@@ -778,6 +782,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     (old_ss.enable_ecs_managed_tags != ss.enable_ecs_managed_tags) or \
                     (old_ss.propagate_tags != ss.propagate_tags) or \
                     (old_aws_ecs_execution_method.compute_tags() != self.compute_tags()):
+
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} update required, but not recreate (1)")
                 return (True, False)
 
             network = self.aws_settings.network
@@ -796,13 +802,13 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             old_dc = old_ss.deployment_configuration
 
             if dc != old_dc:
-                logger.info(f"should_update_or_force_recreate_service(): {dc=} != {old_dc=}, requires update but no recreate")
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {dc=} != {old_dc=}, requires update but no recreate (2)")
                 return (True, False)
         except Exception:
-            logger.warning(f"Can't parse old Task service settings: {old_ss}", exc_info=True)
+            logger.warning(f"Can't parse old Task service settings: {task.uuid=} {old_ss}", exc_info=True)
             return (True, True)
 
-        logger.info("should_update_or_force_recreate_service(): no update or recreate required")
+        logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} no update or recreate required")
 
         return (False, False)
 

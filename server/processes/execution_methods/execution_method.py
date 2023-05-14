@@ -278,7 +278,7 @@ class ExecutionMethod:
 
         if task:
             emt = task.execution_method_type
-            logger.info(f"task emt = {emt}")
+            logger.debug(f"task emt = {emt}")
 
         if task_execution:
             emt = task_execution.execution_method_type or emt
