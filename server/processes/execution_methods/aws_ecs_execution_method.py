@@ -715,10 +715,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} missing old_aws_ecs_execution_method, forcing recreate")
             return (True, True)
 
-        logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {old_settings=}")
-
         try:
             old_settings = old_aws_ecs_execution_method.settings
+
+            logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {old_settings=}")
 
             if (old_settings.launch_type != self.settings.launch_type) or \
                   (old_settings.cluster_arn != self.settings.cluster_arn):
