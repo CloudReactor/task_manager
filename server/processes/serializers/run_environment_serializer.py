@@ -120,21 +120,15 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
 
     # Deprecated
     def get_aws_account_id(self, run_env: RunEnvironment) -> str:
-        try:
-            return run_env.infrastructure_settings[INFRASTRUCTURE_TYPE_AWS][self.DEFAULT_LABEL][self.SETTINGS_KEY]['account_id']
-        except KeyError:
+        if not run_env.aws_settings:
             return None
-        except TypeError:
-            return None
+        return run_env.aws_settings.get('account_id')
 
     # Deprecated
     def get_aws_default_region(self, run_env: RunEnvironment) -> str:
-        try:
-            return run_env.infrastructure_settings[INFRASTRUCTURE_TYPE_AWS][self.DEFAULT_LABEL][self.SETTINGS_KEY]['region']
-        except KeyError:
+        if not run_env.aws_settings:
             return None
-        except TypeError:
-            return None
+        return run_env.aws_settings.get('region')
 
     # Deprecated
     # TODO: use PolymorphicProxySerializer when it is supported
