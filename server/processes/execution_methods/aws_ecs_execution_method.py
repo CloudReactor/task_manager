@@ -731,9 +731,17 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} old service settings = {old_ss} missing service_arn, forcing recreate")
                 return (True, True)
 
-            # old_aws_settings = old_aws_ecs_execution_method.aws_settings
+            old_aws_settings = old_aws_ecs_execution_method.aws_settings
 
-            # old_network = old_aws_settings.network
+            if not old_aws_settings:
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} missing old AWS settings, forcing recreate")
+                return (True, True)
+
+            old_network = old_aws_settings.network
+            if not old_network:
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {old_aws_settings=} missing network, forcing recreate")
+                return (True, True)
+
             # TODO: network cannot change for non-ECS deployment controllers
             # if (not old_network) or (not old_network.subnets):
             #     return (True, True)
@@ -782,7 +790,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     (old_ss.enable_ecs_managed_tags != ss.enable_ecs_managed_tags) or \
                     (old_ss.propagate_tags != ss.propagate_tags) or \
                     (old_aws_ecs_execution_method.compute_tags() != self.compute_tags()):
-
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} update required, but not recreate (1)")
                 return (True, False)
 
@@ -791,12 +798,13 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if (not network) or (not network.subnets):
                 raise APIException("Missing network settings for service")
 
-            # if (not old_network) or (not old_network.subnets) or \
-            #         (set(old_network.subnets) != set(network.subnets)):
-            #     return (True, False)
+            if (not old_network.subnets) or (set(old_network.subnets) != set(network.subnets)):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} subnets have changed from {old_network.subnets} to {network.subnets}, update required but not recreate")
+                return (True, False)
 
-            # if set(network.security_groups or []) != set(old_network.security_groups or []):
-            #     return (True, False)
+            if set(network.security_groups or []) != set(old_network.security_groups or []):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} security groups have changed from {old_network.security_groups} to {network.security_groups}, update required but not recreate")
+                return (True, False)
 
             dc = ss.deployment_configuration
             old_dc = old_ss.deployment_configuration
@@ -837,12 +845,22 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if teardown_result:
                 aws_ecs_service_teardown_result = cast(AwsEcsServiceTeardownResult, teardown_result)
                 existing_service_info = aws_ecs_service_teardown_result.service_info
+                logger.info(f"setup_service(): {task.uuid} got {existing_service_info=} from teardown result")
 
         if (existing_service_info is None) and old_aws_ecs_execution_method:
+            old_service_settings = old_aws_ecs_execution_method.service_settings
+            old_service_arn: Optional[str] = None
+
+            if old_service_settings:
+                old_service_arn = old_service_settings.service_arn
+                logger.info(f"setup_service(): {task.uuid} found {old_service_arn=}")
+            else:
+                logger.info(f"setup_service(): {task.uuid} old_service_arn not found")
+
             try:
                 old_ecs_client = old_aws_ecs_execution_method.make_ecs_client()
                 existing_service_info = old_aws_ecs_execution_method.find_aws_ecs_service(
-                        ecs_client=old_ecs_client)
+                        ecs_client=old_ecs_client, service_arn_or_name=old_service_arn)
             except Exception:
                 logger.warning("Cannot find existing ECS service with old execution method")
 
@@ -850,7 +868,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         if not existing_service_info:
             ecs_client = self.make_ecs_client()
-            existing_service_info = self.find_aws_ecs_service(ecs_client=ecs_client)
+            existing_service_info = self.find_aws_ecs_service(ecs_client=ecs_client,
+                    service_arn_or_name=ss.service_arn)
 
         # When creating a service that specifies multiple target groups, the Amazon ECS service-linked role must be created. The role is created by omitting the role parameter in API requests, or the Role property in AWS CloudFormation. For more information, see Service-Linked Role for Amazon ECS.
         #role = task.aws_ecs_default_task_role or task.aws_ecs_default_execution_role or \
@@ -868,10 +887,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     existing_service_info = old_aws_ecs_execution_method.delete_service(
                             service_name=service_name, ecs_client=old_ecs_client)
                 else:
-                    logger.warning(f"setup_service(): service {service_name} existed before Task was saved as an AWS ECS Task?")
+                    logger.warning(f"setup_service(): {task.uuid} service {service_name} existed before Task was saved as an AWS ECS Task?")
                     # TODO: how to recover?
             else:
-                logger.info(f"setup_service() for Task {task.name} not deleting existing service {service_name}")
+                logger.info(f"setup_service() {task.uuid} not deleting existing service {service_name}")
 
         if (existing_service_info is None) or \
                 (existing_service_info.last_status == 'INACTIVE'):
