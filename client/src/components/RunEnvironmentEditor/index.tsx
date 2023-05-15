@@ -26,7 +26,7 @@ import {
 
 import * as Yup from 'yup';
 
-import React, { useContext, useState, Fragment } from 'react';
+import React, { useContext, Fragment } from 'react';
 
 import {
   Col,
@@ -138,7 +138,7 @@ const AWS_ECS_EXECUTION_METHOD_ITEMS = [{
   title: 'AWS ECS Settings',
   controls: [{
     name: `execution_method_settings.${EXECUTION_METHOD_TYPE_AWS_ECS}.__default__.settings.cluster_arn`,
-    label: 'Default Cluster',
+    label: 'ECS Cluster',
     type: 'text',
     controlId: 'forExecutionMethodCapabilitiesDefaultClusterArn',
     placeholder: 'staging',
@@ -180,6 +180,7 @@ type Props = {
   onSaveStarted?: (runEnvironment: RunEnvironment) => void;
   onSaveSuccess?: (runEnvironment: RunEnvironment) => void;
   onSaveError?: (ex: unknown, values: any) => void;
+  debugMode?: boolean;
 }
 
 const leftIcon = {
@@ -190,7 +191,8 @@ const RunEnvironmentEditor = ({
   runEnvironment,
   onSaveStarted,
   onSaveSuccess,
-  onSaveError
+  onSaveError,
+  debugMode
 }: Props) => {
   const runEnv = runEnvironment ?? makeNewRunEnvironment();
 
@@ -282,6 +284,7 @@ const RunEnvironmentEditor = ({
       enableReinitialize={true}
       validationSchema={validationSchema}
       validateOnChange={true}
+      validateOnMount={true}
       onSubmit={async (values, actions) => {
         try {
           if (!runEnvironment && currentGroup) {
@@ -327,12 +330,27 @@ const RunEnvironmentEditor = ({
         const defaultAws = awsInfraByName ? awsInfraByName['__default__'] : null;
         const defaultAwsSettings = defaultAws ? defaultAws['settings'] : null;
 
+        if (debugMode) {
+          console.log(`isValid = ${isValid}, errors = `);
+          console.dir(errors);
+        }
+
         return (
-          <Form noValidate
-            className="run_environment_settings_form">
-            <fieldset disabled={!isSaveAllowed || isSubmitting}>
-              <SettingsForm items={BASE_ITEMS} onChange={handleChange}
-               onBlur={handleBlur} />
+          <Form className="run_environment_settings_form">
+            <fieldset disabled={isSubmitting}>
+              {
+                debugMode && (
+                  <Row className="pb-3">
+                    <Col>
+                      <FormikErrorsSummary errors={errors} touched={touched}
+                        values={values}/>
+                    </Col>
+                  </Row>
+                )
+              }
+
+              <SettingsForm items={BASE_ITEMS}
+               onChange={handleChange} onBlur={handleBlur} />
 
               <Fragment>
                 <SettingsForm items={AWS_INFRASTRUCTURE_ITEMS}
@@ -429,8 +447,8 @@ const RunEnvironmentEditor = ({
                       />
                     </div>
                   </FormGroup>
-                  <SettingsForm items={AWS_EXTRA_ITEMS} onChange={handleChange}
-                   onBlur={handleBlur} />
+                  <SettingsForm items={AWS_EXTRA_ITEMS}
+                   onChange={handleChange} onBlur={handleBlur} />
                   <SettingsForm items={AWS_ECS_EXECUTION_METHOD_ITEMS}
                    onChange={handleChange} onBlur={handleBlur} />
                 </div>
@@ -469,18 +487,15 @@ const RunEnvironmentEditor = ({
                   </div>
                 )
               }
-              {
-                isSaveAllowed && (
-                  <Row className="pt-3 pb-3">
-                    <Col>
-                      <Button variant="outlined" size="large" type="submit"
-                        disabled={!isValid || isSubmitting || (Object.keys(errors).length > 0)}>
-                        Save
-                      </Button>
-                    </Col>
-                  </Row>
-                )
-              }
+
+              <Row className="pt-3 pb-3">
+                <Col>
+                  <Button variant="outlined" size="large" type="submit"
+                    disabled={!isValid || isSubmitting || (Object.keys(errors).length > 0)}>
+                    Save
+                  </Button>
+                </Col>
+              </Row>
             </fieldset>
           </Form>
         );

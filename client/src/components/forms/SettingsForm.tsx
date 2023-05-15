@@ -10,7 +10,11 @@ interface Props {
 }
 
 export const SettingsForm = (props: Props) => {
-  const { items } = props || {};
+  const {
+    items,
+    onChange,
+    onBlur
+  } = props || {};
 
   return items?.map((item: any, i: any) => {
     const {
@@ -33,14 +37,14 @@ export const SettingsForm = (props: Props) => {
             </div>
         }
         <div>
-          {controls?.map((control: any, j: any) => {
+          {controls?.map((control: any, j: number) => {
             return (
               <Fragment key={`control-${title}-element-${j}`}>
                 <Field
                   {...control}
                   component={CustomInput}
-                  onChange={props.onChange}
-                  onBlur={props.onBlur}>
+                  onChange={onChange}
+                  onBlur={onBlur}>
                 </Field>
               </Fragment>
             );

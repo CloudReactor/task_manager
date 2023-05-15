@@ -26,7 +26,8 @@ interface Props {
   addOptionsCase?: boolean;
   options?: [];
   min?: number;
-  omitLabel?: boolean,
+  omitLabel?: boolean;
+  debugMode?: boolean;
   [propName: string]: any;
 }
 
@@ -46,6 +47,7 @@ const CustomInput = ({
   options,
   min,
   omitLabel,
+  debugMode,
   ...props
 }: Props) => {
 
@@ -68,9 +70,15 @@ const CustomInput = ({
     );
   });
 
-  const fieldTouched = _.get(touched, field.name);
   const fieldErrors = _.get(errors, field.name);
-  const isInvalid = fieldTouched && fieldErrors;
+  const isInvalid = !!fieldErrors;
+
+  if (debugMode) {
+    console.log(`CustomInput: isInvalid = ${isInvalid}, fieldErrors = `);
+    if (fieldErrors) {
+      console.dir(fieldErrors);
+    }
+  }
 
   return (
     <FormGroup controlId={controlId}>
