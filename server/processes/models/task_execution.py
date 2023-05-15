@@ -718,7 +718,7 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
 
     if in_progress:
         task.latest_task_execution = instance
-        task.save()
+        task.save_without_sync()
 
     if task.schedule:
         from .missing_scheduled_task_execution import MissingScheduledTaskExecution
