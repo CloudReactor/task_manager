@@ -702,10 +702,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} service_settings = {ss}")
 
-        if (not ss) or (not ss.service_arn):
-            logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} missing ss.service_arn, forcing recreate")
-            return (True, True)
-
         if not was_managed_ecs_service:
             logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} was_managed_ecs_service=false, forcing recreate")
             return (True, True)
@@ -731,16 +727,20 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} old service settings = {old_ss} missing service_arn, forcing recreate")
                 return (True, True)
 
+            if ss and ss.service_arn and (ss.service_arn != old_ss.service_arn):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {ss.service_arn=} != {old_ss.service_arn=}, forcing recreate")
+                return (True, True)
+
             old_aws_settings = old_aws_ecs_execution_method.aws_settings
 
             if not old_aws_settings:
-                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} missing old AWS settings, forcing recreate")
-                return (True, True)
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} missing old AWS settings, update required but not recreate")
+                return (True, False)
 
             old_network = old_aws_settings.network
             if not old_network:
-                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {old_aws_settings=} missing network, forcing recreate")
-                return (True, True)
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {old_aws_settings=} missing network, update required but not recreate")
+                return (True, False)
 
             # TODO: network cannot change for non-ECS deployment controllers
             # if (not old_network) or (not old_network.subnets):
@@ -787,10 +787,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
             if (old_task.service_instance_count != task.service_instance_count) or \
                     (old_settings.task_definition_arn != self.settings.task_definition_arn) or \
-                    (old_ss.enable_ecs_managed_tags != ss.enable_ecs_managed_tags) or \
-                    (old_ss.propagate_tags != ss.propagate_tags) or \
                     (old_aws_ecs_execution_method.compute_tags() != self.compute_tags()):
-                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} update required, but not recreate (1)")
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} Task settings changed, update required, but not recreate (1)")
                 return (True, False)
 
             network = self.aws_settings.network
@@ -806,12 +804,18 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} security groups have changed from {old_network.security_groups} to {network.security_groups}, update required but not recreate")
                 return (True, False)
 
-            dc = ss.deployment_configuration
-            old_dc = old_ss.deployment_configuration
+            if ss:
+                if (old_ss.enable_ecs_managed_tags != ss.enable_ecs_managed_tags) or \
+                    (old_ss.propagate_tags != ss.propagate_tags):
+                    logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} service settings changed, update required, but not recreate (3)")
+                    return (True, False)
 
-            if dc != old_dc:
-                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {dc=} != {old_dc=}, requires update but no recreate (2)")
-                return (True, False)
+                dc = ss.deployment_configuration
+                old_dc = old_ss.deployment_configuration
+
+                if dc and (dc != old_dc):
+                    logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {dc=} != {old_dc=}, requires update but no recreate (2)")
+                    return (True, False)
         except Exception:
             logger.warning(f"Can't parse old Task service settings: {task.uuid=} {old_ss}", exc_info=True)
             return (True, True)
@@ -879,7 +883,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if existing_service_info:
             service_name = existing_service_info.service_name
 
-            logger.info(f"setup_service() for Task {task.name} found existing service {service_name}")
+            logger.info(f"setup_service() for Task {task.uuid} found existing service {service_name}")
             if force_creation and (existing_service_info.last_status == 'ACTIVE'):
                 if old_aws_ecs_execution_method:
                     logger.info(f"setup_service(): deleting ACTIVE service {service_name} ...")
