@@ -46,6 +46,7 @@ from ..common.request_helpers import (
 from ..execution_methods import *
 from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from ..models import *
+from ..common.utils import deepmerge
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
 from .embedded_id_validating_serializer_mixin import (
@@ -307,7 +308,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 })
             is_service = True
 
-
         execution_method_dict = validated.get('execution_method_capability_details')
 
         # deprecated
@@ -366,10 +366,9 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 is_service = validated['is_service']
 
         infrastructure_type = validated.get('infrastructure_type')
+        infrastructure_settings = data.get('infrastructure_settings')
 
         if infrastructure_type == INFRASTRUCTURE_TYPE_AWS:
-            infrastructure_settings = data.get('infrastructure_settings')
-
             if infrastructure_settings:
                 self.copy_props_with_prefix(dest_dict=validated,
                     src_dict=infrastructure_settings,
@@ -485,9 +484,31 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 raise serializers.ValidationError({
                     'scheduled_instance_count': ['Cannot be non-zero for unscheduled Tasks']
                 })
-
             validated['scheduled_instance_count'] = None
 
+        if task:
+            emcd = validated.get('execution_method_capability_details')
+
+            if (emcd is not None) and (task.execution_method_capability_details) and \
+                (task.execution_method_type == execution_method_type):
+                validated['execution_method_capability_details'] = deepmerge(task.execution_method_capability_details.copy(), emcd)
+
+            infrastructure_settings = validated.get('infrastructure_settings')
+            if (infrastructure_settings is not None) and task.infrastructure_settings and \
+                    ((not infrastructure_type) or (task.infrastructure_type == infrastructure_type)):
+                validated['infrastructure_settings'] = deepmerge(task.infrastructure_settings.copy(), infrastructure_settings)
+
+            scheduling_provider_type = validated.get('scheduling_provider_type')
+            scheduling_settings = validated.get('scheduling_settings')
+            if (scheduling_settings is not None) and task.scheduling_settings and \
+                    ((not scheduling_provider_type) or (task.scheduling_provider_type == scheduling_provider_type)):
+                validated['scheduling_settings'] = deepmerge(task.scheduling_settings.copy(), scheduling_settings)
+
+            service_provider_type = validated.get('service_provider_type')
+            service_settings = validated.get('service_settings')
+            if (service_settings is not None) and task.service_settings and \
+                    ((not service_provider_type) or (task.service_provider_type == service_provider_type)):
+                validated['service_settings'] = deepmerge(task.service_settings.copy(), service_settings)
 
         self.set_validated_alert_methods(data=data, validated=validated,
                 run_environment=run_environment)
