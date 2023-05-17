@@ -421,7 +421,6 @@ implements Task {
   capabilities = [];
   created_by_group = new GroupReferenceImpl();
   created_by_user = '';
-  current_service_info = null;
   default_max_retries = 0;
   description = '';
   enabled = true;

@@ -126,7 +126,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'alert_methods',
             'other_metadata',
             'latest_task_execution',
-            'current_service_info', # Deprecated
             'created_by_user', 'created_by_group',
             'was_auto_created', 'passive', 'enabled',
             'created_at', 'updated_at',
