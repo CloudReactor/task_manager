@@ -1,6 +1,11 @@
 # Alpine base image can lead to long compilation times and errors.
 # https://pythonspeed.com/articles/base-image-python-docker-images/
-FROM python:3.11.2-slim-bullseye
+
+# For AWS
+FROM public.ecr.aws/docker/library/python:3.11.3-slim-bullseye
+
+# For generic infrastructure provider
+# FROM python:3.11.3-slim-bullseye
 
 LABEL maintainer="jeff@cloudreactor.io"
 
