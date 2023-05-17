@@ -61,30 +61,6 @@ from .link_serializer import LinkSerializer
 logger = logging.getLogger(__name__)
 
 
-class CurrentServiceInfoSerializer(serializers.Serializer):
-    class Meta:
-        model = Task
-        fields = ('type', 'service_arn', 'service_infrastructure_website_url',
-                'service_arn_updated_at',)
-
-    SERVICE_INFO_TYPE_AWS_ECS = 'AWS ECS'
-
-    type = serializers.SerializerMethodField(method_name='get_service_info_type')
-
-    def get_service_info_type(self, obj) -> str:
-        return self.SERVICE_INFO_TYPE_AWS_ECS
-
-    service_arn = serializers.ReadOnlyField(
-        source='aws_ecs_service_arn', allow_null=True)
-
-    service_infrastructure_website_url = serializers.ReadOnlyField(
-        source='aws_ecs_service_infrastructure_website_url',
-        allow_null=True)
-
-    service_arn_updated_at = serializers.DateTimeField(
-        source='aws_ecs_service_updated_at', allow_null=True,
-        read_only=True)
-
 SUPPORTED_EXECUTION_METHODS = [
     AwsEcsExecutionMethod,
     AwsLambdaExecutionMethod,
@@ -174,10 +150,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
     # Deprecated
     execution_method_capability = serializers.SerializerMethodField()
 
-    # Deprecated
-    current_service_info = serializers.SerializerMethodField(
-            allow_null=True)
-
     capabilities = serializers.SerializerMethodField()
 
     alert_methods = NameAndUuidSerializer(
@@ -218,18 +190,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             return []
 
         return [c.name for c in task.execution_method().capabilities()]
-
-    # Deprecated
-    @extend_schema_field(CurrentServiceInfoSerializer(required=False,
-            read_only=True))
-    def get_current_service_info(self, obj: Task):
-        if not obj.is_service:
-            return None
-
-        if obj.execution_method_type == AwsEcsExecutionMethod.NAME:
-            return CurrentServiceInfoSerializer(instance=obj,
-                    context=self.context).data
-        return None
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         task: Optional[Task] = None
@@ -308,11 +268,11 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 })
             is_service = True
 
-        execution_method_dict = validated.get('execution_method_capability_details')
+        emcd = validated.get('execution_method_capability_details')
+        execution_method_dict = emcd
 
         # deprecated
-        is_legacy_schema = (legacy_emc is not None) and \
-            (execution_method_dict is None)
+        is_legacy_schema = (legacy_emc is not None) and (emcd is None)
         logger.debug(f"{is_legacy_schema=}")
 
         execution_method_dict = execution_method_dict or legacy_emc
@@ -357,7 +317,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
             em_validated = ems.to_internal_value(execution_method_dict)
 
-            logger.debug(f"{em_validated=}")
+            logger.info(f"{em_validated=}")
 
             validated |= em_validated
 
@@ -366,7 +326,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 is_service = validated['is_service']
 
         infrastructure_type = validated.get('infrastructure_type')
-        infrastructure_settings = data.get('infrastructure_settings')
+        infrastructure_settings = validated.get('infrastructure_settings')
 
         if infrastructure_type == INFRASTRUCTURE_TYPE_AWS:
             if infrastructure_settings:
@@ -385,6 +345,44 @@ class TaskSerializer(GroupSettingSerializerMixin,
                         src_dict=network_settings,
                         dest_prefix='aws_ecs_default_',
                         included_keys=['security_groups', 'assign_public_ip'])
+
+        if task:
+            if (emcd is not None) and (task.execution_method_capability_details) and \
+                (task.execution_method_type == execution_method_type):
+                emcd = deepmerge(task.execution_method_capability_details.copy(), emcd)
+                validated['execution_method_capability_details'] = emcd
+                logger.info(f"to_internal_value(): {task.uuid}: Merged old {emcd=}")
+            else:
+                logger.info(f"to_internal_value(): {task.uuid}: skipping emcd merge")
+
+            infrastructure_settings = validated.get('infrastructure_settings')
+            if (infrastructure_settings is not None) and task.infrastructure_settings and \
+                    ((not infrastructure_type) or (task.infrastructure_type == infrastructure_type)):
+                infrastructure_settings = deepmerge(task.infrastructure_settings.copy(), infrastructure_settings)
+                validated['infrastructure_settings'] = infrastructure_settings
+                logger.info(f"to_internal_value(): {task.uuid}: Merged old {infrastructure_settings=}")
+            else:
+                logger.info(f"to_internal_value(): {task.uuid}: skipping infra merge")
+
+            scheduling_provider_type = validated.get('scheduling_provider_type')
+            scheduling_settings = validated.get('scheduling_settings')
+            if (scheduling_settings is not None) and task.scheduling_settings and \
+                    ((not scheduling_provider_type) or (task.scheduling_provider_type == scheduling_provider_type)):
+                scheduling_settings = deepmerge(task.scheduling_settings.copy(), scheduling_settings)
+                validated['scheduling_settings'] = scheduling_settings
+                logger.info(f"to_internal_value(): {task.uuid}: Merged old {scheduling_settings=}")
+            else:
+                logger.info(f"to_internal_value(): {task.uuid}: skipping scheduling settings merge")
+
+            service_provider_type = validated.get('service_provider_type')
+            service_settings = validated.get('service_settings')
+            if (service_settings is not None) and task.service_settings and \
+                    ((not service_provider_type) or (task.service_provider_type == service_provider_type)):
+                service_settings = deepmerge(task.service_settings.copy(), service_settings)
+                validated['service_settings'] = service_settings
+                logger.info(f"to_internal_value(): {task.uuid}: Merged old {service_settings=}")
+            else:
+                logger.info(f"to_internal_value(): {task.uuid}: skipping service settings merge")
 
         if (is_service is None) and schedule:
             is_service = False
@@ -485,30 +483,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
                     'scheduled_instance_count': ['Cannot be non-zero for unscheduled Tasks']
                 })
             validated['scheduled_instance_count'] = None
-
-        if task:
-            emcd = validated.get('execution_method_capability_details')
-
-            if (emcd is not None) and (task.execution_method_capability_details) and \
-                (task.execution_method_type == execution_method_type):
-                validated['execution_method_capability_details'] = deepmerge(task.execution_method_capability_details.copy(), emcd)
-
-            infrastructure_settings = validated.get('infrastructure_settings')
-            if (infrastructure_settings is not None) and task.infrastructure_settings and \
-                    ((not infrastructure_type) or (task.infrastructure_type == infrastructure_type)):
-                validated['infrastructure_settings'] = deepmerge(task.infrastructure_settings.copy(), infrastructure_settings)
-
-            scheduling_provider_type = validated.get('scheduling_provider_type')
-            scheduling_settings = validated.get('scheduling_settings')
-            if (scheduling_settings is not None) and task.scheduling_settings and \
-                    ((not scheduling_provider_type) or (task.scheduling_provider_type == scheduling_provider_type)):
-                validated['scheduling_settings'] = deepmerge(task.scheduling_settings.copy(), scheduling_settings)
-
-            service_provider_type = validated.get('service_provider_type')
-            service_settings = validated.get('service_settings')
-            if (service_settings is not None) and task.service_settings and \
-                    ((not service_provider_type) or (task.service_provider_type == service_provider_type)):
-                validated['service_settings'] = deepmerge(task.service_settings.copy(), service_settings)
 
         self.set_validated_alert_methods(data=data, validated=validated,
                 run_environment=run_environment)

@@ -159,7 +159,8 @@ class AwsEcsExecutionMethodCapabilitySerializer(
                         'force_new_deployment',
                         'enabled_ecs_managed_tags',
                         'propagate_tags',
-                        'tags'
+                        'tags',
+                        'service_arn', # In case client setup service themselves
                     ])
 
             service_settings['deployment_configuration'] = {
@@ -180,7 +181,7 @@ class AwsEcsExecutionMethodCapabilitySerializer(
             validated['service_settings'] = service_settings
         elif is_service:
             validated['service_settings'] = {}
-            
+
         if is_service:
             validated['service_provider_type'] = SERVICE_PROVIDER_AWS_ECS
         elif is_service is False:
