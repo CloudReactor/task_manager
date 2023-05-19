@@ -29,7 +29,7 @@ class AwsEcsConfiguration(AwsTaggedEntity):
             blank=True, null=True)
     aws_ecs_default_security_groups = ArrayField(
             models.CharField(max_length=1000), blank=True, null=True)
-    aws_ecs_default_assign_public_ip = models.BooleanField(default=False)
+    aws_ecs_default_assign_public_ip = models.BooleanField(default=False, null=True)
     aws_ecs_default_launch_type = models.CharField(max_length=50, blank=True)
     aws_ecs_supported_launch_types = ArrayField(
             models.CharField(max_length=50), blank=True, null=True)
