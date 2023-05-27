@@ -237,6 +237,15 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         task: Optional[Task] = cast(Task, self.instance) if self.instance else None
 
+        if task is None:
+            name = data.get('name')
+            if name:
+                task = Task.objects.filter(name=name, created_by_group=group).first()
+
+        logger.info(f"to_internal_value(): existing {task=}")
+
+        validated['__existing_instance__'] = task
+
         run_environment = validated.get('run_environment',
             task.run_environment if task else None)
 
@@ -263,7 +272,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
         if (service_instance_count is not None) and (service_instance_count > 0):
             if is_service is False:
                 raise serializers.ValidationError({
-                    'service_instance_count': ['Must null for services']
+                    'service_instance_count': ['Must be null for services']
                 })
             is_service = True
 
@@ -284,8 +293,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             execution_method_type = task.execution_method_type
 
         if is_legacy_schema:
-            execution_method_type = legacy_emc.get('type',
-                    execution_method_type)
+            execution_method_type = legacy_emc.get('type', execution_method_type)
 
         execution_method_type = validated.get('execution_method_type',
             execution_method_type)
@@ -382,6 +390,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 logger.info(f"to_internal_value(): {task.uuid}: Merged old {service_settings=}")
             else:
                 logger.info(f"to_internal_value(): {task.uuid}: skipping service settings merge")
+        else:
+            logger.info(f"to_internal_value(): skipping all merging because Task does not exist")
 
         if (is_service is None) and schedule:
             is_service = False
@@ -530,6 +540,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         user, _group = required_user_and_group_from_request(request=request)
 
+        instance = validated_data.pop('__existing_instance__', instance)
         defaults = validated_data
 
         logger.info(f"Task create_or_update(), validated_data = {defaults}, {instance=}")
@@ -574,10 +585,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
         else:
             if instance:
                 task = instance
-            else:
-                name = defaults['name']
-                task = Task.objects.filter(name=name,
-                        created_by_group=group).first()
 
             old_self = None
             if task is None:
