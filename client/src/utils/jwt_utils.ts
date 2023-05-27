@@ -13,15 +13,15 @@ export const saveToken = (data: any): string => {
 
   try {
     const oldContainer = readTokenContainer();
-    oldRefresh = oldContainer.refresh 
+    oldRefresh = oldContainer.refresh
   } catch (e) {
     ;
   }
 
-  const tokenContainer = JSON.stringify({ 
-    access: data.access, 
+  const tokenContainer = JSON.stringify({
+    access: data.access,
     refresh: data.refresh || oldRefresh,
-    time: +new Date() 
+    time: +new Date()
   });
   window.localStorage.setItem(TOKEN_CONTAINER_PROPERTY_NAME, tokenContainer);
   return tokenContainer;
