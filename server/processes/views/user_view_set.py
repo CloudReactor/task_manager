@@ -87,7 +87,7 @@ class UserViewSet(AtomicUpdateModelMixin, AtomicDestroyModelMixin,
 
         is_list = (self.action == 'list')
 
-        group = extract_filtered_group(request=request,
+        group = extract_filtered_group(request=request, request_user=request_user,
             request_group=request_group, required=is_list)
 
         if group:

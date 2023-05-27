@@ -97,10 +97,10 @@ class SaasTokenViewSet(AtomicCreateModelMixin,
 
     def get_queryset(self):
         request = request_for_context(self.request)
-        _user, request_group = required_user_and_group_from_request(request=request)
+        request_user, request_group = required_user_and_group_from_request(request=request)
         is_list = (self.action == 'list')
 
-        group = extract_filtered_group(request=request,
+        group = extract_filtered_group(request=request, request_user=request_user,
             request_group=request_group, required=is_list)
 
         qs = SaasToken.objects.prefetch_related(

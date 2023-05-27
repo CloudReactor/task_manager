@@ -100,7 +100,7 @@ def user_and_group_from_request(request: Optional[Request] = None) -> \
 
     # For compatibility with existing code that requires a single group for a request.
     # For users with multiple groups, the group is None
-    if (not group) and user:
+    if (not group) and user and (not user.is_superuser):
         all_groups = list(user.groups.all())
         if len(all_groups) == 1:
             group = all_groups[0]
@@ -154,24 +154,31 @@ def find_group_by_id_or_name(obj_dict: Optional[dict[str, Any]],
 
 def extract_filtered_group(request: Request,
         request_group: Optional[Group],
+        request_user: Optional[User] = None,
         required: bool = True,
         parameter_name: str = 'group__id') -> Optional[Group]:
     group_id = request.GET.get(parameter_name)
 
-    group = request_group
-    if request_group is None:
-        if group_id is None:
-            if required:
-                raise serializers.ValidationError(detail='Group ID must be specified')
-        else:
-            group = Group.objects.filter(id=int(group_id)).first()
+    if group_id is None:
+        if required and (request_group is None):
+            raise serializers.ValidationError(detail='Group ID must be specified')
 
-            if group is None:
-                raise serializers.ValidationError(detail=f'Group {id} not found')
-    elif (group_id is not None) and (str(request_group.pk) != group_id):
-        raise UnprocessableEntity(detail='Group ID does not match authenticated Group')
+        return request_group
+    elif request_group:
+        if (str(request_group.pk) != group_id):
+            raise UnprocessableEntity(detail='Group ID does not match authenticated Group')
 
-    return group
+        return request_group
+    else:
+        if not request_user:
+            request_user = cast(User, request.user)
+
+        qs = Group.objects if request_user.is_superuser else request_user.groups.all()
+        group = qs.filter(id=int(group_id)).first()
+        if group is None:
+            raise serializers.ValidationError(detail=f'Group {id} not found')
+
+        return group
 
 def ensure_group_access_level(group: Optional[Group] = None,
         min_access_level: Optional[int] = -1,
