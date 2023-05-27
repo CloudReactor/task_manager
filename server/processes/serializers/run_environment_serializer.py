@@ -269,10 +269,10 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
                                     included_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
 
                             if 'execution_role_arn' in em_settings:
-                                validated['aws_ecs_default_execution_role'] = em_settings['execution_role_arn']
+                                validated['aws_ecs_default_execution_role'] = em_settings['execution_role_arn'] or ''
 
                             if 'task_role_arn' in em_settings:
-                                validated['aws_ecs_default_task_role'] = em_settings['task_role_arn']
+                                validated['aws_ecs_default_task_role'] = em_settings['task_role_arn'] or ''
 
                         elif emt == AwsLambdaExecutionMethod.NAME:
                             validated['default_aws_lambda_configuration'] = em_settings
