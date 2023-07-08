@@ -53,6 +53,10 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     task_role_arn: Optional[str] = None
     task_role_infrastructure_website_url: Optional[str] = None
     platform_version: Optional[str] = None
+    enable_ecs_managed_tags: Optional[bool] = None
+    propagate_tags: Optional[str] = None
+    enable_execute_command: Optional[bool] = None
+    task_group: Optional[str] = None
 
     def update_derived_attrs(self):
         self.cluster_infrastructure_website_url = \
@@ -971,7 +975,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if ss.enable_ecs_managed_tags is not None:
                 args['enableECSManagedTags'] = ss.enable_ecs_managed_tags
 
-            if ss.propagate_tags is not None:
+            if ss.propagate_tags:
                 args['propagateTags'] = ss.propagate_tags
 
             response = ecs_client.create_service(**args)
@@ -1195,6 +1199,18 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
               #     },
               # ],
             })
+
+            if self.settings.enable_ecs_managed_tags is not None:
+                args['enableECSManagedTags'] = self.settings.enable_ecs_managed_tags
+
+            if self.settings.propagate_tags:
+                args['propagateTags'] = self.settings.propagate_tags
+
+            if self.settings.enable_execute_command is not None:
+                args['enableExecuteCommand'] = self.settings.enable_execute_command
+
+            if self.settings.task_group:
+                args['group'] = self.settings.task_group
 
             rv = ecs_client.run_task(**args)
 

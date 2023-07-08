@@ -150,10 +150,6 @@ class ExecutionMethod:
         logger.info('teardown_service(): execution method does not support services, no-op')
         return (None, None)
 
-    def update_service_settings(self, updated: Optional[dict[str, Any]]) -> None:
-        if self.task and updated:
-            self.task.service_settings = deepmerge(self.task.service_settings or {}, updated)
-
     def manually_start(self) -> None:
         raise ValidationError(detail='Execution method does not support manual start.')
 

@@ -24,7 +24,7 @@ def coalesce(*arg):
 
 
 def deepmerge_with_lists_pair(dest: Any, src: Any,
-        append_lists: bool=False) -> Any:
+        append_lists: bool=False, ignore_none: bool=True) -> Any:
     if isinstance(dest, str): # because string is iterable
         if src is None:
             return dest
@@ -36,7 +36,7 @@ def deepmerge_with_lists_pair(dest: Any, src: Any,
             for k, v in src.items():
                 if k in dest:
                     dest[k] = deepmerge_with_lists_pair(dest[k], v,
-                            append_lists=append_lists)
+                            append_lists=append_lists, ignore_none=ignore_none)
                 else:
                     dest[k] = v
 
@@ -64,13 +64,13 @@ def deepmerge_with_lists_pair(dest: Any, src: Any,
             logger.warning(f"Attempt to merge iterable {dest} with non-iterable {src}")
             return src
 
-    if src is None:
+    if ignore_none and (src is None):
         return dest
 
     return src
 
 
-def deepmerge_core(append_lists: bool, *args) -> Any:
+def deepmerge_core(append_lists: bool, ignore_none: bool, *args) -> Any:
     """
     Deep merge, including dict elements of lists.
     The second argument is modified in place.
@@ -82,7 +82,7 @@ def deepmerge_core(append_lists: bool, *args) -> Any:
             dest = src
         else:
             dest = deepmerge_with_lists_pair(dest, src,
-                    append_lists=append_lists)
+                    append_lists=append_lists, ignore_none=ignore_none)
 
     return dest
 
@@ -92,12 +92,12 @@ def deepmerge_with_lists(*args) -> Any:
     Deep merge, including dict elements of lists.
     The first argument is modified in place.
     """
-    return deepmerge_core(True, *args)
+    return deepmerge_core(True, True, *args)
 
 
-def deepmerge(*args) -> Any:
+def deepmerge(*args, append_lists: bool=False, ignore_none: bool=True) -> Any:
     """
     Deep merge, overwriting lists.
     The first argument is modified in place.
     """
-    return deepmerge_core(False, *args)
+    return deepmerge_core(append_lists, ignore_none, *args)
