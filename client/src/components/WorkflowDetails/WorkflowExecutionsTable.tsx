@@ -82,7 +82,7 @@ const WorkflowExecutionsTable = ({
 
     try {
       const updatedWorkflowExecutionsPage = await fetchWorkflowExecutionSummaries(workflow.uuid, sortBy,
-        descending, offset, rowsPerPage);
+        (sortBy ? descending : true), offset, rowsPerPage);
 
       setWorkflowExecutionsPage(updatedWorkflowExecutionsPage);
     } catch (err) {
