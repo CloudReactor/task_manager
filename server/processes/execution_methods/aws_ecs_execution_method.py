@@ -58,7 +58,24 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     enable_execute_command: Optional[bool] = None
     task_group: Optional[str] = None
 
-    def update_derived_attrs(self):
+    def update_derived_attrs(self, aws_settings: Optional[AwsSettings]) -> None:
+        if aws_settings:
+            aws_account_id = aws_settings.account_id
+            region = aws_settings.region
+
+            if aws_account_id and region:
+                if self.cluster_arn and not self.cluster_arn.startswith('arn:'):
+                    self.cluster_arn = 'arn:aws:ecs:' + region + ':' + \
+                        + aws_account_id + ':cluster/' + self.cluster_arn
+
+                if self.execution_role_arn:
+                    self.execution_role_arn = normalize_role_arn(self.execution_role_arn,
+                            aws_account_id=aws_account_id, region=region)
+
+                if self.task_role_arn:
+                    self.task_role_arn = normalize_role_arn(self.task_role_arn,
+                            aws_account_id=aws_account_id, region=region)
+
         self.cluster_infrastructure_website_url = \
             make_aws_console_ecs_cluster_url(self.cluster_arn)
 
@@ -79,8 +96,8 @@ class AwsEcsExecutionMethodSettings(BaseModel):
 class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
     task_arn: Optional[str] = None
 
-    def update_derived_attrs(self):
-        super().update_derived_attrs()
+    def update_derived_attrs(self, aws_settings: Optional[AwsSettings]):
+        super().update_derived_attrs(aws_settings=aws_settings)
 
         self.infrastructure_website_url = None
 
@@ -1088,13 +1105,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         memory_mb = task_execution.allocated_memory_mb \
                 or task.allocated_memory_mb or self.DEFAULT_MEMORY_MB
 
-        environment = task_execution.make_environment()
-        flattened_environment = []
-        for name, value in environment.items():
-            flattened_environment.append({
-                'name': name,
-                'value': value
-            })
+        flattened_environment = make_flattened_environment(env=task_execution.make_environment())
 
         logger.info(f"manually_start() with args = {args}, " +
             f"{cpu_units=}, {memory_mb=}, " +
@@ -1442,7 +1453,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         emcd = self.task.execution_method_capability_details
         if emcd:
             aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(emcd)
-            aws_ecs_settings.update_derived_attrs()
+            aws_ecs_settings.update_derived_attrs(aws_settings=self.aws_settings)
             self.task.execution_method_capability_details = aws_ecs_settings.dict()
 
         if self.service_settings:
@@ -1462,7 +1473,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         if emd:
             aws_ecs_settings =  AwsEcsExecutionMethodInfo.parse_obj(emd)
-            aws_ecs_settings.update_derived_attrs()
+            aws_ecs_settings.update_derived_attrs(aws_settings=self.aws_settings)
 
             self.task_execution.execution_method_details = deepmerge(
                     emd, aws_ecs_settings.dict())

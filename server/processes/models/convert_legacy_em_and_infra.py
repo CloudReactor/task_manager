@@ -115,7 +115,7 @@ def populate_run_environment_aws_ecs_configuration(run_environment: RunEnvironme
         if aws_ecs_config:
             aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(
                     aws_ecs_config)
-            aws_ecs_settings.update_derived_attrs()
+            aws_ecs_settings.update_derived_attrs(aws_settings=None)
             aws_ecs_config = aws_ecs_settings.dict()
 
         run_environment.default_aws_ecs_configuration = aws_ecs_config

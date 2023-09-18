@@ -9,14 +9,16 @@ import {
   DEFAULT_NAME,
   INFRASTRUCTURE_TYPE_AWS,
   EXECUTION_METHOD_TYPE_AWS_ECS,
+  SERVICE_PROVIDER_AWS_ECS,
   EXECUTION_METHOD_TYPE_AWS_LAMBDA,
-  SERVICE_PROVIDER_AWS_ECS
+  EXECUTION_METHOD_TYPE_AWS_CODEBUILD
 } from '../../utils/constants';
 
 import {
   RunEnvironment, Task,
   AwsEcsExecutionMethodSettings,
   AwsLambdaExecutionMethodCapability,
+  AwsCodeBuildExecutionMethodCapability,
   AwsInfrastructureSettings,
   AwsEcsServiceSettings
 } from '../../types/domain_types';
@@ -165,16 +167,39 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
   } else if (execMethodType === EXECUTION_METHOD_TYPE_AWS_LAMBDA) {
     const awsLambdaEmc = execMethodDetails as AwsLambdaExecutionMethodCapability;
     rows = rows.concat([
+      pair('Function name', makeLink(awsLambdaEmc.function_name,
+        awsLambdaEmc.infrastructure_website_url)),
       pair('Function ARN', makeLink(awsLambdaEmc.function_arn,
         awsLambdaEmc.infrastructure_website_url)),
-      pair('Function version', awsLambdaEmc.function_version),
       pair('Init type', awsLambdaEmc.init_type),
       pair('Runtime ID', awsLambdaEmc.runtime_id),
       pair('.NET PreJIT', awsLambdaEmc.dotnet_prejit),
     ]);
+  } else if (execMethodType === EXECUTION_METHOD_TYPE_AWS_CODEBUILD) {
+    const awsCodeBuildEmc = execMethodDetails as AwsCodeBuildExecutionMethodCapability;
+    rows = rows.concat([
+      pair('Project name', awsCodeBuildEmc.project_name),
+      pair('Build ARN', makeLink(awsCodeBuildEmc.build_arn,
+        awsCodeBuildEmc.infrastructure_website_url)),
+      pair('Source repository', makeLink(awsCodeBuildEmc.source_repo_url,
+        awsCodeBuildEmc.source_repo_url)),
+      pair('Timeout', awsCodeBuildEmc.timeout_in_minutes ?
+        `${awsCodeBuildEmc.timeout_in_minutes} minutes` : 'N/A'),
+      pair('Queued timeout', awsCodeBuildEmc.queued_timeout_in_minutes ?
+        `${awsCodeBuildEmc.queued_timeout_in_minutes} minutes` : 'N/A'),
+      pair('Service role', awsCodeBuildEmc.service_role),
+      pair('KMS key ID', awsCodeBuildEmc.kms_key_id),
+      pair('Environment type', awsCodeBuildEmc.environment_type),
+      pair('Compute type', awsCodeBuildEmc.compute_type),
+      pair('Build image', awsCodeBuildEmc.build_image),
+      pair('Privileged mode?', (typeof awsCodeBuildEmc.privileged_mode === 'boolean') ?
+        <BooleanIcon checked={awsCodeBuildEmc.privileged_mode ?? false} /> : 'N/A')
+    ]);
   }
 
-  if (infraType && task.infrastructure_settings) {
+  rows.push(pair('Infrastructure provider', infraType));
+
+  if (infraType && infraSettings) {
     let infraRows: NameValuePair[] = [];
 
     switch (infraType) {
@@ -184,10 +209,15 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
 
         if (awsNetworkSettings) {
           infraRows = infraRows.concat([
+            pair('Networking', ''),
+            pair('Region', awsNetworkSettings?.region ??
+              (runEnvDefaultAwsNetworkSettings?.region ?
+              `Run Environment default (${runEnvDefaultAwsNetworkSettings.region})` :
+              'N/A')),
             pair('Subnets', Array.isArray(awsNetworkSettings.subnets) ?
               makeLinks(awsNetworkSettings.subnets,
                 awsNetworkSettings.subnet_infrastructure_website_urls) :
-              <span>Default ({
+              <span>Run Environment default ({
                 makeLinks(runEnvDefaultAwsNetworkSettings?.subnets ?? [],
                   runEnvDefaultAwsNetworkSettings?.subnet_infrastructure_website_urls)
               })
@@ -195,7 +225,7 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
             pair('Security groups', Array.isArray(awsNetworkSettings.security_groups) ?
               makeLinks(awsNetworkSettings.security_groups,
                 awsNetworkSettings.security_group_infrastructure_website_urls) :
-              <span>Default ({
+              <span>Run Environment default ({
                 makeLinks(runEnvDefaultAwsNetworkSettings?.security_groups ?? [],
                   runEnvDefaultAwsNetworkSettings?.security_group_infrastructure_website_urls)
               })
@@ -223,11 +253,6 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
           if (loggingOptions) {
             infraRows = infraRows.concat([
               pair('Stream Prefix', loggingOptions.stream_prefix),
-
-              // TODO: Move to TaskExecutionSettings
-              pair('Stream',
-                makeLink(loggingOptions.stream,
-                  loggingOptions.stream_infrastructure_website_url))
             ]);
           }
         }
@@ -239,6 +264,8 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
           for (const [k, v] of Object.entries(tags)) {
             infraRows.push(pair(k, v));
           }
+        } else {
+          infraRows.push(pair('Tags', '(None)'));
         }
       }
       break;

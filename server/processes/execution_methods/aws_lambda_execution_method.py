@@ -13,7 +13,9 @@ from botocore.exceptions import ClientError
 
 from ..common.aws import *
 from ..common.utils import deepmerge
+from .execution_method import ExecutionMethod
 from .aws_base_execution_method import AwsBaseExecutionMethod
+from .aws_settings import *
 
 if TYPE_CHECKING:
     from ..models import (
@@ -21,7 +23,6 @@ if TYPE_CHECKING:
       TaskExecution
     )
 
-from .execution_method import ExecutionMethod
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,8 @@ class AwsLambdaExecutionMethodSettings(BaseModel):
     function_memory_mb: Optional[int] = None
     infrastructure_website_url: Optional[str] = None
 
-    def update_derived_attrs(self, execution_method: Optional[ExecutionMethod]) -> None:
+    def update_derived_attrs(self, aws_settings: Optional[AwsSettings] = None,
+            execution_method: Optional[ExecutionMethod] = None) -> None:
         logger.info("AWS Lambda Execution Method: update_derived_attrs()")
 
         self.infrastructure_website_url = make_aws_console_lambda_function_url(
@@ -180,6 +182,7 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
             lambda_client = self.aws_settings.make_boto3_client('lambda',
                 session_uuid=str(task_execution.uuid))
 
+            # TODO: environment override?
             response = lambda_client.invoke(
                 FunctionName=function_name,
                 InvocationType='Event',
@@ -211,3 +214,34 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
 
         task_execution.execution_method_details = self.settings.dict()
         task_execution.save()
+
+    def enrich_task_settings(self) -> None:
+        logger.info("AwsLambdaExecutionMethod: enrich_task_settings()")
+
+        if not self.task:
+            raise RuntimeError("No Task found")
+
+        super().enrich_task_settings()
+
+        emcd = self.task.execution_method_capability_details
+        if emcd:
+            aws_lambda_settings = AwsLambdaExecutionMethodSettings.parse_obj(emcd)
+            aws_lambda_settings.update_derived_attrs(aws_settings=self.aws_settings,
+                execution_method=self)
+            self.task.execution_method_capability_details = aws_lambda_settings.dict()
+
+
+    def enrich_task_execution_settings(self) -> None:
+        if self.task_execution is None:
+            raise APIException("enrich_task_settings(): Missing Task Execution")
+
+        super().enrich_task_execution_settings()
+
+        emd = self.task_execution.execution_method_details
+
+        if emd:
+            aws_lambda_settings =  AwsLambdaExecutionMethodInfo.parse_obj(emd)
+            aws_lambda_settings.update_derived_attrs(aws_settings=self.aws_settings)
+
+            self.task_execution.execution_method_details = deepmerge(
+                    emd, aws_lambda_settings.dict())

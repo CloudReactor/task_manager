@@ -30,3 +30,8 @@ from .aws_lambda_execution_method import (
     AwsLambdaExecutionMethod,
     AwsLambdaExecutionMethodSettings
 )
+
+from .aws_codebuild_execution_method import (
+    AwsCodeBuildExecutionMethod,
+    AwsCodeBuildExecutionMethodSettings
+)

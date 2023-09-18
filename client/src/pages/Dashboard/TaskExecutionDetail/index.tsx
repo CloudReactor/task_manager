@@ -1,9 +1,9 @@
 import * as path from '../../../constants/routes';
 
-import { TaskExecution } from '../../../types/domain_types';
+import { RunEnvironment, Task, TaskExecution } from '../../../types/domain_types';
 
 import * as UIC from '../../../utils/ui_constants';
-import { fetchTaskExecution } from '../../../utils/api';
+import { fetchRunEnvironment, fetchTask, fetchTaskExecution } from '../../../utils/api';
 
 import React, {  useEffect, useState } from "react";
 import { Link, useParams } from 'react-router-dom'
@@ -32,6 +32,8 @@ const TaskExecutionDetail = ({
   } = useParams<PathParamsType>();
 
   const [taskExecution, setTaskExecution] = useState<TaskExecution | null>(null);
+  const [task, setTask] = useState<Task | null>(null);
+  const [runEnvironment, setRunEnvironment] = useState<RunEnvironment | null>(null);
   const [selfInterval, setSelfInterval] = useState<any>(null);
 
   const fetchExecutionDetails = async () => {
@@ -39,6 +41,16 @@ const TaskExecutionDetail = ({
       const fetchedExecution = await fetchTaskExecution(uuid, abortSignal);
 
       setTaskExecution(fetchedExecution);
+
+      if (!task) {
+        const fetchedTask = await fetchTask(fetchedExecution.task.uuid, abortSignal);
+        setTask(fetchedTask);
+
+        if (!runEnvironment) {
+          const fetchedRunEnvironment = await fetchRunEnvironment(fetchedTask.run_environment.uuid, abortSignal);
+          setRunEnvironment(fetchedRunEnvironment);
+        }
+      }
 
       if (TASK_EXECUTION_STATUSES_IN_PROGRESS.includes(fetchedExecution.status)) {
         if (!selfInterval) {
@@ -90,7 +102,8 @@ const TaskExecutionDetail = ({
       />
       <Row>
         <Col>
-          <TaskExecutionDetails taskExecution={taskExecution} />
+          <TaskExecutionDetails taskExecution={taskExecution} task={task}
+           runEnvironment={runEnvironment} />
         </Col>
       </Row>
     </div>

@@ -9,7 +9,7 @@ from rest_framework.exceptions import (
 )
 
 from ..common.request_helpers import context_with_request
-from ..common.utils import coalesce, deepmerge
+from ..common.utils import coalesce
 from ..exception import UnprocessableEntity
 
 if TYPE_CHECKING:
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
+
 
 class ExecutionMethod:
     @enum.unique
@@ -261,6 +262,7 @@ class ExecutionMethod:
     def make_execution_method(task: Optional['Task'] = None,
             task_execution: Optional['TaskExecution'] = None) -> 'ExecutionMethod':
         from . import (
+            AwsCodeBuildExecutionMethod,
             AwsEcsExecutionMethod,
             AwsLambdaExecutionMethod,
             UnknownExecutionMethod
@@ -280,11 +282,11 @@ class ExecutionMethod:
             logger.info(f"emt overridden to = {emt}")
 
         if emt == AwsEcsExecutionMethod.NAME:
-            return AwsEcsExecutionMethod(task=task,
-                task_execution=task_execution)
+            return AwsEcsExecutionMethod(task=task, task_execution=task_execution)
         elif emt == AwsLambdaExecutionMethod.NAME:
-            return AwsLambdaExecutionMethod(task=task,
-                task_execution=task_execution)
+            return AwsLambdaExecutionMethod(task=task, task_execution=task_execution)
+        elif emt == AwsCodeBuildExecutionMethod.NAME:
+            return AwsCodeBuildExecutionMethod(task=task, task_execution=task_execution)
         return UnknownExecutionMethod(task=task,
                 task_execution=task_execution)
 

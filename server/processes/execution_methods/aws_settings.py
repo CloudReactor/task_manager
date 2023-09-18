@@ -37,6 +37,9 @@ class AwsNetworkSettings(BaseModel):
     security_group_infrastructure_website_urls: Optional[list[str]] = None
     assign_public_ip: Optional[bool] = None
     networks: Optional[list[AwsNetwork]] = None
+    vpc_id: Optional[str] = None
+    selected_subnet: Optional[str] = None
+    selected_subnet_infrastructure_website_url: Optional[str] = None
 
     def update_derived_attrs(self, aws_settings: 'AwsSettings',
           execution_method: Optional[ExecutionMethod] = None) -> None:

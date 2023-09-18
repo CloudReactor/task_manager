@@ -62,6 +62,7 @@ logger = logging.getLogger(__name__)
 
 
 SUPPORTED_EXECUTION_METHODS = [
+    AwsCodeBuildExecutionMethod,
     AwsEcsExecutionMethod,
     AwsLambdaExecutionMethod,
     UnknownExecutionMethod,
@@ -112,7 +113,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'run_environment',
             'allocated_cpu_units',
             'allocated_memory_mb',
-            'execution_method_capability', # Deprecated
             'execution_method_type',
             'execution_method_capability_details',
             'capabilities',
@@ -146,9 +146,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             view_name='tasks-detail',
             lookup_field='uuid')
 
-    # Deprecated
-    execution_method_capability = serializers.SerializerMethodField()
-
     capabilities = serializers.SerializerMethodField()
 
     alert_methods = NameAndUuidSerializer(
@@ -179,10 +176,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
           ]),
           resource_type_field_name='type'
     ))
-    def get_execution_method_capability(self, obj: Task):
-        method_name = obj.execution_method_type
-        return self.execution_method_capability_serializer_for_type(
-                method_name=method_name, task=obj, is_legacy_schema=True).data
 
     def get_capabilities(self, task: Task) -> list[str]:
         if task.passive:

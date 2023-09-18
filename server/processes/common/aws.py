@@ -40,11 +40,24 @@ def handle_aws_multiple_failure_response(response) -> None:
 
         raise APIException(detail=message)
 
+def normalize_role_arn(role_arn_or_name, aws_account_id: Optional[str], region: Optional[str]) -> str:
+    if aws_account_id and region:
+        if role_arn_or_name.startswith('arn:'):
+
+            return role_arn_or_name
+        else:
+            return 'arn:aws:iam::' + aws_account_id + ':role/' + role_arn_or_name
+
+    return role_arn_or_name
+
+
 def make_regioned_aws_console_base_url(region: str) -> str:
     return HTTPS + region + '.' + AWS_CONSOLE_HOSTNAME + '/'
 
+
 def make_region_parameter(region: str) -> str:
     return 'region=' + quote(region)
+
 
 def make_aws_console_role_url(role_arn: Optional[str]) -> Optional[str]:
     if not role_arn:
@@ -195,6 +208,41 @@ def make_aws_console_lambda_function_url(
         function_name_in_arn
 
 
+def make_aws_console_codebuild_build_url(
+        build_arn: Optional[str]) -> Optional[str]:
+    if build_arn is None:
+        return None
+
+    # build_arn format:
+    # arn:aws:codebuild:<region>:<aws account id>:build/<project>[:build_id]
+    tokens = build_arn.split(':')
+    token_len = len(tokens)
+
+    if (token_len < 6) or (token_len > 7) or (tokens[0] != 'arn') or \
+        (tokens[1] != 'aws') or (tokens[2] != 'codebuild') or \
+        (not tokens[5].startswith('build/')):
+        logger.warning(f"AWS CodeBuild Execution Method: {build_arn=} is not the expected format")
+        return None
+
+    region = tokens[3]
+    account_id = tokens[4]
+    project = tokens[5][len('build/'):]
+
+    build_id: Optional[str] = None
+    if token_len == 7:
+        build_id = tokens[6]
+
+    url = f"https://{region}.console.aws.amazon.com/codesuite/codebuild/{account_id}/projects/" + \
+            quote_plus(project)
+
+    if build_id:
+        url += ("/build/" + quote_plus(project) + "%3A" + build_id)
+    else:
+        url += "/history"
+
+    return url + "?" + make_region_parameter(region)
+
+
 def aws_encode(value: str):
     """
     From rh0dium on
@@ -204,3 +252,14 @@ def aws_encode(value: str):
     value = quote_plus(value)
     value = re.sub(r"\+", " ", value)
     return re.sub(r"%", "$", quote_plus(value))
+
+
+def make_flattened_environment(env: dict[str, str]) -> list[dict[str, str]]:
+    flattened = []
+    for name, value in env.items():
+        flattened.append({
+            'name': name,
+            'value': value
+        })
+
+    return flattened

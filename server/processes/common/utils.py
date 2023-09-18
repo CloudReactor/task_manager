@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 from collections import abc
 import logging
 import re
@@ -73,7 +73,7 @@ def deepmerge_with_lists_pair(dest: Any, src: Any,
 def deepmerge_core(append_lists: bool, ignore_none: bool, *args) -> Any:
     """
     Deep merge, including dict elements of lists.
-    The second argument is modified in place.
+    The third argument is modified in place.
     """
     dest = None
 
@@ -101,3 +101,23 @@ def deepmerge(*args, append_lists: bool=False, ignore_none: bool=True) -> Any:
     The first argument is modified in place.
     """
     return deepmerge_core(append_lists, ignore_none, *args)
+
+
+def lookup_string(d: dict[str, Any], key: str) -> Optional[str]:
+    x = d.get(key)
+    return str(x) if x else None
+
+
+def lookup_int(d: dict[str, Any], key: str) -> Optional[int]:
+    x = d.get(key)
+    return None if (not x) and (x != 0) else int(x)
+
+
+def lookup_bool(d: dict[str, Any], key: str) -> Optional[bool]:
+    x = d.get(key)
+    return None if x is None else bool(x)
+
+
+def to_camel(string: str) -> str:
+    string_split = string.split("_")
+    return string_split[0] + "".join(word.capitalize() for word in string_split[1:])

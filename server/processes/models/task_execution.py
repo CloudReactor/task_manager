@@ -1,4 +1,4 @@
-from typing import cast, Any, List, Optional, Type
+from typing import cast, List, Optional, Type
 
 import enum
 import json
@@ -313,7 +313,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     def execution_method(self) -> ExecutionMethod:
         return ExecutionMethod.make_execution_method(task_execution=self)
 
-    def make_environment(self) -> dict[str, Any]:
+    def make_environment(self) -> dict[str, str]:
         task = self.task
 
         env = {
@@ -713,12 +713,15 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
     from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
     instance = kwargs['instance']
+
     in_progress = instance.is_in_progress()
     task = instance.task
 
     if in_progress:
+        # task may be stale, just update a single column
         task.latest_task_execution = instance
-        task.save_without_sync()
+        logger.info(f"post_save_task_execution(): saving {task=} after setting latest execution")
+        task.save_without_sync(update_fields=['latest_task_execution', 'updated_at'])
 
     if task.schedule:
         from .missing_scheduled_task_execution import MissingScheduledTaskExecution

@@ -239,7 +239,7 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
                 if execution_method_name == self.DEFAULT_LABEL:
                     meta_settings = meta_settings or {}
 
-                    if (emt == AwsEcsExecutionMethod.NAME) or (emt == AwsLambdaExecutionMethod.NAME):
+                    if (emt == AwsEcsExecutionMethod.NAME) or (emt == AwsLambdaExecutionMethod.NAME) or (emt == AwsCodeBuildExecutionMethod.NAME):
                         infrastructure_name = meta_settings.get(self.INFRASTRUCTURE_NAME_KEY)
 
                         if infrastructure_name and (infrastructure_name != self.DEFAULT_LABEL):

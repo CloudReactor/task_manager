@@ -1,4 +1,13 @@
-import { TaskExecution } from '../../types/domain_types';
+import {
+  RunEnvironment,
+  Task,
+  TaskExecution,
+  AwsEcsExecutionMethodSettings,
+  AwsLambdaExecutionMethodSettings,
+  AwsCodeBuildExecutionMethodSettings,
+  AwsInfrastructureSettings
+} from '../../types/domain_types';
+
 import {
   formatBoolean, formatNumber,
   timeDuration, timeFormat,
@@ -9,10 +18,22 @@ import {
 import React from 'react';
 
 import { Table } from 'react-bootstrap';
-import { EXECUTION_METHOD_TYPE_AWS_ECS } from '../../utils/constants';
+import {
+  EXECUTION_METHOD_TYPE_AWS_CODEBUILD,
+  EXECUTION_METHOD_TYPE_AWS_ECS,
+  EXECUTION_METHOD_TYPE_AWS_LAMBDA,
+  INFRASTRUCTURE_TYPE_AWS
+} from '../../utils/constants';
 
 interface Props {
-  taskExecution: TaskExecution
+  taskExecution: TaskExecution;
+  task: Task | null;
+  runEnvironment: RunEnvironment | null;
+}
+
+interface NameValuePair {
+  name: string;
+  value: any;
 }
 
 function pair(name: string, value: any) {
@@ -23,9 +44,9 @@ function formatTime(x: Date | null) : string {
   return timeFormat(x, true);
 }
 
-const TaskExecutionDetails = ({ taskExecution }: Props) => {
+const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) => {
   const te = taskExecution;
-  const tem = te.execution_method
+  const tem = te.execution_method_details;
   let rows = [
     pair('Status', te.status),
     pair('Started by', te.started_by),
@@ -39,6 +60,8 @@ const TaskExecutionDetails = ({ taskExecution }: Props) => {
     pair('Version text', te.task_version_text),
     pair('Deployment', te.deployment),
     pair('Command', te.process_command),
+    pair('Allocated CPU units', formatNumber(te.allocated_cpu_units)),
+    pair('Allocated memory (MB)', formatNumber(te.allocated_memory_mb)),
     pair('Other instance metadata', te.other_instance_metadata ?
       JSON.stringify(te.other_instance_metadata) : 'None'),
     pair('Exit code', te.exit_code),
@@ -77,34 +100,182 @@ const TaskExecutionDetails = ({ taskExecution }: Props) => {
     pair('Status message max bytes', formatNumber(te.status_update_message_max_bytes)),
     pair('Wrapper log level', te.wrapper_log_level),
     pair('API base URL', te.api_base_url),
-    pair('Execution method', tem.type)
+    pair('Execution method', te.execution_method_type)
   ];
 
-  switch (tem.type) {
-    case EXECUTION_METHOD_TYPE_AWS_ECS:
+  switch (te.execution_method_type) {
+    case EXECUTION_METHOD_TYPE_AWS_ECS: {
+      const awsEcsTem = tem as AwsEcsExecutionMethodSettings;
       rows = rows.concat([
-    pair('ECS launch type', tem.launch_type),
-    pair('ECS cluster', makeLink(tem.cluster_arn, tem.cluster_infrastructure_website_url)),
-    pair('ECS task definition ARN', makeLink(tem.task_definition_arn,
-      tem.task_definition_infrastructure_website_url)),
-    pair('ECS task ARN', makeLink(tem.task_arn, te.infrastructure_website_url)),
-    pair('ECS execution role', makeLink(tem.execution_role,
-      tem.execution_role_infrastructure_website_url)),
-    pair('ECS task role', makeLink(tem.task_role,
-      tem.task_role_infrastructure_website_url)),
-    pair('ECS platform version', tem.platform_version),
-    pair('Subnet(s) ', makeLinks(tem.subnets, tem.subnet_infrastructure_website_urls)),
-    pair('Security group(s) ', makeLinks(tem.security_groups, tem.security_group_infrastructure_website_urls)),
-    pair('Assign public IP', (tem.assign_public_ip === null) ? 'Unknown' :
-      (tem.assign_public_ip ? 'ENABLED' : 'DISABLED')),
-    pair('Allocated CPU units', formatNumber(tem.allocated_cpu_units)),
-    pair('Allocated memory (MB)', formatNumber(tem.allocated_memory_mb))
+        pair('ECS launch type', awsEcsTem.launch_type),
+        pair('ECS cluster', makeLink(awsEcsTem.cluster_arn, awsEcsTem.cluster_infrastructure_website_url)),
+        pair('ECS task definition ARN', makeLink(awsEcsTem.task_definition_arn,
+          awsEcsTem.task_definition_infrastructure_website_url)),
+        pair('ECS task ARN', makeLink(awsEcsTem.task_arn, te.infrastructure_website_url)),
+        pair('ECS task role ARN', makeLink(awsEcsTem.task_role_arn,
+          awsEcsTem.task_role_infrastructure_website_url)),
+        pair('ECS platform version', awsEcsTem.platform_version),
       ]);
+    }
+    break;
+
+    case EXECUTION_METHOD_TYPE_AWS_LAMBDA: {
+      const awsLambdaTem = tem as AwsLambdaExecutionMethodSettings;
+      rows = rows.concat([
+        pair('Function version', awsLambdaTem.function_version),
+        pair('AWS Request ID', awsLambdaTem.aws_request_id),
+
+      ]);
+    }
+    break;
+
+    case EXECUTION_METHOD_TYPE_AWS_CODEBUILD: {
+      const awsCbTem = tem as AwsCodeBuildExecutionMethodSettings;
+      rows = rows.concat([
+        pair('Build ARN', makeLink(awsCbTem.build_arn, awsCbTem.infrastructure_website_url)),
+        pair('Build ID', makeLink(awsCbTem.build_id, awsCbTem.infrastructure_website_url)),
+        pair('Build number', awsCbTem.build_number),
+        pair('Source version', awsCbTem.source_version),
+        pair('Resolved source version', awsCbTem.resolved_source_version),
+        pair('Build started at', awsCbTem.start_time),
+        pair('Build ended at', awsCbTem.end_time),
+        pair('Build status', awsCbTem.build_status),
+        pair('Current phase', awsCbTem.current_phase),
+        pair('Build succeeding?', formatBoolean(awsCbTem.build_succeeding)),
+        pair('Build complete?', formatBoolean(awsCbTem.build_complete)),
+        pair('Initiator', awsCbTem.initiator),
+        pair('Batch build ID', awsCbTem.batch_build_identifier),
+        pair('Batch build ARN', awsCbTem.build_batch_arn),
+        pair('Public build URL', makeLink(awsCbTem.public_build_url, awsCbTem.public_build_url)),
+      ]);
+    }
     break;
 
     default:
     break;
   };
+
+  rows.push(pair('Infrastructure provider', te.infrastructure_type));
+
+  const teInfra = taskExecution.infrastructure_settings;
+  const taskInfra = task?.infrastructure_settings;
+  const runEnvInfra = runEnvironment?.infrastructure_settings;
+  if (teInfra || taskInfra || runEnvInfra) {
+    let infraRows: NameValuePair[] = [];
+
+    switch (te.infrastructure_type) {
+      case INFRASTRUCTURE_TYPE_AWS: {
+          const awsSettings = teInfra as AwsInfrastructureSettings;
+          const taskAwsSettings = taskInfra as AwsInfrastructureSettings | undefined;
+          const runEnvAwsSettings = runEnvInfra ? (runEnvInfra[INFRASTRUCTURE_TYPE_AWS]?.["__default__"]?.settings as AwsInfrastructureSettings | undefined)
+            : undefined;
+          const awsNetworkSettings = awsSettings?.network;
+          const taskAwsNetworkSettings = taskAwsSettings?.network;
+          const runEnvAwsNetworkSettings = runEnvAwsSettings?.network;
+
+          if (awsNetworkSettings || taskAwsNetworkSettings || runEnvAwsNetworkSettings) {
+            infraRows = infraRows.concat([
+              pair('Networking', ''),
+              pair('Region', awsNetworkSettings?.region ??
+                (taskAwsNetworkSettings?.region ?
+                  `Task default (${taskAwsNetworkSettings.region})` :
+                  (runEnvAwsNetworkSettings?.region ?
+                    `Run Environment default (${runEnvAwsNetworkSettings.region})` :
+                    'N/A')
+                )
+              ),
+              pair('Subnets', (awsNetworkSettings?.subnets && Array.isArray(awsNetworkSettings.subnets)) ?
+                makeLinks(awsNetworkSettings.subnets,
+                  awsNetworkSettings?.subnet_infrastructure_website_urls) : (
+                    (taskAwsNetworkSettings?.subnets && Array.isArray(taskAwsNetworkSettings.subnets)) ?
+                    <span>Task Default ({
+                      makeLinks(taskAwsNetworkSettings.subnets,
+                        taskAwsNetworkSettings?.subnet_infrastructure_website_urls)
+                    })</span> : <span>Run Environment default ({
+                      makeLinks(runEnvAwsNetworkSettings?.subnets ?? [],
+                        runEnvAwsNetworkSettings?.subnet_infrastructure_website_urls)
+                    })</span>
+
+                  )),
+              pair('Security groups', (awsNetworkSettings?.security_groups && Array.isArray(awsNetworkSettings.security_groups)) ?
+                makeLinks(awsNetworkSettings.security_groups,
+                  awsNetworkSettings.security_group_infrastructure_website_urls) : (
+                    (taskAwsNetworkSettings?.security_groups && Array.isArray(taskAwsNetworkSettings.security_groups)) ?
+                    <span>Task default ({
+                      makeLinks(taskAwsNetworkSettings.security_groups,
+                        taskAwsNetworkSettings.security_group_infrastructure_website_urls)
+                    })</span> : <span>Run Environment default ({
+                      makeLinks(runEnvAwsNetworkSettings?.security_groups ?? [],
+                        runEnvAwsNetworkSettings?.security_group_infrastructure_website_urls)
+                    })</span>
+                )),
+              pair('Assign public IP?', formatBoolean(awsNetworkSettings?.assign_public_ip ??
+                taskAwsNetworkSettings?.assign_public_ip ?? runEnvAwsNetworkSettings?.assign_public_ip ??
+                false)),
+            ]);
+          }
+
+          const awsLogging = awsSettings.logging;
+
+          if (awsLogging) {
+            infraRows = infraRows.concat([
+              pair('Logging', ''),
+              pair('Log Driver', awsLogging.driver)
+            ]);
+
+            const loggingOptions = awsLogging.options;
+
+            if (loggingOptions?.group || awsLogging.infrastructure_website_url) {
+              infraRows.push(pair('Log Group',
+                makeLink(loggingOptions?.group ?? 'View',
+                  awsLogging.infrastructure_website_url)));
+            }
+
+            if (loggingOptions) {
+              infraRows = infraRows.concat([
+                pair('Stream Prefix', loggingOptions.stream_prefix),
+                pair('Stream',
+                  makeLink(loggingOptions.stream,
+                    loggingOptions.stream_infrastructure_website_url))
+              ]);
+            }
+          }
+
+          const tags = awsSettings?.tags;
+
+          if (tags) {
+            infraRows.push(pair('Tags', ''));
+            for (const [k, v] of Object.entries(tags)) {
+              infraRows.push(pair(k, v));
+            }
+          } else {
+            infraRows.push(pair('Tags', '(None)'));
+          }
+
+          const xray = awsSettings?.xray;
+
+          if (xray) {
+            infraRows.push(pair('X-Ray', ''));
+            infraRows.push(pair('Trace ID', xray.trace_id));
+          }
+        }
+      break;
+
+      default:
+      break;
+    }
+
+    rows = rows.concat(infraRows);
+  }
+
+/*
+    pair('ECS execution role', makeLink(awsEcsTem.execution_role,
+      awsEcsTem.execution_role_infrastructure_website_url)),
+    pair('Subnet(s) ', makeLinks(awsEcsTem.subnets, awsEcsTem.subnet_infrastructure_website_urls)),
+    pair('Security group(s) ', makeLinks(awsEcsTem.security_groups, awsEcsTem.security_group_infrastructure_website_urls)),
+    pair('Assign public IP', (awsEcsTem.assign_public_ip === null) ? 'Unknown' :
+      (awsEcsTem.assign_public_ip ? 'ENABLED' : 'DISABLED')),
+  */
 
   rows = rows.concat([
      pair('Workflow Execution',

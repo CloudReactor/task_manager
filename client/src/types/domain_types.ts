@@ -225,7 +225,7 @@ implements LegacyExecutionMethodCapabilityImpl {
   type = EXECUTION_METHOD_TYPE_UNKNOWN;
 }
 
-export interface AwsEcsExecutionMethodSettings {
+export interface AwsEcsExecutionMethodCapability {
   launch_type?: string | null;
   supported_launch_types?: string[] | null;
   cluster_arn?: string | null;
@@ -240,6 +240,11 @@ export interface AwsEcsExecutionMethodSettings {
   task_role_infrastructure_website_url?: string | null;
   platform_version?: string | null;
   enable_ecs_managed_tags?: boolean | null;
+}
+
+export interface AwsEcsExecutionMethodSettings extends AwsEcsExecutionMethodCapability {
+  task_arn?: string | null;
+  task_infrastructure_website_url?: string | null;
 }
 
 export interface NamedExecutionMethodSettings<T> {
@@ -377,6 +382,58 @@ export interface AwsLambdaExecutionMethodCapability {
   infrastructure_website_url: string | null;
 }
 
+export interface AwsLambdaExecutionMethodSettings extends AwsLambdaExecutionMethodCapability {
+  aws_request_id: string | null;
+}
+
+export interface AwsCodeBuildExecutionMethodCapability {
+  build_arn: string | null;
+  build_image: string | null;
+  source_repo_url: string | null;
+  environment_type: string | null;
+  compute_type: string | null;
+  privileged_mode: boolean | null;
+  image_pull_credentials_type: string | null;
+  kms_key_id: string | null;
+  service_role: string | null;
+  timeout_in_minutes: number | null;
+  queued_timeout_in_minutes: number | null;
+
+  /*
+  cache: Optional[AwsCodeBuildCache] = None
+  artifacts: Optional[AwsCodeBuildArtifact] = None
+  secondary_artifacts: Optional[list[AwsCodeBuildArtifact]] = None
+  debug_session_enabled: boolean | null; */
+
+  infrastructure_website_url: string | null;
+  project_name: string | null;
+}
+
+
+export interface AwsCodeBuildExecutionMethodSettings extends AwsCodeBuildExecutionMethodCapability {
+    build_id: string | null;
+    build_number: number | null;
+    batch_build_identifier: string | null;
+    build_batch_arn: string | null;
+    initiator: string | null;
+    source_version: string | null;
+    resolved_source_version: string | null;
+    start_time: string | null;
+    end_time: string | null;
+    current_phase: string | null;
+    build_status: string | null;
+    build_succeeding: boolean | null;
+    build_complete: boolean | null;
+    public_build_url: string | null;
+    /* TODO
+    webhook: Optional[AwsCodeBuildWebhookInfo] = None # From proc_wrapper
+    file_system_locations: Optional[list[AwsCodeBuildProjectFileSystemLocation]] = None
+    cache: Optional[AwsCodeBuildCache] = None
+    reports: Optional[list[AwsCodeBuildReport]] = None
+    debug_session: Optional[AwsCodeBuildDebugSession] = None */
+}
+
+
 export interface Task extends EntityReferenceWithDates, Executable {
   alert_methods: EntityReference[];
   allocated_cpu_units: number | null;
@@ -478,6 +535,8 @@ export interface TaskExecution {
   api_task_execution_creation_conflict_retry_delay_seconds: number | null;
   api_task_execution_creation_error_timeout_seconds: number | null;
   api_final_update_timeout_seconds: number | null;
+  allocated_cpu_units: number | null;
+  allocated_memory_mb: number | null;
   commit_url: string;
   created_at: Date;
   current_cpu_units: number | null;
@@ -489,6 +548,7 @@ export interface TaskExecution {
   environment_variables_overrides: any;
   error_count: number;
   error_log_tail: string | null;
+  // Deprecated
   execution_method: {
     allocated_cpu_units: number;
     allocated_memory_mb: number;
@@ -511,12 +571,16 @@ export interface TaskExecution {
     task_role_infrastructure_website_url: string | null;
     type: string;
   };
+  execution_method_details: object | null;
+  execution_method_type: string;
   exit_code: number | null;
   expected_count: number | null;
   failed_attempts: number;
   finished_at: Date | null;
   heartbeat_interval_seconds: number | null;
   hostname: string | null;
+  infrastructure_type: string | null;
+  infrastructure_settings: object | null;
   infrastructure_website_url: string;
   is_service: boolean | null;
   killed_by: string,

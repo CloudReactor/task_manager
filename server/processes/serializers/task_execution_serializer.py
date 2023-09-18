@@ -325,9 +325,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         validated['execution_method_type'] = execution_method_type
 
-        computed_legacy_em: Optional[dict[str, Any]] = None
-        computed_legacy_aws_settings: Optional[dict[str, Any]] = None
-
         # Set deprecated columns
         if execution_method_dict:
             if is_legacy_schema:
@@ -395,6 +392,8 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                         src_dict=network_settings,
                         dest_prefix='aws_ecs_',
                         included_keys=['security_groups', 'assign_public_ip'])
+
+        # End set deprecated columns
 
         return validated
 

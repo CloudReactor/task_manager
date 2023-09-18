@@ -322,11 +322,11 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     def execution_method(self) -> ExecutionMethod:
         return ExecutionMethod.make_execution_method(task=self)
 
-    def save_without_sync(self) -> 'Task':
+    def save_without_sync(self, **kwargs) -> 'Task':
         old_sync = self.should_skip_synchronize_with_run_environment
         self.should_skip_synchronize_with_run_environment = True
         try:
-            self.save()
+            self.save(**kwargs)
             return self
         finally:
             self.should_skip_synchronize_with_run_environment = old_sync
