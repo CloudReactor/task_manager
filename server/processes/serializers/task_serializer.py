@@ -395,7 +395,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             else:
                 logger.info(f"to_internal_value(): {task.uuid}: skipping service settings merge")
         else:
-            logger.info(f"to_internal_value(): skipping all merging because Task does not exist")
+            logger.info("to_internal_value(): skipping all merging because Task does not exist")
 
         if (is_service is None) and schedule:
             is_service = False

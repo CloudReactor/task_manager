@@ -2,7 +2,7 @@ from typing import Optional, Type
 
 import logging
 
-from django.db.models.signals import post_save
+# from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from django.contrib.auth.models import Group, User
@@ -12,10 +12,11 @@ from rest_framework.request import Request
 from djoser.signals import user_activated
 from djoser.views import UserViewSet as DjoserUserViewSet
 
-from processes.common.request_helpers import user_and_group_from_request
-from processes.models import SaasToken, UserGroupAccessLevel
+from .models import SaasToken, UserGroupAccessLevel
 
 logger = logging.getLogger(__name__)
+
+logger.info("Loading signal handlers ...")
 
 
 def add_default_group_and_saas_token(user: User) -> None:

@@ -165,7 +165,7 @@ def extract_filtered_group(request: Request,
 
         return request_group
     elif request_group:
-        if (str(request_group.pk) != group_id):
+        if str(request_group.pk) != group_id:
             raise UnprocessableEntity(detail='Group ID does not match authenticated Group')
 
         return request_group

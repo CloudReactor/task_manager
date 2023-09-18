@@ -17,7 +17,7 @@ class EmailNotificationProfileSerializer(GroupSettingSerializerMixin,
 
     class Meta:
         model = EmailNotificationProfile
-        
+
         fields = ['url', 'uuid', 'name', 'description', 'dashboard_url',
                   'created_by_user', 'created_by_group', 'run_environment',
                   'created_at', 'updated_at',

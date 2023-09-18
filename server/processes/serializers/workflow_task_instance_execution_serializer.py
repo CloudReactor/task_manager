@@ -1,7 +1,5 @@
 import logging
 
-from rest_framework import serializers
-
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
 from ..models import WorkflowTaskInstanceExecution

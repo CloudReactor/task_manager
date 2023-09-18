@@ -86,6 +86,7 @@ class ProcessesConfig(AppConfig):
     name = 'processes'
 
     def ready(self):
-        import processes.signal_handlers
+        # This is needed to load the signal handlers for this app.
+        import processes.signal_handlers # pylint: disable=unused-import
         from django.db.models.signals import pre_save
         pre_save.connect(pre_save_user, sender='auth.User')

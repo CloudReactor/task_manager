@@ -1,7 +1,6 @@
 from typing import Any
 
 from rest_framework import serializers
-from rest_framework.fields import empty
 
 from ..models import Task
 

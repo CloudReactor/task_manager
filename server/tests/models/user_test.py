@@ -2,7 +2,6 @@ import pytest
 
 from django.contrib.auth.models import Group, User
 
-
 from djoser.signals import user_activated
 from djoser.views import UserViewSet as DjoserUserViewSet
 

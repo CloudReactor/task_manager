@@ -17,7 +17,7 @@ class PagerDutyProfileSerializer(GroupSettingSerializerMixin,
 
     class Meta:
         model = PagerDutyProfile
-        
+
         fields = ['url', 'uuid', 'name', 'description', 'dashboard_url',
                   'integration_key',
                   'default_event_severity',
