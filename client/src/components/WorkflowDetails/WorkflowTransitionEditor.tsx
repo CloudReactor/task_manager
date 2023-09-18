@@ -1,6 +1,6 @@
 import * as C from '../../utils/constants';
 
-import React from "react";
+import React, { Component } from "react";
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 
@@ -52,7 +52,7 @@ const workflowTransitionSchema = Yup.object().shape({
     .required('Rule type is required')
 });
 
-export default class WorkflowTransitionEditor extends React.Component<Props, State> {
+export default class WorkflowTransitionEditor extends Component<Props, State> {
   static contextType = GlobalContext;
 
   constructor(props: Props) {

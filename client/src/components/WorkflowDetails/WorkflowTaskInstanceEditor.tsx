@@ -3,7 +3,7 @@ import {EntityReference, Task, WorkflowTaskInstance} from '../../types/domain_ty
 import * as C from '../../utils/constants'
 import { fetchTasks } from '../../utils/api';
 
-import React, { Fragment } from 'react';
+import React, { Component, Fragment } from 'react';
 
 import {
   Form as BootstrapForm
@@ -53,7 +53,7 @@ const WorkflowTaskInstanceSchema = Yup.object().shape({
 });
 
 
-export default class WorkflowTaskInstanceEditor extends React.Component<Props, State> {
+export default class WorkflowTaskInstanceEditor extends Component<Props, State> {
   static contextType = GlobalContext;
 
   constructor(props: Props) {

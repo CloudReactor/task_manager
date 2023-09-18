@@ -18,7 +18,7 @@ const TaskSummary = ({ task }: Props) => {
   const rows = [
     createData('Description', task.description ?? 'N/A'),
     createData('Schedule', scheduleText),
-    createData('Run environment',
+    createData('Run Environment',
         <Link to={'/run_environments/' + encodeURIComponent(task.run_environment.uuid)}>{task.run_environment.name}</Link>)
   ];
 

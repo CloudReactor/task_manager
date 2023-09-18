@@ -9,7 +9,7 @@ interface Props {
   onBlur?: any;
 }
 
-export const SettingsForm = (props: Props) => {
+const SettingsForm = (props: Props) => {
   const {
     items,
     onChange,

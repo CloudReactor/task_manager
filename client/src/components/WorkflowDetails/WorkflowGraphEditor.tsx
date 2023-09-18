@@ -10,7 +10,7 @@ import {
 } from "../../types/domain_types";
 
 import React, { Component, Fragment }  from 'react';
-import ReactDOM from 'react-dom';
+import ReactDOM, { createPortal } from 'react-dom';
 
 import {
   GlobalContext,
@@ -177,7 +177,7 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
         </div>
 
         {
-          ReactDOM.createPortal(
+          createPortal(
             <Fragment>
               <WorkflowTaskInstanceEditor workflowTaskInstance={workflowTaskInstanceToEdit}
                runEnvironmentUuid={runEnvironmentUuid}

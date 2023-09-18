@@ -104,7 +104,6 @@ const ApiKeyList = ({
   const handleQueryChanged = (
     event: React.ChangeEvent<HTMLInputElement>
   ): void => {
-    setURL(history.location, history, 1, 'page');
     setURL(history.location, history, event.target.value, 'q');
 
     loadApiKeys();

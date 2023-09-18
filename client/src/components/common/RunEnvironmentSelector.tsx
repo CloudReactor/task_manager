@@ -2,7 +2,7 @@ import { RunEnvironment } from '../../types/domain_types';
 import { fetchRunEnvironments } from '../../utils/api';
 import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
-import React from 'react';
+import React, { Component } from 'react';
 import Form from 'react-bootstrap/Form'
 
 import {
@@ -24,7 +24,7 @@ interface State {
   runEnvironments: RunEnvironment[];
 }
 
-class RunEnvironmentSelector extends React.Component<InnerProps, State> {
+class RunEnvironmentSelector extends Component<InnerProps, State> {
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {

@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import React from 'react';
+import React, { Component } from 'react';
 
 import {
   AlertMethod
@@ -35,7 +35,7 @@ interface State {
   uuidsToAlertMethods: any;
 }
 
-class AlertMethodSelector extends React.Component<InnerProps, State> {
+class AlertMethodSelector extends Component<InnerProps, State> {
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {

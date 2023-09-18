@@ -3,7 +3,7 @@ import axios, { isCancel } from 'axios';
 import { EmailNotificationProfile } from '../../types/domain_types';
 import { fetchEmailNotificationProfiles } from '../../utils/api';
 
-import React, { Fragment } from 'react';
+import React, { Component, Fragment } from 'react';
 import Form from 'react-bootstrap/Form'
 
 import { GlobalContext } from '../../context/GlobalContext';
@@ -23,7 +23,7 @@ interface State {
   emailNotificationProfiles: EmailNotificationProfile[];
 }
 
-class EmailNotificationProfileSelector extends React.Component<InnerProps, State> {
+class EmailNotificationProfileSelector extends Component<InnerProps, State> {
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {

@@ -4,7 +4,7 @@ import { Group } from '../../types/website_types';
 import { fetchCurrentUser } from '../../utils/api';
 import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
-import React from 'react';
+import React, { Component } from 'react';
 import Form from 'react-bootstrap/Form'
 
 interface Props {
@@ -20,7 +20,7 @@ interface State {
   groups: Group[];
 }
 
-class GroupSelector extends React.Component<InnerProps, State> {
+class GroupSelector extends Component<InnerProps, State> {
   constructor(props: InnerProps) {
     super(props);
 

@@ -3,7 +3,7 @@ import { isCancel } from 'axios';
 import { PagerDutyProfile } from '../../types/domain_types';
 import { fetchPagerDutyProfiles } from '../../utils/api';
 
-import React, { Fragment } from 'react';
+import React, { Component, Fragment } from 'react';
 import Form from 'react-bootstrap/Form'
 
 import { GlobalContext } from '../../context/GlobalContext';
@@ -22,7 +22,7 @@ interface State {
 
 type InnerProps = Props & AbortSignalProps;
 
-class PagerDutyProfileSelector extends React.Component<InnerProps, State> {
+class PagerDutyProfileSelector extends Component<InnerProps, State> {
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {

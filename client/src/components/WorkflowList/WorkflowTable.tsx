@@ -16,7 +16,7 @@ import WorkflowTableBody from "./WorkflowTableBody";
 import styles from './WorkflowTable.module.scss';
 
 interface Props {
-  q: string;
+  q: string | undefined;
   sortBy: string;
   descending: boolean;
   workflowPage: ResultsPage<WorkflowSummary>;
