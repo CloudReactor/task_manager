@@ -64,7 +64,7 @@ RUN pip-sync requirements.txt
 
 ARG asset_path=./client/build
 
-COPY ./client/index.html $CRA_ROOT
+COPY ${asset_path}/index.html $CRA_ROOT
 COPY ${asset_path}/*.ico $WHITENOISE_ROOT/
 COPY ${asset_path}/*.js* $WHITENOISE_ROOT/
 COPY ${asset_path}/images $WHITENOISE_ROOT/images
