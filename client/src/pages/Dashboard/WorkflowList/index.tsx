@@ -315,6 +315,9 @@ const WorkflowList = (props: AbortSignalProps) => {
     currentPage
   } = getParams(history.location.search);
 
+  const finalSortBy = (sortBy ?? 'name');
+  const finalDescending = descending ?? false;
+
   const workflowTableProps = {
     handleRunEnvironmentChanged,
     handleQueryChanged,
@@ -327,8 +330,8 @@ const WorkflowList = (props: AbortSignalProps) => {
     handleEditRequest,
     handleDeletionRequest,
     q,
-    sortBy,
-    descending,
+    sortBy: finalSortBy,
+    descending : finalDescending,
     currentPage,
     rowsPerPage,
     workflowPage,

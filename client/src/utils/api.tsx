@@ -149,7 +149,7 @@ function makePageFetchWithGroupAndScopedRunEnvironmentParams(pageFetchOptions?: 
 
 export const itemsPerPageOptions: Array<{ value: number; text: number }> = [
   //For testing
-  //{ value: 10, text: 10 },
+  // { value: 5, text: 5 },
   { value: 25, text: 25 },
   { value: 50, text: 50 },
   { value: 100, text: 100 }
@@ -556,7 +556,7 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     params['run_environment__uuid'] = opts.selectedRunEnvironmentUuid;
   }
 
-  params['omit'] = 'execution_method_capability.details,current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,input_value_schema,alert_methods,links';
+  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,input_value_schema,alert_methods,links';
 
   if (opts.otherParams) {
     Object.assign(params, opts.otherParams);

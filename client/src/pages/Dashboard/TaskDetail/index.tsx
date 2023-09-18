@@ -17,6 +17,8 @@ import {
   updateTask
 } from '../../../utils/api';
 
+import { getParams, setURL } from '../../../utils/url_search';
+
 import {
   catchableToString,
   startTaskExecution,
@@ -67,10 +69,6 @@ type Props = AbortSignalProps;
 interface State {
   isLoading: boolean;
   taskExecutionsPage: ResultsPage<TaskExecution>;
-  currentPage: number;
-  rowsPerPage: number;
-  sortBy: string;
-  descending: boolean;
   shouldShowConfigModal: boolean;
   task?: TaskImpl;
   runEnvironment?: RunEnvironment,
@@ -94,10 +92,6 @@ const TaskDetail = ({
 
   const [taskExecutionsPage, setTaskExecutionsPage] = useState(
     makeEmptyResultsPage<TaskExecution>());
-  const [currentPage, setCurrentPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(UIC.DEFAULT_PAGE_SIZE);
-  const [sortBy, setSortBy] = useState('started_at');
-  const [descending, setDescending] = useState(true);
   const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
   const [stoppingTaskExecutionUuids, setStoppingTaskExecutionUuids] =
     useState(new Set<string>());
@@ -204,49 +198,51 @@ const TaskDetail = ({
     }
   }
 
-  const loadTaskExecutions = async (ordering?: string, toggleDirection?: boolean) => {
-    const updatedSortBy = ordering || sortBy;
-    const updatedDescending = toggleDirection ? !descending : descending;
+  const handleSort = async (sortBy: string) => {
+    setURL(history.location, history, sortBy, 'sort_by');
+    await loadTaskExecutions();
+  }
+
+  const loadTaskExecutions = async () => {
+    const {
+      sortBy,
+      descending,
+      rowsPerPage,
+      currentPage,
+    } = getParams(history.location.search);
+
     const offset = currentPage * rowsPerPage;
+
+    const finalSortBy = sortBy ?? 'started_at';
+    const finalDescending = descending ?? !sortBy;
 
     try {
       const taskExecutionsPage = await fetchTaskExecutions({
         taskUuid: uuid,
-        sortBy: updatedSortBy,
-        descending: updatedDescending,
+        sortBy: finalSortBy,
+        descending: finalDescending,
         offset,
         maxResults: rowsPerPage,
         abortSignal
       });
 
-      setDescending(updatedDescending);
-      setSortBy(updatedSortBy);
       setTaskExecutionsPage(taskExecutionsPage);
     } catch (error) {
+      // TODO: show alert
       console.log(error);
     }
   }
 
   const handlePageChanged = (updatedCurrentPage: number) => {
-    setCurrentPage(updatedCurrentPage);
-    loadTaskExecutions();
-  };
-
-  const handlePrev = () => {
-    setCurrentPage(currentPage - 1);
-    loadTaskExecutions();
-  };
-
-  const handleNext = () => {
-    setCurrentPage(currentPage + 1);
+    setURL(history.location, history, updatedCurrentPage + 1, 'page');
     loadTaskExecutions();
   };
 
   const handleSelectItemsPerPage = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    const value: any = event.target.value;
-    setRowsPerPage(parseInt(value));
+    const rowsPerPage = parseInt(event.target.value);
+    setURL(history.location, history, rowsPerPage, 'rows_per_page');
     loadTaskExecutions();
   };
 
@@ -376,6 +372,13 @@ const TaskDetail = ({
             </div>
             <div>
               {(() => {
+                const {
+                  sortBy,
+                  descending,
+                  rowsPerPage,
+                  currentPage,
+                } = getParams(history.location.search);
+
                 switch (selectedTab) {
                   case 'settings':
                     return <TaskSettings task={task} runEnvironment={runEnvironment ?? undefined} />;
@@ -401,7 +404,7 @@ const TaskDetail = ({
                             task={task}
                             onStopRequested={handleActionRequested}
                             stoppingTaskExecutionUuids={stoppingTaskExecutionUuids}
-                            handleSort={loadTaskExecutions}
+                            handleSort={handleSort}
                             sortBy={sortBy}
                             descending={descending}
                           />
@@ -417,7 +420,7 @@ const TaskDetail = ({
                       ) : (
                         <h2 className="my-5 text-center">
                           This Task has not run yet. When it does, you&apos;ll be able to see
-                          a table of past executions here.
+                          a table of past Task Executions here.
                         </h2>
                       )
                     );

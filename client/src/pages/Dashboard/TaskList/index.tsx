@@ -82,8 +82,8 @@ const TaskList = ({
     try {
       const taskPage = await fetchTasks({
         groupId: currentGroup?.id,
-        sortBy,
-        descending,
+        sortBy: sortBy ?? 'name',
+        descending: descending ?? false,
         offset,
         maxResults: rowsPerPage,
         q,
@@ -190,8 +190,9 @@ const TaskList = ({
     }
   }, [taskUuidToInProgressOperation]);
 
-  const handleSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
-    setURL(history.location, history, ordering, 'sort_by');
+  const handleSortChanged = useCallback(async (sortBy?: string, toggleDirection?: boolean) => {
+    setURL(history.location, history, sortBy, 'sort_by');
+
     loadTasks();
   }, []);
 
@@ -224,18 +225,6 @@ const TaskList = ({
     loadTasks();
   }, []);
 
-  /*
-  const handlePrev = () => {
-    const { currentPage = 0 } = getParams(history.location);
-    setURL(history.location, history, currentPage, 'page');
-    loadTasks();
-  }
-
-  const handleNext = () => {
-    const { currentPage = 0 } = getParams(history.location);
-    setURL(history.location, history, currentPage + 2, 'page');
-    loadTasks();
-  } */
 
   const failedTaskCount = useCallback((tasks: TaskImpl[]): number => {
     let count = 0;
@@ -317,6 +306,9 @@ const TaskList = ({
     currentPage
   } = getParams(history.location.search);
 
+  const finalSortBy = (sortBy ?? 'name');
+  const finalDescending = descending ?? false;
+
   const taskTableProps = {
     handleRunEnvironmentChanged,
     handleQueryChanged,
@@ -328,8 +320,8 @@ const TaskList = ({
     handleActionRequested,
     editTask,
     q,
-    sortBy,
-    descending,
+    sortBy: finalSortBy,
+    descending: finalDescending,
     currentPage,
     rowsPerPage,
     taskPage,

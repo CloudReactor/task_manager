@@ -82,7 +82,7 @@ const WorkflowExecutionsTable = ({
 
     try {
       const updatedWorkflowExecutionsPage = await fetchWorkflowExecutionSummaries(workflow.uuid, sortBy,
-        (sortBy ? descending : true), offset, rowsPerPage);
+        (sortBy ? descending : true), offset, rowsPerPage, abortSignal);
 
       setWorkflowExecutionsPage(updatedWorkflowExecutionsPage);
     } catch (err) {
@@ -222,13 +222,7 @@ const WorkflowExecutionsTable = ({
                 <th
                   key={item.name}
                   onClick={item.ordering ? async () => {
-                    const {
-                      descending
-                    } = getParams(history.location.search);
-                    setURL(history.location, history, 1, 'page');
                     setURL(history.location, history, item.ordering, 'sort_by');
-                    setURL(history.location, history, !descending, 'descending');
-
                     await loadWorkflowExecutions();
                   } : undefined
                 }

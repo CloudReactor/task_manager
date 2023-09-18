@@ -26,9 +26,9 @@ interface Props {
   task: Task,
   stoppingTaskExecutionUuids: Set<string>,
   onStopRequested: (action: string | undefined, taskExecution: any) => any;
-  handleSort: (name: any, toggleDirection?: boolean) => void;
-  sortBy: string;
-  descending: boolean;
+  handleSort: (sortBy: string) => void;
+  sortBy: string  | undefined;
+  descending: boolean | undefined;
 }
 
 const TaskExecutionTable = ({
@@ -51,7 +51,7 @@ const TaskExecutionTable = ({
     { name: 'Finished', ordering: 'finished_at' },
     { name: 'Run Duration', ordering: 'duration' },
     { name: 'Status', ordering: 'status' },
-    { name: 'Last heartbeat', ordering: 'last_heartbeat_at' },
+    { name: 'Last Heartbeat', ordering: 'last_heartbeat_at' },
     { name: 'Exit Code', ordering: 'exit_code', textAlign: 'text-right' },
     { name: 'Last Status Message', ordering: 'last_status_message' },
     { name: 'Failed Attempts', ordering: 'failed_attempts', textAlign: 'text-right' },
@@ -74,7 +74,7 @@ const TaskExecutionTable = ({
               <th
                 key={item.name}
                 onClick={item.ordering ? () => {
-                  handleSort(item.ordering, true)
+                  handleSort(item.ordering);
                 } : undefined
               }
                 className={'th-header' + (item.textAlign ? ` ${item.textAlign}`: '')}

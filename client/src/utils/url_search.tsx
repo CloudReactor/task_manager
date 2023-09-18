@@ -11,13 +11,16 @@ interface urlParams {
 
 export const getParams = (location: any) => {
   const params = new URLSearchParams(location);
-  const isDescending = (params.get('descending') === 'true') || false;
+  const descendingStr = params.get('descending');
+  const sortBy = params.get('sort_by');
 
-  // TODO: remove empty values
+  const descending = descendingStr ? (descendingStr === 'true') :
+    (sortBy ? false : undefined);
+
   return Object.assign({}, {
-    q: params.get('q') || '',
-    sortBy: params.get('sort_by') || '',
-    descending: isDescending,
+    q: params.get('q') ?? undefined,
+    sortBy: params.get('sort_by') ?? undefined,
+    descending,
     selectedRunEnvironmentUuid: params.get('selected_run_environment_uuid') || '',
     rowsPerPage: Number(params.get('rows_per_page')) || UIC.DEFAULT_PAGE_SIZE,
     currentPage: Number(params.get('page') || 1) - 1
@@ -32,21 +35,44 @@ export const setURL = (
 ) => {
   const params = new URLSearchParams(location.search);
 
-  if (changeParam === 'sort_by' && value === params.get("sort_by")) {
-    // user is clicking on the column that's already sorted. So, toggle the sort order
-    const isDescending = params.get('descending') === 'true' ? 'false' : 'true';
-    params.set('descending', isDescending);
+  if (changeParam === 'sort_by') {
+    if (value === params.get('sort_by')) {
+      // user is clicking on the column that's already sorted. So, toggle the sort order
+      const isDescending = (params.get('descending') === 'true');
 
-  } else if ((changeParam === 'page') && (value === 1)) {
-    params.delete('page');
+      if (isDescending) {
+        params.delete('descending');
+      } else {
+        params.set('descending', 'true');
+      }
+    } else {
+      params.set(changeParam, value);
+      params.delete('descending');
+    }
+  } else if (changeParam === 'page') {
+    if (value > 1) {
+      params.set(changeParam, value);
+    } else {
+      params.delete('page');
+    }
+  } else if (changeParam === 'descending') {
+    if (value) {
+      params.set(changeParam, 'true')
+    } else {
+      params.delete(changeParam);
+    }
   } else {
-    // user is clicking on a different column than what's already sorted, or is entering a new search query.
-
     if ((value === null) || (value === undefined) || (value === '')) {
       params.delete(changeParam);
     } else {
       params.set(changeParam, value);
     }
+
+    params.delete('descending');
+  }
+
+  if ((changeParam !== 'page') || (value === 1)) {
+    params.delete('page');
   }
 
   const newQueryString = '?' + params.toString();

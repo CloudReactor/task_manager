@@ -19,7 +19,7 @@ import styles from './TaskTable.module.scss';
 import './style.scss';
 
 interface Props {
-  q: string;
+  q: string | undefined;
   sortBy: string;
   descending: boolean;
   taskPage: ResultsPage<TaskImpl>;
