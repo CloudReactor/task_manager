@@ -1069,28 +1069,28 @@ def test_task_execution_create_with_legacy_task_property(
   api_key_access_level, api_key_scope_type,
   request_uuid_send_type, body_uuid_send_type,
   task_send_type,
-  status_code, validation_error_attribute, error_code
+  status_code, validation_error_attribute, error_code, skip_response_body
 """, [
   # Admin with unscoped API Key succeeds
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   200, None, None),
+   200, None, None, False),
 
   # Developer with unscoped API Key succeeds when UUID in body matches
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    SEND_ID_CORRECT,
-   200, None, None),
+   200, None, None, False),
 
   # Developer with unscoped API Key fails with 422 when UUID in body does not match
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, SEND_ID_WRONG,
    None,
-   422, 'uuid', 'invalid'),
+   422, 'uuid', 'invalid', False),
 
   # Developer with unscoped API Key fails with 400 when Task is
   # specifically empty
@@ -1098,7 +1098,7 @@ def test_task_execution_create_with_legacy_task_property(
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    SEND_ID_NONE,
-   400, 'task', 'null'),
+   400, 'task', 'null', False),
 
   # Developer with unscoped API Key cannot attach a Task in the
   # wrong Group
@@ -1106,56 +1106,63 @@ def test_task_execution_create_with_legacy_task_property(
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    SEND_ID_IN_WRONG_GROUP,
-   422, 'task', 'not_found'),
+   422, 'task', 'not_found', False),
 
   # Task with properly scoped API Key succeeds
   (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
    UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   200, None, None),
+   200, None, None, False),
+
+  # Task with properly scoped API Key succeeds with not response body when update=false
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+   UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_NONE,
+   SEND_ID_CORRECT, None,
+   None,
+   204, None, None, True),
 
   # Support with properly scoped API Key succeeds
   (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT,
    UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   200, None, None),
+   200, None, None, False),
 
   # Observer with API Key fails with 403
   (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
    UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   403, None, None),
+   403, None, None, False),
 
   # Admin with API Key with support access fails with 403
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
    UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   403, None, None),
+   403, None, None, False),
 
   # Admin with JWT token succeeds
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
    None, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   200, None, None),
+   200, None, None, False),
 
   # Support user with JWT token succeeds
   (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT,
    None, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   200, None, None),
+   200, None, None, False),
 
   # Observer with JWT token fails with 403
   (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
    None, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   403, None, None),
+   403, None, None, False),
 
   # Task with API key scoped to correct Run Environment,
   # same Run Environment in request succeeds
@@ -1163,7 +1170,7 @@ def test_task_execution_create_with_legacy_task_property(
    UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, None,
    SEND_ID_CORRECT,
-   200, None, None),
+   200, None, None, False),
 
   # Task with API key scoped to correct Run Environment,
   # omits Task in body
@@ -1171,7 +1178,7 @@ def test_task_execution_create_with_legacy_task_property(
    UserGroupAccessLevel.ACCESS_LEVEL_TASK, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, None,
    None,
-   200, None, None),
+   200, None, None, False),
 
   # Developer with developer API key scoped to a Run Environment gets 400
   # when specifying a different Task
@@ -1179,7 +1186,7 @@ def test_task_execution_create_with_legacy_task_property(
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, None,
    SEND_ID_OTHER,
-   422, 'task', 'invalid'),
+   422, 'task', 'invalid', False),
 
   # Developer with developer API key scoped to a Run Environment gets 404
   # when updating a Task Execution which has a Task scoped to a different
@@ -1188,7 +1195,7 @@ def test_task_execution_create_with_legacy_task_property(
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_OTHER,
    SEND_ID_CORRECT, None,
    SEND_ID_CORRECT,
-   404, None, None),
+   404, None, None, False),
 
   # Task with API key scoped to a Run Environment gets
   # validation error when specifying a Task in another Run Environment to
@@ -1197,28 +1204,28 @@ def test_task_execution_create_with_legacy_task_property(
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, None,
    SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'task', 'not_found'),
+   422, 'task', 'not_found', False),
 
   # Admin with API Key, wrong UUID gets 404
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, SCOPE_TYPE_NONE,
    SEND_ID_NOT_FOUND, None,
    None,
-   404, None, None),
+   404, None, None, False),
 
   # Admin with API Key with wrong group gets 404
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, SCOPE_TYPE_NONE,
    SEND_ID_IN_WRONG_GROUP, None,
    None,
-   404, None, None),
+   404, None, None, False),
 
   # No authentication yields 401
   (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
    None, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, None,
    None,
-   401, None, None),
+   401, None, None, False),
 ])
 @mock_ecs
 @mock_sts
@@ -1229,7 +1236,7 @@ def test_task_execution_update_access_control(
         request_uuid_send_type: str, body_uuid_send_type: Optional[str],
         task_send_type: str,
         status_code: int, validation_error_attribute: Optional[str],
-        error_code: Optional[str],
+        error_code: Optional[str], skip_response_body: bool,
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
         api_client) -> None:
@@ -1266,6 +1273,9 @@ def test_task_execution_update_access_control(
 
     old_count = TaskExecution.objects.count()
 
+    if skip_response_body:
+        url = url + "?content=false"
+
     response = client.patch(url, request_data)
 
     assert response.status_code == status_code
@@ -1274,6 +1284,7 @@ def test_task_execution_update_access_control(
     task_execution.refresh_from_db()
 
     if status_code == 200:
+        assert skip_response_body is False
         assert group_access_level is not None
 
         ensure_serialized_task_execution_valid(
@@ -1282,15 +1293,25 @@ def test_task_execution_update_access_control(
                 group_access_level=group_access_level,
                 api_key_access_level=api_key_access_level,
                 api_key_run_environment=api_key_run_environment)
+    elif status_code == 204:
+        assert skip_response_body is True
+        assert group_access_level is not None
+        assert response.data is None
     else:
         check_validation_error(response, validation_error_attribute,
                 error_code)
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("""
+skip_response_body
+""", [
+  (False),
+  (True)
+])
 @mock_ecs
 @mock_sts
 @mock_events
-def test_task_execution_update_conflict(
+def test_task_execution_update_conflict(skip_response_body: bool,
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
         api_client) -> None:
@@ -1310,6 +1331,9 @@ def test_task_execution_update_conflict(
             task_factory=task_factory,
             task_execution_factory=task_execution_factory,
             api_client=api_client)
+
+    if skip_response_body:
+        url += "?content=false"
 
     assert task_execution is not None
 

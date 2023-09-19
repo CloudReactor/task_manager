@@ -169,13 +169,15 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
         if response.status_code != status.HTTP_200_OK:
             return response
 
+        was_conflict = False
         request_status_name = request.data.get('status')
-        if not request_status_name:
-            return response
-
-        if request_status_name == TaskExecution.Status.RUNNING.name:
+        if request_status_name and (request_status_name == TaskExecution.Status.RUNNING.name):
             actual_status_name = response.data['status']
             if actual_status_name != request_status_name:
                 setattr(response, 'status_code', status.HTTP_409_CONFLICT)
+                was_conflict = True
 
-        return response
+        if was_conflict or (request.query_params.get('content', '').lower() != 'false'):
+            return response
+
+        return Response(data=None, status=204)
