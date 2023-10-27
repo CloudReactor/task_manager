@@ -77,7 +77,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     pair('Hostname', te.hostname),
     pair('Wrapper version', te.wrapper_version),
     pair('Embedded mode', formatBoolean(te.embedded_mode)),
-    pair('Run as service', formatBoolean(te.is_service)),
+    pair('Run as service?', formatBoolean(te.is_service)),
     pair('Max concurrency', formatNumber(te.task_max_concurrency)),
     pair('Max conflicting age', formatDuration(te.max_conflicting_age_seconds)),
     pair('Prevent offline execution', formatBoolean(te.prevent_offline_execution)),
