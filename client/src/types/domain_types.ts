@@ -389,6 +389,7 @@ export interface AwsLambdaExecutionMethodSettings extends AwsLambdaExecutionMeth
 export interface AwsCodeBuildExecutionMethodCapability {
   build_arn: string | null;
   build_image: string | null;
+  initiator: string | null;
   source_repo_url: string | null;
   environment_type: string | null;
   compute_type: string | null;
@@ -415,7 +416,6 @@ export interface AwsCodeBuildExecutionMethodSettings extends AwsCodeBuildExecuti
     build_number: number | null;
     batch_build_identifier: string | null;
     build_batch_arn: string | null;
-    initiator: string | null;
     source_version: string | null;
     resolved_source_version: string | null;
     start_time: string | null;

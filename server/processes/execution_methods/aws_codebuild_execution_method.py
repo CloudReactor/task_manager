@@ -51,6 +51,7 @@ class AwsCodeBuildArtifact(BaseModel):
 class AwsCodeBuildExecutionMethodSettings(BaseModel):
     build_arn: Optional[str] = None
     build_image: Optional[str] = None
+    initiator: Optional[str] = None
     source_repo_url: Optional[str] = None
     environment_type: Optional[str] = None
     compute_type: Optional[str] = None
@@ -107,6 +108,7 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
         self.service_role = lookup_string(build_dict, 'serviceRole')
         self.timeout_in_minutes = lookup_int(build_dict, 'timeoutInMinutes')
         self.queued_timeout_in_minutes = lookup_int(build_dict, 'queuedTimeoutInMinutes')
+        self.initiator = lookup_string(build_dict, 'initiator')
 
         environment = build_dict.get('environment')
 
@@ -180,7 +182,6 @@ class AwsCodeBuildExecutionMethodInfo(AwsCodeBuildExecutionMethodSettings):
     build_number: Optional[int] = None
     batch_build_identifier: Optional[str] = None
     build_batch_arn: Optional[str] = None
-    initiator: Optional[str] = None
     source_version: Optional[str] = None
     resolved_source_version: Optional[str] = None
     start_time: Optional[str] = None
@@ -210,12 +211,11 @@ class AwsCodeBuildExecutionMethodInfo(AwsCodeBuildExecutionMethodSettings):
         self.build_batch_arn = lookup_string(build_dict, 'buildBatchArn')
         self.source_version = lookup_string(build_dict, 'sourceVersion')
         self.resolved_source_version = lookup_string(build_dict, 'resolvedSourceVersion')
-        self.initiator = lookup_string(build_dict, 'initiator')
         self.start_time = lookup_string(build_dict, 'startTime')
         self.end_time = lookup_string(build_dict, 'endTime')
         self.current_phase = lookup_string(build_dict, 'currentPhase')
-        self.build_status = lookup_string(build_dict, 'build_status')
-        self.build_complete = lookup_bool(build_dict, 'build_complete')
+        self.build_status = lookup_string(build_dict, 'buildStatus')
+        self.build_complete = lookup_bool(build_dict, 'buildComplete')
 
         report_arns = build_dict.get('reportArns')
         if report_arns:
@@ -303,6 +303,15 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
 
         if self.settings.artifacts:
             start_build_args['artifactsOverride'] = self.settings.artifacts.dict(by_alias=True)
+        else:
+          artifacts_type = 'NO_ARTIFACTS'
+
+          if self.settings.initiator and self.settings.initiator.startswith('codepipeline/'):
+              artifacts_type = 'CODEPIPELINE'
+
+          start_build_args['artifactsOverride'] = {
+              'type': artifacts_type
+          }
 
         if self.settings.secondary_artifacts:
             start_build_args['secondaryArtifactsOverride'] = [sad.dict(by_alias=True) for sad in self.settings.secondary_artifacts]
