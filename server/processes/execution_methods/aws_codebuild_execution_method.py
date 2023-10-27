@@ -1,4 +1,5 @@
 from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast
+from collections import abc
 
 import logging
 
@@ -99,7 +100,7 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
     def update_from_start_build_response(self, response: dict[str, Any]) -> None:
         build_dict = response.get('build')
 
-        if not isinstance(build_dict, abs.Mapping):
+        if not isinstance(build_dict, abc.Mapping):
             logger.warning(f"AwsCodeBuildExecutionMethodSettings.update_from_start_build_response(): Can't find 'build' property in start_build() {response=}")
             return
 
@@ -112,7 +113,7 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
 
         environment = build_dict.get('environment')
 
-        if isinstance(environment, abs.Mapping):
+        if isinstance(environment, abc.Mapping):
             self.environment_type = lookup_string(environment, 'type')
             self.build_image = lookup_string(environment, 'image')
             self.compute_type = lookup_string(environment, 'computeType')
@@ -202,7 +203,7 @@ class AwsCodeBuildExecutionMethodInfo(AwsCodeBuildExecutionMethodSettings):
 
         build_dict = response.get('build')
 
-        if not isinstance(build_dict, abs.Mapping):
+        if not isinstance(build_dict, abc.Mapping):
             logger.warning(f"AwsCodeBuildExecutionMethodInfo.update_from_start_build_response(): Can't find 'build' property in start_build() {response=}")
             return
 
@@ -304,14 +305,14 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
         if self.settings.artifacts:
             start_build_args['artifactsOverride'] = self.settings.artifacts.dict(by_alias=True)
         else:
-          artifacts_type = 'NO_ARTIFACTS'
+            artifacts_type = 'NO_ARTIFACTS'
 
-          if self.settings.initiator and self.settings.initiator.startswith('codepipeline/'):
-              artifacts_type = 'CODEPIPELINE'
+            if self.settings.initiator and self.settings.initiator.startswith('codepipeline/'):
+                artifacts_type = 'CODEPIPELINE'
 
-          start_build_args['artifactsOverride'] = {
-              'type': artifacts_type
-          }
+            start_build_args['artifactsOverride'] = {
+                'type': artifacts_type
+            }
 
         if self.settings.secondary_artifacts:
             start_build_args['secondaryArtifactsOverride'] = [sad.dict(by_alias=True) for sad in self.settings.secondary_artifacts]
@@ -424,7 +425,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
     def update_aws_settings_from_start_build_response(self, response: dict[str, Any]) -> None:
         build_dict = response.get('build')
 
-        if not isinstance(build_dict, abs.Mapping):
+        if not isinstance(build_dict, abc.Mapping):
             logger.warning(f"Can't find 'build' property in start_build() {response=}")
             return
 
