@@ -130,7 +130,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                   'debug_log_tail', 'error_log_tail',
                   'embedded_mode',
                   'input_value', 'output_value',
-                  'created_at', 'updated_at',)
+                  'created_at', 'updated_at',
+                  'build', 'deploy',
+                  )
 
         read_only_fields = [
             'url', 'uuid',
@@ -158,6 +160,9 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
     commit_url = serializers.ReadOnlyField(allow_null=True)
     workflow_task_instance_execution = serializers.SerializerMethodField(
         allow_null=True)
+
+    build = serializers.SerializerMethodField()
+    deploy = serializers.SerializerMethodField()
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         attrs = super().validate(attrs)
@@ -395,6 +400,24 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         # End set deprecated columns
 
+        build_dict = data.pop('build', None)
+        if build_dict and ('task_execution' in build_dict):
+            dte: Optional[TaskExecution] = None
+            build_task_execution_dict = build_dict['task_execution']
+            if build_task_execution_dict and ('uuid' in build_task_execution_dict):
+                dte = TaskExecution.objects.filter(uuid=build_task_execution_dict['uuid']).first()
+
+            validated['build_task_execution'] = dte
+
+        deployment_dict = data.pop('deploy', None)
+        if deployment_dict and ('task_execution' in deployment_dict):
+            dte: Optional[TaskExecution] = None
+            deployment_task_execution_dict = deployment_dict['task_execution']
+            if deployment_task_execution_dict and ('uuid' in deployment_task_execution_dict):
+                dte = TaskExecution.objects.filter(uuid=deployment_task_execution_dict['uuid']).first()
+
+            validated['deployment_task_execution'] = dte
+
         return validated
 
     def create(self, validated_data: dict[str, Any]):
@@ -506,7 +529,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         return super().update(instance, validated_data)
 
-    # TODO: output raw JSON
+    # Deprecated
     @extend_schema_field(AwsEcsExecutionMethodSerializer)
     def get_execution_method(self, obj: TaskExecution):
         method_type = obj.task.execution_method_type
@@ -517,6 +540,45 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         else:
             return UnknownExecutionMethodSerializer(obj, source='*',
                     required=False).data
+
+
+    def get_build(self, obj: TaskExecution):
+        try:
+            build_task_execution = obj.build_task_execution
+
+            if build_task_execution:
+                return {
+                    'task_execution': NameAndUuidSerializer(instance=build_task_execution,
+                        include_name=False, view_name='task_executions-detail').data
+                }
+            return None
+        except TaskExecution.DoesNotExist:
+            return {
+                'task_execution': {
+                    'uuid': str(obj._meta.get_field('build_task_execution').value_from_object(obj)),
+                    'deleted': True
+                }
+            }
+
+
+    def get_deploy(self, obj: TaskExecution):
+        try:
+            deployment_task_execution = obj.deployment_task_execution
+
+            if deployment_task_execution:
+                return {
+                    'task_execution': NameAndUuidSerializer(instance=deployment_task_execution,
+                        include_name=False, view_name='task_executions-detail').data
+                }
+            return None
+        except TaskExecution.DoesNotExist:
+            return {
+                'task_execution': {
+                    'uuid': str(obj._meta.get_field('deployment_task_execution').value_from_object(obj)),
+                    'deleted': True
+                }
+            }
+
 
     @extend_schema_field(WorkflowTaskInstanceExecutionBaseSerializer)
     def get_workflow_task_instance_execution(self, obj: TaskExecution):

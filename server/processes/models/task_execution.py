@@ -201,6 +201,18 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     input_value = models.JSONField(null=True, blank=True)
     output_value = models.JSONField(null=True, blank=True)
 
+    build_task_execution = models.ForeignKey(
+      'TaskExecution', on_delete=models.DO_NOTHING,
+      to_field='uuid', db_column='build_task_execution_uuid',
+      blank=True, null=True,  related_name='+', db_constraint=False
+    )
+
+    deployment_task_execution = models.ForeignKey(
+      'TaskExecution', on_delete=models.DO_NOTHING,
+      to_field='uuid', db_column='deployment_task_execution_uuid',
+      blank=True, null=True,  related_name='+', db_constraint=False
+    )
+
     # Deprecated
     aws_subnets = ArrayField(models.CharField(max_length=1000, blank=False), null=True)
     aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)

@@ -100,60 +100,66 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     pair('Status message max bytes', formatNumber(te.status_update_message_max_bytes)),
     pair('Wrapper log level', te.wrapper_log_level),
     pair('API base URL', te.api_base_url),
+    pair('Build Task Execution', makeLink(te.build?.task_execution?.uuid,
+      '/task_executions/' + te.build?.task_execution?.uuid, true)),
+    pair('Deployment Task Execution', makeLink(te.deploy?.task_execution?.uuid,
+      '/task_executions/' + te.deploy?.task_execution?.uuid, true)),
     pair('Execution method', te.execution_method_type)
   ];
 
-  switch (te.execution_method_type) {
-    case EXECUTION_METHOD_TYPE_AWS_ECS: {
-      const awsEcsTem = tem as AwsEcsExecutionMethodSettings;
-      rows = rows.concat([
-        pair('ECS launch type', awsEcsTem.launch_type),
-        pair('ECS cluster', makeLink(awsEcsTem.cluster_arn, awsEcsTem.cluster_infrastructure_website_url)),
-        pair('ECS task definition ARN', makeLink(awsEcsTem.task_definition_arn,
-          awsEcsTem.task_definition_infrastructure_website_url)),
-        pair('ECS task ARN', makeLink(awsEcsTem.task_arn, te.infrastructure_website_url)),
-        pair('ECS task role ARN', makeLink(awsEcsTem.task_role_arn,
-          awsEcsTem.task_role_infrastructure_website_url)),
-        pair('ECS platform version', awsEcsTem.platform_version),
-      ]);
-    }
-    break;
+  if (tem) {
+    switch (te.execution_method_type) {
+      case EXECUTION_METHOD_TYPE_AWS_ECS: {
+        const awsEcsTem = tem as AwsEcsExecutionMethodSettings;
+        rows = rows.concat([
+          pair('ECS launch type', awsEcsTem.launch_type),
+          pair('ECS cluster', makeLink(awsEcsTem.cluster_arn, awsEcsTem.cluster_infrastructure_website_url)),
+          pair('ECS task definition ARN', makeLink(awsEcsTem.task_definition_arn,
+            awsEcsTem.task_definition_infrastructure_website_url)),
+          pair('ECS task ARN', makeLink(awsEcsTem.task_arn, te.infrastructure_website_url)),
+          pair('ECS task role ARN', makeLink(awsEcsTem.task_role_arn,
+            awsEcsTem.task_role_infrastructure_website_url)),
+          pair('ECS platform version', awsEcsTem.platform_version),
+        ]);
+      }
+      break;
 
-    case EXECUTION_METHOD_TYPE_AWS_LAMBDA: {
-      const awsLambdaTem = tem as AwsLambdaExecutionMethodSettings;
-      rows = rows.concat([
-        pair('Function version', awsLambdaTem.function_version),
-        pair('AWS Request ID', awsLambdaTem.aws_request_id),
+      case EXECUTION_METHOD_TYPE_AWS_LAMBDA: {
+        const awsLambdaTem = tem as AwsLambdaExecutionMethodSettings;
+        rows = rows.concat([
+          pair('Function version', awsLambdaTem.function_version),
+          pair('AWS Request ID', awsLambdaTem.aws_request_id),
 
-      ]);
-    }
-    break;
+        ]);
+      }
+      break;
 
-    case EXECUTION_METHOD_TYPE_AWS_CODEBUILD: {
-      const awsCbTem = tem as AwsCodeBuildExecutionMethodSettings;
-      rows = rows.concat([
-        pair('Build ARN', makeLink(awsCbTem.build_arn, awsCbTem.infrastructure_website_url)),
-        pair('Build ID', makeLink(awsCbTem.build_id, awsCbTem.infrastructure_website_url)),
-        pair('Build number', awsCbTem.build_number),
-        pair('Source version', awsCbTem.source_version),
-        pair('Resolved source version', awsCbTem.resolved_source_version),
-        pair('Build started at', awsCbTem.start_time),
-        pair('Build ended at', awsCbTem.end_time),
-        pair('Build status', awsCbTem.build_status),
-        pair('Current phase', awsCbTem.current_phase),
-        pair('Build succeeding?', formatBoolean(awsCbTem.build_succeeding)),
-        pair('Build complete?', formatBoolean(awsCbTem.build_complete)),
-        pair('Initiator', awsCbTem.initiator),
-        pair('Batch build ID', awsCbTem.batch_build_identifier),
-        pair('Batch build ARN', awsCbTem.build_batch_arn),
-        pair('Public build URL', makeLink(awsCbTem.public_build_url, awsCbTem.public_build_url)),
-      ]);
-    }
-    break;
+      case EXECUTION_METHOD_TYPE_AWS_CODEBUILD: {
+        const awsCbTem = tem as AwsCodeBuildExecutionMethodSettings;
+        rows = rows.concat([
+          pair('Build ARN', makeLink(awsCbTem.build_arn, awsCbTem.infrastructure_website_url)),
+          pair('Build ID', makeLink(awsCbTem.build_id, awsCbTem.infrastructure_website_url)),
+          pair('Build number', awsCbTem.build_number),
+          pair('Source version', awsCbTem.source_version),
+          pair('Resolved source version', awsCbTem.resolved_source_version),
+          pair('Build started at', awsCbTem.start_time),
+          pair('Build ended at', awsCbTem.end_time),
+          pair('Build status', awsCbTem.build_status),
+          pair('Current phase', awsCbTem.current_phase),
+          pair('Build succeeding?', formatBoolean(awsCbTem.build_succeeding)),
+          pair('Build complete?', formatBoolean(awsCbTem.build_complete)),
+          pair('Initiator', awsCbTem.initiator),
+          pair('Batch build ID', awsCbTem.batch_build_identifier),
+          pair('Batch build ARN', awsCbTem.build_batch_arn),
+          pair('Public build URL', makeLink(awsCbTem.public_build_url, awsCbTem.public_build_url)),
+        ]);
+      }
+      break;
 
-    default:
-    break;
-  };
+      default:
+      break;
+    };
+  }
 
   rows.push(pair('Infrastructure provider', te.infrastructure_type));
 
@@ -165,7 +171,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
 
     switch (te.infrastructure_type) {
       case INFRASTRUCTURE_TYPE_AWS: {
-          const awsSettings = teInfra as AwsInfrastructureSettings;
+          const awsSettings = teInfra as AwsInfrastructureSettings | undefined;
           const taskAwsSettings = taskInfra as AwsInfrastructureSettings | undefined;
           const runEnvAwsSettings = runEnvInfra ? (runEnvInfra[INFRASTRUCTURE_TYPE_AWS]?.["__default__"]?.settings as AwsInfrastructureSettings | undefined)
             : undefined;
@@ -215,7 +221,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
             ]);
           }
 
-          const awsLogging = awsSettings.logging;
+          const awsLogging = awsSettings?.logging;
 
           if (awsLogging) {
             infraRows = infraRows.concat([

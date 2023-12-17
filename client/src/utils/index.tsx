@@ -160,13 +160,13 @@ export const catchableToString = (ex: any): string => {
     ((typeof ex === 'string') ? ex : 'Unknown error');
 }
 
-export function makeLink(value?: string | null, url?: string | null): any {
+export function makeLink(value?: string | null, url?: string | null, forceExternal?: boolean): any {
   const v = value ?? 'N/A';
   if (!url) {
     return v;
   }
 
-  return /^https?:\/\//.test(url) ? <a key={v} href={url}>{v}</a> :
+  return (forceExternal || /^https?:\/\//.test(url)) ? <a key={v} href={url}>{v}</a> :
     <Link key={value} to={url}>{v}</Link>;
 }
 

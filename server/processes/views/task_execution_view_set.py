@@ -97,7 +97,8 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
         return super().get_queryset().alias(duration=
                     F('finished_at') - F('started_at')).select_related(
             'task__created_by_group',
-            'started_by', 'marked_done_by', 'killed_by',).prefetch_related(
+            'started_by', 'marked_done_by', 'killed_by',
+            'build_task_execution', 'deployment_task_execution').prefetch_related(
             'workflowtaskinstanceexecution__workflow_execution',
             'workflowtaskinstanceexecution__workflow_task_instance')
 

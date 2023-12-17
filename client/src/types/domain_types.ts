@@ -6,11 +6,14 @@ import {
   INFRASTRUCTURE_TYPE_AWS
 } from '../utils/constants';
 
-export interface EntityReference {
+export interface NamelessEntityReference {
   uuid: string;
-  name: string;
   url: string;
   dashboard_url?: string;
+}
+
+export interface EntityReference extends NamelessEntityReference {
+  name: string;
 }
 
 export class EntityReferenceImpl implements EntityReference {
@@ -525,6 +528,14 @@ implements Task {
   }
 }
 
+export interface BuildInfo {
+  task_execution: NamelessEntityReference | null;
+}
+
+export interface DeployInfo {
+  task_execution: NamelessEntityReference | null;
+}
+
 export interface TaskExecution {
   api_base_url: string,
   api_error_timeout_seconds: number | null;
@@ -537,12 +548,14 @@ export interface TaskExecution {
   api_final_update_timeout_seconds: number | null;
   allocated_cpu_units: number | null;
   allocated_memory_mb: number | null;
+  build: BuildInfo | null;
   commit_url: string;
   created_at: Date;
   current_cpu_units: number | null;
   current_memory_mb: number | null;
   dashboard_url: string;
   debug_log_tail: string | null;
+  deploy: DeployInfo | null;
   deployment: string | null;
   embedded_mode: boolean | null;
   environment_variables_overrides: any;
