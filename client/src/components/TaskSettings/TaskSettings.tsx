@@ -141,6 +141,10 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
       execMethodRows.push(pair('Deployment options', <span/>));
       execMethodRows.push(pair('Force new deployment?',
         <BooleanIcon checked={awsEcsServiceSettings?.force_new_deployment ?? false} />));
+      execMethodRows.push(pair('Maximum %',
+        awsEcsServiceSettings?.deployment_configuration?.maximum_percent ?? 'N/A'));
+      execMethodRows.push(pair('Minimum healthy %',
+        awsEcsServiceSettings?.deployment_configuration?.minimum_healthy_percent ?? 'N/A'));
       execMethodRows.push(pair('Enable circuit breaker?',
         <BooleanIcon checked={awsEcsServiceSettings?.deployment_configuration?.deployment_circuit_breaker?.enable ?? false} />));
       execMethodRows.push(pair('Rollback on failure?',
