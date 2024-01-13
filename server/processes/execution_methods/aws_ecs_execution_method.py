@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, Optional, Tuple, TYPE_CHECKING, cast
+from typing import Any, FrozenSet, List, Optional, Tuple, TYPE_CHECKING, cast
 
 from dataclasses import dataclass
 import logging
@@ -39,6 +39,16 @@ logger = logging.getLogger(__name__)
 SERVICE_PROVIDER_AWS_ECS = 'AWS ECS'
 
 
+class ContainerSettings(BaseModel):
+    name: Optional[str] = None
+    docker_id: Optional[str] = None
+    docker_name: Optional[str] = None
+    image_name: Optional[str] = None
+    image_id: Optional[str] = None
+    labels: Optional[List[str]] = None
+    container_arn: Optional[str] = None
+
+
 class AwsEcsExecutionMethodSettings(BaseModel):
     launch_type: Optional[str] = None
     supported_launch_types: Optional[list[str]] = None
@@ -48,6 +58,9 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     task_definition_infrastructure_website_url: Optional[str] = None
     infrastructure_website_url: Optional[str] = None
     main_container_name: Optional[str] = None
+    main_container_cpu_units: Optional[int] = None
+    main_container_memory_mb: Optional[int] = None
+    monitor_container_name: Optional[str] = None
     execution_role_arn: Optional[str] = None
     execution_role_infrastructure_website_url: Optional[str] = None
     task_role_arn: Optional[str] = None
@@ -57,6 +70,8 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     propagate_tags: Optional[str] = None
     enable_execute_command: Optional[bool] = None
     task_group: Optional[str] = None
+    # Might not be sent during deployment, so use main_container_xxx properties
+    containers: Optional[List[ContainerSettings]] = None
 
     def update_derived_attrs(self, aws_settings: Optional[AwsSettings]) -> None:
         if aws_settings:
@@ -91,7 +106,6 @@ class AwsEcsExecutionMethodSettings(BaseModel):
 
         self.task_role_infrastructure_website_url = \
             make_aws_console_role_url(self.task_role_arn)
-
 
 class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
     task_arn: Optional[str] = None
@@ -934,7 +948,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if task.pk:
                 task.save_without_sync()
 
-        load_balancer_settings = ss.load_balancer_settings
         ecs_client = ecs_client or self.make_ecs_client()
 
         if (not force_creation) and existing_service_info and \
@@ -944,11 +957,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             args = self.make_common_service_args(include_launch_type=False)
             args['service'] = service_name
             args['forceNewDeployment'] = ss.force_new_deployment or False
-
-            if load_balancer_settings and load_balancer_settings.load_balancers:
-                args['healthCheckGracePeriodSeconds'] = \
-                    load_balancer_settings.health_check_grace_period_seconds or \
-                    self.DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
 
             response = ecs_client.update_service(**args)
         else:
@@ -971,23 +979,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             args['deploymentController'] = {
                 'type': 'ECS'
             }
-
-            if load_balancer_settings and load_balancer_settings.load_balancers:
-                load_balancer_dicts = []
-                for lb_setting in load_balancer_settings.load_balancers:
-                    load_balancer_dict = {
-                        'targetGroupArn': lb_setting.target_group_arn,
-                        'containerName': lb_setting.container_name or self.settings.main_container_name,
-                        'containerPort': lb_setting.container_port
-                    }
-                    load_balancer_dicts.append(load_balancer_dict)
-
-                args['loadBalancers'] = load_balancer_dicts
-
-                if len(load_balancer_dicts) > 0:
-                    args['healthCheckGracePeriodSeconds'] = \
-                        load_balancer_settings.health_check_grace_period_seconds or \
-                        self.DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
 
             if ss.enable_ecs_managed_tags is not None:
                 args['enableECSManagedTags'] = ss.enable_ecs_managed_tags
@@ -1100,6 +1091,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         args = self.add_creation_args(self.make_common_args(
                 include_launch_type=True))
+
+        if self.settings.task_group:
+            args['group'] = self.settings.task_group
+
         cpu_units = task_execution.allocated_cpu_units \
                 or task.allocated_cpu_units or self.DEFAULT_CPU_UNITS
         memory_mb = task_execution.allocated_memory_mb \
@@ -1129,12 +1124,43 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         aws_ecs_settings = AwsEcsExecutionMethodInfo.parse_obj(
             task_execution.execution_method_details or {})
+
         aws_ecs_settings.cluster_arn = self.settings.cluster_arn
         aws_ecs_settings.task_definition_arn = self.settings.task_definition_arn
         aws_ecs_settings.platform_version = self.settings.platform_version
         aws_ecs_settings.launch_type = self.settings.launch_type
         aws_ecs_settings.execution_role_arn = self.settings.execution_role_arn
         aws_ecs_settings.task_role_arn = self.settings.task_role_arn
+        aws_ecs_settings.task_group = self.settings.task_group
+
+        task_aws_ecs_settings = AwsEcsExecutionMethodInfo.parse_obj(
+            task.execution_method_capability_details or {})
+
+        main_container_cpu_units = aws_ecs_settings.main_container_cpu_units
+        computed_main_container_cpu_units: Optional[int] = None
+
+        if (main_container_cpu_units is None) and self.task.allocated_cpu_units and task_aws_ecs_settings.main_container_cpu_units:
+            computed_main_container_cpu_units = (cpu_units - self.task.allocated_cpu_units) + task_aws_ecs_settings.main_container_cpu_units
+
+            if (main_container_cpu_units is not None) and (main_container_cpu_units != computed_main_container_cpu_units):
+                logger.warning(f"Overriding {main_container_cpu_units=} with {computed_main_container_cpu_units=}")
+
+            main_container_cpu_units = computed_main_container_cpu_units
+
+        main_container_memory_mb = aws_ecs_settings.main_container_memory_mb
+
+        computed_main_container_memory_mb: Optional[int] = None
+
+        if (main_container_memory_mb is None) and self.task.allocated_memory_mb and task_aws_ecs_settings.main_container_memory_mb:
+            computed_main_container_memory_mb = (memory_mb - self.task.allocated_memory_mb) + task_aws_ecs_settings.main_container_memory_mb
+
+            if (main_container_memory_mb is not None) and (main_container_memory_mb != computed_main_container_memory_mb):
+                logger.warning(f"Overriding {main_container_memory_mb=} with {computed_main_container_memory_mb=}")
+
+            main_container_memory_mb = computed_main_container_memory_mb
+
+        aws_ecs_settings.main_container_cpu_units = main_container_cpu_units
+        aws_ecs_settings.main_container_memory_mb = main_container_memory_mb
 
         task_execution.execution_method_type = self.NAME
         task_execution.execution_method_details = aws_ecs_settings.dict()
@@ -1162,21 +1188,21 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         task.latest_task_execution = task_execution
         task.save_without_sync()
 
-        success = False
-        try:
-            ecs_client = self.aws_settings.make_boto3_client('ecs',
-                    session_uuid=str(task_execution.uuid))
+        main_container_override = {
+            'name': self.settings.main_container_name,
+            'environment': flattened_environment,
+        }
 
-            overrides = {
-                'containerOverrides': [
-                    {
-                        'name': self.settings.main_container_name,
+        if main_container_cpu_units:
+            main_container_override['cpu'] = main_container_cpu_units
+
+        if main_container_memory_mb:
+            main_container_override['memory'] = main_container_memory_mb
+
+#                    {
 #                        'command': [
 #                            'string',
 #                        ],
-                        'environment': flattened_environment,
-                        'cpu': cpu_units,
-                        'memory': memory_mb,
 #                        'memoryReservation': task_execution.allocated_memory_mb or task.allocated_memory_mb,
 #                        'resourceRequirements': [
 #                            {
@@ -1184,7 +1210,15 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 #                                'type': 'GPU'
 #                            },
 #                       ]
-                    },
+
+        success = False
+        try:
+            ecs_client = self.aws_settings.make_boto3_client('ecs',
+                    session_uuid=str(task_execution.uuid))
+
+            overrides = {
+                'containerOverrides': [
+                    main_container_override
                 ],
                 'executionRoleArn': self.settings.execution_role_arn,
             }
@@ -1376,8 +1410,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         return args
 
 
-    def make_common_service_args(self, include_launch_type: bool=True) \
-            -> dict[str, Any]:
+    def make_common_service_args(self, include_launch_type: bool=True) -> dict[str, Any]:
         ss = self.service_settings
 
         if not ss:
@@ -1406,6 +1439,25 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 'rollback': coalesce(dcb.rollback_on_failure, False),
             }
         }
+
+        load_balancer_settings = ss.load_balancer_settings
+
+        if load_balancer_settings and load_balancer_settings.load_balancers:
+            load_balancer_dicts = []
+            for lb_setting in load_balancer_settings.load_balancers:
+                load_balancer_dict = {
+                    'targetGroupArn': lb_setting.target_group_arn,
+                    'containerName': lb_setting.container_name or self.settings.main_container_name,
+                    'containerPort': lb_setting.container_port
+                }
+                load_balancer_dicts.append(load_balancer_dict)
+
+            args['loadBalancers'] = load_balancer_dicts
+
+            if len(load_balancer_dicts) > 0:
+                args['healthCheckGracePeriodSeconds'] = \
+                    load_balancer_settings.health_check_grace_period_seconds or \
+                    self.DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
 
         return args
 
