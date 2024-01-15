@@ -45,7 +45,7 @@ class ContainerSettings(BaseModel):
     docker_name: Optional[str] = None
     image_name: Optional[str] = None
     image_id: Optional[str] = None
-    labels: Optional[List[str]] = None
+    labels: Optional[dict[str, str]] = None
     container_arn: Optional[str] = None
 
 

@@ -228,6 +228,16 @@ implements LegacyExecutionMethodCapabilityImpl {
   type = EXECUTION_METHOD_TYPE_UNKNOWN;
 }
 
+export interface ContainerSettings {
+  name?: string | null;
+  docker_id?: string | null;
+  docker_name?: string | null;
+  image_name?: string | null;
+  image_id?: string | null;
+  labels?: Record<string, string> | null;
+  container_arn?: string | null;
+}
+
 export interface AwsEcsExecutionMethodCapability {
   launch_type?: string | null;
   supported_launch_types?: string[] | null;
@@ -237,12 +247,18 @@ export interface AwsEcsExecutionMethodCapability {
   task_definition_infrastructure_website_url?: string | null;
   infrastructure_website_url?: string | null;
   main_container_name?: string | null;
+  main_container_cpu_units?: number | null;
+  main_container_memory_mb?: number | null;
+  monitor_container_name?: string | null;
   execution_role_arn?: string | null;
   execution_role_infrastructure_website_url?: string | null;
   task_role_arn?: string | null;
   task_role_infrastructure_website_url?: string | null;
   platform_version?: string | null;
   enable_ecs_managed_tags?: boolean | null;
+  propagate_tags?: boolean | null;
+  task_group?: string | null;
+  containers?: ContainerSettings[] | null;
 }
 
 export interface AwsEcsExecutionMethodSettings extends AwsEcsExecutionMethodCapability {
