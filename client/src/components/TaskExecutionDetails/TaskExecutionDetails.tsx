@@ -100,10 +100,12 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     pair('Status message max bytes', formatNumber(te.status_update_message_max_bytes)),
     pair('Wrapper log level', te.wrapper_log_level),
     pair('API base URL', te.api_base_url),
-    pair('Build Task Execution', makeLink(te.build?.task_execution?.uuid,
-      '/task_executions/' + te.build?.task_execution?.uuid, true)),
-    pair('Deployment Task Execution', makeLink(te.deploy?.task_execution?.uuid,
-      '/task_executions/' + te.deploy?.task_execution?.uuid, true)),
+    pair('Build Task Execution', te.build?.task_execution ?
+      makeLink(te.build.task_execution.uuid,
+        '/task_executions/' + te.build.task_execution.uuid, true) : 'N/A'),
+    pair('Deployment Task Execution', te.deploy?.task_execution ?
+      makeLink(te.deploy.task_execution.uuid,
+        '/task_executions/' + te.deploy.task_execution.uuid, true) : 'N/A'),
     pair('Execution method', te.execution_method_type)
   ];
 
