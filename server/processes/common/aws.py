@@ -14,6 +14,9 @@ HTTPS = 'https://'
 AWS_CONSOLE_HOSTNAME = 'console.aws.amazon.com'
 AWS_CONSOLE_BASE_URL = HTTPS + AWS_CONSOLE_HOSTNAME + '/'
 
+S3_ARN_PREFIX = 'arn:aws:s3:::'
+S3_ARN_PREFIX_LENGTH = len(S3_ARN_PREFIX)
+
 VPC_HOME_PATH = 'vpc/home'
 ECS_HOME_PATH = 'ecs/home'
 
@@ -88,6 +91,33 @@ def make_aws_console_security_group_url(security_group_name: Optional[str],
     return make_regioned_aws_console_base_url(region) + VPC_HOME_PATH + \
             '?' + make_region_parameter(region) + '#SecurityGroup:groupId=' + \
             quote(security_group_name)
+
+def make_aws_console_s3_object_url(object_arn: str) -> Optional[str]:
+    # Example object ARN: arn:aws:s3:::bucket/pipeline/App/OGgJCVJ.zip
+    # Example output URL: https://s3.console.aws.amazon.com/s3/object/bucket?prefix=pipeline/App/OGgJCVJ.zip
+
+    if object_arn.startswith(S3_ARN_PREFIX):
+        try:
+            first_slash_index = object_arn.index('/')
+            bucket_name = object_arn[S3_ARN_PREFIX_LENGTH:first_slash_index]
+            object_name = object_arn[(first_slash_index + 1):]
+
+            return "https://s3.console.aws.amazon.com/s3/object/" + aws_encode(bucket_name) + \
+                    '?prefix=' + aws_encode(object_name)
+        except Exception:
+            logger.error(f'Failed to compute AWS console URL for S3 object {object_arn}',
+                    exc_info=True)
+    else:
+        logger.warning(f"S3 ARN {object_arn=} is not the expected format")
+
+    return None
+
+def make_aws_console_kms_key_url(key_id: str, region: str) -> Optional[str]:
+    # Example key ID: xyz-deadbeefdeadbeefdeadbeefdeadbeef
+    # Example output URL: https://us-west-1.console.aws.amazon.com/kms/home?region=us-west-1#/kms/keys/xyz-deadbeefdeadbeefdeadbeefdeadbeef
+
+    return make_regioned_aws_console_base_url(region) + 'kms/home?' + \
+        make_region_parameter(region) + '#/kms/keys/' + aws_encode(key_id)
 
 def extract_cluster_name(ecs_cluster_arn: Optional[str]) -> Optional[str]:
     if not ecs_cluster_arn:
