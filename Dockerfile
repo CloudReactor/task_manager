@@ -2,10 +2,10 @@
 # https://pythonspeed.com/articles/base-image-python-docker-images/
 
 # For AWS
-FROM public.ecr.aws/docker/library/python:3.11.3-slim-bullseye
+FROM public.ecr.aws/docker/library/python:3.11.7-slim-bullseye
 
 # For generic infrastructure provider
-# FROM python:3.11.3-slim-bullseye
+# FROM python:3.11.7-slim-bullseye
 
 LABEL maintainer="jeff@cloudreactor.io"
 
