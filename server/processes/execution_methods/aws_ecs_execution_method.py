@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, List, Optional, Tuple, TYPE_CHECKING, cast
+from typing import Any, FrozenSet, Optional, Tuple, TYPE_CHECKING, cast
 
 from dataclasses import dataclass
 import logging
@@ -38,6 +38,8 @@ logger = logging.getLogger(__name__)
 
 SERVICE_PROVIDER_AWS_ECS = 'AWS ECS'
 
+DEFAULT_MAIN_CONTAINER_NAME = 'main'
+
 
 class ContainerSettings(BaseModel):
     name: Optional[str] = None
@@ -71,7 +73,7 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     enable_execute_command: Optional[bool] = None
     task_group: Optional[str] = None
     # Might not be sent during deployment, so use main_container_xxx properties
-    containers: Optional[List[ContainerSettings]] = None
+    containers: Optional[list[ContainerSettings]] = None
 
     def update_derived_attrs(self, aws_settings: Optional[AwsSettings]) -> None:
         if aws_settings:
@@ -1100,8 +1102,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         memory_mb = task_execution.allocated_memory_mb \
                 or task.allocated_memory_mb or self.DEFAULT_MEMORY_MB
 
-        flattened_environment = make_flattened_environment(env=task_execution.make_environment())
-
         logger.info(f"manually_start() with args = {args}, " +
             f"{cpu_units=}, {memory_mb=}, " +
             f"{self.settings.execution_role_arn=}, {self.settings.task_role_arn=}")
@@ -1188,9 +1188,14 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         task.latest_task_execution = task_execution
         task.save_without_sync()
 
+
+        # Deployers used to use the task name as the main container name, but
+        # that should have been saved. If somehow the setting is not present,
+        # use the default main container name.
+        main_container_name = self.settings.main_container_name or DEFAULT_MAIN_CONTAINER_NAME
+
         main_container_override = {
-            'name': self.settings.main_container_name,
-            'environment': flattened_environment,
+            'name': main_container_name
         }
 
         if main_container_cpu_units:
@@ -1211,15 +1216,32 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 #                            },
 #                       ]
 
+        container_overrides = [
+            main_container_override
+        ]
+
+        main_container_is_monitor = True
+        if self.settings.monitor_container_name and \
+                (self.settings.monitor_container_name != self.settings.main_container_name):
+            monitor_container_override = {
+                'name': self.settings.monitor_container_name,
+                'environment': make_flattened_environment(
+                        env=task_execution.make_environment(include_app_vars=False))
+            }
+            container_overrides.append(monitor_container_override)
+            main_container_is_monitor = False
+
+
+        main_container_override['environment'] = make_flattened_environment(
+                env=task_execution.make_environment(include_wrapper_vars=main_container_is_monitor))
+
         success = False
         try:
             ecs_client = self.aws_settings.make_boto3_client('ecs',
                     session_uuid=str(task_execution.uuid))
 
             overrides = {
-                'containerOverrides': [
-                    main_container_override
-                ],
+                'containerOverrides': container_overrides,
                 'executionRoleArn': self.settings.execution_role_arn,
             }
 
@@ -1230,7 +1252,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
               'overrides': overrides,
               'count': 1,
               'startedBy': 'CloudReactor',
-              # group='string',
               # placementConstraints=[
               #     {
               #         'type': 'distinctInstance' | 'memberOf',

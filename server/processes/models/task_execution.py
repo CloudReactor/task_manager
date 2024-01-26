@@ -325,140 +325,144 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     def execution_method(self) -> ExecutionMethod:
         return ExecutionMethod.make_execution_method(task_execution=self)
 
-    def make_environment(self) -> dict[str, str]:
+    def make_environment(self, include_wrapper_vars: bool = True, include_app_vars: bool = True) -> dict[str, str]:
         task = self.task
 
-        env = {
-            'PROC_WRAPPER_TASK_EXECUTION_UUID': str(self.uuid),
-            'PROC_WRAPPER_TASK_NAME': task.name,
-            'PROC_WRAPPER_INPUT_VALUE': json.dumps(
-                coalesce(self.input_value, task.default_input_value)),
-            'PROC_WRAPPER_MANAGED_PROBABILITY': str(task.managed_probability),
-            'PROC_WRAPPER_FAILURE_REPORT_PROBABILITY': str(task.failure_report_probability),
-            'PROC_WRAPPER_TIMEOUT_REPORT_PROBABILITY': str(task.timeout_report_probability)
-        }
+        env: dict[str, str] = {}
 
-        if self.wrapper_log_level:
-            env['PROC_WRAPPER_LOG_LEVEL'] = self.wrapper_log_level
+        if include_wrapper_vars:
+            env = {
+                'PROC_WRAPPER_TASK_EXECUTION_UUID': str(self.uuid),
+                'PROC_WRAPPER_TASK_NAME': task.name,
+                'PROC_WRAPPER_INPUT_VALUE': json.dumps(
+                    coalesce(self.input_value, task.default_input_value)),
+                'PROC_WRAPPER_MANAGED_PROBABILITY': str(task.managed_probability),
+                'PROC_WRAPPER_FAILURE_REPORT_PROBABILITY': str(task.failure_report_probability),
+                'PROC_WRAPPER_TIMEOUT_REPORT_PROBABILITY': str(task.timeout_report_probability)
+            }
 
-        if self.deployment:
-            env['PROC_WRAPPER_DEPLOYMENT'] = self.deployment
+            if self.wrapper_log_level:
+                env['PROC_WRAPPER_LOG_LEVEL'] = self.wrapper_log_level
 
-        if self.process_command:
-            env['PROC_WRAPPER_TASK_COMMAND'] = self.process_command
+            if self.deployment:
+                env['PROC_WRAPPER_DEPLOYMENT'] = self.deployment
 
-        if self.is_service is not None:
-            env['PROC_WRAPPER_TASK_IS_SERVICE'] = str(self.is_service).upper()
+            if self.process_command:
+                env['PROC_WRAPPER_TASK_COMMAND'] = self.process_command
 
-        if self.process_max_retries is not None:
-            env['PROC_WRAPPER_PROCESS_MAX_RETRIES'] = str(self.process_max_retries)
+            if self.is_service is not None:
+                env['PROC_WRAPPER_TASK_IS_SERVICE'] = str(self.is_service).upper()
 
-        if self.process_retry_delay_seconds:
-            env['PROC_WRAPPER_PROCESS_RETRY_DELAY_SECONDS'] = str(self.process_retry_delay_seconds)
+            if self.process_max_retries is not None:
+                env['PROC_WRAPPER_PROCESS_MAX_RETRIES'] = str(self.process_max_retries)
 
-        if self.process_timeout_seconds:
-            env['PROC_WRAPPER_PROCESS_TIMEOUT_SECONDS'] = str(self.process_timeout_seconds)
+            if self.process_retry_delay_seconds:
+                env['PROC_WRAPPER_PROCESS_RETRY_DELAY_SECONDS'] = str(self.process_retry_delay_seconds)
 
-        if self.process_termination_grace_period_seconds:
-            env[' PROC_WRAPPER_PROCESS_TERMINATION_GRACE_PERIOD_SECONDS'] = \
-                      str(self.process_termination_grace_period_seconds)
+            if self.process_timeout_seconds:
+                env['PROC_WRAPPER_PROCESS_TIMEOUT_SECONDS'] = str(self.process_timeout_seconds)
 
-        if self.task_max_concurrency:
-            env['PROC_WRAPPER_TASK_MAX_CONCURRENCY'] = str(self.task_max_concurrency)
+            if self.process_termination_grace_period_seconds:
+                env[' PROC_WRAPPER_PROCESS_TERMINATION_GRACE_PERIOD_SECONDS'] = \
+                          str(self.process_termination_grace_period_seconds)
 
-        if self.max_conflicting_age_seconds:
-            env['PROC_WRAPPER_MAX_CONFLICTING_AGE_SECONDS'] = str(self.max_conflicting_age_seconds)
+            if self.task_max_concurrency:
+                env['PROC_WRAPPER_TASK_MAX_CONCURRENCY'] = str(self.task_max_concurrency)
 
-        if self.prevent_offline_execution is not None:
-            env['PROC_WRAPPER_PREVENT_OFFLINE_EXECUTION'] = \
-                    str(self.prevent_offline_execution).upper()
+            if self.max_conflicting_age_seconds:
+                env['PROC_WRAPPER_MAX_CONFLICTING_AGE_SECONDS'] = str(self.max_conflicting_age_seconds)
 
-        if self.api_key:
-            env['PROC_WRAPPER_API_KEY'] = self.api_key
+            if self.prevent_offline_execution is not None:
+                env['PROC_WRAPPER_PREVENT_OFFLINE_EXECUTION'] = \
+                        str(self.prevent_offline_execution).upper()
 
-        heartbeat_interval_seconds = self.heartbeat_interval_seconds or \
-            task.heartbeat_interval_seconds
-        if heartbeat_interval_seconds is not None:
-            env['PROC_WRAPPER_API_HEARTBEAT_INTERVAL_SECONDS'] = str(heartbeat_interval_seconds)
+            if self.api_key:
+                env['PROC_WRAPPER_API_KEY'] = self.api_key
 
-        if self.api_request_timeout_seconds is not None:
-            env['PROC_WRAPPER_API_REQUEST_TIMEOUT_SECONDS'] = \
-                    str(self.api_request_timeout_seconds)
+            heartbeat_interval_seconds = self.heartbeat_interval_seconds or \
+                task.heartbeat_interval_seconds
+            if heartbeat_interval_seconds is not None:
+                env['PROC_WRAPPER_API_HEARTBEAT_INTERVAL_SECONDS'] = str(heartbeat_interval_seconds)
 
-        if self.api_retry_delay_seconds is not None:
-            env['PROC_WRAPPER_API_RETRY_DELAY_SECONDS'] = \
-                    str(self.api_retry_delay_seconds)
+            if self.api_request_timeout_seconds is not None:
+                env['PROC_WRAPPER_API_REQUEST_TIMEOUT_SECONDS'] = \
+                        str(self.api_request_timeout_seconds)
 
-        if self.api_resume_delay_seconds is not None:
-            env['PROC_WRAPPER_API_RETRY_DELAY_SECONDS'] = \
-                    str(self.api_resume_delay_seconds)
+            if self.api_retry_delay_seconds is not None:
+                env['PROC_WRAPPER_API_RETRY_DELAY_SECONDS'] = \
+                        str(self.api_retry_delay_seconds)
 
-        if self.api_error_timeout_seconds is not None:
-            env['PROC_WRAPPER_API_ERROR_TIMEOUT_SECONDS'] = \
-                    str(self.api_error_timeout_seconds)
+            if self.api_resume_delay_seconds is not None:
+                env['PROC_WRAPPER_API_RETRY_DELAY_SECONDS'] = \
+                        str(self.api_resume_delay_seconds)
 
-        if self.api_task_execution_creation_error_timeout_seconds is not None:
-            env['PROC_WRAPPER_API_TASK_EXECUTION_CREATION_ERROR_TIMEOUT_SECONDS'] = \
-                    str(self.api_task_execution_creation_error_timeout_seconds)
+            if self.api_error_timeout_seconds is not None:
+                env['PROC_WRAPPER_API_ERROR_TIMEOUT_SECONDS'] = \
+                        str(self.api_error_timeout_seconds)
 
-        if self.api_task_execution_creation_conflict_timeout_seconds is not None:
-            env['PROC_WRAPPER_API_TASK_EXECUTION_CREATION_CONFLICT_TIMEOUT_SECONDS'] = \
-                    str(self.api_task_execution_creation_conflict_timeout_seconds)
+            if self.api_task_execution_creation_error_timeout_seconds is not None:
+                env['PROC_WRAPPER_API_TASK_EXECUTION_CREATION_ERROR_TIMEOUT_SECONDS'] = \
+                        str(self.api_task_execution_creation_error_timeout_seconds)
 
-        if self.api_task_execution_creation_conflict_retry_delay_seconds is not None:
-            env['PROC_WRAPPER_API_TASK_EXECUTION_CREATION_CONFLICT_RETRY_DELAY_SECONDS'] = \
-                    str(self.api_task_execution_creation_conflict_retry_delay_seconds)
+            if self.api_task_execution_creation_conflict_timeout_seconds is not None:
+                env['PROC_WRAPPER_API_TASK_EXECUTION_CREATION_CONFLICT_TIMEOUT_SECONDS'] = \
+                        str(self.api_task_execution_creation_conflict_timeout_seconds)
 
-        if self.api_final_update_timeout_seconds is not None:
-            env['PROC_WRAPPER_API_FINAL_UPDATE_TIMEOUT_SECONDS'] = \
-                    str(self.api_final_update_timeout_seconds)
+            if self.api_task_execution_creation_conflict_retry_delay_seconds is not None:
+                env['PROC_WRAPPER_API_TASK_EXECUTION_CREATION_CONFLICT_RETRY_DELAY_SECONDS'] = \
+                        str(self.api_task_execution_creation_conflict_retry_delay_seconds)
 
-        if self.api_max_retries_for_final_update is not None:
-            env['PROC_WRAPPER_API_RETRIES_FOR_FINAL_UPDATE'] = \
-                    str(self.api_max_retries_for_final_update)
+            if self.api_final_update_timeout_seconds is not None:
+                env['PROC_WRAPPER_API_FINAL_UPDATE_TIMEOUT_SECONDS'] = \
+                        str(self.api_final_update_timeout_seconds)
 
-        if self.api_max_retries_for_process_creation_conflict is not None:
-            env['PROC_WRAPPER_API_RETRIES_FOR_PROCESS_CREATION_CONFLICT'] = \
-                    str(self.api_max_retries_for_process_creation_conflict)
+            if self.api_max_retries_for_final_update is not None:
+                env['PROC_WRAPPER_API_RETRIES_FOR_FINAL_UPDATE'] = \
+                        str(self.api_max_retries_for_final_update)
 
-        if self.status_update_port is not None:
-            env['PROC_WRAPPER_ENABLE_STATUS_UPDATE_LISTENER'] = \
-                    str(self.status_update_port >= 0).upper()
+            if self.api_max_retries_for_process_creation_conflict is not None:
+                env['PROC_WRAPPER_API_RETRIES_FOR_PROCESS_CREATION_CONFLICT'] = \
+                        str(self.api_max_retries_for_process_creation_conflict)
 
-        if self.status_update_interval_seconds is not None:
-            env['PROC_WRAPPER_STATUS_UPDATE_INTERVAL_SECONDS'] = \
-                    str(self.status_update_interval_seconds)
+            if self.status_update_port is not None:
+                env['PROC_WRAPPER_ENABLE_STATUS_UPDATE_LISTENER'] = \
+                        str(self.status_update_port >= 0).upper()
 
-        if self.status_update_port is not None:
-            env['PROC_WRAPPER_STATUS_UPDATE_PORT'] = \
-                    str(self.status_update_port)
+            if self.status_update_interval_seconds is not None:
+                env['PROC_WRAPPER_STATUS_UPDATE_INTERVAL_SECONDS'] = \
+                        str(self.status_update_interval_seconds)
 
-        if self.status_update_message_max_bytes is not None:
-            env['PROC_WRAPPER_STATUS_UPDATE_MESSAGE_MAX_BYTES'] = \
-                    str(self.status_update_message_max_bytes)
+            if self.status_update_port is not None:
+                env['PROC_WRAPPER_STATUS_UPDATE_PORT'] = \
+                        str(self.status_update_port)
 
-        # Legacy: remove once wrappers < 2.0.0 are extinct
-        env['PROC_WRAPPER_PROCESS_EXECUTION_UUID'] = env['PROC_WRAPPER_TASK_EXECUTION_UUID']
-        env['PROC_WRAPPER_PROCESS_TYPE_NAME'] = env['PROC_WRAPPER_TASK_NAME']
+            if self.status_update_message_max_bytes is not None:
+                env['PROC_WRAPPER_STATUS_UPDATE_MESSAGE_MAX_BYTES'] = \
+                        str(self.status_update_message_max_bytes)
 
-        if self.is_service is not None:
-            env['PROC_WRAPPER_PROCESS_IS_SERVICE'] = str(self.is_service).upper()
+            # Legacy: remove once wrappers < 2.0.0 are extinct
+            env['PROC_WRAPPER_PROCESS_EXECUTION_UUID'] = env['PROC_WRAPPER_TASK_EXECUTION_UUID']
+            env['PROC_WRAPPER_PROCESS_TYPE_NAME'] = env['PROC_WRAPPER_TASK_NAME']
 
-        if self.task_max_concurrency:
-            env['PROC_WRAPPER_PROCESS_MAX_CONCURRENCY'] = str(self.task_max_concurrency)
-        # End Legacy
+            if self.is_service is not None:
+                env['PROC_WRAPPER_PROCESS_IS_SERVICE'] = str(self.is_service).upper()
 
-        for overrides in [
-            task.environment_variables_overrides,
-            self.environment_variables_overrides]:
-            if overrides is not None:
-                for name, value in overrides.items():
-                    if value is None:
-                        env.pop(name, None)
-                    elif isinstance(value, bool):
-                        env[name] = str(value).upper()
-                    else:
-                        env[name] = str(value)
+            if self.task_max_concurrency:
+                env['PROC_WRAPPER_PROCESS_MAX_CONCURRENCY'] = str(self.task_max_concurrency)
+            # End Legacy
+
+        if include_app_vars:
+            for overrides in [
+                task.environment_variables_overrides,
+                self.environment_variables_overrides]:
+                if overrides is not None:
+                    for name, value in overrides.items():
+                        if value is None:
+                            env.pop(name, None)
+                        elif isinstance(value, bool):
+                            env[name] = str(value).upper()
+                        else:
+                            env[name] = str(value)
         return env
 
     def should_send_alert(self, alert_method) -> bool:

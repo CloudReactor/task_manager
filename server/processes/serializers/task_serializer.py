@@ -347,7 +347,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
                         included_keys=['security_groups', 'assign_public_ip'])
 
         if task:
-            if (emcd is not None) and (task.execution_method_capability_details) and \
+            if (emcd is not None) and task.execution_method_capability_details and \
                 (task.execution_method_type == execution_method_type):
                 emcd = deepmerge(task.execution_method_capability_details.copy(), emcd,
                                  ignore_none=False)
