@@ -142,7 +142,8 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
           pair('Build ARN', makeLink(awsCbTem.build_arn, awsCbTem.infrastructure_website_url)),
           pair('Build ID', makeLink(awsCbTem.build_id, awsCbTem.infrastructure_website_url)),
           pair('Build number', awsCbTem.build_number),
-          pair('Source version', awsCbTem.source_version),
+          pair('Source version', makeLink(awsCbTem.source_version,
+            awsCbTem.source_version_infrastructure_website_url)),
           pair('Resolved source version', awsCbTem.resolved_source_version),
           pair('Build started at', awsCbTem.start_time),
           pair('Build ended at', awsCbTem.end_time),
@@ -287,11 +288,9 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
 
   rows = rows.concat([
      pair('Workflow Execution',
-      te.workflow_task_instance_execution?.workflow_execution ?
-      makeLink(te.workflow_task_instance_execution.workflow_execution.uuid,
+      makeLink(te?.workflow_task_instance_execution?.workflow_execution?.uuid,
         '/workflow_executions/' +
-        te.workflow_task_instance_execution.workflow_execution.uuid) :
-      'N/A'),
+        te?.workflow_task_instance_execution?.workflow_execution?.uuid)),
   ]);
 
   /*,

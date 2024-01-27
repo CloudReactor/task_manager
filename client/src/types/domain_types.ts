@@ -410,12 +410,16 @@ export interface AwsCodeBuildExecutionMethodCapability {
   build_image: string | null;
   initiator: string | null;
   source_repo_url: string | null;
+  source_version: string | null;
+  source_version_infrastructure_website_url: string | null;
   environment_type: string | null;
   compute_type: string | null;
   privileged_mode: boolean | null;
   image_pull_credentials_type: string | null;
   kms_key_id: string | null;
+  kms_key_infrastructure_website_url: string | null;
   service_role: string | null;
+  service_role_infrastructure_website_url: string | null;
   timeout_in_minutes: number | null;
   queued_timeout_in_minutes: number | null;
 
@@ -435,7 +439,6 @@ export interface AwsCodeBuildExecutionMethodSettings extends AwsCodeBuildExecuti
     build_number: number | null;
     batch_build_identifier: string | null;
     build_batch_arn: string | null;
-    source_version: string | null;
     resolved_source_version: string | null;
     start_time: string | null;
     end_time: string | null;

@@ -55,15 +55,15 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
     initiator: Optional[str] = None
     source_repo_url: Optional[str] = None
     source_version: Optional[str] = None
-    source_version_infrastructure_url: Optional[str] = None
+    source_version_infrastructure_website_url: Optional[str] = None
     environment_type: Optional[str] = None
     compute_type: Optional[str] = None
     privileged_mode: Optional[bool] = None
     image_pull_credentials_type: Optional[str] = None
     kms_key_id: Optional[str] = None
-    kms_key_infrastructure_url: Optional[str] = None
+    kms_key_infrastructure_website_url: Optional[str] = None
     service_role: Optional[str] = None
-    service_role_infrastructure_url: Optional[str] = None
+    service_role_infrastructure_website_url: Optional[str] = None
     timeout_in_minutes: Optional[int] = None
     queued_timeout_in_minutes: Optional[int] = None
     cache: Optional[AwsCodeBuildCache] = None
@@ -94,14 +94,15 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
             logger.debug(f"{self.infrastructure_website_url=}")
 
         if self.source_version and self.source_version.startswith('arn:aws:s3:::'):
-            self.source_version_url = make_aws_console_s3_object_url(self.source_version)
+            self.source_version_infrastructure_website_url = make_aws_console_s3_object_url(
+                    self.source_version)
 
         if self.service_role:
-            self.service_role_infrastructure_url = make_aws_console_role_url(
+            self.service_role_infrastructure_website_url = make_aws_console_role_url(
                     role_arn=self.service_role)
 
         if self.kms_key_id and aws_settings and aws_settings.region:
-            self.kms_key_infrastructure_url = make_aws_console_kms_key_url(
+            self.kms_key_infrastructure_website_url = make_aws_console_kms_key_url(
                     key_id=self.kms_key_id, region=aws_settings.region)
 
     def compute_region(self) -> Optional[str]:

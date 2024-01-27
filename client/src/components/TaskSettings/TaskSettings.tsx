@@ -187,12 +187,16 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
         awsCodeBuildEmc.infrastructure_website_url)),
       pair('Source repository', makeLink(awsCodeBuildEmc.source_repo_url,
         awsCodeBuildEmc.source_repo_url)),
+      pair('Source version', makeLink(awsCodeBuildEmc.source_version,
+        awsCodeBuildEmc.source_version_infrastructure_website_url)),
       pair('Timeout', awsCodeBuildEmc.timeout_in_minutes ?
         `${awsCodeBuildEmc.timeout_in_minutes} minutes` : 'N/A'),
       pair('Queued timeout', awsCodeBuildEmc.queued_timeout_in_minutes ?
         `${awsCodeBuildEmc.queued_timeout_in_minutes} minutes` : 'N/A'),
-      pair('Service role', awsCodeBuildEmc.service_role),
-      pair('KMS key ID', awsCodeBuildEmc.kms_key_id),
+      pair('Service role', makeLink(awsCodeBuildEmc.service_role,
+        awsCodeBuildEmc.service_role_infrastructure_website_url)),
+      pair('KMS key ID', awsCodeBuildEmc.kms_key_id ?
+        makeLink(awsCodeBuildEmc.kms_key_id, awsCodeBuildEmc.kms_key_infrastructure_website_url) : 'N/A'),
       pair('Environment type', awsCodeBuildEmc.environment_type),
       pair('Compute type', awsCodeBuildEmc.compute_type),
       pair('Build image', awsCodeBuildEmc.build_image),
