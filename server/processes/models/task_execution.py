@@ -122,6 +122,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
                                    blank=True, related_name='+')
     finished_at = models.DateTimeField(null=True, blank=True)
     last_heartbeat_at = models.DateTimeField(null=True, blank=True)
+    last_app_heartbeat_at = models.DateTimeField(null=True, blank=True)
     marked_done_at = models.DateTimeField(null=True, blank=True)
     marked_done_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
                                        blank=True, related_name='+')
