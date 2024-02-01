@@ -335,6 +335,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
             env = {
                 'PROC_WRAPPER_TASK_EXECUTION_UUID': str(self.uuid),
                 'PROC_WRAPPER_TASK_NAME': task.name,
+                'PROC_WRAPPER_DEPLOYMENT': self.deployment or task.run_environment.name,
                 'PROC_WRAPPER_INPUT_VALUE': json.dumps(
                     coalesce(self.input_value, task.default_input_value)),
                 'PROC_WRAPPER_MANAGED_PROBABILITY': str(task.managed_probability),
@@ -344,9 +345,6 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
             if self.wrapper_log_level:
                 env['PROC_WRAPPER_LOG_LEVEL'] = self.wrapper_log_level
-
-            if self.deployment:
-                env['PROC_WRAPPER_DEPLOYMENT'] = self.deployment
 
             if self.process_command:
                 env['PROC_WRAPPER_TASK_COMMAND'] = self.process_command

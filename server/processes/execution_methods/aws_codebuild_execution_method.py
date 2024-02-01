@@ -70,6 +70,8 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
     artifacts: Optional[AwsCodeBuildArtifact] = None
     secondary_artifacts: Optional[list[AwsCodeBuildArtifact]] = None
     debug_session_enabled: Optional[bool] = None
+    assumed_role_arn: Optional[str] = None
+    assumed_role_infrastructure_website_url: Optional[str] = None
 
     infrastructure_website_url: Optional[str] = None
     project_name: Optional[str] = None
@@ -108,6 +110,11 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
         if self.kms_key_id and aws_settings and aws_settings.region:
             self.kms_key_infrastructure_website_url = make_aws_console_kms_key_url(
                     key_id=self.kms_key_id, region=aws_settings.region)
+
+        if self.assumed_role_arn:
+            self.assuned_role_infrastructure_website_url = make_aws_console_role_url(
+                    role_arn=self.assumed_role_arn)
+
 
     def compute_region(self) -> Optional[str]:
         if self.build_arn:
@@ -312,6 +319,10 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/codebuild/client/start_build.html
 
         flattened_env = make_flattened_environment(env=task_execution.make_environment())
+
+        # For scripts that assume role before passing temp credentials to Docker
+        if self.settings.assumed_role_arn:
+            flattened_env['ASSUME_ROLE_ARN'] = self.settings.assumed_role_arn
 
         start_build_args: dict[str, Any] = {
             'projectName': project_name,
