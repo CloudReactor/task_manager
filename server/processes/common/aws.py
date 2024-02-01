@@ -20,6 +20,9 @@ S3_ARN_PREFIX_LENGTH = len(S3_ARN_PREFIX)
 VPC_HOME_PATH = 'vpc/home'
 ECS_HOME_PATH = 'ecs/home'
 
+KMS_ARN_REGEX = re.compile(r'^arn:aws:kms:([^:]+):(\d+):(.+)')
+
+
 logger = logging.getLogger(__name__)
 
 def handle_aws_multiple_failure_response(response) -> None:
@@ -102,8 +105,8 @@ def make_aws_console_s3_object_url(object_arn: str) -> Optional[str]:
             bucket_name = object_arn[S3_ARN_PREFIX_LENGTH:first_slash_index]
             object_name = object_arn[(first_slash_index + 1):]
 
-            return "https://s3.console.aws.amazon.com/s3/object/" + aws_encode(bucket_name) + \
-                    '?prefix=' + aws_encode(object_name)
+            return "https://s3.console.aws.amazon.com/s3/object/" + quote(bucket_name) + \
+                    '?prefix=' + quote(object_name)
         except Exception:
             logger.error(f'Failed to compute AWS console URL for S3 object {object_arn}',
                     exc_info=True)
@@ -112,12 +115,36 @@ def make_aws_console_s3_object_url(object_arn: str) -> Optional[str]:
 
     return None
 
-def make_aws_console_kms_key_url(key_id: str, region: str) -> Optional[str]:
+def make_aws_console_kms_key_url(key_id: str, region: Optional[str] = None) -> Optional[str]:
     # Example key ID: xyz-deadbeefdeadbeefdeadbeefdeadbeef
     # Example output URL: https://us-west-1.console.aws.amazon.com/kms/home?region=us-west-1#/kms/keys/xyz-deadbeefdeadbeefdeadbeefdeadbeef
 
+    resolved_key_id = key_id
+
+    m = KMS_ARN_REGEX.match(key_id)
+
+    if m:
+        path = m.group(3)
+
+        if path.startswith('key/'):
+            resolved_key_id = path[len('key/'):]
+        else:
+            # Can't lookup a key by alias in the AWS console
+            return None
+
+        region_in_arn = m.group(1)
+
+        if region and (region != region_in_arn):
+            logger.warning(f"Region {region=} in ARN {key_id=} does not match region {region=} passed in")
+
+        region = region_in_arn
+
+    if not region:
+        return None
+
     return make_regioned_aws_console_base_url(region) + 'kms/home?' + \
-        make_region_parameter(region) + '#/kms/keys/' + aws_encode(key_id)
+        make_region_parameter(region) + '#/kms/keys/' + aws_encode(resolved_key_id)
+
 
 def extract_cluster_name(ecs_cluster_arn: Optional[str]) -> Optional[str]:
     if not ecs_cluster_arn:
