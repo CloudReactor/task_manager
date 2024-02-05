@@ -316,14 +316,17 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
         if not project_name:
             raise APIException("No project name found")
 
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/codebuild/client/start_build.html
+        task_env = task_execution.make_environment()
 
-        flattened_env = make_flattened_environment(env=task_execution.make_environment())
+        task_env["CLOUDREACTOR_RUN_ENVIRONMENT_NAME"] = task.run_environment.name
 
         # For scripts that assume role before passing temp credentials to Docker
         if self.settings.assumed_role_arn:
-            flattened_env['ASSUME_ROLE_ARN'] = self.settings.assumed_role_arn
+            task_env['ASSUME_ROLE_ARN'] = self.settings.assumed_role_arn
 
+        flattened_env = make_flattened_environment(env=task_env)
+
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/codebuild/client/start_build.html
         start_build_args: dict[str, Any] = {
             'projectName': project_name,
             'environmentVariablesOverride': flattened_env
