@@ -112,7 +112,7 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
                     key_id=self.kms_key_id, region=aws_settings.region)
 
         if self.assumed_role_arn:
-            self.assuned_role_infrastructure_website_url = make_aws_console_role_url(
+            self.assumed_role_infrastructure_website_url = make_aws_console_role_url(
                     role_arn=self.assumed_role_arn)
 
 
