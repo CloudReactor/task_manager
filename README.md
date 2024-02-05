@@ -9,7 +9,7 @@ API Server and Web Front-end for CloudReactor. Deployed to dash.cloudreactor.io
 ## Requirements
 
 * Docker (with Compose built-in)
-* Python 3.9+ if running outside of Docker
+* Python 3.11+ if running outside of Docker
 * Node JS v16.19.1
 * Postgres 13.4+
 
@@ -21,7 +21,7 @@ This project consists of 2 components:
 [Django Rest Framework](https://www.django-rest-framework.org/). This code
 lives in the `server` directory.
 2. A web front-end that is written in TypeScript using the React framework
-and built with [Create React App](https://create-react-app.dev/). This code
+and built with [vite](https://vitejs.dev/). This code
 lives in the `client` directory.
 
 ## First time
@@ -108,6 +108,24 @@ Using Docker,
 Natively, in the `server` directory:
 
     pytest
+
+## Updating server dependencies
+
+For the main web app, update `server/requirements.in`.
+
+    docker compose build web
+
+will automatically compute the updated dependencies.
+
+To update the development requirements, edit `server/dev-requirements.in`, then
+in the `server` directory, run:
+
+    ./copy_requirements.sh
+
+This will update `server/requirements.txt` and `server/dev-requirements.txt`.
+Finally, run:
+
+    pip-sync requirements.txt dev-requirements.txt
 
 ## License
 
