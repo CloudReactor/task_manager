@@ -1,45 +1,41 @@
-six>=1.15.0
-beautifulsoup4>=4.11.1
-boto3==1.23.5
-botocore==1.26.5
-cloudreactor-procwrapper==5.0.2
-crontab==0.23.0
-cryptography==39.0.2
-Django==3.2.21
-django-anymail[amazon_ses]==8.6  # https://github.com/anymail/django-anymail
-django-cors-headers==3.12.0
-django-csp>=3.7
-django-dynamic-fixtures==0.2.1 # https://github.com/Peter-Slump/django-dynamic-fixtures
-django-environ==0.4.5  # https://github.com/joke2k/django-environ
-django-extensions==3.1.5
-django-filter==22.1
-django-guardian==2.4.0
+six>=1.15.0,<2.0.0
+beautifulsoup4>=4.12.3,<5.0.0
+boto3>=1.34.34,<2.0.0
+cloudreactor-procwrapper[allextras]>=5.3.2,<6.0.0
+crontab>=0.23.0,<1.0.0 # https://github.com/josiahcarlson/parse-crontab
+cryptography==42.0.2
+Django>=3.2.23,<4.0.0
+django-anymail[amazon_ses]>=8.6,<9.0  # https://github.com/anymail/django-anymail
+django-cors-headers>=3.12.0,<4.0.0
+django-csp>=3.7,<4.0.0
+django-dynamic-fixtures>=0.2.1,<1.0.0 # https://github.com/Peter-Slump/django-dynamic-fixtures
+django-environ>=0.4.5,<1.0.0  # https://github.com/joke2k/django-environ
+django-extensions>=3.1.5,<4.0.0
+django-filter>=22.1,<23.0
+django-guardian>=2.4.0,<3.0.0
 django-middleware-global-request==0.2.0
-django-model-utils==4.3.1  # https://github.com/jazzband/django-model-utils
-django-templated-email==3.0.1
-djangorestframework==3.14.0
-djangorestframework-simplejwt==5.3.0
-djoser==2.2.0
-drf-flex-fields==1.0.2
-drf-spectacular==0.26.1 # https://github.com/tfranzel/drf-spectacular
-Jinja2>=3.0.1
-jsonpath-ng>=1.5.2
-gunicorn>=20.1.0 # https://github.com/benoitc/gunicorn
-mergedeep>=1.3.4
-networkx>=2.8.2
-psycopg2==2.9.3 # https://github.com/psycopg/psycopg2
-pydantic==1.10.6
-pypd==1.1.0
-python-dateutil==2.8.1
-python-dotenv>=0.19.0
+django-model-utils>=4.3.1,<5.0.0  # https://github.com/jazzband/django-model-utils
+django-templated-email>=3.0.1,<4.0.0
+djangorestframework>=3.14.0,<4.0.0
+djangorestframework-simplejwt>=5.3.1,<6.0.0
+djoser>=2.2.2,<3.0.0
+drf-flex-fields>=1.0.2,<2.0.0
+drf-spectacular>=0.27.1,<1.0.0 # https://github.com/tfranzel/drf-spectacular
+Jinja2>=3.1.3,<4.0.0
+gunicorn>=21.2.0 # https://github.com/benoitc/gunicorn
+networkx>=2.8.8,<3.0.0
+psycopg2==2.9.9,<3.0.0 # https://github.com/psycopg/psycopg2
+pydantic>=1.10.14,<2.0.0
+pypd>=1.1.0,<2.0.0
+python-dateutil>=2.8.1,<3.0.0
+python-dotenv>=0.19.0,<1.0.0
 # TODO: replace with https://github.com/AlexandreDecan/portion
-python-intervals==1.10.0
-pytz>=2022.7.1
-PyYAML==6.0
-requests>=2.31.0
+python-intervals>=1.10.0,<2.0.0
+pytz>=2023.4
+PyYAML>=6.0.1,<7.0.0
+requests>=2.31.0,<3.0.0
 # sqlparse < 0.4.1 has a SQL injection vulnerability
-sqlparse>=0.4.3
-stringcase==1.2.0 # https://github.com/okunishinishi/python-stringcase
-urllib3>=1.26.15
-whitenoise>=6.4.0
+sqlparse>=0.4.4,<1.0.0
+stringcase==1.2.0,<2.0.0 # https://github.com/okunishinishi/python-stringcase
+whitenoise>=6.6.0
 #django-queryinspect==1.1.0
