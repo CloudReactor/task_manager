@@ -320,9 +320,10 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
 
         task_env["CLOUDREACTOR_RUN_ENVIRONMENT_NAME"] = task.run_environment.name
 
-        # For scripts that assume role before passing temp credentials to Docker
+        # For scripts that assume role before passing temp credentials to Docker,
+        # such as cr_deploy.sh in the AWS ECS Deployer.
         if self.settings.assumed_role_arn:
-            task_env['ASSUME_ROLE_ARN'] = self.settings.assumed_role_arn
+            task_env['CLOUDREACTOR_DEPLOYER_ASSUME_ROLE_ARN'] = self.settings.assumed_role_arn
 
         flattened_env = make_flattened_environment(env=task_env)
 
