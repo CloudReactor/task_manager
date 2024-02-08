@@ -21,8 +21,8 @@ This project consists of 2 components:
 [Django Rest Framework](https://www.django-rest-framework.org/). This code
 lives in the `server` directory.
 2. A web front-end that is written in TypeScript using the React framework
-and built with [vite](https://vitejs.dev/). This code
-lives in the `client` directory.
+and built with [vite](https://vitejs.dev/). This code lives in the `client`
+directory.
 
 ## First time
 
