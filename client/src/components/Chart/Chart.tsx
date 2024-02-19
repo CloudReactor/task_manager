@@ -58,18 +58,15 @@ const Chart = memo(
           width={width || 100}
           height={height || 100}
           options={{
-            legend: {
-              display: false
+            plugins: {
+              legend: {
+                display: false
+              },
             },
             scales: {
-              yAxes: [
-                {
-                  ticks: {
-                    beginAtZero: true,
-                    precision: 0
-                  }
-                }
-              ]
+              y: {
+                beginAtZero: true,
+              }
             },
             maintainAspectRatio: false,
             onClick
