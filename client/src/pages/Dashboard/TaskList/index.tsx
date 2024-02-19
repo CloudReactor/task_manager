@@ -13,12 +13,13 @@ import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { Alert } from 'react-bootstrap'
 
-import swal from 'sweetalert';
+import { createModal } from 'react-modal-promise';
 
 import { GlobalContext } from '../../../context/GlobalContext';
 import * as UIC from '../../../utils/ui_constants';
 import { getParams, setURL } from '../../../utils/url_search';
 
+import AsyncConfirmationModal from '../../../components/common/AsyncConfirmationModal';
 import ConfigModalContainer from '../../../components/ConfigModal/ConfigModalContainer';
 import ConfigModalBody from '../../../components/ConfigModal/ConfigModalBody';
 import FailureCountAlert from '../../../components/common/FailureCountAlert';
@@ -239,19 +240,25 @@ const TaskList = ({
     return count;
   }, []);
 
-  const handleDeletion = useCallback(async (uuid: string) => {
-    const approveDeletion = await swal({
-      title: 'Are you sure you want to delete this Task?',
-      buttons: ['no', 'yes'],
-      icon: 'warning',
-      dangerMode: true
+  const handleDeletion = useCallback(async (task: TaskImpl) => {
+    const modal = createModal(AsyncConfirmationModal);
+
+    const approveDeletion = await modal({
+      title: 'Confirm Task Deletion',
+      confirmLabel: 'Delete',
+      faIconName: 'trash',
+      children: (
+        <p>
+          Are you sure you want to delete Task &lsquo;{task.name}&rsquo;?
+        </p>
+      )
     });
 
     if (approveDeletion) {
       setLastErrorMessage(null);
 
       try {
-        await makeAuthenticatedClient().delete(`api/v1/tasks/${uuid}/`);
+        await makeAuthenticatedClient().delete(`api/v1/tasks/${task.uuid}/`);
       } catch (err) {
         setLastErrorMessage('Failed to delete Task');
       }

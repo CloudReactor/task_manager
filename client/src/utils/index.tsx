@@ -4,12 +4,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createModal } from 'react-modal-promise';
 
-import swal from 'sweetalert';
-
 import * as C from './constants';
 import * as api from './api';
 import {TaskExecution, Task} from '../types/domain_types';
 
+import AsyncConfirmationModal from '../components/common/AsyncConfirmationModal';
 import StartTaskModal from '../components/StartTaskModal/StartTaskModal';
 
 export const displayStatus = (
@@ -199,11 +198,17 @@ export const stopTaskExecution = async (task: Task,
   onConfirmation?: (confirmed: boolean) => void,
   abortSignal?: AbortSignal):
   Promise<TaskExecution | null> => {
-  const changeStatus = await swal({
-    title: `Are you sure you want to stop the Task '${task.name}'?`,
-    buttons: ['no', 'yes'],
-    icon: 'warning',
-    dangerMode: true
+  const modal = createModal(AsyncConfirmationModal);
+
+  const changeStatus = await modal({
+    title: 'Confirm Stop',
+    confirmLabel: 'Stop',
+    faIconName: 'stop',
+    children: (
+      <p>
+        Are you sure you want to stop the execution of Task &lsquo;{task.name}&rsquo;?
+      </p>
+    )
   });
 
   if (onConfirmation) {

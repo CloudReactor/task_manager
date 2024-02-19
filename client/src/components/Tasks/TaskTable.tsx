@@ -36,7 +36,7 @@ interface Props {
   handleSelectItemsPerPage: (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => void;
-  handleDeletion: (uuid: string) => Promise<void>;
+  handleDeletion: (task: TaskImpl) => Promise<void>;
   handleActionRequested: (action: string | undefined, cbData: any) => Promise<void>;
   taskUuidToInProgressOperation: Record<string, string>;
   runEnvironments: RunEnvironment[];

@@ -28,7 +28,7 @@ interface Props {
   tasks: TaskImpl[];
   task: TaskImpl | null;
   editTask: (uuid: string, data: any) => Promise<void>;
-  handleDeletion: (uuid: string) => void;
+  handleDeletion: (task: TaskImpl) => void;
   handleActionRequested: (action: string | undefined, cbData: any) => any;
   taskUuidToInProgressOperation: any;
 }
@@ -183,7 +183,7 @@ const TableBody = ({
                   <Tooltip title="Remove Task">
                     <i
                       className="fas fa-trash"
-                      onClick={() => handleDeletion(task.uuid)}
+                      onClick={() => handleDeletion(task)}
                     />
                   </Tooltip>
                 )

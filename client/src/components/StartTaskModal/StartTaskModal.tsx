@@ -99,7 +99,7 @@ export default function StartTaskModal(props: Props) {
             <Form>
               <Modal.Body>
                 <p>
-                Environment Variables to Override
+                Environment variables to override
                 </p>
 
                 <BootstrapTable keyField='id' data={ environmentArray } columns={ columns }
