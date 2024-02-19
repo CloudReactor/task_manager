@@ -155,6 +155,9 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
           pair('Batch build ID', awsCbTem.batch_build_identifier),
           pair('Batch build ARN', awsCbTem.build_batch_arn),
           pair('Public build URL', makeLink(awsCbTem.public_build_url, awsCbTem.public_build_url)),
+          pair('Assumed role ARN', awsCbTem.assumed_role_arn ?
+            makeLink(awsCbTem.assumed_role_arn, awsCbTem.assumed_role_infrastructure_website_url)
+            : 'N/A'),
         ]);
       }
       break;

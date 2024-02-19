@@ -181,6 +181,7 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
     ]);
   } else if (execMethodType === EXECUTION_METHOD_TYPE_AWS_CODEBUILD) {
     const awsCodeBuildEmc = execMethodDetails as AwsCodeBuildExecutionMethodCapability;
+    const runEnvAwsCodeBuildSettings = runEnvExecMethodSettings?.[EXECUTION_METHOD_TYPE_AWS_CODEBUILD]?.[DEFAULT_NAME]?.settings;
     rows = rows.concat([
       pair('Project name', awsCodeBuildEmc.project_name),
       pair('Build ARN', makeLink(awsCodeBuildEmc.build_arn,
@@ -201,7 +202,13 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
       pair('Compute type', awsCodeBuildEmc.compute_type),
       pair('Build image', awsCodeBuildEmc.build_image),
       pair('Privileged mode?', (typeof awsCodeBuildEmc.privileged_mode === 'boolean') ?
-        <BooleanIcon checked={awsCodeBuildEmc.privileged_mode ?? false} /> : 'N/A')
+        <BooleanIcon checked={awsCodeBuildEmc.privileged_mode ?? false} /> : 'N/A'),
+      pair('Assumed role ARN', awsCodeBuildEmc.assumed_role_arn ?
+        makeLink(awsCodeBuildEmc.assumed_role_arn, awsCodeBuildEmc.assumed_role_infrastructure_website_url) :
+        <span>Default ({
+          makeLink(runEnvAwsCodeBuildSettings?.assumed_role_arn, runEnvAwsCodeBuildSettings?.assumed_role_infrastructure_website_url)
+        })
+        </span>),
     ]);
   }
 

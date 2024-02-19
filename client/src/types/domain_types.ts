@@ -2,6 +2,8 @@ import {
   AWS_ECS_LAUNCH_TYPE_FARGATE,
   DEFAULT_NAME,
   EXECUTION_CAPABILITY_MANUAL_START,
+  EXECUTION_METHOD_TYPE_AWS_ECS,
+  EXECUTION_METHOD_TYPE_AWS_CODEBUILD,
   EXECUTION_METHOD_TYPE_UNKNOWN,
   INFRASTRUCTURE_TYPE_AWS
 } from '../utils/constants';
@@ -281,7 +283,8 @@ export interface RunEnvironment extends EntityReferenceWithDates {
     [key: string]: NamedInfrastructureSettings<any> | undefined;
   };
   execution_method_settings: {
-    'AWS ECS'?: NamedExecutionMethodSettings<AwsEcsExecutionMethodSettings>;
+    [EXECUTION_METHOD_TYPE_AWS_ECS]?: NamedExecutionMethodSettings<AwsEcsExecutionMethodSettings>;
+    [EXECUTION_METHOD_TYPE_AWS_CODEBUILD]?: NamedExecutionMethodSettings<AwsCodeBuildExecutionMethodSettings>;
     [key: string]: NamedExecutionMethodSettings<any> | undefined;
   };
   default_alert_methods: EntityReference[];
@@ -293,7 +296,7 @@ export function makeNewRunEnvironment(): RunEnvironment {
     created_by_group: makeEmptyGroupReference(),
     description: '',
     execution_method_settings: {
-      [INFRASTRUCTURE_TYPE_AWS]: {
+      [EXECUTION_METHOD_TYPE_AWS_ECS]: {
         [DEFAULT_NAME]: {
           settings: {
             launch_type: AWS_ECS_LAUNCH_TYPE_FARGATE,
@@ -428,6 +431,9 @@ export interface AwsCodeBuildExecutionMethodCapability {
   artifacts: Optional[AwsCodeBuildArtifact] = None
   secondary_artifacts: Optional[list[AwsCodeBuildArtifact]] = None
   debug_session_enabled: boolean | null; */
+
+  assumed_role_arn: string | null;
+  assumed_role_infrastructure_website_url: string | null;
 
   infrastructure_website_url: string | null;
   project_name: string | null;
