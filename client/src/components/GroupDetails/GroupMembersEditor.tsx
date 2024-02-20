@@ -18,8 +18,8 @@ import {
   Row, Col
 } from 'react-bootstrap';
 
-import BootstrapTable from 'react-bootstrap-table-next';
-import cellEditFactory, { Type } from 'react-bootstrap-table2-editor';
+import BootstrapTable from 'react-bootstrap-table-nextgen';
+import cellEditFactory, { Type } from 'react-bootstrap-table-nextgen-editor';
 
 import { createModal } from 'react-modal-promise';
 

@@ -9,7 +9,7 @@ import * as serviceWorker from './serviceWorker';
 import { MuiThemeProvider, createTheme } from '@material-ui/core/styles';
 
 import CssBaseline from '@material-ui/core/CssBaseline';
-import 'react-bootstrap-table-next/dist/react-bootstrap-table2.min.css';
+import 'react-bootstrap-table-nextgen/dist/react-bootstrap-table-nextgen.min.css';
 
 import './styles/index.scss';
 
