@@ -13,7 +13,7 @@ import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { Alert } from 'react-bootstrap'
 
-import { createModal } from 'react-modal-promise';
+import { create } from 'react-modal-promise';
 
 import { GlobalContext } from '../../../context/GlobalContext';
 import * as UIC from '../../../utils/ui_constants';
@@ -241,7 +241,7 @@ const TaskList = ({
   }, []);
 
   const handleDeletion = useCallback(async (task: TaskImpl) => {
-    const modal = createModal(AsyncConfirmationModal);
+    const modal = create(AsyncConfirmationModal);
 
     const approveDeletion = await modal({
       title: 'Confirm Task Deletion',

@@ -17,7 +17,7 @@ import { useHistory, useLocation } from 'react-router-dom';
 
 import { Alert, Form, Row, Col } from 'react-bootstrap';
 
-import { createModal } from 'react-modal-promise';
+import { create } from 'react-modal-promise';
 
 import { DebounceInput } from 'react-debounce-input';
 
@@ -135,7 +135,7 @@ const ApiKeyList = ({
   }
 
   const handleDeletionRequest = async (apiKey: ApiKey) => {
-    const modal = createModal(AsyncConfirmationModal);
+    const modal = create(AsyncConfirmationModal);
 
     const rv = await modal({
       title: 'Delete API Key',

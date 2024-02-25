@@ -21,7 +21,7 @@ import {
 import BootstrapTable from 'react-bootstrap-table-nextgen';
 import cellEditFactory, { Type } from 'react-bootstrap-table-nextgen-editor';
 
-import { createModal } from 'react-modal-promise';
+import { create } from 'react-modal-promise';
 
 import {
   GlobalContext
@@ -307,7 +307,7 @@ class GroupMembersEditor extends Component<Props, State> {
       group
     } = this.props;
 
-    const modal = createModal(AsyncConfirmationModal);
+    const modal = create(AsyncConfirmationModal);
 
     // TODO: extra warning if removing current user
 

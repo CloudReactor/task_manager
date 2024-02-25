@@ -3,7 +3,7 @@ import moment from 'moment';
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { createModal } from 'react-modal-promise';
+import { create } from 'react-modal-promise';
 
 import * as C from './constants';
 import * as api from './api';
@@ -211,7 +211,7 @@ export const stopTaskExecution = async (task: Task,
   onConfirmation?: (confirmed: boolean) => void,
   abortSignal?: AbortSignal):
   Promise<TaskExecution | null> => {
-  const modal = createModal(AsyncConfirmationModal);
+  const modal = create(AsyncConfirmationModal);
 
   const changeStatus = await modal({
     title: 'Confirm Stop',
@@ -238,7 +238,7 @@ export const stopTaskExecution = async (task: Task,
 export const startTaskExecution = async (task: Task,
     onConfirmation?: (confirmed: boolean) => void,
     abortSignal?: AbortSignal): Promise<TaskExecution | null> => {
-  const modal = createModal(StartTaskModal);
+  const modal = create(StartTaskModal);
 
   const taskExecutionProps = await modal({task});
 
