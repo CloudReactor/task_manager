@@ -388,7 +388,7 @@ const TaskDetail = ({
                     return (
                       (taskExecutionsPage.count > 0) ? (
                         <Fragment>
-                          <Charts id={uuid} history={history} />
+                          <Charts task={task} history={history} />
                           <h2 className="mt-5">Executions</h2>
 
                           <DefaultPagination

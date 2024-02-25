@@ -4,29 +4,32 @@ import * as path from '../../../constants/routes';
 
 import React, { Component, Fragment } from 'react';
 import Chart from '../../../components/Chart/Chart';
+
+import * as C from '../../../utils/constants';
 import { timeFormat } from '../../../utils/index';
 import { fetchTaskExecutions } from '../../../utils/api';
+import { TaskExecution, TaskImpl } from '../../../types/domain_types';
 
 interface Props {
-  id: string;
+  task: TaskImpl;
   history: any;
 }
 
 interface State {
-  data: any[] | null;
+  taskExecutions: TaskExecution[] | null;
 }
 
-const extractChartValues = (filteredData: any[], extractY: (execution: any) => string) => {
+const extractChartValues = (filteredData: TaskExecution[], extractY: (execution: TaskExecution) => string) => {
   const labels: string[] = [];
   const dataset: string[] = [];
   const colors: string[] = [];
   const borderColors: string[] = [];
 
-  filteredData.forEach((item: { status: string, started_at: Date; finished_at: Date }) => {
-    labels.push(timeFormat(item.started_at));
-    dataset.push(extractY(item));
+  filteredData.forEach(execution => {
+    labels.push(timeFormat(execution.started_at));
+    dataset.push(extractY(execution));
 
-    if (item.status === 'SUCCEEDED') {
+    if (execution.status === C.TASK_EXECUTION_STATUS_SUCCEEDED) {
       colors.push('#1ad61a91');
       borderColors.push('green');
     } else {
@@ -44,23 +47,23 @@ const extractChartValues = (filteredData: any[], extractY: (execution: any) => s
 };
 
 export default class Charts extends Component<Props, State> {
-  constructor(props: any) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {
-      data: null
+      taskExecutions: null
     };
   }
 
   async componentDidMount() {
     try {
       const taskExecutionPage = await fetchTaskExecutions({
-        taskUuid: this.props.id,
+        taskUuid: this.props.task.uuid,
         sortBy: '-started_at'
       });
 
       this.setState({
-        data: taskExecutionPage.results.reverse()
+        taskExecutions: taskExecutionPage.results.reverse()
       });
     } catch (error) {
       console.log('Error fetching Task Executions');
@@ -72,18 +75,23 @@ export default class Charts extends Component<Props, State> {
       history
     } = this.props;
 
-    const {data} = this.state;
-    if (data) {
-      const filteredData = data.filter((item: {status: string, finished_at: Date}) => {
-        return item.finished_at;
-      });
+    const { taskExecutions } = this.state;
+    if (taskExecutions) {
+      const finishedExecutions = taskExecutions.filter(taskExecution =>
+        !!taskExecution.finished_at
+      );
 
-      const runDurations = extractChartValues(filteredData, (execution: any) => {
+      const runDurations = extractChartValues(finishedExecutions, (execution) => {
         return moment(execution.finished_at)
           .diff(moment(execution.started_at), "minutes", true).toFixed(1)
       });
 
-      const processedCounts = extractChartValues(filteredData, (execution: any) => {
+      let anyProcessedCounts = false;
+      const processedCounts = extractChartValues(taskExecutions, (execution) => {
+        if (execution.success_count) {
+          anyProcessedCounts = true;
+        }
+
         return (execution.success_count || 0).toString();
       });
 
@@ -95,19 +103,23 @@ export default class Charts extends Component<Props, State> {
         console.dir(chartElements);
 
         if (chartElements.length === 1) {
-          const execution = filteredData[chartElements[0]._index];
+          const execution = finishedExecutions[chartElements[0].index];
           history.push(path.TASK_EXECUTIONS + '/' + execution.uuid);
         }
       }
 
+      const runDurationWidth = 50 * (anyProcessedCounts ? 1 : 2);
+      const runDurationClass = 'col-lg-' + (6 * (anyProcessedCounts ? 1 : 2)).toString() +
+        ' col-md-12';
+
       return (
         <Fragment>
           <div className="row pt-4">
-            <div className="col-lg-6 col-md-12">
+            <div className={runDurationClass}>
               <Chart
                 labels={runDurations.labels}
                 data={runDurations.dataset}
-                width={50}
+                width={runDurationWidth}
                 graphName="Run duration (mins)"
                 colors={runDurations.colors}
                 borderColors={runDurations.borderColors|| runDurations.colors}
@@ -117,19 +129,24 @@ export default class Charts extends Component<Props, State> {
                 onClick={onClick}
               />
             </div>
+
             <div className="col-lg-6 col-md-12">
-              <Chart
-                labels={processedCounts.labels}
-                data={processedCounts.dataset}
-                width={50}
-                graphName="Processed count"
-                colors={processedCounts.colors}
-                borderColors={processedCounts.borderColors}
-                hoverBackgroundColor="#1ad61a91"
-                hoverBorderColor="#1ad61a91"
-                noDataMessage='No executions have completed yet.'
-                onClick={onClick}
-              />
+            {
+              anyProcessedCounts && (
+                <Chart
+                  labels={processedCounts.labels}
+                  data={processedCounts.dataset}
+                  width={50}
+                  graphName="Processed count"
+                  colors={processedCounts.colors}
+                  borderColors={processedCounts.borderColors}
+                  hoverBackgroundColor="#1ad61a91"
+                  hoverBorderColor="#1ad61a91"
+                  noDataMessage='No executions have completed yet.'
+                  onClick={onClick}
+                />
+              )
+            }
             </div>
           </div>
         </Fragment>
