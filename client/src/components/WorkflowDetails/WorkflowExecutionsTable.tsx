@@ -264,8 +264,8 @@ const WorkflowExecutionsTable = ({
                   </td>
                   <td className={colors} onClick={pushToDetailPage}>
                     {we
-                      ? <Status isService={false} status={we.status}
-                          forExecutionDetail={true} />
+                      ? <Status enabled={true} isService={false} status={we.status}
+                         forExecutionDetail={true} />
                       : null}
                   </td>
                   <td className="text-right" onClick={pushToDetailPage}>

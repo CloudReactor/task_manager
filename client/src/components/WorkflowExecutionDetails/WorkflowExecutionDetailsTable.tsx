@@ -17,7 +17,8 @@ const WorkflowExecutionDetailsTable = ({ workflowExecution }: Props) => {
   const we = workflowExecution;
   const rows = [
     createData('Status',
-       <Status status={we.status} isService={false} forExecutionDetail={true} />),
+       <Status enabled={true} status={we.status} isService={false}
+        forExecutionDetail={true} />),
     createData('Started by', we.started_by),
     createData('Started at', we.started_at, true),
     createData('Finished at', we.finished_at, true),

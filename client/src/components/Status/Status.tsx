@@ -4,13 +4,14 @@ import * as C from '../../utils/constants';
 import styles from './Status.module.scss';
 
 interface Props {
+  enabled: boolean;
 	status: string;
 	isService: boolean;
 	forExecutionDetail: boolean;
 }
 
-const Status = ({status, isService, forExecutionDetail}: Props) => {
-	const statusLabel = displayStatus(status, isService, forExecutionDetail);
+const Status = ({enabled, status, isService, forExecutionDetail}: Props) => {
+	const statusLabel = displayStatus(enabled, status, isService, forExecutionDetail);
 
 	let icon;
 	if (status === C.TASK_EXECUTION_STATUS_SUCCEEDED && !isService) {
@@ -18,7 +19,7 @@ const Status = ({status, isService, forExecutionDetail}: Props) => {
 	} else if (statusLabel === 'Up') {
 		icon = <i className="fas fa-check"></i>;
   } else if ((C.TASK_EXECUTION_STATUSES_WITH_PROBLEMS.indexOf(status) >= 0) ||
-						 (statusLabel === 'DOWN')) {
+						 (enabled && (statusLabel === 'DOWN'))) {
     icon = <i className="fas fa-exclamation-triangle"></i>;
   } else if (status === C.TASK_EXECUTION_STATUS_RUNNING) {
 		icon = 	<i className="fas fa-spinner fa-spin"></i>;

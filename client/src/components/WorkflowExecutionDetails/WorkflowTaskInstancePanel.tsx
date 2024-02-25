@@ -120,7 +120,7 @@ export default class WorkflowTaskInstancePanel extends Component<Props, State> {
                   latestTaskExecution ?
                   (
                     <span>
-                      <Status status={latestTaskExecution.status}
+                      <Status enabled={true} status={latestTaskExecution.status}
                        isService={false} forExecutionDetail={true} />
                       &nbsp;
                       <Link to={path.TASK_EXECUTIONS + '/' + encodeURIComponent(latestTaskExecution.uuid)}>Details ...</Link>

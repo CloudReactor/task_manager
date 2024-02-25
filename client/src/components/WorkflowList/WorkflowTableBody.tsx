@@ -69,7 +69,8 @@ const WorkflowTableBody = ({
 	            </td>
 	            <td className={statusClassName} onClick={pushToExecution}>
 	              { (workflow && workflow.latest_workflow_execution)
-	                ? <Status isService={false} status={workflow.latest_workflow_execution.status}
+	                ? <Status enabled={workflow.enabled} isService={false}
+                     status={workflow.latest_workflow_execution.status}
 	                   forExecutionDetail={false} />
 	                : 'Never run'}
 	            </td>

@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import moment from 'moment';
 
 import React from 'react';
@@ -12,6 +13,7 @@ import AsyncConfirmationModal from '../components/common/AsyncConfirmationModal'
 import StartTaskModal from '../components/StartTaskModal/StartTaskModal';
 
 export const displayStatus = (
+  enabled: boolean,
   status: string,
   isService: boolean,
   forExecutionDetail = false
@@ -21,21 +23,29 @@ export const displayStatus = (
     return 'Starting';
   }
 
+  let statusLabel = '';
   if (isService) {
     switch (status) {
       case C.TASK_EXECUTION_STATUS_RUNNING:
-        return 'Up';
+        statusLabel = 'Up';
+        break;
       case C.TASK_EXECUTION_STATUS_SUCCEEDED:
         if (forExecutionDetail) {
-          return 'EXITED';
+          statusLabel = 'EXITED';
         } else {
-          return 'DOWN';
+          statusLabel = 'DOWN';
         }
+        break;
 
       default:
         if (!forExecutionDetail) {
-          return 'DOWN';
+          statusLabel = 'DOWN';
         }
+    }
+    if (enabled) {
+      return statusLabel;
+    } else {
+      return _.startCase(statusLabel.toLowerCase());
     }
   }
 
@@ -50,26 +60,29 @@ export const displayStatus = (
   return status;
 };
 
-export const colorPicker = (status: string, isService: boolean): string => {
+export const colorPicker = (status: string, isService: boolean, enabled: boolean=true): string => {
   if (isService) {
-    switch (status) {
-      case C.TASK_EXECUTION_STATUS_RUNNING:
-      case C.TASK_EXECUTION_STATUS_ABORTED:
-        return 'success';
+    if (enabled) {
+      switch (status) {
+        case C.TASK_EXECUTION_STATUS_RUNNING:
+          return 'success';
 
-      default:
-        return 'danger';
+        case C.TASK_EXECUTION_STATUS_ABORTED:
+          return '';
+
+        default:
+          return 'danger';
+      }
+    } else {
+      return '';
     }
   } else {
     switch (status) {
       case C.TASK_EXECUTION_STATUS_RUNNING:
-        return 'success';
-
       case C.TASK_EXECUTION_STATUS_SUCCEEDED:
         return 'success';
 
       case C.TASK_EXECUTION_STATUS_FAILED:
-      case C.TASK_EXECUTION_STATUS_ABORTED:
       case C.TASK_EXECUTION_STATUS_TERMINATED_AFTER_TIME_OUT:
         return 'danger';
 

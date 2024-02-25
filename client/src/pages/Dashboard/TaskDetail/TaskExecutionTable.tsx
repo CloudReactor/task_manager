@@ -114,8 +114,9 @@ const TaskExecutionTable = ({
                 {timeDuration(taskExecution.started_at, taskExecution.finished_at)}
               </td>
               <td className={colors} onClick={pushToDetailPage}>
-                <Status isService={task.is_service} status={taskExecution && taskExecution.status}
-                  forExecutionDetail={true} />
+                <Status enabled={true} isService={task.is_service}
+                 status={taskExecution && taskExecution.status}
+                 forExecutionDetail={true} />
               </td>
               <td onClick={pushToDetailPage}>
                 {taskExecution.last_heartbeat_at ? moment(taskExecution.last_heartbeat_at).fromNow() : 'No heartbeat received'}

@@ -72,7 +72,7 @@ const TableBody = ({
     <tbody>
       {tasks.map(task => {
         const lpe = task.latest_task_execution as any; // hack
-        const colors = lpe ? colorPicker(lpe.status, task.is_service) : '';
+        const colors = lpe ? colorPicker(lpe.status, task.is_service, task.enabled) : '';
         const pushToProcessPage = () =>
           history.push(`${path.TASKS}/${task.uuid}`, { item: task });
 
@@ -109,8 +109,8 @@ const TableBody = ({
                 : 'On-demand'}
             </td>
             <td className={colors} onClick={pushToProcessPage}>
-              <Status isService={task.is_service} status={lpe?.status}
-               forExecutionDetail={false} />
+              <Status enabled={task.enabled} isService={task.is_service}
+               status={lpe?.status} forExecutionDetail={false} />
             </td>
             <td onClick={pushToProcessPage}>
               {timeOrDuration(task, "started_at", "Never started", false)}
