@@ -51,7 +51,10 @@ const ConfigModalBody = ({
   };
   const [saveErrorMessage, setSaveErrorMessage] = useState('');
   const [saveInProgress, setSaveInProgress] = useState(false);
-  const serviceInputProps = { min: 1 };
+  const instanceCountInputProps = {
+    min: 1,
+    className: 'text-right'
+  };
 
   function handleChange(event: React.ChangeEvent<unknown>) {
     setTaskScheduleType((event.target as HTMLInputElement).value);
@@ -101,7 +104,7 @@ const ConfigModalBody = ({
       }
 
       <div className="config-modal-section">
-        <p className="config-modal-section-title">Change Task Schedule:</p>
+        <p className="config-modal-section-title">Task Frequency</p>
         <div>
           <FormControl component="fieldset" disabled={!isMutationAllowed} >
             <RadioGroup aria-label="Task Schedule" name="process_schedule"
@@ -176,7 +179,7 @@ const ConfigModalBody = ({
                 (taskScheduleType === TASK_TYPE_SERVICE) &&
                 <Fragment>
                   <TextField
-                    inputProps={serviceInputProps}
+                    inputProps={instanceCountInputProps}
                     id="service_instance_count"
                     autoFocus={true}
                     inputRef={focusScheduleInput}
@@ -188,6 +191,7 @@ const ConfigModalBody = ({
                     name="service_instance_count"
                     margin="dense"
                     variant="outlined"
+                    required={true}
                     onChange={event => setServiceInstanceCount(parseInt(event.target.value))}
                   />
                 </Fragment>
@@ -219,6 +223,7 @@ const ConfigModalBody = ({
           size="medium"
           color="default"
           variant="contained"
+          className="ml-3"
         />
       </div>
 
