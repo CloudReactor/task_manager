@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import { AxiosError, isCancel } from 'axios';
 
 import * as C from '../../../utils/constants'
@@ -43,7 +45,7 @@ import { BootstrapVariant } from '../../../types/ui_types';
 import * as UIC from '../../../utils/ui_constants';
 
 import Charts from './Charts';
-import TaskAlerts from '../../../components/TaskAlerts/TaskAlerts';
+import TaskNotificationMethods from '../../../components/TaskNotificationMethods/TaskNotificationMethods';
 import TaskSettings from '../../../components/TaskSettings/TaskSettings';
 import TaskLinks from '../../../components/TaskLinks/TaskLinks';
 import TaskSummary from '../../../components/TaskSummary/TaskSummary';
@@ -310,7 +312,7 @@ const TaskDetail = ({
   const isStartAllowed = !!accessLevel && (accessLevel >= C.ACCESS_LEVEL_TASK);
   const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
 
-  const navItems = ['Overview', 'Settings', 'Alerts'];
+  const navItems = ['Overview', 'Settings', 'Notification Methods'];
 
   return (
     <div className={styles.container}>
@@ -384,8 +386,8 @@ const TaskDetail = ({
                 switch (selectedTab) {
                   case 'settings':
                     return <TaskSettings task={task} runEnvironment={runEnvironment ?? undefined} />;
-                  case 'alerts':
-                    return <TaskAlerts task={task} editTask={editTask} />;
+                  case 'notification_methods':
+                    return <TaskNotificationMethods task={task} editTask={editTask} />;
                   default:
                     return (
                       (taskExecutionsPage.count > 0) ? (

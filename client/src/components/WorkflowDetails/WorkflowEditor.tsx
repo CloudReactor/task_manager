@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import {Workflow, WorkflowExecution} from '../../types/domain_types';
 
 import { stringToNullOrInt } from '../../utils';
@@ -19,7 +21,7 @@ import { GlobalContext } from '../../context/GlobalContext';
 import { BootstrapVariant } from '../../types/ui_types';
 
 import ScheduleSelector from '../../components/ScheduleSelector/ScheduleSelector';
-import WorkflowAlerts from '../../components/WorkflowDetails/WorkflowAlerts';
+import WorkflowNotificationMethods from './WorkflowNotificationMethods';
 import WorkflowDetails from '../../components/WorkflowDetails/WorkflowDetails';
 import WorkflowSettings from '../../components/WorkflowDetails/WorkflowSettings';
 
@@ -119,9 +121,8 @@ export default class WorkflowEditor extends Component<Props, State> {
                      workflow={workflow}
                      formikProps={formikProps} />
                   </Tab>
-                  <Tab eventKey="alerts" title="Alerts">
-                    <WorkflowAlerts
-                     formikProps={formikProps} />
+                  <Tab eventKey="notification_methods" title="Notification Methods">
+                    <WorkflowNotificationMethods formikProps={formikProps} />
                   </Tab>
                 </Tabs>
               </Form>
@@ -138,8 +139,8 @@ export default class WorkflowEditor extends Component<Props, State> {
     } = this.props;
 
     if (onTabChanged) {
-      const value = selectedTab?.toLowerCase();
-      onTabChanged(value ?? null);
+      const value = selectedTab ? _.snakeCase(selectedTab) : null;
+      onTabChanged(value);
     }
   };
 

@@ -2,8 +2,8 @@ import _ from 'lodash';
 
 import moment from 'moment';
 
-import { AlertMethod } from '../../../types/domain_types';
-import { fetchAlertMethods } from '../../../utils/api';
+import { NotificationMethod } from '../../../types/domain_types';
+import { fetchNotificationMethods } from '../../../utils/api';
 import { timeFormat } from '../../../utils/index';
 
 import React, { Fragment } from 'react';
@@ -20,10 +20,10 @@ import { makeEntityList } from '../../../components/common/EntityList/EntityList
 
 import '../../../styles/cardStyles.scss';
 
-const AlertMethodList = makeEntityList<AlertMethod>({
-  entityName: 'Alert Method',
+const NotificationMethodList = makeEntityList<NotificationMethod>({
+  entityName: 'Notification Method',
   fetchPage: ({ groupId, offset, maxResults, abortSignal }) => {
-    return fetchAlertMethods({
+    return fetchNotificationMethods({
       groupId,
       offset,
       maxResults,
@@ -74,4 +74,4 @@ const AlertMethodList = makeEntityList<AlertMethod>({
   }
 });
 
-export default AlertMethodList;
+export default NotificationMethodList;

@@ -11,7 +11,7 @@ import {
 } from '../types/website_types';
 
 import {
-  AlertMethod,
+  NotificationMethod,
   ApiKey,
   Task,
   TaskImpl,
@@ -470,8 +470,8 @@ export async function saveRunEnvironment(uuid: string,
   return response.data as RunEnvironment;
 }
 
-export async function fetchAlertMethods(
-  opts? :  PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<AlertMethod>> {
+export async function fetchNotificationMethods(
+  opts? :  PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<NotificationMethod>> {
   opts = opts ?? {};
 
   const {
@@ -485,20 +485,20 @@ export async function fetchAlertMethods(
       params
     });
 
-  return response.data as ResultsPage<AlertMethod>;
+  return response.data as ResultsPage<NotificationMethod>;
 }
 
-export async function fetchAlertMethod(uuid: string, abortSignal?: AbortSignal) {
+export async function fetchNotificationMethod(uuid: string, abortSignal?: AbortSignal) {
   const response = await makeAuthenticatedClient().get(
     `api/v1/alert_methods/${uuid}/`, {
       signal: abortSignal
     });
-  return response.data as AlertMethod;
+  return response.data as NotificationMethod;
 }
 
-export async function saveAlertMethod(uuid: string, values: any,
-    abortSignal?: AbortSignal) : Promise<AlertMethod> {
-  // remove name & url -- only use UUID to associate selected PD profile with this AlertMethod
+export async function saveNotificationMethod(uuid: string, values: any,
+    abortSignal?: AbortSignal) : Promise<NotificationMethod> {
+  // remove name & url -- only use UUID to associate selected PD profile with this NotificationMethod
   delete values.method_details.profile.name;
   delete values.method_details.profile.url;
 
@@ -516,16 +516,16 @@ export async function saveAlertMethod(uuid: string, values: any,
   return response.data;
 }
 
-export async function cloneAlertMethod(uuid: string, attributes?: any,
-    abortSignal?: AbortSignal): Promise<AlertMethod> {
+export async function cloneNotificationMethod(uuid: string, attributes?: any,
+    abortSignal?: AbortSignal): Promise<NotificationMethod> {
   const response = await makeAuthenticatedClient().post(
     'api/v1/alert_methods/' + uuid + '/clone/', attributes || {}, {
         signal: abortSignal
     });
-  return response.data as AlertMethod
+  return response.data as NotificationMethod
 }
 
-export async function deleteAlertMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
+export async function deleteNotificationMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
   return await makeAuthenticatedClient().delete(
     'api/v1/alert_methods/' + uuid + '/', {
       signal: abortSignal

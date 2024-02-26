@@ -3,7 +3,7 @@ import _ from 'lodash';
 import React, { Component } from 'react';
 
 import {
-  AlertMethod
+  NotificationMethod
 } from '../../types/domain_types';
 
 import { GlobalContext } from '../../context/GlobalContext';
@@ -12,7 +12,7 @@ import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 import { isCancel } from 'axios';
 
 import {
-  fetchAlertMethods
+  fetchNotificationMethods
 } from '../../utils/api';
 
 import Checkbox from '@material-ui/core/Checkbox';
@@ -21,30 +21,30 @@ import FormGroup from '@material-ui/core/FormGroup';
 
 interface Props {
   entityTypeLabel: string,
-  noAlertMethodsText?: string,
+  noNotificationMethodsText?: string,
   runEnvironmentUuid?: string | null;
-  selectedAlertMethodUuids: string[];
-  onSelectedAlertMethodsChanged: (alertMethods: AlertMethod[]) => void;
+  selectedNotificationMethodUuids: string[];
+  onSelectedNotificationMethodsChanged: (alertMethods: NotificationMethod[]) => void;
 }
 
 type InnerProps = Props & AbortSignalProps;
 
 interface State {
-  selectedAlertMethodUuids: string[];
-  alertMethods: AlertMethod[];
-  uuidsToAlertMethods: any;
+  selectedNotificationMethodUuids: string[];
+  notificationMethods: NotificationMethod[];
+  uuidsToNotificationMethods: any;
 }
 
-class AlertMethodSelector extends Component<InnerProps, State> {
+class NotificationMethodSelector extends Component<InnerProps, State> {
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {
     super(props);
 
     this.state = {
-      selectedAlertMethodUuids: props.selectedAlertMethodUuids,
-      alertMethods: [],
-      uuidsToAlertMethods: {}
+      selectedNotificationMethodUuids: props.selectedNotificationMethodUuids,
+      notificationMethods: [],
+      uuidsToNotificationMethods: {}
     }
   }
 
@@ -62,27 +62,27 @@ class AlertMethodSelector extends Component<InnerProps, State> {
     const {
       runEnvironmentUuid,
       entityTypeLabel,
-      noAlertMethodsText
+      noNotificationMethodsText: noNotificationMethodsText
     } = this.props;
     const {
-      selectedAlertMethodUuids,
-      alertMethods
+      selectedNotificationMethodUuids: selectedNotificationMethodUuids,
+      notificationMethods: alertMethods
     } = this.state;
 
     return (
-      (alertMethods.length === 0) ? (noAlertMethodsText ?
-        (<p>{noAlertMethodsText}</p>) : (runEnvironmentUuid ? (
+      (alertMethods.length === 0) ? (noNotificationMethodsText ?
+        (<p>{noNotificationMethodsText}</p>) : (runEnvironmentUuid ? (
           <p>
-            No Alert Methods are available that are scoped to the
+            No Notification Methods are available that are scoped to the
             Run Environment of the {entityTypeLabel}.
             To add a Run Environment to the {entityTypeLabel},
-            you can either change the scope of an Alert Method,
-            add a new Alert Method scoped to the Run Environment,
+            you can either change the scope of a Notification Method,
+            add a new Notification Method scoped to the Run Environment,
             or remove the Run Environment scope of the {entityTypeLabel}.
           </p>
         ) : (
           <p>
-            No Alert Methods are available.
+            No Notification Methods are available.
           </p>
         )
       )) : (
@@ -93,11 +93,11 @@ class AlertMethodSelector extends Component<InnerProps, State> {
                 control={
                   <Checkbox
                     color="primary"
-                    checked={selectedAlertMethodUuids.indexOf(am.uuid) >= 0}
+                    checked={selectedNotificationMethodUuids.indexOf(am.uuid) >= 0}
                     name={am.name}
                     id={am.uuid}
                     value={am.uuid}
-                    onChange={this.handleAlertMethodSelected}
+                    onChange={this.handleNotificationMethodSelected}
                   />
                 }
                 label={am.name}
@@ -110,38 +110,38 @@ class AlertMethodSelector extends Component<InnerProps, State> {
     );
   }
 
-  handleAlertMethodSelected = (event: any) => {
+  handleNotificationMethodSelected = (event: any) => {
     let {
-      selectedAlertMethodUuids
+      selectedNotificationMethodUuids: selectedNotificationMethodUuids
     } = this.state;
 
     const uuid = event.target.value;
 
-    if (selectedAlertMethodUuids.indexOf(uuid) >= 0) {
-      selectedAlertMethodUuids = _.without(selectedAlertMethodUuids, uuid);
+    if (selectedNotificationMethodUuids.indexOf(uuid) >= 0) {
+      selectedNotificationMethodUuids = _.without(selectedNotificationMethodUuids, uuid);
     } else {
-      selectedAlertMethodUuids = selectedAlertMethodUuids.concat([uuid]);
+      selectedNotificationMethodUuids = selectedNotificationMethodUuids.concat([uuid]);
     }
 
     this.setState({
-       selectedAlertMethodUuids
+       selectedNotificationMethodUuids: selectedNotificationMethodUuids
     }, () => {
       const {
-        uuidsToAlertMethods
+        uuidsToNotificationMethods
       } = this.state;
 
-      const selectedAlertMethods: AlertMethod[] = [];
+      const selectedNotificationMethods: NotificationMethod[] = [];
 
-      selectedAlertMethodUuids.forEach(uuid => {
-        const am = uuidsToAlertMethods[uuid];
+      selectedNotificationMethodUuids.forEach(uuid => {
+        const am = uuidsToNotificationMethods[uuid];
         if (am) {
-          selectedAlertMethods.push(am as AlertMethod);
+          selectedNotificationMethods.push(am as NotificationMethod);
         } else {
-          console.log(`No Alert Method found for UUID ${uuid}`);
+          console.log(`No Notification Method found for UUID ${uuid}`);
         }
       });
 
-      this.props.onSelectedAlertMethodsChanged(selectedAlertMethods);
+      this.props.onSelectedNotificationMethodsChanged(selectedNotificationMethods);
     });
   }
 
@@ -154,18 +154,18 @@ class AlertMethodSelector extends Component<InnerProps, State> {
     const maxResults = 100;
     let offset = 0;
     let done = false;
-    let alertMethods: AlertMethod[] = [];
+    let notificationMethods: NotificationMethod[] = [];
 
     while (!done) {
       try {
-        const page = await fetchAlertMethods({
+        const page = await fetchNotificationMethods({
           optionalRunEnvironmentUuid: runEnvironmentUuid,
           offset,
           maxResults,
           groupId: currentGroup?.id,
           abortSignal
         });
-        alertMethods = alertMethods.concat(page.results);
+        notificationMethods = notificationMethods.concat(page.results);
         done = page.results.length < maxResults;
         offset += maxResults;
       } catch (error) {
@@ -176,17 +176,17 @@ class AlertMethodSelector extends Component<InnerProps, State> {
       }
     }
 
-    const uuidsToAlertMethods: any = {};
+    const uuidsToNotificationMethods: any = {};
 
-    alertMethods.forEach(am => {
-      uuidsToAlertMethods[am.uuid] = am;
+    notificationMethods.forEach(am => {
+      uuidsToNotificationMethods[am.uuid] = am;
     });
 
     this.setState({
-      alertMethods,
-      uuidsToAlertMethods
+      notificationMethods: notificationMethods,
+      uuidsToNotificationMethods
     });
   }
 }
 
-export default abortableHoc(AlertMethodSelector);
+export default abortableHoc(NotificationMethodSelector);

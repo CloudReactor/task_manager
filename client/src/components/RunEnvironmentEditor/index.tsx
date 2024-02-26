@@ -15,7 +15,7 @@ import {
 } from '../../utils/constants';
 
 import {
-  AlertMethod,
+  NotificationMethod,
   RunEnvironment,
   makeNewRunEnvironment
 } from '../../types/domain_types';
@@ -50,7 +50,7 @@ import IconButton from '@material-ui/core/IconButton';
 
 import FormikErrorsSummary from '../common/FormikErrorsSummary';
 
-import AlertMethodSelector from '../common/AlertMethodSelector';
+import NotificationMethodSelector from '../common/NotificationMethodSelector';
 
 import SettingsForm from '../../components/forms/SettingsForm';
 import styles from './index.module.scss';
@@ -462,16 +462,16 @@ const RunEnvironmentEditor = ({
                     </div>
                     <div>
                       <FormGroup controlId="forNotifications">
-                        <FormLabel>Select default Alert Methods for Tasks & Workflows created in this Run Environment</FormLabel>
+                        <FormLabel>Select default Notification Methods for Tasks & Workflows created in this Run Environment</FormLabel>
                         <FieldArray name="default_alert_methods" render={arrayHelpers => {
                           return (
-                            <AlertMethodSelector
+                            <NotificationMethodSelector
                               entityTypeLabel="Run Environment"
                               runEnvironmentUuid={runEnvironment?.uuid}
-                              noAlertMethodsText="No Alert Methods scoped to this Run Environment are available."
-                              selectedAlertMethodUuids={(values.default_alert_methods ?? []).map((am: any) => am.uuid)}
-                              onSelectedAlertMethodsChanged={(alertMethods: AlertMethod[]) => {
-                                let removed: (AlertMethod | undefined);
+                              noNotificationMethodsText="No Notification Methods scoped to this Run Environment are available."
+                              selectedNotificationMethodUuids={(values.default_alert_methods ?? []).map((am: any) => am.uuid)}
+                              onSelectedNotificationMethodsChanged={(alertMethods: NotificationMethod[]) => {
+                                let removed: (NotificationMethod | undefined);
                                 do {
                                   removed = arrayHelpers.remove(0);
                                 } while (removed);

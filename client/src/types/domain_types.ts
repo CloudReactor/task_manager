@@ -122,7 +122,7 @@ export function makeEmptyPagerDutyProfile(): PagerDutyProfile {
   });
 }
 
-export interface AlertMethod extends EntityReferenceWithDates {
+export interface NotificationMethod extends EntityReferenceWithDates {
   created_by_group: GroupReference;
   created_by_user?: string;
   description?: string;
@@ -144,7 +144,7 @@ export interface AlertMethod extends EntityReferenceWithDates {
   run_environment: EntityReference | null;
 }
 
-export function makeNewAlertMethod(): AlertMethod {
+export function makeNewNotificationMethod(): NotificationMethod {
   return Object.assign(makeEmptyEntityReferenceWithDates(), {
     created_by_group: makeEmptyGroupReference(),
     created_by_user: '',

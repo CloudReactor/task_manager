@@ -17,7 +17,7 @@ const TaskSummary = ({ task }: Props) => {
 
   const rows = [
     createData('Description', task.description ?? 'N/A'),
-    createData('Schedule', scheduleText),
+    createData('Task Type', scheduleText),
     createData('Run Environment',
         <Link to={'/run_environments/' + encodeURIComponent(task.run_environment.uuid)}>{task.run_environment.name}</Link>)
   ];
@@ -27,6 +27,7 @@ const TaskSummary = ({ task }: Props) => {
   }
 
   if (task.logs_url) {
+    // TODO: add clipboad copy button
     rows.push(createData('Log query', task.logs_url, true, task.log_query));
   }
 

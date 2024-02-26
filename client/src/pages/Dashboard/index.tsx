@@ -87,12 +87,12 @@ const PagerDutyProfileDetail = lazy( () =>
   import('./PagerDutyProfileDetail')
 );
 
-const AlertMethodList = lazy( () =>
-  import('./AlertMethod')
+const NotificationMethodList = lazy( () =>
+  import('./NotificationMethod')
 );
 
-const AlertMethodDetail = lazy( () =>
-  import('./AlertMethodDetail')
+const NotificationMethodDetail = lazy( () =>
+  import('./NotificationMethodDetail')
 );
 
 type Props = Record<string, never>;
@@ -193,12 +193,12 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.ALERT_METHODS}
-              render={props => <AlertMethodList/>}
+              render={props => <NotificationMethodList/>}
             />
             <Route
               exact
               path={path.ALERT_METHOD}
-              render={props => <AlertMethodDetail {... props} />}
+              render={props => <NotificationMethodDetail {... props} />}
             />
             {
               hasDeveloperAccess && (

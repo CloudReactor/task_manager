@@ -2,9 +2,9 @@ import _ from 'lodash';
 
 import { ACCESS_LEVEL_DEVELOPER } from '../../utils/constants';
 
-import { AlertMethod, makeNewAlertMethod } from '../../types/domain_types';
+import { NotificationMethod, makeNewNotificationMethod } from '../../types/domain_types';
 import {
-  saveAlertMethod
+  saveNotificationMethod
 } from '../../utils/api';
 
 import * as Yup from 'yup';
@@ -44,9 +44,9 @@ import FormikErrorsSummary from '../common/FormikErrorsSummary';
 
 
 type Props = {
-  alertMethod?: AlertMethod;
-  onSaveStarted?: (alertMethod: AlertMethod) => void;
-  onSaveSuccess?: (alertMethod: AlertMethod) => void;
+  notificationMethod?: NotificationMethod;
+  onSaveStarted?: (notificationMethod: NotificationMethod) => void;
+  onSaveSuccess?: (notificationMethod: NotificationMethod) => void;
   onSaveError?: (err: unknown, values: any) => void;
 }
 
@@ -65,8 +65,8 @@ const validationSchema = Yup.object().shape({
   })
 });
 
-const AlertMethodEditor = ({
-  alertMethod,
+const NotificationMethodEditor = ({
+  notificationMethod: notificationMethod,
   onSaveStarted,
   onSaveSuccess,
   onSaveError
@@ -80,7 +80,7 @@ const AlertMethodEditor = ({
   const accessLevel = accessLevelForCurrentGroup(context);
   const isAccessAllowed = accessLevel && (accessLevel >= ACCESS_LEVEL_DEVELOPER);
 
-  const am = alertMethod ?? makeNewAlertMethod();
+  const am = notificationMethod ?? makeNewNotificationMethod();
   const initialValues = Object.assign({
     runEnvironmentUuid: am.run_environment?.uuid
   }, am) as any;
@@ -95,7 +95,7 @@ const AlertMethodEditor = ({
           try {
             const v = Object.assign({}, values);
 
-            if (!alertMethod && currentGroup) {
+            if (!notificationMethod && currentGroup) {
               v.created_by_group = { id: currentGroup.id };
             }
 
@@ -112,7 +112,7 @@ const AlertMethodEditor = ({
             actions.setSubmitting(true);
 
             const uuid = am.uuid || 'new';
-            const saved = await saveAlertMethod(uuid, v);
+            const saved = await saveNotificationMethod(uuid, v);
 
             actions.setSubmitting(false);
 
@@ -154,7 +154,7 @@ const AlertMethodEditor = ({
                   <Field
                     type="text"
                     name="name"
-                    placeholder="Give this Alert Method a name"
+                    placeholder="Give this Notification Method a name"
                     className="form-control"
                     required={true}
                   />
@@ -170,7 +170,7 @@ const AlertMethodEditor = ({
                   <Field
                     type="text"
                     name="description"
-                    placeholder="Description of this Alert Method"
+                    placeholder="Description of this Notification Method"
                     className="form-control"
                   />
                   <ErrorMessage name="description" />
@@ -189,11 +189,11 @@ const AlertMethodEditor = ({
                     }} noSelectionText="Any" />
 
                   <Form.Text>
-                    Select the Run Environment the Alert Method is for.
+                    Select the Run Environment the Notification Method is for.
                     Tasks and Workflows scoped to different Run Environments won&apos;t
-                    be able use this Alert Method. Set to <code>Any</code> if you want
+                    be able use this Notification Method. Set to <code>Any</code> if you want
                     any Task or Workflow in the Group to be able to use this
-                    Alert Method.
+                    Notification Method.
                   </Form.Text>
 
                   <ErrorMessage name="groupId" />
@@ -211,7 +211,7 @@ const AlertMethodEditor = ({
                     <FormCheck.Label></FormCheck.Label>
                   </FormCheck>
                   <FormText className="text-muted">
-                    Uncheck to disable alerts from this Alert Method
+                    Uncheck to disable alerts from this Notification Method
                   </FormText>
                 </Col>
               </Row>
@@ -385,4 +385,4 @@ const AlertMethodEditor = ({
   );
 }
 
-export default AlertMethodEditor;
+export default NotificationMethodEditor;

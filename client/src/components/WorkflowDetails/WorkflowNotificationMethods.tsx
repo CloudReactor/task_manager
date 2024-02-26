@@ -1,7 +1,7 @@
 import * as C from '../../utils/constants';
 
 import {
-  AlertMethod
+  NotificationMethod
 } from '../../types/domain_types';
 
 import React, { useContext }  from 'react';
@@ -17,7 +17,7 @@ import {
   GlobalContext
 } from '../../context/GlobalContext';
 
-import AlertMethodSelector from '../common/AlertMethodSelector';
+import NotificationMethodSelector from '../common/NotificationMethodSelector';
 import CustomButton from '../common/Button/CustomButton';
 import styles from './WorkflowSettings.module.scss';
 
@@ -25,7 +25,7 @@ interface Props {
   formikProps: FormikProps<any>;
 }
 
-export default function WorkflowAlerts({ formikProps }: Props) {
+export default function WorkflowNotificationMethods({ formikProps }: Props) {
   const {
     values, submitForm, isSubmitting
   } = formikProps;
@@ -42,24 +42,17 @@ export default function WorkflowAlerts({ formikProps }: Props) {
   return (
     <div className={styles.formContainer}>
       <div className={styles.formSection}>
-        <div className={styles.sectionTitle}>
-          {
-            canSave ?
-            'Select Alert Methods to use with this Workflow' :
-            'Alert Methods associated with this Workflow'
-          }
-        </div>
         <fieldset disabled={!canSave}>
           <FormGroup controlId="forNotifications">
             <FieldArray name="alert_methods" render={arrayHelpers => {
               return (
-                <AlertMethodSelector
+                <NotificationMethodSelector
                   key={values.uuid || 'new'}
                   entityTypeLabel="Workflow"
                   runEnvironmentUuid={values.runEnvironmentUuid}
-                  selectedAlertMethodUuids={values.alert_methods.map(am => am.uuid)}
-                  onSelectedAlertMethodsChanged={(alertMethods: AlertMethod[]) => {
-                    let removed: (AlertMethod | undefined);
+                  selectedNotificationMethodUuids={values.alert_methods.map(am => am.uuid)}
+                  onSelectedNotificationMethodsChanged={(alertMethods: NotificationMethod[]) => {
+                    let removed: (NotificationMethod | undefined);
                     do {
                       removed = arrayHelpers.remove(0);
                     } while (removed);

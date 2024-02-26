@@ -89,7 +89,7 @@ const WorkflowSettings = ({ workflow, formikProps }: Props) => {
         <Form.Text className={CustomInputStyles.subText}>
           Select an optional Run Environment to scope this Workflow to.
           If selected, clients using an API key scoped to a different Run Environment won&apos;t be
-          able to access this Workflow. Also, all Tasks and Alert Methods
+          able to access this Workflow. Also, all Tasks and Notification Methods
           associated with this Workflow must be scoped to the same
           Run Environment.
         </Form.Text>

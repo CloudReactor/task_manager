@@ -1,19 +1,19 @@
 import React from 'react';
-import { Task, AlertMethod } from "../../types/domain_types";
+import { Task, NotificationMethod } from "../../types/domain_types";
 
 import { FormGroup } from 'react-bootstrap';
 
 import { Formik, Form, FieldArray } from 'formik';
-import AlertMethodSelector from '../common/AlertMethodSelector';
+import NotificationMethodSelector from '../common/NotificationMethodSelector';
 import CustomButton from '../common/Button/CustomButton';
-import styles from './TaskAlerts.module.scss';
+import styles from './TaskNotificationMethods.module.scss';
 
 interface Props {
   task: Task;
   editTask: (uuid: string, data: any) => Promise<void>
 }
 
-const TaskAlerts = ({
+const TaskNotificationMethods = ({
   task,
   editTask
 }: Props) => {
@@ -29,19 +29,16 @@ const TaskAlerts = ({
         {({ values, submitForm, isSubmitting }) => (
           <Form>
             <div className={styles.formSection}>
-              <div className={styles.sectionTitle}>
-                Select Alert Methods to use with this Task
-              </div>
               <FormGroup>
                 <FieldArray name="alert_methods" render={arrayHelpers => {
                   return (
-                    <AlertMethodSelector
+                    <NotificationMethodSelector
                       key={values.uuid || 'new'}
                       entityTypeLabel="Task"
                       runEnvironmentUuid={task.run_environment?.uuid}
-                      selectedAlertMethodUuids={values.alert_methods.map(am => am.uuid)}
-                      onSelectedAlertMethodsChanged={(alertMethods: AlertMethod[]) => {
-                        let removed: (AlertMethod | undefined);
+                      selectedNotificationMethodUuids={values.alert_methods.map(am => am.uuid)}
+                      onSelectedNotificationMethodsChanged={(alertMethods: NotificationMethod[]) => {
+                        let removed: (NotificationMethod | undefined);
                         do {
                           removed = arrayHelpers.remove(0);
                         } while (removed);
@@ -70,4 +67,4 @@ const TaskAlerts = ({
 	);
 }
 
-export default TaskAlerts;
+export default TaskNotificationMethods;
