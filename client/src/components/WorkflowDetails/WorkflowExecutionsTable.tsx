@@ -249,7 +249,7 @@ const WorkflowExecutionsTable = ({
               index: number
             ) => {
               // isService: TODO
-              const colors = colorPicker(we.status, false);
+              const colors = colorPicker(we.status, false, workflow.enabled);
               const pushToDetailPage = () => history.push(`/workflow_executions/${we.uuid}`, { we });
               return (
                 <tr key={index} className="custom_status_bg">

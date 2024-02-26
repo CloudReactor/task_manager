@@ -99,7 +99,7 @@ const TaskExecutionTable = ({
           taskExecution: TaskExecution,
           index: number
         ) => {
-          const colors = colorPicker(taskExecution.status, task.is_service);
+          const colors = colorPicker(taskExecution.status, task.is_service, task.enabled);
           const pushToDetailPage = () => history.push(
             path.TASK_EXECUTIONS + '/' + taskExecution.uuid, { taskExecution });
           return (
@@ -169,7 +169,7 @@ const TaskExecutionTable = ({
                       inProgress={stoppingTaskExecutionUuids.has(taskExecution.uuid)}
                       inProgressLabel="Stopping"
                       color="secondary"
-                      tooltip="Stop Task Execution" />
+                      tooltip="Stop this Task Execution" />
                   </td>
                 )
               }

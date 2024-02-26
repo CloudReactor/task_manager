@@ -97,9 +97,11 @@ const TableBody = ({
               {task.name}
             </td>
             <td className="text-center pointer">
-              <Switch color="primary" checked={task.enabled}
-               disabled={!isMutationAllowed}
-               onChange={event => {editTask(task.uuid, { enabled: event.target.checked })}} />
+              <Tooltip title={(task.enabled ? 'Disable' : 'Enable') + ' this Task'}>
+                <Switch color="primary" checked={task.enabled}
+                 disabled={!isMutationAllowed}
+                 onChange={event => {editTask(task.uuid, { enabled: event.target.checked })}} />
+              </Tooltip>
             </td>
             <td onClick={pushToProcessPage}>
               {task.is_service
@@ -154,7 +156,7 @@ const TableBody = ({
                       faIconName='play'
                       disabled={isStartDisabled}
                       inProgress={isStartInProgress}
-                      tooltip={task.is_service ? 'Enable this service' : 'Start a new Process Exection'}
+                      tooltip={task.is_service ? 'Enable this service' : 'Start a new Task Execution'}
                     />
 
                     <ActionButton
@@ -163,7 +165,7 @@ const TableBody = ({
                       action={task.is_service ? 'disable_service' : 'stop'}
                       faIconName='stop'
                       disabled={isStopDisabled}
-                      tooltip={task.is_service ? 'Disable this service' : 'Stop the latest Process Exection'}
+                      tooltip={task.is_service ? 'Disable this service' : 'Stop the latest Task Execution'}
                       inProgress={isStopInProgress}
                       color='secondary'
                     />
@@ -171,7 +173,7 @@ const TableBody = ({
                 )
               }
 
-              <Tooltip title="Modify Task settings">
+              <Tooltip title="Modify Task schedule">
                 <i
                   className="fas fa-wrench pl-2 pr-2"
                   onClick={() => handleActionRequested('config', task)}

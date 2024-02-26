@@ -56,7 +56,7 @@ import '../../../components/Tasks/style.scss';
 import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
 import ActionButton from '../../../components/common/ActionButton';
 
-import { Switch } from '@material-ui/core';
+import { Switch, Tooltip } from '@material-ui/core';
 import styles from './index.module.scss'
 import TaskExecutionTable from './TaskExecutionTable';
 
@@ -277,8 +277,8 @@ const TaskDetail = ({
     }
   }
 
-  const onTabChange = (selectedTab: string) => {
-    setSelectedTab(selectedTab.toLowerCase());
+  const onTabChange = (selectedTabLabel: string) => {
+    setSelectedTab(_.snakeCase(selectedTabLabel));
   }
 
   useEffect(() => {
@@ -337,21 +337,23 @@ const TaskDetail = ({
               />
 
               <div>
-                <Switch
-                  color="primary"
-                  checked={task.enabled}
-                  disabled={!isMutationAllowed}
-                  className={styles.switch}
-                  onChange={event => {
-                    editTask(
-                      task.uuid,
-                      { enabled: event.target.checked }
-                    )}
-                  }
-                />
+                <Tooltip title={(task.enabled ? 'Disable' : 'Enable') + ' this Task'}>
+                  <Switch
+                    color="primary"
+                    checked={task.enabled}
+                    disabled={!isMutationAllowed}
+                    className={styles.switch}
+                    onChange={event => {
+                      editTask(
+                        task.uuid,
+                        { enabled: event.target.checked }
+                      )}
+                    }
+                  />
+                </Tooltip>
                 <ActionButton cbData={task} onActionRequested={handleActionRequested}
-                  action="configure" faIconName="wrench" label="Configuration"
-                  tooltip={ (isMutationAllowed ? 'Modify' : 'View') + " this Task's configuration" } />
+                  action="configure" faIconName="wrench" label="Schedule"
+                  tooltip={ (isMutationAllowed ? 'Modify' : 'View') + " this Task's run schedule" } />
 
                 <ActionButton cbData={task} onActionRequested={handleActionRequested}
                   action="start" disabled={!isStartAllowed || !task.canManuallyStart()} inProgress={isStarting}

@@ -23,7 +23,7 @@ export const displayStatus = (
     return 'Starting';
   }
 
-  let statusLabel = '';
+  let statusLabel = status;
   if (isService) {
     switch (status) {
       case C.TASK_EXECUTION_STATUS_RUNNING:
