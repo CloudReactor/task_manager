@@ -164,6 +164,13 @@ const AWS_ECS_EXECUTION_METHOD_ITEMS = [{
     controlId: 'forExecutionMethodCapabilitiesSupportedLaunchTypes',
     options: AWS_ECS_ALL_SUPPORTED_LAUNCH_TYPES,
     multiple: true
+  },{
+    name: `execution_method_settings.${EXECUTION_METHOD_TYPE_AWS_ECS}.__default__.settings.launch_type`,
+    label: 'Default Launch Type',
+    type: 'select',
+    controlId: 'forExecutionMethodCapabilitiesLaunchType',
+    options: AWS_ECS_ALL_SUPPORTED_LAUNCH_TYPES,
+    multiple: false
   }, {
     name: `execution_method_settings.${EXECUTION_METHOD_TYPE_AWS_ECS}.__default__.settings.platform_version`,
     label: 'Default Platform Version',
