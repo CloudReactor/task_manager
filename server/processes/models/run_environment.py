@@ -7,8 +7,11 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from ..exception.unprocessable_entity import UnprocessableEntity
-from ..execution_methods import AwsSettings
-
+from ..execution_methods import (
+    AwsSettings,
+    AwsEcsExecutionMethodSettings,
+    AwsLambdaExecutionMethodSettings
+)
 from .named_with_uuid_model import NamedWithUuidModel
 
 from .aws_ecs_configuration import AwsEcsConfiguration
@@ -72,6 +75,24 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
         aws_settings = AwsSettings.parse_obj(self.aws_settings)
         return aws_settings.can_schedule_workflow()
 
+    def enrich_settings(self) -> None:
+        aws_settings: Optional[AwsSettings] = None
+        if self.aws_settings:
+            aws_settings = AwsSettings.parse_obj(self.aws_settings)
+            aws_settings.update_derived_attrs()
+            self.aws_settings = aws_settings.dict()
+
+        if self.default_aws_ecs_configuration:
+            aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(self.default_aws_ecs_configuration)
+            aws_ecs_settings.update_derived_attrs(aws_settings=aws_settings)
+            self.default_aws_ecs_configuration = aws_ecs_settings.dict()
+
+        if self.default_aws_lambda_configuration:
+            aws_lambda_settings = AwsLambdaExecutionMethodSettings.parse_obj(self.default_aws_lambda_configuration)
+            aws_lambda_settings.update_derived_attrs(aws_settings=aws_settings)
+            self.default_aws_lambda_configuration = aws_lambda_settings.dict()
+
+
 
 @receiver(pre_save, sender=RunEnvironment)
 def pre_save_run_environment(sender: Type[RunEnvironment], **kwargs):
@@ -89,3 +110,8 @@ def pre_save_run_environment(sender: Type[RunEnvironment], **kwargs):
 
         if (max_tasks is not None) and (existing_count >= max_tasks):
             raise UnprocessableEntity(detail='Task limit exceeded', code='limit_exceeded')
+
+    try:
+        instance.enrich_settings()
+    except Exception as ex:
+        logger.warning(f"Failed to enrich Run Environment {instance.uuid} settings", exc_info=ex)

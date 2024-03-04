@@ -287,8 +287,7 @@ class ExecutionMethod:
             return AwsLambdaExecutionMethod(task=task, task_execution=task_execution)
         elif emt == AwsCodeBuildExecutionMethod.NAME:
             return AwsCodeBuildExecutionMethod(task=task, task_execution=task_execution)
-        return UnknownExecutionMethod(task=task,
-                task_execution=task_execution)
+        return UnknownExecutionMethod(task=task, task_execution=task_execution)
 
     def should_maybe_update_scheduled_execution(self,
             old_execution_method: Optional['ExecutionMethod']) -> Optional[bool]:

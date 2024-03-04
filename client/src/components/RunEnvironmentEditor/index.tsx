@@ -96,7 +96,7 @@ const AWS_INFRASTRUCTURE_ITEMS = [{
     type: 'text',
     controlId: 'forAwsEventsRoleArn',
     placeholder: 'arn:aws:iam::123456789012:role/CloudReactor-staging-executionSchedulingRole-XXX',
-    subText: 'The name or ARN of a role that is assumable by CloudReactor, giving it permission to manage your Tasks'
+    subText: 'The name or ARN of an IAM role that is assumable by CloudReactor, giving it permission to manage your Tasks'
   }, {
     name: `infrastructure_settings.${INFRASTRUCTURE_TYPE_AWS}.__default__.settings.assumed_role_external_id`,
     label: 'External ID',
@@ -149,14 +149,14 @@ const AWS_ECS_EXECUTION_METHOD_ITEMS = [{
     type: 'text',
     controlId: 'forExecutionMethodCapabilitiesDefaultExecutionRole',
     placeholder: 'arn:aws:iam::123456789012:role/staging-taskExecutionRole-XXX',
-    subText: 'The name or ARN of a role that is used to start ECS tasks, which should be assumable by the CloudReactor Role'
+    subText: 'The name or ARN of an IAM role that is used to start ECS tasks, which should be assumable by the CloudReactor Role'
   }, {
     name: `execution_method_settings.${EXECUTION_METHOD_TYPE_AWS_ECS}.__default__.settings.task_role_arn`,
     label: 'Default Task Role',
     type: 'text',
     controlId: 'forExecutionMethodCapabilitiesDefaultTaskRole',
     placeholder: 'arn:aws:iam::123456789012:role/staging-taskRole-XXX',
-    subText: 'Optional. The name or ARN of a role that gives Tasks running in this Run Environment access to other AWS resources.',
+    subText: 'Optional. The name or ARN of an IAM role that gives Tasks running in this Run Environment access to other AWS resources.',
   }, {
     name: `execution_method_settings.${EXECUTION_METHOD_TYPE_AWS_ECS}.__default__.settings.supported_launch_types`,
     label: 'Supported Launch Types',
@@ -232,10 +232,10 @@ const RunEnvironmentEditor = ({
               'AWS Account ID must be 12 digits').nullable(),
             region: Yup.string().oneOf(AWS_REGIONS),
             events_role_arn: Yup.string().max(1000).matches(AWS_ROLE_ARN_REGEXP,
-              'CloudReactor Role ARN is invalid'),
+              'CloudReactor Role name or ARN is invalid'),
             assumed_role_external_id: Yup.string().max(1000).nullable(),
             workflow_starter_lambda_arn: Yup.string().max(1000).matches(AWS_LAMBDA_ARN_REGEXP,
-              'Workflow Starter Lambda ARN is invalid'),
+              'Workflow Starter Lambda name or ARN is invalid').nullable(),
             workflow_starter_access_key: Yup.string().max(1000).nullable(),
             network: Yup.object().shape({
               subnets: Yup.array().of(Yup.string().required(
@@ -273,9 +273,9 @@ const RunEnvironmentEditor = ({
             'cluster_arn': Yup.string().matches(AWS_ECS_CLUSTER_ARN_REGEXP,
               'AWS ECS Cluster ARN is invalid, must be in the format "arn:aws:ecs:us-east-1:012345678901:cluster/example"').nullable(),
             'execution_role_arn': Yup.string().matches(AWS_ROLE_ARN_REGEXP,
-              'Task Execution Role ARN is invalid, must start with "arn:"').nullable(),
+              'Task Execution Role name or ARN is invalid').nullable(),
             'task_role_arn': Yup.string().matches(AWS_ROLE_ARN_REGEXP,
-              'Default Task Role ARN is invalid, must start with "arn:"').nullable(),
+              'Default Task Role name or ARN is invalid').nullable(),
             'platform_version': Yup.string()
           }).nullable()
         }).nullable()

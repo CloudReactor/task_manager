@@ -205,28 +205,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
                             logger.warning('No settings found inside default AWS settings container')
                         else:
                             validated['aws_settings'] = aws_settings
-
-                            # Remove once RunEnvironmentSerializer gets these from aws_settings
-                            self.copy_props_with_prefix(dest_dict=validated,
-                                    src_dict=aws_settings,
-                                    dest_prefix='aws_',
-                                    included_keys=['account_id', 'default_region',
-                                    'access_key', 'secret_key', 'events_role_arn',
-                                    'assumed_role_external_id',
-                                    'workflow_starter_lambda_arn',
-                                    'workflow_starter_access_key',
-                                    ], none_to_empty_strings=True)
-
-                            default_aws_network = aws_settings.get('network')
-
-                            if default_aws_network:
-                                if 'subnets' in default_aws_network:
-                                    validated['aws_default_subnets'] = default_aws_network['subnets']
-
-                                self.copy_props_with_prefix(dest_dict=validated,
-                                    src_dict=default_aws_network,
-                                    dest_prefix='aws_ecs_default_',
-                                    included_keys=['security_groups', 'assign_public_ip'])
                     else:
                         raise serializers.ValidationError({
                             'infrastructure_settings': ['Non-default infrastructure settings not supported yet']
@@ -256,24 +234,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
                     if em_settings:
                         if emt == AwsEcsExecutionMethod.NAME:
                             validated['default_aws_ecs_configuration'] = em_settings
-
-                            # Remove after aws_settings becomes source of truth
-                            self.copy_props_with_prefix(dest_dict=validated,
-                                    src_dict=em_settings,
-                                    dest_prefix='aws_ecs_default_',
-                                    except_keys=['supported_launch_types', 'enable_ecs_managed_tags', 'execution_role_arn', 'task_role_arn'])
-
-                            self.copy_props_with_prefix(dest_dict=validated,
-                                    src_dict=em_settings,
-                                    dest_prefix='aws_ecs_',
-                                    included_keys=['supported_launch_types', 'enable_ecs_managed_tags'])
-
-                            if 'execution_role_arn' in em_settings:
-                                validated['aws_ecs_default_execution_role'] = em_settings['execution_role_arn'] or ''
-
-                            if 'task_role_arn' in em_settings:
-                                validated['aws_ecs_default_task_role'] = em_settings['task_role_arn'] or ''
-
                         elif emt == AwsLambdaExecutionMethod.NAME:
                             validated['default_aws_lambda_configuration'] = em_settings
                 else:
@@ -360,45 +320,3 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
             instance.save()
 
         return instance
-
-
-    def copy_aws_ecs_properties(self, validated: dict[str, Any],
-          cap: dict[str, Any]) -> dict[str, Any]:
-        self.copy_props_with_prefix(dest_dict=validated,
-                                    src_dict=cap,
-                                    dest_prefix='aws_ecs_',
-                                    except_keys=['type', 'default_subnets'])
-
-        aws_default_region = validated.get('aws_default_region')
-        aws_account_id = validated.get('aws_account_id')
-
-        if self.instance:
-            existing_run_env = cast(RunEnvironment, self.instance)
-            if not aws_default_region:
-                aws_default_region = existing_run_env.aws_default_region
-            if not aws_account_id:
-                aws_account_id = existing_run_env.aws_account_id
-
-        if not aws_default_region and not aws_account_id:
-            raise serializers.ValidationError('AWS default region and AWS account ID must be specified if cluster name is not an ARN')
-
-        cluster = validated.get('aws_ecs_default_cluster_arn')
-        if cluster and not cluster.startswith('arn:'):
-            validated['aws_ecs_default_cluster_arn'] = f"arn:aws:ecs:{aws_default_region}:{aws_account_id}:cluster/{cluster}"
-
-        for p in ['aws_events_role_arn', 'aws_ecs_default_execution_role',
-                'aws_ecs_default_task_role']:
-            role = validated.get(p)
-            if role and not role.startswith('arn:'):
-                validated[p] = f'arn:aws:iam::{aws_account_id}:role/{role}'
-
-        default_subnets = cap.get('default_subnets')
-        if default_subnets is not None:
-            validated['aws_default_subnets'] = default_subnets
-
-        lambda_arn = validated['aws_workflow_starter_lambda_arn']
-        if lambda_arn and not lambda_arn.startswith('arn:'):
-            validated['aws_workflow_starter_lambda_arn'] = \
-                    f'arn:aws:lambda:{aws_default_region}:{aws_account_id}:function:{lambda_arn}'
-
-        return validated

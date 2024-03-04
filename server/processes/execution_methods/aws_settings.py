@@ -291,11 +291,23 @@ class AwsSettings(InfrastructureSettings):
                 self.execution_role_arn)
 
     def update_derived_attrs(self, execution_method: Optional[ExecutionMethod]=None) -> None:
+        if self.events_role_arn:
+            self.events_role_arn = normalize_role_arn(self.events_role_arn,
+                aws_account_id = self.account_id)
+
         self.events_role_infrastructure_website_url = \
                 make_aws_console_role_url(self.events_role_arn)
 
+        if self.execution_role_arn:
+            self.execution_role_arn = normalize_role_arn(self.execution_role_arn,
+                aws_account_id = self.account_id)
+
         self.execution_role_infrastructure_website_url = \
                 make_aws_console_role_url(self.execution_role_arn)
+
+        if self.workflow_starter_lambda_arn:
+            self.workflow_starter_lambda_arn = normalize_lambda_arn(self.workflow_starter_lambda_arn,
+                aws_account_id=self.account_id, region=self.region)
 
         self.workflow_starter_lambda_infrastructure_website_url = \
                 make_aws_console_lambda_function_url(self.workflow_starter_lambda_arn)

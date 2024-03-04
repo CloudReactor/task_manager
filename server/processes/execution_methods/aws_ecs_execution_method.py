@@ -83,15 +83,15 @@ class AwsEcsExecutionMethodSettings(BaseModel):
             if aws_account_id and region:
                 if self.cluster_arn and not self.cluster_arn.startswith('arn:'):
                     self.cluster_arn = 'arn:aws:ecs:' + region + ':' + \
-                        + aws_account_id + ':cluster/' + self.cluster_arn
+                        aws_account_id + ':cluster/' + self.cluster_arn
 
                 if self.execution_role_arn:
                     self.execution_role_arn = normalize_role_arn(self.execution_role_arn,
-                            aws_account_id=aws_account_id, region=region)
+                            aws_account_id=aws_account_id)
 
                 if self.task_role_arn:
                     self.task_role_arn = normalize_role_arn(self.task_role_arn,
-                            aws_account_id=aws_account_id, region=region)
+                            aws_account_id=aws_account_id)
 
         self.cluster_infrastructure_website_url = \
             make_aws_console_ecs_cluster_url(self.cluster_arn)

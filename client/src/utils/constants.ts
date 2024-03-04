@@ -107,8 +107,8 @@ const AWS_ARN_REGEXP_PREFIX = '^arn:aws(-us-gov)?:';
 const LOWER_HEX_DIGIT_REGEXP_CHAR = "[0-9a-f]";
 
 export const AWS_ACCOUNT_ID_REGEXP = new RegExp('^' + AWS_ACCOUNT_ID_REGEXP_CHARS + '$');
-export const AWS_ROLE_ARN_REGEXP = new RegExp(AWS_ARN_REGEXP_PREFIX + 'iam::' +
-  AWS_ACCOUNT_ID_REGEXP_CHARS + ':role/[\\w-]+$');
+export const AWS_ROLE_ARN_REGEXP = new RegExp('(' + AWS_ARN_REGEXP_PREFIX + 'iam::' +
+  AWS_ACCOUNT_ID_REGEXP_CHARS + ':role/)?[\\w-]+$');
 export const AWS_SUBNET_REGEXP = new RegExp('^subnet-(' +
   LOWER_HEX_DIGIT_REGEXP_CHAR + '{8}|' +
   LOWER_HEX_DIGIT_REGEXP_CHAR + '{17})$');
@@ -117,13 +117,13 @@ export const AWS_SECURITY_GROUP_REGEXP = new RegExp('^sg-(' +
   LOWER_HEX_DIGIT_REGEXP_CHAR + '{8}|' +
   LOWER_HEX_DIGIT_REGEXP_CHAR + '{17})$');
 
-export const AWS_LAMBDA_ARN_REGEXP = new RegExp(AWS_ARN_REGEXP_PREFIX +
+export const AWS_LAMBDA_ARN_REGEXP = new RegExp('(' + AWS_ARN_REGEXP_PREFIX +
   "lambda:(" + AWS_REGION_REGEXP_CHARS + '):' + AWS_ACCOUNT_ID_REGEXP_CHARS +
-  ":function:[\\w-]+(:\\d+)?$");
+  ":function:)?[\\w-]+(:\\d+)?$");
 
-export const AWS_ECS_CLUSTER_ARN_REGEXP = new RegExp(AWS_ARN_REGEXP_PREFIX +
+export const AWS_ECS_CLUSTER_ARN_REGEXP = new RegExp('(' + AWS_ARN_REGEXP_PREFIX +
   'ecs:(' + AWS_REGION_REGEXP_CHARS + '):' + AWS_ACCOUNT_ID_REGEXP_CHARS +
-  ':cluster/[\\w-.]{1,255}$');
+  ':cluster/)?[\\w-.]{1,255}$');
 
 export const AWS_ECS_LAUNCH_TYPE_FARGATE = 'FARGATE';
 export const AWS_ECS_LAUNCH_TYPE_EC2 = 'EC2';

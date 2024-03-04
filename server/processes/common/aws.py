@@ -46,8 +46,8 @@ def handle_aws_multiple_failure_response(response) -> None:
 
         raise APIException(detail=message)
 
-def normalize_role_arn(role_arn_or_name, aws_account_id: Optional[str], region: Optional[str]) -> str:
-    if aws_account_id and region:
+def normalize_role_arn(role_arn_or_name, aws_account_id: Optional[str]) -> str:
+    if aws_account_id:
         if role_arn_or_name.startswith('arn:'):
 
             return role_arn_or_name
@@ -56,6 +56,15 @@ def normalize_role_arn(role_arn_or_name, aws_account_id: Optional[str], region: 
 
     return role_arn_or_name
 
+
+def normalize_lambda_arn(lambda_arn_or_name, aws_account_id: Optional[str], region: Optional[str]) -> str:
+    if aws_account_id and region:
+        if lambda_arn_or_name.startswith('arn:'):
+            return lambda_arn_or_name
+        else:
+            return 'arn:aws:lambda:' + region + ':' + aws_account_id + ':function:' + lambda_arn_or_name
+
+    return lambda_arn_or_name
 
 def make_regioned_aws_console_base_url(region: str) -> str:
     return HTTPS + region + '.' + AWS_CONSOLE_HOSTNAME + '/'
@@ -70,7 +79,7 @@ def make_aws_console_role_url(role_arn: Optional[str]) -> Optional[str]:
         return None
 
     try:
-        last_slash_index = role_arn.rindex('/')
+        last_slash_index = role_arn.rfind('/')
         return AWS_CONSOLE_BASE_URL + 'iam/home#/roles/' + quote(role_arn[last_slash_index+1:])
     except Exception:
         logger.error(f'Failed to compute AWS role URL for ARN {role_arn}',
@@ -151,7 +160,7 @@ def extract_cluster_name(ecs_cluster_arn: Optional[str]) -> Optional[str]:
         return None
 
     try:
-        last_slash_index = ecs_cluster_arn.rindex('/')
+        last_slash_index = ecs_cluster_arn.rfind('/')
         return ecs_cluster_arn[last_slash_index+1:]
     except Exception:
         logger.error(f'Failed to compute cluster name for ARN {ecs_cluster_arn}',
