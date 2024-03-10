@@ -21,8 +21,6 @@ const StatusFilter = (props: Props) => {
   const handleSelectedStatusesInputChanged = (event: any, child?: ReactNode) => {
     let newSelectedStatuses = event.target.value;
 
-    console.log('newSelectedStatuses:', newSelectedStatuses);
-
     if (_.isArray(newSelectedStatuses)) {
       if (selectedStatuses) {
         if (newSelectedStatuses.includes(ANY_STATUS)) {
@@ -39,8 +37,6 @@ const StatusFilter = (props: Props) => {
 
     props.handleSelectedStatusesChanged(newSelectedStatuses);
   };
-
-  console.log('selectedStatuses:', selectedStatuses);
 
   const ss = selectedStatuses ?? [ANY_STATUS];
 

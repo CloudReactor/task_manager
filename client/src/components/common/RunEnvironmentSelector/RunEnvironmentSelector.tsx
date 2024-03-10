@@ -23,8 +23,6 @@ const RunEnvironmentSelector = (props: Props) => {
   const handleSelectedRunEnvironmentsInputChanged = (event: any, child?: ReactNode) => {
     let newSelectedRunEnvironmentUuids = event.target.value;
 
-    console.log('newSelectedRunEnvironmentUuids:', newSelectedRunEnvironmentUuids);
-
     if (_.isArray(newSelectedRunEnvironmentUuids)) {
       if (selectedRunEnvironmentUuids) {
         if (newSelectedRunEnvironmentUuids.includes(ALL_RUN_ENVIRONMENTS)) {
@@ -52,16 +50,16 @@ const RunEnvironmentSelector = (props: Props) => {
      multiple={true} value={selectValue}
      onChange={handleSelectedRunEnvironmentsInputChanged}
      className={styles.runEnvironmentSelector}
-     renderValue={(selected: unknown) => {
-      console.log('selected:', selected);
-      return (<Fragment>
-        {
-          (selected as string[]).map(uuid =>
-            ((uuid === 'all') ? 'Show all' : (runEnvironmentsByUuid[uuid]?.name ?? 'N/A'))
-          ).join(', ')
-        }
-      </Fragment>);
-     } }
+     renderValue={(selected: unknown) => (
+         <Fragment>
+         {
+           (selected as string[]).map(uuid =>
+             ((uuid === 'all') ? 'Show all' : (runEnvironmentsByUuid[uuid]?.name ?? 'N/A'))
+           ).join(', ')
+         }
+         </Fragment>
+       )
+     }
     >
       <MenuItem key={ALL_RUN_ENVIRONMENTS} value={ALL_RUN_ENVIRONMENTS}>
         <Checkbox checked={selectValue[0] === ALL_RUN_ENVIRONMENTS} />
