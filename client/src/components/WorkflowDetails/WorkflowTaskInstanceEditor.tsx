@@ -294,7 +294,7 @@ export default class WorkflowTaskInstanceEditor extends Component<Props, State> 
 
     while (!done) {
       const page = await fetchTasks({
-        selectedRunEnvironmentUuids: runEnvironmentUuid ? [runEnvironmentUuid] : undefined,
+        runEnvironmentUuids: runEnvironmentUuid ? [runEnvironmentUuid] : undefined,
         sortBy: 'name',
         offset,
         maxResults: pageSize,

@@ -4,13 +4,17 @@ import React, { Fragment, ReactNode } from 'react';
 
 import { Checkbox, ListItemText, MenuItem, Select } from '@material-ui/core';
 
-import { TASK_EXECUTION_STATUSES } from '../../../utils/constants';
+import {
+  TASK_EXECUTION_STATUSES,
+  WORKFLOW_EXECUTION_STATUSES
+} from '../../../utils/constants';
 
 import styles from './StatusFilter.module.scss';
 
 interface Props {
   selectedStatuses?: string[];
   handleSelectedStatusesChanged: (statuses?: string[]) => void;
+  forWorkflows?: boolean;
 }
 
 const ANY_STATUS = 'any';
@@ -40,6 +44,9 @@ const StatusFilter = (props: Props) => {
 
   const ss = selectedStatuses ?? [ANY_STATUS];
 
+  const statusList = props.forWorkflows ? WORKFLOW_EXECUTION_STATUSES :
+    TASK_EXECUTION_STATUSES;
+
   return (
     <Select
      multiple={true} value={ss}
@@ -56,7 +63,7 @@ const StatusFilter = (props: Props) => {
         <ListItemText primary="Show all" />
       </MenuItem>
       {
-        TASK_EXECUTION_STATUSES.map(status => {
+        statusList.map(status => {
           return(
             <MenuItem key={status} value={status}>
               <Checkbox checked={selectedStatuses ? selectedStatuses.includes(status) : false} />

@@ -310,7 +310,11 @@ export async function deleteApiKey(uuid: string, abortSignal?: AbortSignal): Pro
     });
 }
 
-export async function fetchWorkflowSummaries(opts?: PageFetchWithGroupIdAndRunEnvironmentOptions)
+export interface WorkflowPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
+  statuses?: string[];
+}
+
+export async function fetchWorkflowSummaries(opts?: WorkflowPageFetchOptions)
   : Promise<ResultsPage<WorkflowSummary>> {
   opts = opts ?? {};
 
@@ -319,6 +323,12 @@ export async function fetchWorkflowSummaries(opts?: PageFetchWithGroupIdAndRunEn
   } = opts;
 
   const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
+
+  console.log('opt.statuses = ', opts.statuses);
+
+  if (opts.statuses) {
+    params['latest_workflow_execution__status'] = opts.statuses.join(',');
+  }
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/workflows/', {
@@ -532,8 +542,7 @@ export async function deleteNotificationMethod(uuid: string, abortSignal?: Abort
     });
 }
 
-export interface TaskPageFetchOptions extends PageFetchWithGroupIdOptions {
-  selectedRunEnvironmentUuids?: string[];
+export interface TaskPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
   isService?: boolean;
   statuses?: string[];
   otherParams?: any;
@@ -547,14 +556,10 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     abortSignal
   } = opts;
 
-  const params = makePageFetchWithGroupParams(opts);
+  const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
 
   if (opts.isService !== undefined) {
     params['is_service'] = '' + opts.isService;
-  }
-
-  if (opts.selectedRunEnvironmentUuids) {
-    params['run_environment__uuid__in'] = opts.selectedRunEnvironmentUuids.join(',');
   }
 
   if (opts.statuses) {

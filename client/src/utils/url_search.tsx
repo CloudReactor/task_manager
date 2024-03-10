@@ -11,7 +11,7 @@ interface urlParams {
   currentPage?: number;
 }
 
-export const getParams = (location: any) => {
+export const getParams = (location: any, forWorkflows: boolean = false) => {
   const params = new URLSearchParams(location);
   const descendingStr = params.get('descending');
   const sortBy = params.get('sort_by');
@@ -19,7 +19,11 @@ export const getParams = (location: any) => {
   const descending = descendingStr ? (descendingStr === 'true') :
     (sortBy ? false : undefined);
 
-  const selectedStatusesParamValue = params.get('latest_task_execution__status');
+  console.log('forWorkflows', forWorkflows);
+
+  const selectedStatusesParamValue = params.get(
+    forWorkflows ? 'latest_workflow_execution__status' :
+    'latest_task_execution__status');
 
   let selectedStatuses: string[] | undefined;
 

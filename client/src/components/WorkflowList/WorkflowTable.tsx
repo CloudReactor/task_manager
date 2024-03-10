@@ -12,6 +12,7 @@ import {
 } from 'react-bootstrap'
 
 import RunEnvironmentSelector from "../common/RunEnvironmentSelector/RunEnvironmentSelector";
+import StatusFilter from "../common/StatusFilter/StatusFilter";
 import WorkflowTableHeader from "./WorkflowTableHeader";
 import WorkflowTableBody from "./WorkflowTableBody";
 import styles from './WorkflowTable.module.scss';
@@ -23,8 +24,12 @@ interface Props {
   workflowPage: ResultsPage<WorkflowSummary>;
   currentPage: number;
   rowsPerPage: number;
+  runEnvironments: RunEnvironment[];
+  selectedRunEnvironmentUuids?: string[];
+  selectedStatuses?: string[];
   handleSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
   handleSelectedRunEnvironmentUuidsChanged: (uuids?: string[]) => void;
+  handleSelectedStatusesChanged: (statuses?: string[]) => void;
   handleQueryChanged: (event: React.ChangeEvent<HTMLInputElement>) => void;
   loadWorkflows: (
     ordering?: string,
@@ -38,8 +43,6 @@ interface Props {
   handleEditRequest: (workflow: WorkflowSummary, data: any) => Promise<void>;
   handleStartRequest: (workflow: WorkflowSummary) => Promise<void>;
   handleStopRequest: (workflow: WorkflowSummary) => Promise<void>;
-  runEnvironments: RunEnvironment[];
-  selectedRunEnvironmentUuids?: string[];
 }
 
 const WorkflowTable = (props: Props) => {
@@ -57,6 +60,12 @@ const WorkflowTable = (props: Props) => {
               runEnvironments={props.runEnvironments}
               selectedRunEnvironmentUuids={props.selectedRunEnvironmentUuids}
               handleSelectedRunEnvironmentUuidsChanged={props.handleSelectedRunEnvironmentUuidsChanged} />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
+            <StatusFilter selectedStatuses={props.selectedStatuses}
+             handleSelectedStatusesChanged={props.handleSelectedStatusesChanged}
+             forWorkflows={true} />
           </Form.Group>
         </Form>
       </div>

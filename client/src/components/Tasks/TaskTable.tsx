@@ -11,8 +11,8 @@ import {
 import { DebounceInput } from 'react-debounce-input';
 
 import TablePagination from "@material-ui/core/TablePagination";
-import StatusFilter from "../common/StatusFilter/StatusFilter";
 import RunEnvironmentSelector from "../common/RunEnvironmentSelector/RunEnvironmentSelector";
+import StatusFilter from "../common/StatusFilter/StatusFilter";
 import TableHeader from "./Table/TableHeader";
 import TableBody from "./Table/TableBody";
 import DefaultPagination from "../Pagination/Pagination";
@@ -28,6 +28,9 @@ interface Props {
   taskPage: ResultsPage<TaskImpl>;
   currentPage: number;
   rowsPerPage: number;
+  runEnvironments: RunEnvironment[];
+  selectedRunEnvironmentUuids?: string[];
+  selectedStatuses?: string[];
   shouldShowConfigModal: boolean;
   task: TaskImpl | null;
   editTask: (uuid: string, data: any) => Promise<void>;
@@ -43,9 +46,6 @@ interface Props {
   handleDeletion: (task: TaskImpl) => Promise<void>;
   handleActionRequested: (action: string | undefined, cbData: any) => Promise<void>;
   taskUuidToInProgressOperation: Record<string, string>;
-  runEnvironments: RunEnvironment[];
-  selectedRunEnvironmentUuids?: string[];
-  selectedStatuses?: string[];
 }
 
 const TaskTable = (props: Props) => (

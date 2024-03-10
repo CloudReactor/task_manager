@@ -89,7 +89,7 @@ const TaskList = ({
         offset,
         maxResults: rowsPerPage,
         q,
-        selectedRunEnvironmentUuids,
+        runEnvironmentUuids: selectedRunEnvironmentUuids,
         statuses: selectedStatuses,
         abortSignal
       });

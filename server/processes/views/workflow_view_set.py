@@ -10,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from processes.models import Workflow
+from processes.models import Workflow, WorkflowExecution
 from processes.serializers import WorkflowSerializer, WorkflowSummarySerializer
 
 from .base_view_set import BaseViewSet
@@ -28,6 +28,18 @@ class WorkflowFilter(filters.FilterSet):
             'run_environment__uuid': ['exact', 'in'],
         }
 
+    @property
+    def qs(self):
+        rv = super().qs
+
+        status_list_str = self.request.query_params.get('latest_workflow_execution__status')
+
+        if status_list_str:
+            status_strings = status_list_str.split(',')
+            statuses = [WorkflowExecution.Status[s.upper()].value for s in status_strings]
+            rv = rv.filter(latest_workflow_execution__status__in=statuses)
+
+        return rv
 
 class WorkflowViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
         AtomicDestroyModelMixin, BaseViewSet):

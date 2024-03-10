@@ -88,9 +88,10 @@ const WorkflowList = (props: AbortSignalProps) => {
       sortBy,
       descending,
       selectedRunEnvironmentUuids,
+      selectedStatuses,
       rowsPerPage,
       currentPage,
-    } = getParams(history.location.search);
+    } = getParams(history.location.search, true);
 
     const offset = currentPage * rowsPerPage;
 
@@ -103,6 +104,7 @@ const WorkflowList = (props: AbortSignalProps) => {
         maxResults: rowsPerPage,
         q,
         runEnvironmentUuids: selectedRunEnvironmentUuids,
+        statuses: selectedStatuses,
         abortSignal
       });
 
@@ -168,6 +170,15 @@ const WorkflowList = (props: AbortSignalProps) => {
       'selected_run_environment_uuid');
     loadWorkflows();
   }, [history.location, loadWorkflows]);
+
+  const handleSelectedStatusesChanged = useCallback((
+    statuses?: string[]
+  ) => {
+    setURL(history.location, history, statuses, 'latest_workflow_execution__status');
+    loadWorkflows();
+  }, [history.location, loadWorkflows]);
+
+
 
   /*
   handlePrev = (): void =>
@@ -318,15 +329,17 @@ const WorkflowList = (props: AbortSignalProps) => {
     sortBy,
     descending,
     selectedRunEnvironmentUuids,
+    selectedStatuses,
     rowsPerPage,
     currentPage
-  } = getParams(history.location.search);
+  } = getParams(history.location.search, true);
 
   const finalSortBy = (sortBy ?? 'name');
   const finalDescending = descending ?? false;
 
   const workflowTableProps = {
     handleSelectedRunEnvironmentUuidsChanged,
+    handleSelectedStatusesChanged,
     handleQueryChanged,
     loadWorkflows,
     handleSortChanged,
@@ -344,7 +357,8 @@ const WorkflowList = (props: AbortSignalProps) => {
     workflowPage,
     workflow,
     runEnvironments,
-    selectedRunEnvironmentUuids
+    selectedRunEnvironmentUuids,
+    selectedStatuses,
   };
 
   return (
