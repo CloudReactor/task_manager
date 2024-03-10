@@ -19,8 +19,6 @@ export const getParams = (location: any, forWorkflows: boolean = false) => {
   const descending = descendingStr ? (descendingStr === 'true') :
     (sortBy ? false : undefined);
 
-  console.log('forWorkflows', forWorkflows);
-
   const selectedStatusesParamValue = params.get(
     forWorkflows ? 'latest_workflow_execution__status' :
     'latest_task_execution__status');

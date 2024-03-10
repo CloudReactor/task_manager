@@ -41,8 +41,6 @@ const RunEnvironmentSelector = (props: Props) => {
     props.handleSelectedRunEnvironmentUuidsChanged(newSelectedRunEnvironmentUuids);
   };
 
-  console.log('selectedRunEnvironmentUuids:', selectedRunEnvironmentUuids);
-
   const selectValue = selectedRunEnvironmentUuids ?? [ALL_RUN_ENVIRONMENTS];
 
   return (

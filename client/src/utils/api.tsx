@@ -324,8 +324,6 @@ export async function fetchWorkflowSummaries(opts?: WorkflowPageFetchOptions)
 
   const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
 
-  console.log('opt.statuses = ', opts.statuses);
-
   if (opts.statuses) {
     params['latest_workflow_execution__status'] = opts.statuses.join(',');
   }
