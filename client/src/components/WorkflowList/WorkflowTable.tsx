@@ -11,6 +11,7 @@ import {
   Table
 } from 'react-bootstrap'
 
+import RunEnvironmentSelector from "../common/RunEnvironmentSelector/RunEnvironmentSelector";
 import WorkflowTableHeader from "./WorkflowTableHeader";
 import WorkflowTableBody from "./WorkflowTableBody";
 import styles from './WorkflowTable.module.scss';
@@ -23,7 +24,7 @@ interface Props {
   currentPage: number;
   rowsPerPage: number;
   handleSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
-  handleRunEnvironmentChanged: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleSelectedRunEnvironmentUuidsChanged: (uuids?: string[]) => void;
   handleQueryChanged: (event: React.ChangeEvent<HTMLInputElement>) => void;
   loadWorkflows: (
     ordering?: string,
@@ -38,105 +39,69 @@ interface Props {
   handleStartRequest: (workflow: WorkflowSummary) => Promise<void>;
   handleStopRequest: (workflow: WorkflowSummary) => Promise<void>;
   runEnvironments: RunEnvironment[];
-  selectedRunEnvironmentUuid: string;
+  selectedRunEnvironmentUuids?: string[];
 }
 
-interface State {
-}
+const WorkflowTable = (props: Props) => {
+  const {
+    q
+  } = props;
 
-class WorkflowTable extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {}
-  }
+  return (
+    <Fragment>
+      <div>
+        <Form inline>
+          <Form.Group>
+            <Form.Label className="mr-3">Run Environment:</Form.Label>
+            <RunEnvironmentSelector
+              runEnvironments={props.runEnvironments}
+              selectedRunEnvironmentUuids={props.selectedRunEnvironmentUuids}
+              handleSelectedRunEnvironmentUuidsChanged={props.handleSelectedRunEnvironmentUuidsChanged} />
+          </Form.Group>
+        </Form>
+      </div>
 
-  public render() {
-    const {
-      q,
-      sortBy,
-      descending,
-      workflowPage,
-      handleRunEnvironmentChanged,
-      handleEditRequest,
-      handleDeletionRequest,
-      handleSortChanged,
-      handleStartRequest,
-      handleStopRequest,
-      runEnvironments,
-      selectedRunEnvironmentUuid
-    } = this.props;
-
-    return (
-      <Fragment>
-        <div>
-          <Form inline>
-            <Form.Label>Run Environment:</Form.Label>
-            <Form.Control
-              as="select"
-              onChange={handleRunEnvironmentChanged}
-              value={selectedRunEnvironmentUuid}
-              className={'ml-sm-3 ' + styles.runEnvironmentSelector}
-              size="sm"
-            >
-              <option key="all" value="">Show all</option>
-              {
-                runEnvironments.map((runEnvironment: any) => {
-                  return(
-                    <option
-                      key={runEnvironment.uuid}
-                      value={runEnvironment.uuid}
-                    >
-                      {runEnvironment.name}
-                    </option>
-                  );
-                })
-              }
-            </Form.Control>
-          </Form>
-        </div>
-
-        <div className={styles.searchContainer}>
-          <Form.Control
-            type="text"
-            onChange={this.props.handleQueryChanged}
-            onKeyDown={(keyEvent: any) => {
-              if (keyEvent.key === 'Enter') {
-                this.props.loadWorkflows();
-              }
-            }}
-            placeholder="Search Workflows"
-            value={q}
-          />
-        </div>
-        {
-          (workflowPage.count > 0) ? (
-            <Table striped bordered responsive hover size="sm">
-              <WorkflowTableHeader
-                handleSort={handleSortChanged}
-                sortBy={sortBy}
-                descending={descending}
-              />
-              <WorkflowTableBody
-                workflowPage={workflowPage.results}
-                handleEditRequest={handleEditRequest}
-                handleDeletionRequest={handleDeletionRequest}
-                handleStartRequest={handleStartRequest}
-                handleStopRequest={handleStopRequest}
-              />
-            </Table>
-          ) : (
-            <p className="mt-3">
-              {
-                (q || selectedRunEnvironmentUuid) ?
-                'No matching Workflows found. Try adjusting your filters.' :
-                'No Workflows have been created yet.'
-              }
-            </p>
-          )
-        }
-      </Fragment>
-    );
-  }
-}
+      <div className={styles.searchContainer}>
+        <Form.Control
+          type="text"
+          onChange={props.handleQueryChanged}
+          onKeyDown={(keyEvent: any) => {
+            if (keyEvent.key === 'Enter') {
+              props.loadWorkflows();
+            }
+          }}
+          placeholder="Search Workflows"
+          value={q}
+        />
+      </div>
+      {
+        (props.workflowPage.count > 0) ? (
+          <Table striped bordered responsive hover size="sm">
+            <WorkflowTableHeader
+              handleSort={props.handleSortChanged}
+              sortBy={props.sortBy}
+              descending={props.descending}
+            />
+            <WorkflowTableBody
+              workflowPage={props.workflowPage.results}
+              handleEditRequest={props.handleEditRequest}
+              handleDeletionRequest={props.handleDeletionRequest}
+              handleStartRequest={props.handleStartRequest}
+              handleStopRequest={props.handleStopRequest}
+            />
+          </Table>
+        ) : (
+          <p className="mt-3">
+            {
+              (q || props.selectedRunEnvironmentUuids) ?
+              'No matching Workflows found. Try adjusting your filters.' :
+              'No Workflows have been created yet.'
+            }
+          </p>
+        )
+      }
+    </Fragment>
+  );
+};
 
 export default WorkflowTable;

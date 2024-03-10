@@ -37,7 +37,6 @@ interface State {
   uuidsToTasks: any;
 }
 
-
 const WorkflowTaskInstanceSchema = Yup.object().shape({
   name: Yup.string()
     .max(50, 'Name is too long')
@@ -295,7 +294,7 @@ export default class WorkflowTaskInstanceEditor extends Component<Props, State> 
 
     while (!done) {
       const page = await fetchTasks({
-        selectedRunEnvironmentUuid: runEnvironmentUuid || undefined,
+        selectedRunEnvironmentUuids: runEnvironmentUuid ? [runEnvironmentUuid] : undefined,
         sortBy: 'name',
         offset,
         maxResults: pageSize,

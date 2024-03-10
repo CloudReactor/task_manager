@@ -89,7 +89,7 @@ class PagerDutyProfileSelector extends Component<InnerProps, State> {
     try {
       const page = await fetchPagerDutyProfiles({
         groupId: currentGroup?.id,
-        runEnvironmentUuid,
+        optionalRunEnvironmentUuid: runEnvironmentUuid,
         abortSignal
       });
       pagerDutyProfiles = page.results;

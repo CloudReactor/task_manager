@@ -87,7 +87,7 @@ const WorkflowList = (props: AbortSignalProps) => {
       q,
       sortBy,
       descending,
-      selectedRunEnvironmentUuid,
+      selectedRunEnvironmentUuids,
       rowsPerPage,
       currentPage,
     } = getParams(history.location.search);
@@ -102,7 +102,7 @@ const WorkflowList = (props: AbortSignalProps) => {
         offset,
         maxResults: rowsPerPage,
         q,
-        runEnvironmentUuid: selectedRunEnvironmentUuid,
+        runEnvironmentUuids: selectedRunEnvironmentUuids,
         abortSignal
       });
 
@@ -161,6 +161,13 @@ const WorkflowList = (props: AbortSignalProps) => {
     loadWorkflows();
   }, [history.location, loadWorkflows]);
 
+  const handleSelectedRunEnvironmentUuidsChanged = useCallback((
+    selectedRunEnvironmentUuids?: string[]
+  ) => {
+    setURL(history.location, history, selectedRunEnvironmentUuids,
+      'selected_run_environment_uuid');
+    loadWorkflows();
+  }, [history.location, loadWorkflows]);
 
   /*
   handlePrev = (): void =>
@@ -310,7 +317,7 @@ const WorkflowList = (props: AbortSignalProps) => {
     q,
     sortBy,
     descending,
-    selectedRunEnvironmentUuid,
+    selectedRunEnvironmentUuids,
     rowsPerPage,
     currentPage
   } = getParams(history.location.search);
@@ -319,7 +326,7 @@ const WorkflowList = (props: AbortSignalProps) => {
   const finalDescending = descending ?? false;
 
   const workflowTableProps = {
-    handleRunEnvironmentChanged,
+    handleSelectedRunEnvironmentUuidsChanged,
     handleQueryChanged,
     loadWorkflows,
     handleSortChanged,
@@ -337,7 +344,7 @@ const WorkflowList = (props: AbortSignalProps) => {
     workflowPage,
     workflow,
     runEnvironments,
-    selectedRunEnvironmentUuid
+    selectedRunEnvironmentUuids
   };
 
   return (

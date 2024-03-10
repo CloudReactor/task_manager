@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowFilter(filters.FilterSet):
-    name = CharFilter()
-    description = CharFilter()
-    run_environment__uuid = CharFilter()
-
     class Meta:
         model = Workflow
-        fields = ['name', 'description', 'run_environment__uuid']
+        fields = {
+            'name': ['exact'],
+            'description': ['exact'],
+            'run_environment__uuid': ['exact', 'in'],
+        }
 
 
 class WorkflowViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,

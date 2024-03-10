@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django_filters import CharFilter
 from django_filters import rest_framework as filters
 
-from processes.models import Task, RunEnvironment, AlertMethod
+from processes.models import Task, TaskExecution, RunEnvironment, AlertMethod
 from processes.serializers import TaskSerializer
 
 from .base_view_set import BaseViewSet
@@ -20,25 +20,34 @@ logger = logging.getLogger(__name__)
 
 
 class TaskFilter(filters.FilterSet):
-    name = CharFilter()
-    description = CharFilter()
-
     class Meta:
         model = Task
-        fields = ['name', 'description', 'passive', 'run_environment__uuid']
+        fields = {
+            'name': ['exact'],
+            'description': ['exact'],
+            'passive': ['exact'],
+            'run_environment__uuid': ['exact', 'in'],
+        }
 
     @property
     def qs(self):
-        parent = super().qs
+        rv = super().qs
         is_service = self.request.query_params.get('is_service', None)
 
         if is_service:
             is_service = (str(is_service).lower() == 'true')
 
-        if is_service is None:
-            return parent
-        else:
-            return parent.filter(service_instance_count__isnull=not is_service)
+        if is_service is not None:
+            rv = rv.filter(service_instance_count__isnull=not is_service)
+
+        status_list_str = self.request.query_params.get('latest_task_execution__status')
+
+        if status_list_str:
+            status_strings = status_list_str.split(',')
+            statuses = [TaskExecution.Status[s.upper()].value for s in status_strings]
+            rv = rv.filter(latest_task_execution__status__in=statuses)
+
+        return rv
 
 
 class TaskViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,

@@ -73,7 +73,8 @@ const TaskList = ({
       q,
       sortBy,
       descending,
-      selectedRunEnvironmentUuid,
+      selectedRunEnvironmentUuids,
+      selectedStatuses,
       rowsPerPage,
       currentPage,
     } = getParams(history.location.search);
@@ -88,7 +89,8 @@ const TaskList = ({
         offset,
         maxResults: rowsPerPage,
         q,
-        selectedRunEnvironmentUuid,
+        selectedRunEnvironmentUuids,
+        statuses: selectedStatuses,
         abortSignal
       });
 
@@ -213,13 +215,22 @@ const TaskList = ({
     loadTasks();
   }, []);
 
-  const handleRunEnvironmentChanged = useCallback((
-    event: React.ChangeEvent<HTMLInputElement>
+  const handleSelectedRunEnvironmentUuidsChanged = useCallback((
+    selectedRunEnvironmentUuids?: string[]
   ) => {
-    const selectedRunEnvironmentUuid = event.target.value;
-    setURL(history.location, history, selectedRunEnvironmentUuid, 'selected_run_environment_uuid');
+
+    setURL(history.location, history, selectedRunEnvironmentUuids,
+      'selected_run_environment_uuid');
     loadTasks();
   }, []);
+
+  const handleSelectedStatusesChanged = useCallback((
+    statuses?: string[]
+  ) => {
+    setURL(history.location, history, statuses, 'latest_task_execution__status');
+    loadTasks();
+  }, []);
+
 
   const handlePageChanged = useCallback((currentPage: number) => {
     setURL(history.location, history, currentPage + 1, 'page');
@@ -308,7 +319,8 @@ const TaskList = ({
     q,
     sortBy,
     descending,
-    selectedRunEnvironmentUuid,
+    selectedRunEnvironmentUuids,
+    selectedStatuses,
     rowsPerPage,
     currentPage
   } = getParams(history.location.search);
@@ -317,7 +329,8 @@ const TaskList = ({
   const finalDescending = descending ?? false;
 
   const taskTableProps = {
-    handleRunEnvironmentChanged,
+    handleSelectedRunEnvironmentUuidsChanged,
+    handleSelectedStatusesChanged,
     handleQueryChanged,
     loadTasks,
     handleSortChanged,
@@ -336,7 +349,8 @@ const TaskList = ({
     task,
     taskUuidToInProgressOperation,
     runEnvironments,
-    selectedRunEnvironmentUuid
+    selectedRunEnvironmentUuids,
+    selectedStatuses
   };
 
   return (

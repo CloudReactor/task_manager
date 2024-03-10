@@ -1,3 +1,6 @@
+import { itemsPerPageOptions, ResultsPage } from "../../utils/api";
+import { TaskImpl, RunEnvironment } from "../../types/domain_types";
+
 import React, { Fragment } from "react";
 
 import {
@@ -8,12 +11,12 @@ import {
 import { DebounceInput } from 'react-debounce-input';
 
 import TablePagination from "@material-ui/core/TablePagination";
+import StatusFilter from "../common/StatusFilter/StatusFilter";
+import RunEnvironmentSelector from "../common/RunEnvironmentSelector/RunEnvironmentSelector";
 import TableHeader from "./Table/TableHeader";
 import TableBody from "./Table/TableBody";
 import DefaultPagination from "../Pagination/Pagination";
 
-import { itemsPerPageOptions, ResultsPage } from "../../utils/api";
-import { TaskImpl, RunEnvironment } from "../../types/domain_types";
 import styles from './TaskTable.module.scss';
 
 import './style.scss';
@@ -29,7 +32,8 @@ interface Props {
   task: TaskImpl | null;
   editTask: (uuid: string, data: any) => Promise<void>;
   handleQueryChanged: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  handleRunEnvironmentChanged: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleSelectedRunEnvironmentUuidsChanged: (uuids?: string[]) => void;
+  handleSelectedStatusesChanged: (statuses?: string[]) => void;
   handleSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
   loadTasks: () => Promise<void>;
   handlePageChanged: (currentPage: number) => void;
@@ -40,35 +44,26 @@ interface Props {
   handleActionRequested: (action: string | undefined, cbData: any) => Promise<void>;
   taskUuidToInProgressOperation: Record<string, string>;
   runEnvironments: RunEnvironment[];
-  selectedRunEnvironmentUuid: string;
+  selectedRunEnvironmentUuids?: string[];
+  selectedStatuses?: string[];
 }
 
 const TaskTable = (props: Props) => (
   <Fragment key="taskTable">
     <div>
       <Form inline>
-        <Form.Label>Run Environment:</Form.Label>
-        <Form.Control
-          as="select"
-          onChange={props.handleRunEnvironmentChanged}
-          value={props.selectedRunEnvironmentUuid}
-          className={'ml-sm-3 ' + styles.runEnvironmentSelector}
-          size="sm"
-        >
-          <option key="all" value="">Show all</option>
-          {
-            props.runEnvironments.map((runEnvironment: any) => {
-              return(
-                <option
-                  key={runEnvironment.uuid}
-                  value={runEnvironment.uuid}
-                >
-                  {runEnvironment.name}
-                </option>
-              );
-            })
-          }
-        </Form.Control>
+        <Form.Group>
+          <Form.Label className="mr-3">Run Environment:</Form.Label>
+          <RunEnvironmentSelector
+            runEnvironments={props.runEnvironments}
+            selectedRunEnvironmentUuids={props.selectedRunEnvironmentUuids}
+            handleSelectedRunEnvironmentUuidsChanged={props.handleSelectedRunEnvironmentUuidsChanged} />
+        </Form.Group>
+        <Form.Group>
+          <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
+          <StatusFilter selectedStatuses={props.selectedStatuses}
+           handleSelectedStatusesChanged={props.handleSelectedStatusesChanged} />
+        </Form.Group>
       </Form>
     </div>
     <div className="d-flex justify-content-between align-items-center">

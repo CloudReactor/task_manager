@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import * as UIC from '../utils/ui_constants';
 
 interface urlParams {
@@ -17,11 +19,28 @@ export const getParams = (location: any) => {
   const descending = descendingStr ? (descendingStr === 'true') :
     (sortBy ? false : undefined);
 
+  const selectedStatusesParamValue = params.get('latest_task_execution__status');
+
+  let selectedStatuses: string[] | undefined;
+
+  if (selectedStatusesParamValue) {
+    selectedStatuses = selectedStatusesParamValue.split(',');
+  }
+
+  let selectedRunEnvironmentUuids: string[] | undefined;
+
+  const selectedRunEnvironmentUuidsParamValue = params.get('selected_run_environment_uuid');
+
+  if (selectedRunEnvironmentUuidsParamValue) {
+    selectedRunEnvironmentUuids = selectedRunEnvironmentUuidsParamValue.split(',');
+  }
+
   return Object.assign({}, {
     q: params.get('q') ?? undefined,
     sortBy: params.get('sort_by') ?? undefined,
     descending,
-    selectedRunEnvironmentUuid: params.get('selected_run_environment_uuid') || '',
+    selectedRunEnvironmentUuids,
+    selectedStatuses,
     rowsPerPage: Number(params.get('rows_per_page')) || UIC.DEFAULT_PAGE_SIZE,
     currentPage: Number(params.get('page') || 1) - 1
   });
@@ -62,10 +81,12 @@ export const setURL = (
       params.delete(changeParam);
     }
   } else {
-    if ((value === null) || (value === undefined) || (value === '')) {
-      params.delete(changeParam);
-    } else {
+    if (_.isArray(value)) {
+      params.set(changeParam, value.join(','));
+    } else if (value) {
       params.set(changeParam, value);
+    } else {
+      params.delete(changeParam);
     }
 
     params.delete('descending');

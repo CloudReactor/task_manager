@@ -67,7 +67,7 @@ export interface PageFetchWithGroupIdOptions extends PageFetchOptions {
 
 export interface PageFetchWithGroupIdAndRunEnvironmentOptions
 extends PageFetchWithGroupIdOptions {
-  runEnvironmentUuid?: string | null;
+  runEnvironmentUuids?: string[];
 }
 
 export interface PageFetchWithGroupIdAndScopedRunEnvironmentOptions
@@ -122,10 +122,10 @@ function makePageFetchWithGroupAndRunEnvironmentParams(pageFetchOptions?: PageFe
     defaultOptions?: PageFetchWithGroupIdAndRunEnvironmentOptions): { [key: string]: any } {
   const params = makePageFetchWithGroupParams(pageFetchOptions, defaultOptions);
 
-  const runEnvironmentUuid = pageFetchOptions?.runEnvironmentUuid ?? defaultOptions?.runEnvironmentUuid;
+  const runEnvironmentUuids = pageFetchOptions?.runEnvironmentUuids ?? defaultOptions?.runEnvironmentUuids;
 
-  if (runEnvironmentUuid) {
-    params['run_environment__uuid'] = '' + runEnvironmentUuid;
+  if (runEnvironmentUuids) {
+    params['run_environment__uuid__in'] = '' + runEnvironmentUuids.join(',');
   }
 
   return params;
@@ -533,8 +533,9 @@ export async function deleteNotificationMethod(uuid: string, abortSignal?: Abort
 }
 
 export interface TaskPageFetchOptions extends PageFetchWithGroupIdOptions {
-  selectedRunEnvironmentUuid?: string;
+  selectedRunEnvironmentUuids?: string[];
   isService?: boolean;
+  statuses?: string[];
   otherParams?: any;
 }
 
@@ -552,8 +553,12 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     params['is_service'] = '' + opts.isService;
   }
 
-  if (opts.selectedRunEnvironmentUuid) {
-    params['run_environment__uuid'] = opts.selectedRunEnvironmentUuid;
+  if (opts.selectedRunEnvironmentUuids) {
+    params['run_environment__uuid__in'] = opts.selectedRunEnvironmentUuids.join(',');
+  }
+
+  if (opts.statuses) {
+    params['latest_task_execution__status'] = opts.statuses.join(',');
   }
 
   params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,input_value_schema,alert_methods,links';
@@ -711,7 +716,7 @@ export async function cloneRunEnvironment(uuid: string, attributes: any,
 }
 
 export async function fetchPagerDutyProfiles(
-  opts? : PageFetchWithGroupIdAndRunEnvironmentOptions): Promise<ResultsPage<PagerDutyProfile>> {
+  opts? : PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<PagerDutyProfile>> {
   opts = opts ?? {};
 
   const {
@@ -770,7 +775,7 @@ export async function deletePagerDutyProfile(uuid: string, abortSignal?: AbortSi
 }
 
 export async function fetchEmailNotificationProfiles(
-  opts? : PageFetchWithGroupIdAndRunEnvironmentOptions): Promise<ResultsPage<EmailNotificationProfile>> {
+  opts? : PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<EmailNotificationProfile>> {
   opts = opts ?? {};
 
   const {

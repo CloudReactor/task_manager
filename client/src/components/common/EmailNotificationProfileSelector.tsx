@@ -89,7 +89,7 @@ class EmailNotificationProfileSelector extends Component<InnerProps, State> {
     try {
       const page = await fetchEmailNotificationProfiles({
         groupId: currentGroup?.id,
-        runEnvironmentUuid,
+        optionalRunEnvironmentUuid: runEnvironmentUuid,
         abortSignal
       });
       const emailNotificationProfiles = page.results;
