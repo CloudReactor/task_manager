@@ -80,10 +80,10 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        try:
-            self.update_derived_attrs()
-        except Exception as ex: # pylint: disable=broad-except
-            logger.warning(f"Failed to update derived attributes: {ex}")  # pragma: no cover
+        #try:
+        #    self.update_derived_attrs()
+        #except Exception as ex: # pylint: disable=broad-except
+        #    logger.warning(f"Failed to update derived attributes: {ex}")  # pragma: no cover
 
     def update_derived_attrs(self, aws_settings: Optional[AwsSettings]=None) -> None:
         logger.info("AWS CodeBuild Execution Method: update_derived_attrs()")
