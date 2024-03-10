@@ -35,27 +35,6 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     run the task and how often the task is supposed to run.
     """
 
-    # attr => must_recreate
-    AWS_ECS_SERVICE_ATTRIBUTES = {
-        'service_instance_count': False,
-        'aws_default_subnets': False,
-        'aws_ecs_task_definition_arn': False,
-        'aws_ecs_default_launch_type': True,
-        'aws_ecs_default_cluster_arn': True,
-        'aws_ecs_default_security_groups': False,
-        'aws_ecs_service_load_balancer_health_check_grace_period_seconds': False,
-        'aws_ecs_service_deploy_enable_circuit_breaker': False,
-        'aws_ecs_service_deploy_rollback_on_failure': False,
-        'aws_ecs_service_deploy_minimum_healthy_percent': False,
-        'aws_ecs_service_deploy_maximum_percent': False,
-        'aws_ecs_service_enable_ecs_managed_tags': False,
-        'aws_ecs_service_propagate_tags': False,
-        'aws_ecs_service_tags': False,
-        'enabled': True,
-        'is_service_managed': True
-    }
-
-
     class Meta:
         db_table = 'processes_processtype'
         unique_together = (('name', 'created_by_group'),)
