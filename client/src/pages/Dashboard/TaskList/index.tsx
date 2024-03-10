@@ -220,7 +220,7 @@ const TaskList = ({
   ) => {
 
     setURL(history.location, history, selectedRunEnvironmentUuids,
-      'selected_run_environment_uuid');
+      'run_environment_uuid');
     loadTasks();
   }, []);
 

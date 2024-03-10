@@ -150,14 +150,6 @@ const WorkflowList = (props: AbortSignalProps) => {
     loadWorkflows();
   }, [history.location, loadWorkflows]);
 
-  const handleRunEnvironmentChanged = useCallback((
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const selectedRunEnvironmentUuid = event.target.value;
-    setURL(history.location, history, selectedRunEnvironmentUuid, 'selected_run_environment_uuid');
-    loadWorkflows();
-  }, [history.location, loadWorkflows]);
-
   const handlePageChanged = useCallback((currentPage: number) => {
     setURL(history.location, history, currentPage + 1, 'page');
     loadWorkflows();
@@ -167,7 +159,7 @@ const WorkflowList = (props: AbortSignalProps) => {
     selectedRunEnvironmentUuids?: string[]
   ) => {
     setURL(history.location, history, selectedRunEnvironmentUuids,
-      'selected_run_environment_uuid');
+      'run_environment_uuid');
     loadWorkflows();
   }, [history.location, loadWorkflows]);
 

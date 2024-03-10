@@ -31,7 +31,7 @@ export const getParams = (location: any, forWorkflows: boolean = false) => {
 
   let selectedRunEnvironmentUuids: string[] | undefined;
 
-  const selectedRunEnvironmentUuidsParamValue = params.get('selected_run_environment_uuid');
+  const selectedRunEnvironmentUuidsParamValue = params.get('run_environment_uuid');
 
   if (selectedRunEnvironmentUuidsParamValue) {
     selectedRunEnvironmentUuids = selectedRunEnvironmentUuidsParamValue.split(',');
