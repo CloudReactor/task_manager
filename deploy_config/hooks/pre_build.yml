@@ -30,6 +30,7 @@
 - name: Set client build variables
   set_fact:
     docker_client_build_image_name: "cloudreactor-task-manager-web-builder-{{env}}"
+    docker_client_build_container_name: "cloudreactor-task-manager-web-builder-{{env}}-tc"
   tags:
     - always
     - client
@@ -40,8 +41,20 @@
     - build
     - client
 
-- name: Build client code
-  command: "docker run --rm -e VITE_VERSION_SIGNATURE={{task_version_signature | quote}} {{docker_client_build_image_name | quote}} npm run build:deployed"
+- name: Create temporary client container
+  command: "docker create --name {{docker_client_build_container_name | quote}} {{docker_client_build_image_name | quote}}"
+  tags:
+    - build
+    - client
+
+- name: Copy client build artifacts
+  command: "docker cp {{docker_client_build_container_name | quote}}:/work/client/build /home/appuser/work/docker_context/client"
+  tags:
+    - build
+    - client
+
+- name: Remove temporary client container
+  command: "docker rm {{docker_client_build_container_name | quote}}"
   tags:
     - build
     - client

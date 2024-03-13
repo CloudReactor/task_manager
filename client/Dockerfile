@@ -19,4 +19,6 @@ RUN npm install --ignore-optional
 COPY client/ ./
 COPY deploy_config/files/client.env ../deploy_config/files/client.env
 
+RUN npm run build:deployed
+
 CMD ["npm", "start"]
