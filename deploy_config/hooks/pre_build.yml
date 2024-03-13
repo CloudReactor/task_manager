@@ -41,7 +41,7 @@
     - client
 
 - name: Build client code
-  command: "docker run --rm -v {{lookup('env','HOST_PWD')}}/client:/work/client -v {{lookup('env','HOST_PWD')}}/deploy_config/files/client.env.{{env}}:/work/deploy_config/files/client.env -e VITE_VERSION_SIGNATURE={{task_version_signature | quote}} {{docker_client_build_image_name | quote}} npm run build:deployed"
+  command: "docker run --rm -e VITE_VERSION_SIGNATURE={{task_version_signature | quote}} {{docker_client_build_image_name | quote}} npm run build:deployed"
   tags:
     - build
     - client

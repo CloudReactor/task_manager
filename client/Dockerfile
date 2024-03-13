@@ -1,23 +1,22 @@
 # base image
-FROM node:16.19.1
+FROM node:20.11.1
+
+RUN mkdir -p /work/client
 
 # set working directory
-WORKDIR /work
+WORKDIR /work/client
 
-RUN npm install -g npm@9.6.2
+RUN npm install -g npm@10.2.4
 
 # add `/work/client/node_modules/.bin` to $PATH
 ENV PATH /work/client/node_modules/.bin:$PATH
 
 # install and cache app dependencies
-COPY client/package-lock.json client/package.json ./client/
+COPY client/package-lock.json client/package.json ./
 
-WORKDIR /work/client
 RUN npm install --ignore-optional
 
-#WORKDIR /work
-# COPY deploy deploy/
-# COPY client client/
-#WORKDIR /work/client
+COPY client/ ./
+COPY deploy_config/files/client.env ../deploy_config/files/client.env
 
 CMD ["npm", "start"]
