@@ -200,13 +200,13 @@ const Dashboard = (p: Props) => {
             </Route>
             <Route
               exact
-              path={path.ALERT_METHODS}
+              path={path.NOTIFICATION_METHODS}
             >
               <NotificationMethodList />
             </Route>
             <Route
               exact
-              path={path.ALERT_METHOD}
+              path={path.NOTIFICATION_METHOD}
             >
               <NotificationMethodDetail />
             </Route>

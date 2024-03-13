@@ -80,7 +80,7 @@ const NavBar = (p: Props) => {
       path: path.PAGERDUTY_PROFILES,
       text: 'PagerDuty Profiles',
     }, {
-      path: path.ALERT_METHODS,
+      path: path.NOTIFICATION_METHODS,
       text: 'Notification Methods',
     }
   ];

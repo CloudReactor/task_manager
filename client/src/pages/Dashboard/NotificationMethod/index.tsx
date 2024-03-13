@@ -45,7 +45,7 @@ const NotificationMethodList = makeEntityList<NotificationMethod>({
                 <Card.Body>
                   <Card.Title>
                   {
-                    <Link to={path.ALERT_METHODS + '/' + method.uuid}>
+                    <Link to={path.NOTIFICATION_METHODS + '/' + method.uuid}>
                       { method.name }
                     </Link>
                   }
