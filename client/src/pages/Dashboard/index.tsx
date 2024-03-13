@@ -237,7 +237,7 @@ const Dashboard = (p: Props) => {
               <Profile />
             </Route>
             <Route path="*">
-              <Container>
+              <Container className="ml-0">
                 <h1>Page Not Found</h1>
                 <p>
                   This page was not found or you do not have permission to access the page.
