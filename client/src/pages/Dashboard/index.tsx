@@ -43,55 +43,55 @@ const TaskExecutionDetail = lazy(() =>
   import('./TaskExecutionDetail')
 );
 
-const RunEnvironmentList = lazy( () =>
+const RunEnvironmentList = lazy(() =>
   import('./RunEnvironment')
 );
 
-const RunEnvironmentDetail = lazy( () =>
+const RunEnvironmentDetail = lazy(() =>
   import('./RunEnvironmentDetail')
 );
 
-const GroupList = lazy( () =>
+const GroupList = lazy(() =>
   import('./Group')
 );
 
-const GroupEditor = lazy( () =>
+const GroupEditor = lazy(() =>
   import('./Group/GroupEditor')
 );
 
-const ApiKeyList = lazy( () =>
+const ApiKeyList = lazy(() =>
   import('./ApiKey')
 );
 
-const ApiKeyEditor = lazy( () =>
+const ApiKeyEditor = lazy(() =>
   import('./ApiKey/ApiKeyEditor')
 );
 
-const Profile = lazy( () =>
+const Profile = lazy(() =>
   import('./Profile/ProfileEditor')
 );
 
-const EmailNotificationProfileList = lazy( () =>
+const EmailNotificationProfileList = lazy(() =>
   import('./EmailNotificationProfile')
 );
 
-const EmailNotificationProfileDetail = lazy( () =>
+const EmailNotificationProfileDetail = lazy(() =>
   import('./EmailNotificationProfileDetail')
 );
 
-const PagerDutyProfileList = lazy( () =>
+const PagerDutyProfileList = lazy(() =>
   import('./PagerDutyProfile')
 );
 
-const PagerDutyProfileDetail = lazy( () =>
+const PagerDutyProfileDetail = lazy(() =>
   import('./PagerDutyProfileDetail')
 );
 
-const NotificationMethodList = lazy( () =>
+const NotificationMethodList = lazy(() =>
   import('./NotificationMethod')
 );
 
-const NotificationMethodDetail = lazy( () =>
+const NotificationMethodDetail = lazy(() =>
   import('./NotificationMethodDetail')
 );
 
@@ -120,93 +120,104 @@ const Dashboard = (p: Props) => {
             <Route
               exact
               path={path.DASHBOARD}
-              render={props => <TaskList />}
-            />
+            >
+              <TaskList />
+            </Route>
             <Route
               exact
               path={path.WORKFLOWS}
-              render={props => <WorkflowList />}
-            />
+            >
+              <WorkflowList />
+            </Route>
             <Route
               exact
               path={path.WORKFLOW}
-              render={props => <WorkflowDetail />}
-            />
-
+            >
+              <WorkflowDetail />
+            </Route>
             <Route
               exact
               path={path.WORKFLOW_EXECUTION}
-              render={props => <WorkflowExecutionDetail {...props} />}
-            />
-
+            >
+              <WorkflowExecutionDetail />
+            </Route>
             <Route
               exact
               path={path.TASK}
-              render={props => <TaskDetail />}
-            />
+            >
+              <TaskDetail />
+            </Route>
             <Route
               exact
               path={path.TASK_EXECUTION}
-              render={props => <TaskExecutionDetail />}
-            />
+            >
+              <TaskExecutionDetail />
+            </Route>
             <Route
               exact
               path={path.RUN_ENVIRONMENTS}
-              render={props => <RunEnvironmentList/>}
-            />
+            >
+              <RunEnvironmentList />
+            </Route>
             <Route
               exact
               path={path.RUN_ENVIRONMENT}
-              render={props => <RunEnvironmentDetail {... props} />}
-            />
-
-            <Route
-              exact
-              path={path.GROUPS}
-              render={props => <GroupList/>}
-            />
+            >
+              <RunEnvironmentDetail />
+            </Route>
+            <Route exact path={path.GROUPS}>
+              <GroupList />
+            </Route>
             <Route
               exact
               path={path.GROUP}
-              render={props => <GroupEditor/>}
-            />
+            >
+              <GroupEditor />
+            </Route>
             <Route
               exact
               path={path.EMAIL_NOTIFICATION_PROFILES}
-              render={props => <EmailNotificationProfileList/>}
-            />
+            >
+              <EmailNotificationProfileList />
+            </Route>
             <Route
               exact
               path={path.EMAIL_NOTIFICATION_PROFILE}
-              render={props => <EmailNotificationProfileDetail {... props} />}
-            />
+            >
+              <EmailNotificationProfileDetail />
+            </Route>
             <Route
               exact
               path={path.PAGERDUTY_PROFILES}
-              render={props => <PagerDutyProfileList/>}
-            />
+            >
+              <PagerDutyProfileList />
+            </Route>
             <Route
               exact
               path={path.PAGERDUTY_PROFILE}
-              render={props => <PagerDutyProfileDetail {... props} />}
-            />
+            >
+              <PagerDutyProfileDetail />
+            </Route>
             <Route
               exact
               path={path.ALERT_METHODS}
-              render={props => <NotificationMethodList/>}
-            />
+            >
+              <NotificationMethodList />
+            </Route>
             <Route
               exact
               path={path.ALERT_METHOD}
-              render={props => <NotificationMethodDetail {... props} />}
-            />
+            >
+              <NotificationMethodDetail />
+            </Route>
             {
               hasDeveloperAccess && (
                 <Route
                   exact
                   path={path.API_KEYS}
-                  render={props => <ApiKeyList />}
-                />
+                >
+                  <ApiKeyList />
+                </Route>
               )
             }
             {
@@ -214,16 +225,17 @@ const Dashboard = (p: Props) => {
                 <Route
                   exact
                   path={path.API_KEY}
-                  render={props => <ApiKeyEditor />}
-                />
+                >
+                  <ApiKeyEditor />
+                </Route>
               )
             }
             <Route
               exact
               path={path.PROFILE}
-              render={props => <Profile />}
-            />
-
+            >
+              <Profile />
+            </Route>
             <Route path="*">
               <Container>
                 <h1>Page Not Found</h1>

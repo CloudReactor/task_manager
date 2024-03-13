@@ -17,10 +17,18 @@ const App: React.FC = () => (
   <GlobalProvider>
     <ModalContainer />
     <Switch>
-      <Route exact path={path.LOGIN} component={Login} />
-      <Route exact path={path.REGISTER} component={Register} />
-      <Route exact path={path.REGISTRATION_PENDING} component={RegistrationPending} />
-      <Route exact path={path.REGISTRATION_ACTIVATION} component={RegistrationActivation} />
+      <Route exact path={path.LOGIN}>
+        <Login />
+      </Route>
+      <Route exact path={path.REGISTER}>
+        <Register />
+      </Route>
+      <Route exact path={path.REGISTRATION_PENDING}>
+        <RegistrationPending />
+      </Route>
+      <Route exact path={path.REGISTRATION_ACTIVATION}>
+        <RegistrationActivation />
+      </Route>
       <Dashboard />
     </Switch>
   </GlobalProvider>
