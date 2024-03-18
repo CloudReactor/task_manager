@@ -230,9 +230,9 @@ defusedxml==0.7.1 \
     # via
     #   python3-openid
     #   social-auth-core
-django==3.2.23 \
-    --hash=sha256:82968f3640e29ef4a773af2c28448f5f7a08d001c6ac05b32d02aeee6509508b \
-    --hash=sha256:d48608d5f62f2c1e260986835db089fa3b79d6f58510881d316b8d88345ae6e1
+django==3.2.25 \
+    --hash=sha256:7ca38a78654aee72378594d63e51636c04b8e28574f5505dff630895b5472777 \
+    --hash=sha256:a52ea7fcf280b16f7b739cec38fa6d3f8953a5456986944c3ca97e79882b4e38
     # via
     #   -r requirements.in
     #   django-anymail
@@ -250,7 +250,7 @@ django==3.2.23 \
     #   djoser
     #   drf-spectacular
     #   social-auth-app-django
-django-anymail[amazon_ses]==8.6 \
+django-anymail[amazon-ses]==8.6 \
     --hash=sha256:49d83d7c16316ca86a624097496881d59b7d71b16bf1c5211cffa5b19ef98d0c \
     --hash=sha256:783342d49dd07d68778b81dd12a94c86e1d217463a68a85450a0513fabe31345
     # via -r requirements.in
