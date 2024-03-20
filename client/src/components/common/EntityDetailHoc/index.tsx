@@ -9,7 +9,7 @@ import {
 } from '../../../utils/api';
 
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { Link, useHistory, useLocation, useParams } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 
 import {
   Alert,
@@ -91,7 +91,11 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
       uuid
     }  = useParams<PathParamsType>();
 
-    const history = useHistory();
+    if (!uuid) {
+      return <div>Invalid UUID</div>;
+    }
+
+    const history = useNavigate();
 
     const loadEntity = useCallback(async () => {
       setLoading(true);
@@ -154,7 +158,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
         setFlashBody(`${entityName} '${entity.name}' has been cloned.`);
         setFlashAlertVariant('info');
 
-        history.push(listPath + '/' + encodeURIComponent(cloned.uuid));
+        history(listPath + '/' + encodeURIComponent(cloned.uuid));
       } catch (ex) {
         setCloning(false);
         setFlashAlertVariant('danger')
@@ -163,7 +167,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
     }, [entity, abortSignal, history])
 
     const pushToListView = useCallback(() => {
-      history.push(listPath);
+      history(listPath);
     }, [history, listPath]);
 
     const handleDeletionConfirmed = useCallback(async () => {

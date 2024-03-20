@@ -8,7 +8,7 @@ import {
 import { ResultsPage, makeEmptyResultsPage } from '../../../utils/api';
 
 import React, { useContext, useEffect, useState, Fragment } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import {
   Alert,
@@ -96,7 +96,7 @@ export function makeEntityList<T>({
       document.title = `CloudReactor - ${pluralEntityName}`;
     }, []);
 
-    const history = useHistory();
+    const history = useNavigate();
 
     makeAbortable(async (abortSignal) => {
       try {
@@ -126,7 +126,7 @@ export function makeEntityList<T>({
         return;
       }
 
-      history.push(location.pathname + `/${uuid}`);
+      history(location.pathname + `/${uuid}`);
     }
 
     const setOffsetAndPageQuery = (i: number)  => {
@@ -148,7 +148,7 @@ export function makeEntityList<T>({
         path += '?' + params.toString();
       }
 
-      history.replace(path);
+      history(path, { replace: true });
     }
 
     const goToFirstPage = () => {

@@ -381,9 +381,11 @@ export async function fetchWorkflowExecutionSummaries(
   abortSignal?: AbortSignal
 ) : Promise<ResultsPage<WorkflowExecutionSummary>> {
 
+  //debugger;
+
   descending = descending || false;
   offset = offset || 0;
-  maxResults = maxResults || UIC.DEFAULT_PAGE_SIZE;
+  maxResults = maxResults ?? UIC.DEFAULT_PAGE_SIZE;
 
   let ordering = sortBy || 'started_at';
   ordering = descending ? `-${ordering}` : ordering;

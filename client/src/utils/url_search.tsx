@@ -2,24 +2,25 @@ import _ from 'lodash';
 
 import * as UIC from '../utils/ui_constants';
 
-interface urlParams {
+interface PageFetchOptions {
   q?: string;
   sortBy?: string;
   descending?: boolean;
-  selectedRunEnvironmentUuid?: string;
-  rowsPerPage?: number;
-  currentPage?: number;
+  selectedStatuses?: string[];
+  selectedRunEnvironmentUuids?: string[];
+  rowsPerPage: number;
+  currentPage: number;
 }
 
-export const getParams = (location: any, forWorkflows: boolean = false) => {
-  const params = new URLSearchParams(location);
-  const descendingStr = params.get('descending');
-  const sortBy = params.get('sort_by');
+export const transformSearchParams = (searchParams: URLSearchParams,
+    forWorkflows: boolean = false): PageFetchOptions => {
+  const descendingStr = searchParams.get('descending');
+  const sortBy = searchParams.get('sort_by');
 
   const descending = descendingStr ? (descendingStr === 'true') :
     (sortBy ? false : undefined);
 
-  const selectedStatusesParamValue = params.get(
+  const selectedStatusesParamValue = searchParams.get(
     forWorkflows ? 'latest_workflow_execution__status' :
     'latest_task_execution__status');
 
@@ -31,31 +32,29 @@ export const getParams = (location: any, forWorkflows: boolean = false) => {
 
   let selectedRunEnvironmentUuids: string[] | undefined;
 
-  const selectedRunEnvironmentUuidsParamValue = params.get('run_environment_uuid');
+  const selectedRunEnvironmentUuidsParamValue = searchParams.get('run_environment__uuid');
 
   if (selectedRunEnvironmentUuidsParamValue) {
     selectedRunEnvironmentUuids = selectedRunEnvironmentUuidsParamValue.split(',');
   }
 
-  return Object.assign({}, {
-    q: params.get('q') ?? undefined,
-    sortBy: params.get('sort_by') ?? undefined,
+  return {
+    q: searchParams.get('q') ?? undefined,
+    sortBy: searchParams.get('sort_by') ?? undefined,
     descending,
     selectedRunEnvironmentUuids,
     selectedStatuses,
-    rowsPerPage: Number(params.get('rows_per_page')) || UIC.DEFAULT_PAGE_SIZE,
-    currentPage: Number(params.get('page') || 1) - 1
-  });
+    rowsPerPage: Number(searchParams.get('rows_per_page')) || UIC.DEFAULT_PAGE_SIZE,
+    currentPage: Number(searchParams.get('page') || 1) - 1
+  };
 }
 
-export const setURL = (
-  location: any,
-  history: any,
+export const updateSearchParams = (
+  params: URLSearchParams,
+  setSearchParams: (searchParams: URLSearchParams, options: any) => void,
   value: any,
   changeParam: string,
 ) => {
-  const params = new URLSearchParams(location.search);
-
   if (changeParam === 'sort_by') {
     if (value === params.get('sort_by')) {
       // user is clicking on the column that's already sorted. So, toggle the sort order
@@ -98,9 +97,5 @@ export const setURL = (
     params.delete('page');
   }
 
-  const newQueryString = '?' + params.toString();
-  history.replace({
-    //pathname: location.pathname,
-    search: newQueryString,
-  })
+  setSearchParams(params, { replace: true });
 }

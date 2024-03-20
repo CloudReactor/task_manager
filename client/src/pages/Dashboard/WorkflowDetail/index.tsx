@@ -16,7 +16,7 @@ import * as C from '../../../utils/constants';
 import { shouldRefreshWorkflowExecution } from '../../../utils/domain_utils';
 
 import React, { Fragment, useContext, useEffect, useState } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import {
   Alert,
@@ -66,6 +66,10 @@ const WorkflowDetail = ({
     uuid
   } = useParams<PathParamsType>();
 
+  if (!uuid) {
+    return <div>Invalid UUID</div>;
+  }
+
   const [workflow, setWorkflow] = useState<Workflow | null>(
     (uuid == 'new') ? makeNewWorkflow() : null);
   const [isWorkflowLoading, setWorkflowLoading] = useState(false);
@@ -84,7 +88,7 @@ const WorkflowDetail = ({
   const [selfInterval, setSelfInterval] = useState<any>(null);
   const [selectedTab, setSelectedTab] = useState<string | null>('graph');
 
-  const history = useHistory();
+  const history = useNavigate();
 
   const handleLatestWorkflowExecutionUpdated = (execution: WorkflowExecution | null) => {
     setWorkflowExecution(execution);
@@ -195,7 +199,8 @@ const WorkflowDetail = ({
     updateTitle(updatedWorkflow);
 
     if (!oldWorkflow?.uuid && updatedWorkflow.uuid) {
-      history.replace('/workflows/' + encodeURIComponent(updatedWorkflow.uuid));
+      history('/workflows/' + encodeURIComponent(updatedWorkflow.uuid),
+        { replace: true });
     }
   }
 
@@ -206,7 +211,7 @@ const WorkflowDetail = ({
         try {
           const startedExecution = await startWorkflowExecution(cbData.uuid,
             abortSignal);
-          history.push('/workflow_executions/' +
+          history('/workflow_executions/' +
               encodeURIComponent(startedExecution.uuid));
         } catch (err) {
           if (isCancel(err)) {
@@ -227,7 +232,7 @@ const WorkflowDetail = ({
         try {
           const workflowExecution = await retryWorkflowExecution(cbData.uuid,
             abortSignal);
-          history.push('/workflow_executions/' +
+          history('/workflow_executions/' +
               encodeURIComponent(workflowExecution.uuid));
         } catch (err) {
           if (isCancel(err)) {
@@ -279,7 +284,7 @@ const WorkflowDetail = ({
       setShouldShowCloneModal(false);
       setCloning(false);
       setCloneErrorMessage(null);
-      history.push('/workflows/' + encodeURIComponent(clonedWorkflow.uuid));
+      history('/workflows/' + encodeURIComponent(clonedWorkflow.uuid));
     } catch (err) {
         if (isCancel(err)) {
           console.log("Request canceled: " + err.message);
@@ -309,7 +314,7 @@ const WorkflowDetail = ({
 
     try {
       await deleteWorkflow(workflow.uuid);
-      history.replace('/workflows');
+      history('/workflows', { replace: true });
     } catch (err) {
       if (isCancel(err)) {
         console.log("Request canceled: " + err.message);

@@ -104,7 +104,7 @@ export default class Charts extends Component<Props, State> {
 
         if (chartElements.length === 1) {
           const execution = finishedExecutions[chartElements[0].index];
-          history.push(path.TASK_EXECUTIONS + '/' + execution.uuid);
+          history(path.TASK_EXECUTIONS + '/' + execution.uuid);
         }
       }
 

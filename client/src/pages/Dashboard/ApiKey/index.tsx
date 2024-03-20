@@ -13,7 +13,7 @@ import {
 
 import React, { useContext, useEffect, useState } from "react";
 
-import { useHistory, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 
 import { Alert, Form, Row, Col } from 'react-bootstrap';
 
@@ -38,7 +38,7 @@ import Loading from '../../../components/Loading';
 import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
 import CustomButton from '../../../components/common/Button/CustomButton';
 import ApiKeyTable from "../../../components/ApiKeyList/ApiKeyTable";
-import { getParams, setURL } from '../../../utils/url_search';
+import { transformSearchParams, updateSearchParams } from '../../../utils/url_search';
 
 import classNames from 'classnames';
 import styles from './index.module.scss'
@@ -54,8 +54,9 @@ const ApiKeyList = ({
     currentGroup
   } = context;
 
-  const history = useHistory();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [flashBody, setFlashBody] = useState<string | null>(null);
   const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>('info');
@@ -67,13 +68,11 @@ const ApiKeyList = ({
       q,
       rowsPerPage,
       currentPage
-    } = getParams(history.location.search);
+    } = transformSearchParams(searchParams);
 
     // user can't sort API keys, so just set here
     const sortBy = 'key';
     const descending = false;
-
-    console.log(`loadApiKeys, q = ${q}`);
 
     setLoading(true);
 
@@ -97,21 +96,16 @@ const ApiKeyList = ({
     } finally {
       setLoading(false);
     }
-
-    console.log('done loadApiKeys');
   };
 
   const handleQueryChanged = (
     event: React.ChangeEvent<HTMLInputElement>
   ): void => {
-    setURL(history.location, history, event.target.value, 'q');
-
-    loadApiKeys();
+    updateSearchParams(searchParams, setSearchParams, event.target.value, 'q');
   };
 
   const handlePageChanged = (currentPage: number) => {
-    setURL(history.location, history, currentPage + 1, 'page');
-    loadApiKeys();
+    updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
   };
 
   /*const handlePrev = (): void =>
@@ -126,7 +120,7 @@ const ApiKeyList = ({
 
   useEffect(() => {
     loadApiKeys();
-  }, []);
+  }, [location]);
 
   const accessLevel = accessLevelForCurrentGroup(context);
 
@@ -179,13 +173,13 @@ const ApiKeyList = ({
   }
 
   const handleAddApiKey = (action: string | undefined, cbData: any) => {
-    history.push('/api_keys/new')
+    navigate('/api_keys/new')
   };
 
   const {
     q,
     currentPage
-  } = getParams(location.search);
+  } = transformSearchParams(searchParams);
 
   return (
     <div className={styles.container}>
@@ -213,11 +207,6 @@ const ApiKeyList = ({
               [styles.searchInput]: true
             })}
             onChange={handleQueryChanged}
-            onKeyDown={keyEvent => {
-              if (keyEvent.key === 'Enter') {
-                loadApiKeys();
-              }
-            }}
             placeholder="Search API Keys"
             value={q}
           />

@@ -81,9 +81,9 @@ AUTHENTICATION_BACKENDS = (
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'csp.middleware.CSPMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.http.ConditionalGetMiddleware',
-    'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

@@ -16,7 +16,7 @@ import {
 } from '../../../utils/api';
 
 import React, {Fragment, useCallback, useContext, useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { Alert } from 'react-bootstrap';
@@ -30,7 +30,7 @@ import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
 import FailureCountAlert from '../../../components/common/FailureCountAlert';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 
-import { getParams, setURL } from '../../../utils/url_search';
+import { transformSearchParams, updateSearchParams } from '../../../utils/url_search';
 
 import ActionButton from '../../../components/common/ActionButton';
 import Loading from '../../../components/Loading';
@@ -59,7 +59,9 @@ const WorkflowList = (props: AbortSignalProps) => {
   const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>('info');
   const [isDeleting, setDeleting] = useState(false);
 
-  const history = useHistory();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const loadRunEnvironments = useCallback(async () => {
     setAreRunEnvironmentsLoading(true);
@@ -79,10 +81,11 @@ const WorkflowList = (props: AbortSignalProps) => {
     }
   }, []);
 
-  const loadWorkflows = useCallback(async () => {
+  const loadWorkflows = async () => {
     // This would cause the search input to lose focus, because it would be
     // temporarily replaced with a loading indicator.
     //setAreWorkflowsLoading(true);
+
     const {
       q,
       sortBy,
@@ -91,7 +94,7 @@ const WorkflowList = (props: AbortSignalProps) => {
       selectedStatuses,
       rowsPerPage,
       currentPage,
-    } = getParams(history.location.search, true);
+    } = transformSearchParams(searchParams, true);
 
     const offset = currentPage * rowsPerPage;
 
@@ -127,48 +130,42 @@ const WorkflowList = (props: AbortSignalProps) => {
     }
 
     return;
-  }, [history.location]);
+  };
 
-  const handleSelectItemsPerPage = useCallback((
+  const handleSelectItemsPerPage = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const rowsPerPage = parseInt(event.target.value);
-    setURL(history.location, history, rowsPerPage, 'rows_per_page');
-    loadWorkflows();
-  }, [history.location, loadWorkflows]);
+    updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'rows_per_page');
+  };
 
   const handleSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
-    setURL(history.location, history, ordering, 'sort_by');
-    loadWorkflows();
-  }, [history.location, loadWorkflows]);
+    updateSearchParams(searchParams, setSearchParams, ordering, 'sort_by');
+  }, [location]);
 
-  const handleQueryChanged = useCallback((
+  const handleQueryChanged = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const q = event.target.value;
-    setURL(history.location, history, q, 'q');
-    loadWorkflows();
-  }, [history.location, loadWorkflows]);
+    updateSearchParams(searchParams, setSearchParams, q, 'q');
+  };
 
   const handlePageChanged = useCallback((currentPage: number) => {
-    setURL(history.location, history, currentPage + 1, 'page');
-    loadWorkflows();
-  }, [history.location, loadWorkflows]);
+    updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
+  }, [location]);
 
-  const handleSelectedRunEnvironmentUuidsChanged = useCallback((
+  const handleSelectedRunEnvironmentUuidsChanged = (
     selectedRunEnvironmentUuids?: string[]
   ) => {
-    setURL(history.location, history, selectedRunEnvironmentUuids,
-      'run_environment_uuid');
-    loadWorkflows();
-  }, [history.location, loadWorkflows]);
+    updateSearchParams(searchParams, setSearchParams, selectedRunEnvironmentUuids,
+      'run_environment__uuid');
+  };
 
-  const handleSelectedStatusesChanged = useCallback((
+  const handleSelectedStatusesChanged = (
     statuses?: string[]
   ) => {
-    setURL(history.location, history, statuses, 'latest_workflow_execution__status');
-    loadWorkflows();
-  }, [history.location, loadWorkflows]);
+    updateSearchParams(searchParams, setSearchParams, statuses, 'latest_workflow_execution__status');
+  };
 
 
 
@@ -225,7 +222,7 @@ const WorkflowList = (props: AbortSignalProps) => {
       setShouldShowDeletionModal(false);
       setWorkflow(null);
     }
-  }, [workflow, loadWorkflows]);
+  }, [workflow]);
 
   const handleDeletionCancelled = useCallback(() => {
     setWorkflow(null);
@@ -248,7 +245,7 @@ const WorkflowList = (props: AbortSignalProps) => {
       setFlashAlertVariant('danger');
       setFlashBody(updatedFlashBody);
     }
-  }, [loadWorkflows]);
+  }, []);
 
   const handleStartRequest = useCallback(async (wf: WorkflowSummary) => {
     if (!wf) {
@@ -270,7 +267,7 @@ const WorkflowList = (props: AbortSignalProps) => {
     } finally {
       setWorkflow(null);
     }
-  }, [loadWorkflows]);
+  }, []);
 
   const handleStopRequest = useCallback(async (wf: WorkflowSummary) => {
     if (!wf || !wf.latest_workflow_execution) {
@@ -292,10 +289,10 @@ const WorkflowList = (props: AbortSignalProps) => {
     } finally {
       setWorkflow(null);
     }
-  }, [loadWorkflows]);
+  }, []);
 
   const handleCreateWorkflow = useCallback((action: string | undefined, cbData: any) => {
-    history.push('/workflows/new')
+    navigate('/workflows/new')
   }, []);
 
   useEffect(() => {
@@ -304,6 +301,10 @@ const WorkflowList = (props: AbortSignalProps) => {
 
   useEffect(() => {
     loadWorkflows().then(_dummy => {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+      }
+
       const interval = setInterval(loadWorkflows,
         UIC.TASK_REFRESH_INTERVAL_MILLIS);
       setSelfInterval(interval);
@@ -314,7 +315,7 @@ const WorkflowList = (props: AbortSignalProps) => {
         clearInterval(selfInterval);
       }
     };
-  }, []);
+  }, [location]);
 
   const {
     q,
@@ -324,7 +325,7 @@ const WorkflowList = (props: AbortSignalProps) => {
     selectedStatuses,
     rowsPerPage,
     currentPage
-  } = getParams(history.location.search, true);
+  } = transformSearchParams(searchParams, true);
 
   const finalSortBy = (sortBy ?? 'name');
   const finalDescending = descending ?? false;
@@ -379,6 +380,13 @@ const WorkflowList = (props: AbortSignalProps) => {
                 faIconName="plus-square"
                 onActionRequested={handleCreateWorkflow} />
             </div>
+
+            {
+              lastLoadErrorMessage &&
+              <Alert variant="warning">
+                { lastLoadErrorMessage }
+              </Alert>
+            }
 
             <WorkflowTable {... workflowTableProps} />
 

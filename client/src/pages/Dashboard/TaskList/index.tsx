@@ -8,7 +8,7 @@ import { fetchTasks, updateTask } from '../../../utils/api'
 import { TaskImpl, RunEnvironment } from '../../../types/domain_types';
 
 import React, {Fragment, useCallback, useContext, useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { Alert } from 'react-bootstrap'
@@ -17,7 +17,7 @@ import { create } from 'react-modal-promise';
 
 import { GlobalContext } from '../../../context/GlobalContext';
 import * as UIC from '../../../utils/ui_constants';
-import { getParams, setURL } from '../../../utils/url_search';
+import { transformSearchParams, updateSearchParams } from '../../../utils/url_search';
 
 import AsyncConfirmationModal from '../../../components/common/AsyncConfirmationModal';
 import ConfigModalContainer from '../../../components/ConfigModal/ConfigModalContainer';
@@ -45,7 +45,8 @@ const TaskList = ({
   const [lastLoadErrorMessage, setLastLoadErrorMessage] = useState<string | null>(null);
   const [runEnvironments, setRunEnvironments] = useState<Array<RunEnvironment>>([]);
 
-  const history = useHistory();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const loadRunEnvironments = useCallback(async () => {
     setAreRunEnvironmentsLoading(true);
@@ -65,10 +66,11 @@ const TaskList = ({
     }
   }, []);
 
-  const loadTasks = useCallback(async () => {
+  const loadTasks = async () => {
     // This would cause the search input to lose focus, because it would be
     // temporarily replaced with a loading indicator.
     //setAreTasksLoading(true);
+
     const {
       q,
       sortBy,
@@ -77,7 +79,7 @@ const TaskList = ({
       selectedStatuses,
       rowsPerPage,
       currentPage,
-    } = getParams(history.location.search);
+    } = transformSearchParams(searchParams);
 
     const offset = currentPage * rowsPerPage;
 
@@ -111,9 +113,7 @@ const TaskList = ({
     } finally {
       setAreTasksLoading(false);
     }
-
-    return;
-  }, []);
+  };
 
   const handleActionRequested = useCallback(async (action: string | undefined, cbData: any) => {
     const cbTask = cbData as TaskImpl;
@@ -193,50 +193,40 @@ const TaskList = ({
     }
   }, [taskUuidToInProgressOperation]);
 
-  const handleSortChanged = useCallback(async (sortBy?: string, toggleDirection?: boolean) => {
-    setURL(history.location, history, sortBy, 'sort_by');
+  const handleSortChanged = async (sortBy?: string, toggleDirection?: boolean) => {
+    updateSearchParams(searchParams, setSearchParams, sortBy, 'sort_by');
+  };
 
-    loadTasks();
-  }, []);
-
-  const handleSelectItemsPerPage = useCallback((
+  const handleSelectItemsPerPage = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const rowsPerPage = parseInt(event.target.value);
-    setURL(history.location, history, rowsPerPage, 'rows_per_page');
-    loadTasks();
-  }, []);
+    updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'rows_per_page');
+  };
 
-  const handleQueryChanged = useCallback((
+  const handleQueryChanged = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const q = event.target.value;
-    setURL(history.location, history, q, 'q');
-    loadTasks();
-  }, []);
+    updateSearchParams(searchParams, setSearchParams, q, 'q');
+  };
 
-  const handleSelectedRunEnvironmentUuidsChanged = useCallback((
+  const handleSelectedRunEnvironmentUuidsChanged = (
     selectedRunEnvironmentUuids?: string[]
   ) => {
+    updateSearchParams(searchParams, setSearchParams, selectedRunEnvironmentUuids,
+      'run_environment__uuid');
+  };
 
-    setURL(history.location, history, selectedRunEnvironmentUuids,
-      'run_environment_uuid');
-    loadTasks();
-  }, []);
-
-  const handleSelectedStatusesChanged = useCallback((
+  const handleSelectedStatusesChanged = (
     statuses?: string[]
   ) => {
-    setURL(history.location, history, statuses, 'latest_task_execution__status');
-    loadTasks();
-  }, []);
+    updateSearchParams(searchParams, setSearchParams, statuses, 'latest_task_execution__status');
+  };
 
-
-  const handlePageChanged = useCallback((currentPage: number) => {
-    setURL(history.location, history, currentPage + 1, 'page');
-    loadTasks();
-  }, []);
-
+  const handlePageChanged = (currentPage: number) => {
+    updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
+  };
 
   const failedTaskCount = useCallback((tasks: TaskImpl[]): number => {
     let count = 0;
@@ -249,7 +239,7 @@ const TaskList = ({
     });
 
     return count;
-  }, []);
+  }, [location]);
 
   const handleDeletion = useCallback(async (task: TaskImpl) => {
     const modal = create(AsyncConfirmationModal);
@@ -303,6 +293,10 @@ const TaskList = ({
 
   useEffect(() => {
     loadTasks().then(_dummy => {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+      }
+
       const interval = setInterval(loadTasks,
         UIC.TASK_REFRESH_INTERVAL_MILLIS);
       setSelfInterval(interval);
@@ -313,7 +307,7 @@ const TaskList = ({
         clearInterval(selfInterval);
       }
     };
-  }, []);
+  }, [location]);
 
   const {
     q,
@@ -322,8 +316,8 @@ const TaskList = ({
     selectedRunEnvironmentUuids,
     selectedStatuses,
     rowsPerPage,
-    currentPage
-  } = getParams(history.location.search);
+    currentPage,
+  } = transformSearchParams(searchParams);
 
   const finalSortBy = (sortBy ?? 'name');
   const finalDescending = descending ?? false;

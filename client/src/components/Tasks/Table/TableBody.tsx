@@ -6,7 +6,7 @@ import * as path from '../../../constants/routes';
 import { TaskImpl } from '../../../types/domain_types';
 
 import React, { Fragment, useContext } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import {
   Tooltip,
@@ -66,7 +66,7 @@ const TableBody = ({
 
   const numberFormat = new Intl.NumberFormat();
 
-  const history = useHistory();
+  const history = useNavigate();
 
   return (
     <tbody>
@@ -74,7 +74,7 @@ const TableBody = ({
         const lpe = task.latest_task_execution as any; // hack
         const colors = lpe ? colorPicker(lpe.status, task.is_service, task.enabled) : '';
         const pushToProcessPage = () =>
-          history.push(`${path.TASKS}/${task.uuid}`, { item: task });
+          history(`${path.TASKS}/${task.uuid}`, { state: { item: task }});
 
         const taskInProgressAction =
           taskUuidToInProgressOperation[task.uuid];

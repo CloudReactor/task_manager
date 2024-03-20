@@ -1,5 +1,5 @@
 import React from "react";
-import { Route, Switch } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
 import ModalContainer from 'react-modal-promise'
 
@@ -16,21 +16,13 @@ import * as path from "./constants/routes";
 const App: React.FC = () => (
   <GlobalProvider>
     <ModalContainer />
-    <Switch>
-      <Route exact path={path.LOGIN}>
-        <Login />
-      </Route>
-      <Route exact path={path.REGISTER}>
-        <Register />
-      </Route>
-      <Route exact path={path.REGISTRATION_PENDING}>
-        <RegistrationPending />
-      </Route>
-      <Route exact path={path.REGISTRATION_ACTIVATION}>
-        <RegistrationActivation />
-      </Route>
-      <Dashboard />
-    </Switch>
+    <Routes>
+      <Route path={path.LOGIN} element={<Login/>} />
+      <Route path={path.REGISTER} element={ <Register/> } />
+      <Route path={path.REGISTRATION_PENDING} element={ <RegistrationPending/> } />
+      <Route path={path.REGISTRATION_ACTIVATION} element={ <RegistrationActivation/> } />
+      <Route path="/*" element={<Dashboard />} />
+    </Routes>
   </GlobalProvider>
 );
 

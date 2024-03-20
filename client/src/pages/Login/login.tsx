@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { useHistory, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import {
   Alert
@@ -25,7 +25,7 @@ export default function Login(props: Props) {
   const context = useContext(GlobalContext);
   const { setCurrentUser, setCurrentGroup } = context;
 
-  const history = useHistory();
+  const history = useNavigate();
 
   const [
     errorMessage,
@@ -46,7 +46,7 @@ export default function Login(props: Props) {
       const user = await fetchCurrentUser();
       setCurrentUser(user);
       setCurrentGroup(user.groups[0]);
-      history.push(nextPath, user);
+      history(nextPath, { state: { user } });
     } catch (error) {
       console.log(error);
       setErrorMessage('Incorrect username or password');

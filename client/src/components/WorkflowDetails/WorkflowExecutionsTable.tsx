@@ -1,11 +1,11 @@
 import _ from 'lodash';
 
-import { getParams, setURL } from '../../utils/url_search';
+import { transformSearchParams, updateSearchParams } from '../../utils/url_search';
 import { catchableToString, colorPicker, timeDuration, timeFormat } from '../../utils';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { useHistory } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
@@ -68,15 +68,17 @@ const WorkflowExecutionsTable = ({
   const [workflowExecutionUuidsPendingRetry, setWorkflowExecutionUuidsPendingRetry] = useState<string []>([]);
   const [selfInterval, setSelfInterval] = useState<any>(null);
 
-  const history = useHistory();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  const loadWorkflowExecutions = useCallback(async () => {
+  const loadWorkflowExecutions = async () => {
     const {
       sortBy,
       descending,
       rowsPerPage,
       currentPage,
-    } = getParams(history.location.search);
+    } = transformSearchParams(searchParams, true);
 
     const offset = currentPage * rowsPerPage;
 
@@ -89,17 +91,15 @@ const WorkflowExecutionsTable = ({
 
       onActionError('loadWorkflowExecutions', workflow, catchableToString(err));
     }
-  }, []);
+  };
 
-  const handlePageChanged = useCallback((currentPage: number) => {
-    setURL(history.location, history, currentPage + 1, 'page');
-    loadWorkflowExecutions();
-  }, []);
+  const handlePageChanged = (currentPage: number) => {
+    updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
+  };
 
-  const handlePageChangeEvent = useCallback((event: React.MouseEvent<HTMLButtonElement> | null, page: number) => {
-    setURL(history.location, history, page + 1, 'page');
-    loadWorkflowExecutions();
-  }, []);
+  const handlePageChangeEvent = (event: React.MouseEvent<HTMLButtonElement> | null, page: number) => {
+    updateSearchParams(searchParams, setSearchParams, page + 1, 'page');
+  };
 
   /*
   handlePrev = (): void =>
@@ -112,21 +112,19 @@ const WorkflowExecutionsTable = ({
       currentPage: this.state.currentPage + 1
     }, this.loadWorkflowExecutions); */
 
-  const handleSelectItemsPerPage = useCallback((
+  const handleSelectItemsPerPage = (
     event: React.ChangeEvent<HTMLSelectElement>
   ): void => {
     const rowsPerPage = parseInt(event.target.value);
-    setURL(history.location, history, rowsPerPage, 'rows_per_page');
-    loadWorkflowExecutions();
-  }, []);
+    updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'rows_per_page');
+  };
 
-  const handleRowsPerChangeEvent = useCallback((
+  const handleRowsPerChangeEvent = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
   ): void => {
     const rowsPerPage = parseInt(event.target.value);
-    setURL(history.location, history, rowsPerPage, 'rows_per_page');
-    loadWorkflowExecutions();
-  }, []);
+    updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'rows_per_page');
+  };
 
   const handleActionRequested = async (action: string | undefined, cbData: any) => {
     switch (action) {
@@ -177,21 +175,22 @@ const WorkflowExecutionsTable = ({
   }
 
   useEffect(() => {
-    const loadExecutions = async () => {
-      await loadWorkflowExecutions();
+    loadWorkflowExecutions().then(_dummy => {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+      }
+
       const interval = setInterval(loadWorkflowExecutions,
         UIC.TASK_REFRESH_INTERVAL_MILLIS);
       setSelfInterval(interval);
-    };
-
-    loadExecutions();
+    });
 
     return () => {
       if (selfInterval) {
         clearInterval(selfInterval);
       }
     };
-  }, []);
+  }, [location]);
 
   if (workflowExecutionsPage.results.length === 0) {
     return <div>This Workflow has not run yet.</div>
@@ -202,7 +201,7 @@ const WorkflowExecutionsTable = ({
     descending,
     rowsPerPage,
     currentPage,
-  } = getParams(history.location.search);
+  } = transformSearchParams(searchParams, true);
 
   return (
     <div>
@@ -222,8 +221,7 @@ const WorkflowExecutionsTable = ({
                 <th
                   key={item.name}
                   onClick={item.ordering ? async () => {
-                    setURL(history.location, history, item.ordering, 'sort_by');
-                    await loadWorkflowExecutions();
+                    updateSearchParams(searchParams, setSearchParams, item.ordering, 'sort_by');
                   } : undefined
                 }
                   className={'th-header' + (item.textAlign ? ` ${item.textAlign}`: '')}
@@ -250,7 +248,7 @@ const WorkflowExecutionsTable = ({
             ) => {
               // isService: TODO
               const colors = colorPicker(we.status, false, workflow.enabled);
-              const pushToDetailPage = () => history.push(`/workflow_executions/${we.uuid}`, { we });
+              const pushToDetailPage = () => navigate(`/workflow_executions/${we.uuid}`, { state: { we } });
               return (
                 <tr key={index} className="custom_status_bg">
                   <td onClick={pushToDetailPage}>

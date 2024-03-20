@@ -6,7 +6,7 @@ import { Task, TaskExecution } from '../../../types/domain_types';
 import { colorPicker, timeFormat, timeDuration } from '../../../utils/index';
 
 import React, { useContext } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { Table } from 'react-bootstrap';
 
@@ -42,7 +42,7 @@ const TaskExecutionTable = ({
   const accessLevel = accessLevelForCurrentGroup(context);
   const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_TASK);
 
-  const history = useHistory();
+  const history = useNavigate();
 
   const numberFormat = new Intl.NumberFormat();
 
@@ -100,8 +100,8 @@ const TaskExecutionTable = ({
           index: number
         ) => {
           const colors = colorPicker(taskExecution.status, task.is_service, task.enabled);
-          const pushToDetailPage = () => history.push(
-            path.TASK_EXECUTIONS + '/' + taskExecution.uuid, { taskExecution });
+          const pushToDetailPage = () => history(
+            path.TASK_EXECUTIONS + '/' + taskExecution.uuid, { state: { taskExecution }});
           return (
             <tr key={index} className="custom_status_bg">
               <td onClick={pushToDetailPage}>

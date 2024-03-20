@@ -4,7 +4,7 @@ import { fetchInvitation } from '../../utils/api';
 
 import React, { Fragment, useEffect, useState } from 'react';
 
-import { useHistory, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import { Row, Col, Alert } from 'react-bootstrap'
 
@@ -27,7 +27,7 @@ const Register = (props: Props) => {
   const [isLoadingInvitation, setIsLoadingInvitation] = useState(false);
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
   const [invitation, setInvitation] = useState<Invitation | null>(null);
-  const history = useHistory();
+  const history = useNavigate();
 
   useEffect(() => {
     if (invitationCode && !isLoadingInvitation) {
@@ -46,14 +46,14 @@ const Register = (props: Props) => {
       if (invitation) {
         Object.assign(values, { confirmation_code: invitationCode });
         await makeConfiguredClient().post('api/v1/invitations/accept/', values);
-        history.replace(path.LOGIN + '?status=activated');
+        history(path.LOGIN + '?status=activated', { replace: true });
       } else {
         // Use email as username so we don&apos;t have to ask user to come up with a username
         const bodyObj = Object.assign(values, { username: values.email });
         await makeConfiguredClient().post('auth/users/', bodyObj);
 
-        history.replace(path.REGISTRATION_PENDING +
-          '?email=' + encodeURIComponent(values.email));
+        history(path.REGISTRATION_PENDING +
+          '?email=' + encodeURIComponent(values.email), { replace: true });
       }
     } catch (ex) {
       setErrorMessages(exceptionToErrorMessages(ex));

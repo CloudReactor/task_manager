@@ -7,7 +7,7 @@ import { Group } from '../../../types/website_types';
 import { catchableToString } from '../../../utils';
 
 import React, { useContext, useEffect, useState } from 'react';
-import { Link, useHistory, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 
 import {
@@ -56,6 +56,10 @@ const GroupEditor = ({
     id
   } = useParams<PathParamsType>();
 
+  if (!id) {
+    return <div>Invalid Group</div>;
+  }
+
   const {
     currentUser,
     setCurrentUser,
@@ -72,7 +76,7 @@ const GroupEditor = ({
   const [isSaving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const history = useHistory();
+  const history = useNavigate();
 
   const loadGroup = async () => {
     setLoading(true);
@@ -97,7 +101,7 @@ const GroupEditor = ({
   const renderGroupForm = () => {
     const creatingNew =  (id === 'new');
 
-    const pushToGroupsIndex = () => history.push('/groups');
+    const pushToGroupsIndex = () => history('/groups');
 
     return (
       <Container>

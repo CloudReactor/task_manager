@@ -6,7 +6,7 @@ import { catchableToString } from '../../../utils';
 import * as Yup from 'yup';
 
 import React, { Fragment, useContext, useEffect, useState } from "react";
-import { Link, useHistory, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Alert, Row, Col, Form, FormCheck } from 'react-bootstrap/';
 
@@ -55,9 +55,13 @@ const ApiKeyEditor = ({
     uuid
   } = useParams<PathParamsType>();
 
+  if (!uuid) {
+    return <div>Invalid API Key</div>;
+  }
+
   const isNew = (uuid === 'new');
 
-  const history = useHistory();
+  const history = useNavigate();
 
   const context = useContext(GlobalContext);
 
@@ -132,7 +136,7 @@ const ApiKeyEditor = ({
                 await saveApiKey(apiKeyToSave);
                 setErrorMessage(null);
 
-                history.push('/api_keys/');
+                history('/api_keys/');
               } catch (err) {
                 setErrorMessage("Failed to save API Key: "  + catchableToString(err));
               } finally {

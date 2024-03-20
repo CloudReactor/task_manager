@@ -4,7 +4,7 @@ import { fetchCurrentUser } from '../utils/api';
 
 import React, { useContext, useEffect } from 'react';
 
-import { useHistory } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import {
   GlobalContext,
@@ -20,7 +20,8 @@ export default function isAuth<P extends object>(
       setCurrentGroup
     } = useContext(GlobalContext);
 
-    const history = useHistory();
+    const history = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
       if (currentUser) {
@@ -64,8 +65,7 @@ export default function isAuth<P extends object>(
 
         if (!success) {
           JwtUtils.removeTokenContainer();
-          const location = history.location;
-          history.push('/login?next=' + encodeURIComponent(
+          history('/login?next=' + encodeURIComponent(
             location.pathname + location.search + location.hash));
         }
       }

@@ -6,8 +6,8 @@ crontab>=0.23.0,<1.0.0 # https://github.com/josiahcarlson/parse-crontab
 cryptography==42.0.2
 Django>=3.2.23,<4.0.0
 django-anymail[amazon_ses]>=8.6,<9.0  # https://github.com/anymail/django-anymail
-django-cors-headers>=3.12.0,<4.0.0
-django-csp>=3.7,<4.0.0
+django-cors-headers>=4.3.1,<5.0.0
+django-csp>=3.8,<4.0.0
 django-dynamic-fixtures>=0.2.1,<1.0.0 # https://github.com/Peter-Slump/django-dynamic-fixtures
 django-environ>=0.4.5,<1.0.0  # https://github.com/joke2k/django-environ
 django-extensions>=3.1.5,<4.0.0

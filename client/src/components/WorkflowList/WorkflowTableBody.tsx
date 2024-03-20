@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { Switch } from '@material-ui/core';
 
@@ -27,7 +27,7 @@ const WorkflowTableBody = ({
 	handleStartRequest,
 	handleStopRequest
 }: Props) => {
-  const history = useHistory();
+  const history = useNavigate();
 
 	const handleActionRequested = (action: string | undefined, cbData: any) => {
 	  switch (action) {
@@ -53,7 +53,7 @@ const WorkflowTableBody = ({
 	        const statusClassName = latestExecution ? colorPicker(latestExecution.status, false) : '';
 
 	        // TODO: link to workflow execution page
-	        const pushToExecution = () => history.push(`/workflows/${workflow.uuid}`, { workflow });
+	        const pushToExecution = () => history(`/workflows/${workflow.uuid}`, { state: { workflow }});
 
 	        return (
 	          <tr key={workflow.uuid} className="custom_status_bg">

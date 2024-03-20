@@ -13,16 +13,20 @@ import { WORKFLOW_EXECUTION_STATUS_SUCCEEDED } from "../../../utils/constants";
 
 
 import React, { Fragment, useEffect, useState } from "react";
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { isCancel } from 'axios';
 
 import Chart from "../../../components/Chart/Chart";
 import * as UIC from '../../../utils/ui_constants';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
+
 interface Props {
   uuid: string;
+  executionCount?: number;
 }
+
+const DEFAULT_EXECUTION_COUNT = 25;
 
 const extractChartValues = (filteredData: any[], extractY: (execution: any) => string) => {
   const labels: string[] = [];
@@ -54,6 +58,7 @@ const extractChartValues = (filteredData: any[], extractY: (execution: any) => s
 
 const Charts = (props: Props & AbortSignalProps) => {
   const {
+    executionCount,
     abortSignal,
     uuid
   } = props;
@@ -67,8 +72,8 @@ const Charts = (props: Props & AbortSignalProps) => {
         uuid,
         'started_at',
         true,
-        undefined,
-        undefined,
+        0,
+        executionCount ?? DEFAULT_EXECUTION_COUNT,
         abortSignal,
       );
       setWeSummaries(workflowExecutionsData.results.reverse());
@@ -98,7 +103,7 @@ const Charts = (props: Props & AbortSignalProps) => {
     };
   }, []);
 
-  const history = useHistory();
+  const navigate = useNavigate();
 
   if (weSummaries) {
     const filteredData = weSummaries.filter((item: {status: string, finished_at: Date}) => {
@@ -111,15 +116,9 @@ const Charts = (props: Props & AbortSignalProps) => {
     });
 
     const onClick = (event: any, chartElements: any[]) => {
-      console.log('event:');
-      console.dir(event);
-
-      console.log('chartElements:');
-      console.dir(chartElements);
-
       if (chartElements.length === 1) {
         const execution = filteredData[chartElements[0]._index];
-        history.push(`/workflow_executions/${execution.uuid}`);
+        navigate(`/workflow_executions/${execution.uuid}`);
       }
     }
 
@@ -136,7 +135,7 @@ const Charts = (props: Props & AbortSignalProps) => {
               borderColors={runDurations.borderColors|| runDurations.colors}
               hoverBackgroundColor="#1ad61a91"
               hoverBorderColor="#1ad61a91"
-              noDataMessage='No executions have completed yet.'
+              noDataMessage='No Workflow Executions have completed yet.'
               onClick={onClick}
             />
           </div>

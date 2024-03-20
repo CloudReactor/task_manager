@@ -62,7 +62,11 @@ const WorkflowExecutionDetail = (props: Props & AbortSignalProps) => {
 
   const {
     uuid
-  }  = useParams<PathParamsType>();
+  }  = useParams();
+
+  if (!uuid) {
+    return <div>Invalid UUID</div>;
+  }
 
   const setupRefresh = (execution: WorkflowExecution) => {
     if (execution && shouldRefreshWorkflowExecution(execution)) {

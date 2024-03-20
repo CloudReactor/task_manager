@@ -3,7 +3,7 @@ import { ACCESS_LEVEL_DEVELOPER } from '../../utils/constants';
 import React, { lazy, useContext, Suspense } from 'react';
 import {
   Route,
-  Switch
+  Routes
 } from 'react-router-dom';
 
 import {
@@ -116,135 +116,44 @@ const Dashboard = (p: Props) => {
       <NavBar />
       <main className={styles.dashboardContent}>
         <Suspense fallback={<Loading />}>
-          <Switch>
-            <Route
-              exact
-              path={path.DASHBOARD}
-            >
-              <TaskList />
-            </Route>
-            <Route
-              exact
-              path={path.WORKFLOWS}
-            >
-              <WorkflowList />
-            </Route>
-            <Route
-              exact
-              path={path.WORKFLOW}
-            >
-              <WorkflowDetail />
-            </Route>
-            <Route
-              exact
-              path={path.WORKFLOW_EXECUTION}
-            >
-              <WorkflowExecutionDetail />
-            </Route>
-            <Route
-              exact
-              path={path.TASK}
-            >
-              <TaskDetail />
-            </Route>
-            <Route
-              exact
-              path={path.TASK_EXECUTION}
-            >
-              <TaskExecutionDetail />
-            </Route>
-            <Route
-              exact
-              path={path.RUN_ENVIRONMENTS}
-            >
-              <RunEnvironmentList />
-            </Route>
-            <Route
-              exact
-              path={path.RUN_ENVIRONMENT}
-            >
-              <RunEnvironmentDetail />
-            </Route>
-            <Route exact path={path.GROUPS}>
-              <GroupList />
-            </Route>
-            <Route
-              exact
-              path={path.GROUP}
-            >
-              <GroupEditor />
-            </Route>
-            <Route
-              exact
-              path={path.EMAIL_NOTIFICATION_PROFILES}
-            >
-              <EmailNotificationProfileList />
-            </Route>
-            <Route
-              exact
-              path={path.EMAIL_NOTIFICATION_PROFILE}
-            >
-              <EmailNotificationProfileDetail />
-            </Route>
-            <Route
-              exact
-              path={path.PAGERDUTY_PROFILES}
-            >
-              <PagerDutyProfileList />
-            </Route>
-            <Route
-              exact
-              path={path.PAGERDUTY_PROFILE}
-            >
-              <PagerDutyProfileDetail />
-            </Route>
-            <Route
-              exact
-              path={path.NOTIFICATION_METHODS}
-            >
-              <NotificationMethodList />
-            </Route>
-            <Route
-              exact
-              path={path.NOTIFICATION_METHOD}
-            >
-              <NotificationMethodDetail />
-            </Route>
+          <Routes>
+            <Route path={path.DASHBOARD} element={ <TaskList /> } />
+            <Route path={path.WORKFLOWS} element={ <WorkflowList /> } />
+            <Route path={path.WORKFLOW} element={ <WorkflowDetail /> } />
+            <Route path={path.WORKFLOW_EXECUTION} element={ <WorkflowExecutionDetail /> } />
+            <Route path={path.TASK} element={ <TaskDetail /> } />
+            <Route path={path.TASK_EXECUTION} element={ <TaskExecutionDetail /> } />
+            <Route path={path.RUN_ENVIRONMENTS} element={ <RunEnvironmentList /> } />
+            <Route path={path.RUN_ENVIRONMENT} element={ <RunEnvironmentDetail /> } />
+            <Route path={path.GROUPS} element={ <GroupList /> } />
+            <Route path={path.GROUP} element={ <GroupEditor /> } />
+            <Route path={path.EMAIL_NOTIFICATION_PROFILES} element={ <EmailNotificationProfileList /> } />
+            <Route path={path.EMAIL_NOTIFICATION_PROFILE} element={ <EmailNotificationProfileDetail /> } />
+            <Route path={path.PAGERDUTY_PROFILES} element={ <PagerDutyProfileList /> } />
+            <Route path={path.PAGERDUTY_PROFILE} element={ <PagerDutyProfileDetail /> } />
+            <Route path={path.NOTIFICATION_METHODS} element={ <NotificationMethodList /> } />
+            <Route path={path.NOTIFICATION_METHOD} element={ <NotificationMethodDetail /> } />
             {
               hasDeveloperAccess && (
-                <Route
-                  exact
-                  path={path.API_KEYS}
-                >
-                  <ApiKeyList />
-                </Route>
+                <Route path={path.API_KEYS}
+                 element={ <ApiKeyList /> } />
               )
             }
             {
               hasDeveloperAccess && (
-                <Route
-                  exact
-                  path={path.API_KEY}
-                >
-                  <ApiKeyEditor />
-                </Route>
+                <Route path={path.API_KEY} element={ <ApiKeyEditor /> } />
               )
             }
-            <Route
-              exact
-              path={path.PROFILE}
-            >
-              <Profile />
-            </Route>
-            <Route path="*">
+            <Route path={path.PROFILE} element={ <Profile /> } />
+            <Route path="*" element = {
               <Container className="ml-0">
                 <h1>Page Not Found</h1>
                 <p>
                   This page was not found or you do not have permission to access the page.
                 </p>
               </Container>
-            </Route>
-          </Switch>
+            } />
+          </Routes>
         </Suspense>
       </main>
       <div className={styles.dashboardFooter}>

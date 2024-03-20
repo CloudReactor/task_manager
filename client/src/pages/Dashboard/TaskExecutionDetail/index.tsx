@@ -31,6 +31,10 @@ const TaskExecutionDetail = ({
     uuid
   } = useParams<PathParamsType>();
 
+  if (!uuid) {
+    return <div>Invalid UUID</div>;
+  }
+
   const [taskExecution, setTaskExecution] = useState<TaskExecution | null>(null);
   const [task, setTask] = useState<Task | null>(null);
   const [runEnvironment, setRunEnvironment] = useState<RunEnvironment | null>(null);

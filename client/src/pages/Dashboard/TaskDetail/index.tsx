@@ -15,11 +15,10 @@ import {
   fetchTaskExecutions,
   itemsPerPageOptions,
   makeEmptyResultsPage,
-  ResultsPage,
   updateTask
 } from '../../../utils/api';
 
-import { getParams, setURL } from '../../../utils/url_search';
+import { transformSearchParams, updateSearchParams } from '../../../utils/url_search';
 
 import {
   catchableToString,
@@ -27,8 +26,8 @@ import {
   stopTaskExecution
 } from '../../../utils';
 
-import React, { Fragment, useCallback, useContext, useEffect, useState } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
+import React, { Fragment, useContext, useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { Alert } from 'react-bootstrap';
 
@@ -68,20 +67,6 @@ type PathParamsType = {
 
 type Props = AbortSignalProps;
 
-interface State {
-  isLoading: boolean;
-  taskExecutionsPage: ResultsPage<TaskExecution>;
-  shouldShowConfigModal: boolean;
-  task?: TaskImpl;
-  runEnvironment?: RunEnvironment,
-  interval?: any;
-  isStarting: boolean;
-  stoppingTaskExecutionUuids: Set<string>;
-  lastErrorMessage: string | null;
-  selectedTab: string;
-  flashAlertVariant?: BootstrapVariant;
-}
-
 const TaskDetail = ({
   abortSignal
 }: Props) => {
@@ -101,11 +86,17 @@ const TaskDetail = ({
   const [selfInterval, setSelfInterval] = useState<any>(null);
 
   const context = useContext(GlobalContext);
-  const history = useHistory();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const {
     uuid
   }  = useParams<PathParamsType>();
+
+  if (!uuid) {
+    return <div>Invalid UUID</div>;
+  }
 
   const handleActionRequested = async (action: string | undefined, cbData: any): Promise<void> => {
     if (!task) {
@@ -165,10 +156,15 @@ const TaskDetail = ({
   };
 
   const loadTask = async () => {
+    if (task) {
+      return;
+    }
+
     setLoading(false); // CHECKME
     setLastErrorMessage(null);
 
     try {
+      // TODO: omit the latest task execution
       const fetchedTask = await fetchTask(uuid, abortSignal);
 
       setTask(fetchedTask);
@@ -186,7 +182,7 @@ const TaskDetail = ({
   };
 
   const loadRunEnvironment = async (t: TaskImpl) => {
-    if (!t) {
+    if (!t || runEnvironment) {
       return;
     }
 
@@ -201,8 +197,7 @@ const TaskDetail = ({
   }
 
   const handleSort = async (sortBy: string) => {
-    setURL(history.location, history, sortBy, 'sort_by');
-    await loadTaskExecutions();
+    updateSearchParams(searchParams, setSearchParams, sortBy, 'sort_by');
   }
 
   const loadTaskExecutions = async () => {
@@ -211,7 +206,7 @@ const TaskDetail = ({
       descending,
       rowsPerPage,
       currentPage,
-    } = getParams(history.location.search);
+    } = transformSearchParams(searchParams);
 
     const offset = currentPage * rowsPerPage;
 
@@ -236,16 +231,14 @@ const TaskDetail = ({
   }
 
   const handlePageChanged = (updatedCurrentPage: number) => {
-    setURL(history.location, history, updatedCurrentPage + 1, 'page');
-    loadTaskExecutions();
+    updateSearchParams(searchParams, setSearchParams, updatedCurrentPage + 1, 'page');
   };
 
   const handleSelectItemsPerPage = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const rowsPerPage = parseInt(event.target.value);
-    setURL(history.location, history, rowsPerPage, 'rows_per_page');
-    loadTaskExecutions();
+    updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'rows_per_page');
   };
 
   const handleCloseConfigModal = () => {
@@ -263,7 +256,7 @@ const TaskDetail = ({
       setLastErrorMessage('Updated Task settings');
       setTask(updatedTask);
 
-      history.push("#", { item: updatedTask })
+      navigate("#", { state: { item: updatedTask }})
     } catch (err) {
       if (isCancel(err)) {
         console.log("Request canceled: " + err.message);
@@ -300,7 +293,7 @@ const TaskDetail = ({
         clearInterval(selfInterval);
       }
     };
-  }, []);
+  }, [location]);
 
   if (isLoading) {
     return <div>Loading ...</div>
@@ -381,7 +374,7 @@ const TaskDetail = ({
                   descending,
                   rowsPerPage,
                   currentPage,
-                } = getParams(history.location.search);
+                } = transformSearchParams(searchParams);
 
                 switch (selectedTab) {
                   case 'settings':
@@ -392,7 +385,7 @@ const TaskDetail = ({
                     return (
                       (taskExecutionsPage.count > 0) ? (
                         <Fragment>
-                          <Charts task={task} history={history} />
+                          <Charts task={task} history={navigate} />
                           <h2 className="mt-5">Executions</h2>
 
                           <DefaultPagination

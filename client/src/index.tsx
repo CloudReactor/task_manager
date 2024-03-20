@@ -1,6 +1,10 @@
 import React from 'react';
 import { render } from 'react-dom';
-import { BrowserRouter } from 'react-router-dom';
+
+import {
+  createBrowserRouter,
+  RouterProvider
+} from 'react-router-dom';
 
 import App from './App';
 
@@ -35,13 +39,20 @@ const darkTheme = createTheme({
   },
 });
 
+const router = createBrowserRouter([
+  {
+    path: "*",
+    element: (
+      <MuiThemeProvider theme={darkTheme}>
+        <CssBaseline />
+        <App />
+      </MuiThemeProvider>
+    )
+  }
+]);
+
 render(
-  <BrowserRouter>
-    <MuiThemeProvider theme={darkTheme}>
-      <CssBaseline />
-      <App />
-    </MuiThemeProvider>
-  </BrowserRouter>,
+  <RouterProvider router={router} />,
   document.getElementById('root')
 );
 
