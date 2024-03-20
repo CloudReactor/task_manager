@@ -3,7 +3,7 @@ beautifulsoup4>=4.12.3,<5.0.0
 boto3>=1.34.34,<2.0.0
 cloudreactor-procwrapper[allextras]>=5.3.2,<6.0.0
 crontab>=0.23.0,<1.0.0 # https://github.com/josiahcarlson/parse-crontab
-cryptography==42.0.2
+cryptography==42.0.4
 Django>=3.2.23,<4.0.0
 django-anymail[amazon_ses]>=8.6,<9.0  # https://github.com/anymail/django-anymail
 django-cors-headers>=4.3.1,<5.0.0
