@@ -64,6 +64,19 @@ class TaskExecutionFilter(filters.FilterSet):
         model = TaskExecution
         fields = ['task__uuid', 'task__created_by_group__id']
 
+    @property
+    def qs(self):
+        rv = super().qs
+
+        status_list_str = self.request.query_params.get('status__in')
+
+        if status_list_str:
+            status_strings = status_list_str.split(',')
+            statuses = [TaskExecution.Status[s.upper()].value for s in status_strings]
+            rv = rv.filter(status__in=statuses)
+
+        return rv
+
 
 class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
         AtomicDestroyModelMixin, BaseViewSet):

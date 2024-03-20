@@ -157,7 +157,7 @@ const TaskDetail = ({
 
   const loadTask = async () => {
     if (task) {
-      return;
+      return task;
     }
 
     setLoading(false); // CHECKME
@@ -202,11 +202,12 @@ const TaskDetail = ({
 
   const loadTaskExecutions = async () => {
     const {
+      selectedStatuses,
       sortBy,
       descending,
       rowsPerPage,
       currentPage,
-    } = transformSearchParams(searchParams);
+    } = transformSearchParams(searchParams, false, true);
 
     const offset = currentPage * rowsPerPage;
 
@@ -216,6 +217,7 @@ const TaskDetail = ({
     try {
       const taskExecutionsPage = await fetchTaskExecutions({
         taskUuid: uuid,
+        statuses: selectedStatuses,
         sortBy: finalSortBy,
         descending: finalDescending,
         offset,
@@ -225,9 +227,17 @@ const TaskDetail = ({
 
       setTaskExecutionsPage(taskExecutionsPage);
     } catch (error) {
-      // TODO: show alert
+      if (isCancel(error)) {
+        console.log('Request canceled: ' + error.message);
+        return;
+      }
+
       console.log(error);
     }
+  }
+
+  const handleSelectedStatusesChanged = (statuses?: string[]) => {
+    updateSearchParams(searchParams, setSearchParams, statuses, 'status');
   }
 
   const handlePageChanged = (updatedCurrentPage: number) => {
@@ -370,11 +380,12 @@ const TaskDetail = ({
             <div>
               {(() => {
                 const {
+                  selectedStatuses,
                   sortBy,
                   descending,
                   rowsPerPage,
                   currentPage,
-                } = transformSearchParams(searchParams);
+                } = transformSearchParams(searchParams, false, true);
 
                 switch (selectedTab) {
                   case 'settings':
@@ -383,43 +394,37 @@ const TaskDetail = ({
                     return <TaskNotificationMethods task={task} editTask={editTask} />;
                   default:
                     return (
-                      (taskExecutionsPage.count > 0) ? (
-                        <Fragment>
-                          <Charts task={task} history={navigate} />
-                          <h2 className="mt-5">Executions</h2>
-
-                          <DefaultPagination
-                            currentPage={currentPage}
-                            pageSize={rowsPerPage}
-                            count={taskExecutionsPage.count}
-                            handleClick={handlePageChanged}
-                            handleSelectItemsPerPage={handleSelectItemsPerPage}
-                            itemsPerPageOptions={itemsPerPageOptions}
-                          />
-                          <TaskExecutionTable
-                            taskExecutions={taskExecutionsPage.results}
-                            task={task}
-                            onStopRequested={handleActionRequested}
-                            stoppingTaskExecutionUuids={stoppingTaskExecutionUuids}
-                            handleSort={handleSort}
-                            sortBy={sortBy}
-                            descending={descending}
-                          />
-                          <TablePagination
-                            component="div"
-                            labelRowsPerPage="Showing"
-                            count={taskExecutionsPage.count}
-                            rowsPerPage={rowsPerPage}
-                            page={currentPage}
-                            onPageChange={(event) => null}
-                          />
-                        </Fragment>
-                      ) : (
-                        <h2 className="my-5 text-center">
-                          This Task has not run yet. When it does, you&apos;ll be able to see
-                          a table of past Task Executions here.
-                        </h2>
-                      )
+                      <Fragment>
+                        <Charts task={task} history={navigate} />
+                        <h2 className="mt-5">Executions</h2>
+                        <DefaultPagination
+                          currentPage={currentPage}
+                          pageSize={rowsPerPage}
+                          count={taskExecutionsPage.count}
+                          handleClick={handlePageChanged}
+                          handleSelectItemsPerPage={handleSelectItemsPerPage}
+                          itemsPerPageOptions={itemsPerPageOptions}
+                        />
+                        <TaskExecutionTable
+                          taskExecutions={taskExecutionsPage.results}
+                          task={task}
+                          onStopRequested={handleActionRequested}
+                          stoppingTaskExecutionUuids={stoppingTaskExecutionUuids}
+                          selectedStatuses={selectedStatuses}
+                          handleSelectedStatusesChanged={handleSelectedStatusesChanged}
+                          handleSort={handleSort}
+                          sortBy={sortBy}
+                          descending={descending}
+                        />
+                        <TablePagination
+                          component="div"
+                          labelRowsPerPage="Showing"
+                          count={taskExecutionsPage.count}
+                          rowsPerPage={rowsPerPage}
+                          page={currentPage}
+                          onPageChange={(event) => null}
+                        />
+                      </Fragment>
                     );
                 }
               })()}

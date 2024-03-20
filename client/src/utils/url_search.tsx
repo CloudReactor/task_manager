@@ -13,22 +13,29 @@ interface PageFetchOptions {
 }
 
 export const transformSearchParams = (searchParams: URLSearchParams,
-    forWorkflows: boolean = false): PageFetchOptions => {
+    forWorkflows: boolean = false,
+    forExecutions: boolean = false): PageFetchOptions => {
   const descendingStr = searchParams.get('descending');
   const sortBy = searchParams.get('sort_by');
 
   const descending = descendingStr ? (descendingStr === 'true') :
     (sortBy ? false : undefined);
 
-  const selectedStatusesParamValue = searchParams.get(
-    forWorkflows ? 'latest_workflow_execution__status' :
-    'latest_task_execution__status');
+  let statusParamName = 'status';
+
+  if (!forExecutions) {
+    statusParamName = 'latest_' + (forWorkflows ? 'workflow' : 'task') + '_execution__' + statusParamName;
+  }
+
+  const selectedStatusesParamValue = searchParams.get(statusParamName);
 
   let selectedStatuses: string[] | undefined;
 
   if (selectedStatusesParamValue) {
     selectedStatuses = selectedStatusesParamValue.split(',');
   }
+
+  console.log(`statusParamName: ${statusParamName}, selectedStatuses: ${selectedStatuses}`);
 
   let selectedRunEnvironmentUuids: string[] | undefined;
 

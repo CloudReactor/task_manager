@@ -608,22 +608,31 @@ export async function updateTask(uuid: string, data: any,
 export interface TaskExecutionPageFetchOptions
 extends PageFetchWithGroupIdAndRunEnvironmentOptions {
   taskUuid?: string;
+  statuses?: string[];
 }
 
 export async function fetchTaskExecutions(opts?: TaskExecutionPageFetchOptions): Promise<ResultsPage<TaskExecution>> {
   opts = opts ?? {};
 
   const {
+    taskUuid,
+    statuses,
     abortSignal
   } = opts;
 
   const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
 
-  if (opts.taskUuid) {
-    params.task__uuid = opts.taskUuid;
+  if (taskUuid) {
+    params.task__uuid = taskUuid;
+  }
+
+  if (statuses) {
+    params['status__in'] = statuses.join(',');
   }
 
   params['omit'] = 'debug_log_tail,environment_variables_overrides,execution_method,execution_method_details,infrastructure_settings';
+
+  console.log('fetchTaskExecutions', params);
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/task_executions/', {
