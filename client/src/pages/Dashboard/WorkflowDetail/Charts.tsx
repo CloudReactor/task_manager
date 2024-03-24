@@ -68,14 +68,14 @@ const Charts = (props: Props & AbortSignalProps) => {
 
   const loadWorkflowExecutions = async () => {
     try {
-      const workflowExecutionsData = await fetchWorkflowExecutionSummaries(
-        uuid,
-        'started_at',
-        true,
-        0,
-        executionCount ?? DEFAULT_EXECUTION_COUNT,
-        abortSignal,
-      );
+      const workflowExecutionsData = await fetchWorkflowExecutionSummaries({
+        workflowUuid: uuid,
+        sortBy: 'started_at',
+        descending: true,
+        offset: 0,
+        maxResults: executionCount ?? DEFAULT_EXECUTION_COUNT,
+        abortSignal
+      });
       setWeSummaries(workflowExecutionsData.results.reverse());
     } catch (error) {
       if (!isCancel(error)) {

@@ -372,32 +372,33 @@ export async function cloneWorkflow(uuid: string, attributes: any,
   return response.data as Workflow;
 }
 
+export interface WorkflowExecutionPageFetchOptions
+extends PageFetchWithGroupIdAndRunEnvironmentOptions {
+  workflowUuid?: string;
+  statuses?: string[];
+}
+
+
+
 export async function fetchWorkflowExecutionSummaries(
-  workflowUuid?: string,
-  sortBy?: string,
-  descending?: boolean,
-  offset?: number,
-  maxResults?: number,
-  abortSignal?: AbortSignal
+  opts?: WorkflowExecutionPageFetchOptions
 ) : Promise<ResultsPage<WorkflowExecutionSummary>> {
+  opts = opts ?? {};
 
-  //debugger;
+  const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
 
-  descending = descending || false;
-  offset = offset || 0;
-  maxResults = maxResults ?? UIC.DEFAULT_PAGE_SIZE;
-
-  let ordering = sortBy || 'started_at';
-  ordering = descending ? `-${ordering}` : ordering;
-
-  const params: any = {
-    ordering,
-    offset,
-    limit: maxResults
-  }
+  const {
+    workflowUuid,
+    statuses,
+    abortSignal
+  } = opts;
 
   if (workflowUuid) {
     params.workflow__uuid = workflowUuid;
+  }
+
+  if (statuses) {
+    params['status__in'] = statuses.join(',');
   }
 
   const response = await makeAuthenticatedClient().get('api/v1/workflow_executions/', {

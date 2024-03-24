@@ -35,8 +35,6 @@ export const transformSearchParams = (searchParams: URLSearchParams,
     selectedStatuses = selectedStatusesParamValue.split(',');
   }
 
-  console.log(`statusParamName: ${statusParamName}, selectedStatuses: ${selectedStatuses}`);
-
   let selectedRunEnvironmentUuids: string[] | undefined;
 
   const selectedRunEnvironmentUuidsParamValue = searchParams.get('run_environment__uuid');

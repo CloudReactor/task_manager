@@ -3,13 +3,14 @@ import _ from 'lodash';
 import { transformSearchParams, updateSearchParams } from '../../utils/url_search';
 import { catchableToString, colorPicker, timeDuration, timeFormat } from '../../utils';
 
-import React, { useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
 
 import {
+  Form,
   Table
 } from 'react-bootstrap';
 
@@ -33,8 +34,12 @@ import ActionButton from '../../components/common/ActionButton';
 
 import { TableColumnInfo } from "../../types/ui_types";
 
-import Status from '../Status/Status'
-import {WORKFLOW_EXECUTION_STATUS_RUNNING} from '../../utils/constants';
+import Status from '../Status/Status';
+import StatusFilter from "../../components/common/StatusFilter/StatusFilter";
+
+import {
+  WORKFLOW_EXECUTION_STATUS_RUNNING
+} from '../../utils/constants';
 import "../../styles/tableStyles.scss";
 
 const WORKFLOW_EXECUTION_COLUMNS: TableColumnInfo[] = [
@@ -74,23 +79,35 @@ const WorkflowExecutionsTable = ({
 
   const loadWorkflowExecutions = async () => {
     const {
+      selectedStatuses,
       sortBy,
       descending,
       rowsPerPage,
       currentPage,
-    } = transformSearchParams(searchParams, true);
+    } = transformSearchParams(searchParams, true, true);
 
     const offset = currentPage * rowsPerPage;
 
     try {
-      const updatedWorkflowExecutionsPage = await fetchWorkflowExecutionSummaries(workflow.uuid, sortBy,
-        (sortBy ? descending : true), offset, rowsPerPage, abortSignal);
+      const updatedWorkflowExecutionsPage = await fetchWorkflowExecutionSummaries({
+        workflowUuid: workflow.uuid,
+        statuses: selectedStatuses,
+        sortBy,
+        descending: (sortBy ? descending : true),
+        offset,
+        maxResults: rowsPerPage,
+        abortSignal
+      });
 
       setWorkflowExecutionsPage(updatedWorkflowExecutionsPage);
     } catch (err) {
 
       onActionError('loadWorkflowExecutions', workflow, catchableToString(err));
     }
+  };
+
+  const handleSelectedStatusesChanged = (statuses?: string[]) => {
+    updateSearchParams(searchParams, setSearchParams, statuses, 'status');
   };
 
   const handlePageChanged = (currentPage: number) => {
@@ -192,118 +209,141 @@ const WorkflowExecutionsTable = ({
     };
   }, [location]);
 
-  if (workflowExecutionsPage.results.length === 0) {
-    return <div>This Workflow has not run yet.</div>
-  }
-
   const {
+    selectedStatuses,
     sortBy,
     descending,
     rowsPerPage,
     currentPage,
-  } = transformSearchParams(searchParams, true);
+  } = transformSearchParams(searchParams, true, true);
 
   return (
-    <div>
-      <DefaultPagination
-        currentPage={currentPage}
-        pageSize={rowsPerPage}
-        count={workflowExecutionsPage.count}
-        handleClick={handlePageChanged}
-        handleSelectItemsPerPage={handleSelectItemsPerPage}
-        itemsPerPageOptions={itemsPerPageOptions}
-      />
-      <Table striped bordered responsive hover size="sm">
-        <thead>
-          <tr>
-            {WORKFLOW_EXECUTION_COLUMNS.map(
-              (item: TableColumnInfo) => (
-                <th
-                  key={item.name}
-                  onClick={item.ordering ? async () => {
-                    updateSearchParams(searchParams, setSearchParams, item.ordering, 'sort_by');
-                  } : undefined
-                }
-                  className={'th-header' + (item.textAlign ? ` ${item.textAlign}`: '')}
-                >
-                  {item.name}
-                  {
-                    (sortBy === item.ordering) &&
-                    <span>
-                      &nbsp;
-                      <i className={'fas fa-arrow-' + (descending ?  'down' : 'up')} />
-                    </span>
+    <Fragment key="workflowExecutionsTable">
+      <Form inline>
+        <Form.Group key="statusFilter">
+          <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
+          <StatusFilter selectedStatuses={selectedStatuses}
+            handleSelectedStatusesChanged={handleSelectedStatusesChanged}
+            forWorkflows={true} />
+        </Form.Group>
+      </Form>
+      {
+        (workflowExecutionsPage?.results?.length === 0) ? (
+          selectedStatuses ? (
+            <p className="my-5">
+              No Workflow Executions with the selected status(es) found.
+              Try selecting different status(es) or removing the filter.
+            </p>
+          ) : (
+            <h2 className="my-5 text-center">
+              This Workflow has not run yet. When it does, you&apos;ll be able to see
+              a table of past Workflow Executions here.
+            </h2>
+          )
+        ) : (
+          <Fragment>
+            <DefaultPagination
+              currentPage={currentPage}
+              pageSize={rowsPerPage}
+              count={workflowExecutionsPage.count}
+              handleClick={handlePageChanged}
+              handleSelectItemsPerPage={handleSelectItemsPerPage}
+              itemsPerPageOptions={itemsPerPageOptions}
+            />
+            <Table striped bordered responsive hover size="sm">
+              <thead>
+                <tr>
+                  {WORKFLOW_EXECUTION_COLUMNS.map(
+                    (item: TableColumnInfo) => (
+                      <th
+                        key={item.name}
+                        onClick={item.ordering ? async () => {
+                          updateSearchParams(searchParams, setSearchParams, item.ordering, 'sort_by');
+                        } : undefined
+                      }
+                        className={'th-header' + (item.textAlign ? ` ${item.textAlign}`: '')}
+                      >
+                        {item.name}
+                        {
+                          (sortBy === item.ordering) &&
+                          <span>
+                            &nbsp;
+                            <i className={'fas fa-arrow-' + (descending ?  'down' : 'up')} />
+                          </span>
 
-                  }
-                </th>
-              )
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {workflowExecutionsPage.results.map(
-            (
-              we: WorkflowExecutionSummary,
-              index: number
-            ) => {
-              // isService: TODO
-              const colors = colorPicker(we.status, false, workflow.enabled);
-              const pushToDetailPage = () => navigate(`/workflow_executions/${we.uuid}`, { state: { we } });
-              return (
-                <tr key={index} className="custom_status_bg">
-                  <td onClick={pushToDetailPage}>
-                    {we.started_at ? timeFormat(we.started_at) : "Never started"}
-                  </td>
-                  <td onClick={pushToDetailPage}>
-                    {we.finished_at ? timeFormat(we.finished_at) : "Not finished"}
-                  </td>
-                  <td onClick={pushToDetailPage}>
-                    {timeDuration(we.started_at, we.finished_at)}
-                  </td>
-                  <td className={colors} onClick={pushToDetailPage}>
-                    {we
-                      ? <Status enabled={true} isService={false} status={we.status}
-                         forExecutionDetail={true} />
-                      : null}
-                  </td>
-                  <td className="text-right" onClick={pushToDetailPage}>
-                    {we.failed_attempts}
-                  </td>
-                  <td className="text-right" onClick={pushToDetailPage}>
-                    {we.timed_out_attempts}
-                  </td>
-                  <td>
-                    <ActionButton cbData={we} onActionRequested={handleActionRequested}
-                      action="stop" faIconName="stop" label="Stop"
-                      inProgress={workflowExecutionUuidsPendingStop.indexOf(we.uuid) >= 0}
-                      inProgressLabel="Stopping ..."
-                      disabled={we.status !== C.WORKFLOW_EXECUTION_STATUS_RUNNING} />
-
-                    <ActionButton cbData={we} action="retry" faIconName="redo" label="Retry"
-                      onActionRequested={handleActionRequested}
-                      inProgress={workflowExecutionUuidsPendingRetry.indexOf(we.uuid) >= 0}
-                      inProgressLabel="Retrying ..."
-                      disabled={!we || (we.status === WORKFLOW_EXECUTION_STATUS_RUNNING)} />
-                  </td>
+                        }
+                      </th>
+                    )
+                  )}
                 </tr>
-              );
-            }
-          )}
-        </tbody>
-      </Table>
-      <div className="d-flex justify-content-between align-items-center">
-        <TablePagination
-          component="div"
-          labelRowsPerPage="Showing "
-          count={workflowExecutionsPage.count}
-          rowsPerPage={rowsPerPage}
-          page={currentPage}
-          onPageChange={handlePageChangeEvent}
-          onRowsPerPageChange={handleRowsPerChangeEvent}
-          rowsPerPageOptions={[25, 50, 100]}
-        />
-      </div>
-    </div>
+              </thead>
+              <tbody>
+                {workflowExecutionsPage.results.map(
+                  (
+                    we: WorkflowExecutionSummary,
+                    index: number
+                  ) => {
+                    // isService: TODO
+                    const colors = colorPicker(we.status, false, workflow.enabled);
+                    const pushToDetailPage = () => navigate(`/workflow_executions/${we.uuid}`, { state: { we } });
+                    return (
+                      <tr key={index} className="custom_status_bg">
+                        <td onClick={pushToDetailPage}>
+                          {we.started_at ? timeFormat(we.started_at) : "Never started"}
+                        </td>
+                        <td onClick={pushToDetailPage}>
+                          {we.finished_at ? timeFormat(we.finished_at) : "Not finished"}
+                        </td>
+                        <td onClick={pushToDetailPage}>
+                          {timeDuration(we.started_at, we.finished_at)}
+                        </td>
+                        <td className={colors} onClick={pushToDetailPage}>
+                          {we
+                            ? <Status enabled={true} isService={false} status={we.status}
+                              forExecutionDetail={true} />
+                            : null}
+                        </td>
+                        <td className="text-right" onClick={pushToDetailPage}>
+                          {we.failed_attempts}
+                        </td>
+                        <td className="text-right" onClick={pushToDetailPage}>
+                          {we.timed_out_attempts}
+                        </td>
+                        <td>
+                          <ActionButton cbData={we} onActionRequested={handleActionRequested}
+                            action="stop" faIconName="stop" label="Stop"
+                            inProgress={workflowExecutionUuidsPendingStop.indexOf(we.uuid) >= 0}
+                            inProgressLabel="Stopping ..."
+                            disabled={we.status !== C.WORKFLOW_EXECUTION_STATUS_RUNNING} />
+
+                          <ActionButton cbData={we} action="retry" faIconName="redo" label="Retry"
+                            onActionRequested={handleActionRequested}
+                            inProgress={workflowExecutionUuidsPendingRetry.indexOf(we.uuid) >= 0}
+                            inProgressLabel="Retrying ..."
+                            disabled={!we || (we.status === WORKFLOW_EXECUTION_STATUS_RUNNING)} />
+                        </td>
+                      </tr>
+                    );
+                  }
+                )}
+              </tbody>
+            </Table>
+            <div className="d-flex justify-content-between align-items-center">
+              <TablePagination
+                component="div"
+                labelRowsPerPage="Showing "
+                count={workflowExecutionsPage.count}
+                rowsPerPage={rowsPerPage}
+                page={currentPage}
+                onPageChange={handlePageChangeEvent}
+                onRowsPerPageChange={handleRowsPerChangeEvent}
+                rowsPerPageOptions={[25, 50, 100]}
+              />
+            </div>
+          </Fragment>
+        )
+      }
+    </Fragment>
   );
 }
 
