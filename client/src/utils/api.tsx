@@ -633,8 +633,6 @@ export async function fetchTaskExecutions(opts?: TaskExecutionPageFetchOptions):
 
   params['omit'] = 'debug_log_tail,environment_variables_overrides,execution_method,execution_method_details,infrastructure_settings';
 
-  console.log('fetchTaskExecutions', params);
-
   const response = await makeAuthenticatedClient().get(
     'api/v1/task_executions/', {
       signal: abortSignal,

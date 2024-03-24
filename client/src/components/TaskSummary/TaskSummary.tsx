@@ -1,10 +1,16 @@
+import { Task } from "../../types/domain_types";
+
 import React from 'react';
 import { Link } from "react-router-dom";
-import { Task } from "../../types/domain_types";
+
+import { Button } from 'react-bootstrap'
+import CopyToClipboard from 'react-copy-to-clipboard';
+
 import styles from './TaskSummary.module.scss';
 
-function createData(name: string, data: any, isUrl: boolean = false, urlLabel: string = '') {
-  return { name, data, isUrl, urlLabel };
+function createData(name: string, data: any, isUrl: boolean = false,
+    urlLabel: string = '', addCopyButton: boolean = false) {
+  return { name, data, isUrl, urlLabel, addCopyButton };
 }
 
 interface Props {
@@ -28,7 +34,7 @@ const TaskSummary = ({ task }: Props) => {
 
   if (task.logs_url) {
     // TODO: add clipboad copy button
-    rows.push(createData('Log query', task.logs_url, true, task.log_query));
+    rows.push(createData('Log query', task.logs_url, true, task.log_query, true));
   }
 
   return (
@@ -47,6 +53,18 @@ const TaskSummary = ({ task }: Props) => {
                       : <Link to={row.data}>{row.urlLabel || row.data}</Link>
                   ) : row.data
                 }
+                {
+                  row.addCopyButton && (
+                    <CopyToClipboard text={row.urlLabel || row.data}>
+                      <Button size="sm" variant="outline-secondary"
+                       className={styles.copyButton}>
+                        <i className="fas fa-clipboard"/>
+                      </Button>
+                    </CopyToClipboard>
+                  )
+                }
+
+
               </div>
             );
           }
