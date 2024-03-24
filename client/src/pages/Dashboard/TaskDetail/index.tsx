@@ -174,7 +174,9 @@ const TaskDetail = ({
 
       return fetchedTask;
     } catch (err) {
-      setLastErrorMessage('Failed to load Task. It may have been removed previously.');
+      if (!isCancel(err)) {
+        setLastErrorMessage('Failed to load Task. It may have been removed previously.');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -191,8 +193,10 @@ const TaskDetail = ({
         t.run_environment.uuid, abortSignal);
       setRunEnvironment(runEnvironment);
     } catch (err) {
-      setFlashAlertVariant('danger');
-      setLastErrorMessage('Failed to load Run Environment.');
+      if (!isCancel(err)) {
+        setFlashAlertVariant('danger');
+        setLastErrorMessage('Failed to load Run Environment.');
+      }
     }
   }
 
@@ -227,12 +231,9 @@ const TaskDetail = ({
 
       setTaskExecutionsPage(taskExecutionsPage);
     } catch (error) {
-      if (isCancel(error)) {
-        console.log('Request canceled: ' + error.message);
-        return;
+      if (!isCancel(error)) {
+        console.log(error);
       }
-
-      console.log(error);
     }
   }
 
@@ -269,7 +270,6 @@ const TaskDetail = ({
       navigate("#", { state: { item: updatedTask }})
     } catch (err) {
       if (isCancel(err)) {
-        console.log("Request canceled: " + err.message);
         return;
       }
 
@@ -395,8 +395,8 @@ const TaskDetail = ({
                   default:
                     return (
                       <Fragment>
-                        <Charts task={task} history={navigate} />
-                        <h2 className="mt-5">Executions</h2>
+                        <Charts task={task} />
+                        <h2 className="my-4">Executions</h2>
                         <DefaultPagination
                           currentPage={currentPage}
                           pageSize={rowsPerPage}
@@ -416,14 +416,18 @@ const TaskDetail = ({
                           sortBy={sortBy}
                           descending={descending}
                         />
-                        <TablePagination
-                          component="div"
-                          labelRowsPerPage="Showing"
-                          count={taskExecutionsPage.count}
-                          rowsPerPage={rowsPerPage}
-                          page={currentPage}
-                          onPageChange={(event) => null}
-                        />
+                        {
+                          (taskExecutionsPage.count > 0) && (
+                            <TablePagination
+                              component="div"
+                              labelRowsPerPage="Showing"
+                              count={taskExecutionsPage.count}
+                              rowsPerPage={rowsPerPage}
+                              page={currentPage}
+                              onPageChange={(event) => null}
+                            />
+                          )
+                        }
                       </Fragment>
                     );
                 }
