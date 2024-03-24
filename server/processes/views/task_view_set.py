@@ -4,7 +4,6 @@ from django.db.models import Case, F, Prefetch, Q, When
 
 from django.contrib.auth.models import User
 
-from django_filters import CharFilter
 from django_filters import rest_framework as filters
 
 from processes.models import Task, TaskExecution, RunEnvironment, AlertMethod
@@ -24,7 +23,7 @@ class TaskFilter(filters.FilterSet):
         model = Task
         fields = {
             'name': ['exact'],
-            'description': ['exact'],
+            'enabled': ['exact'],
             'passive': ['exact'],
             'run_environment__uuid': ['exact', 'in'],
         }
@@ -72,7 +71,7 @@ class TaskViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
 
     def get_queryset(self):
         omitted = (self.request.query_params.get('omit') or '').split(',')
-        run_environment_qs = RunEnvironment.objects.only('uuid', 'name', 'aws_default_region')
+        run_environment_qs = RunEnvironment.objects.only('uuid', 'name')
         user_qs = User.objects.only('username')
 
         qs = super().get_queryset().select_related('latest_task_execution__started_by',

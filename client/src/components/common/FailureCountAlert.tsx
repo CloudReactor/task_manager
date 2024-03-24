@@ -16,7 +16,8 @@ const FailureCountAlert = (p: Props) =>
   p.count ? (
     <Container fluid style={{ padding: 0}}>
     	<Alert variant="danger">
-        {p.count} { pluralize (p.itemName, p.count)} { pluralize ('has', p.count)} failed or timed out -- see below for further details
+        {p.count} { pluralize (p.itemName, p.count)} { pluralize ('has', p.count)}
+        &nbsp;failed, timed out, or become unresponsive
     	</Alert>
     </Container>
   ) : null;

@@ -1,10 +1,9 @@
 import { AxiosError, isCancel } from 'axios';
 
 import { exceptionToErrorMessages, makeAuthenticatedClient } from '../../../axios_config';
-import * as C from '../../../utils/constants';
 import * as utils from '../../../utils';
 import * as api from '../../../utils/api';
-import { fetchTasks, updateTask } from '../../../utils/api'
+import { fetchTasks, fetchTasksInErrorCount, updateTask } from '../../../utils/api'
 import { TaskImpl, RunEnvironment } from '../../../types/domain_types';
 
 import React, {Fragment, useCallback, useContext, useEffect, useState } from 'react';
@@ -36,6 +35,7 @@ const TaskList = ({
   const [areTasksLoading, setAreTasksLoading] = useState(true);
   const [areRunEnvironmentsLoading, setAreRunEnvironmentsLoading] = useState(false);
   const [taskPage, setTaskPage] = useState(api.makeEmptyResultsPage<TaskImpl>());
+  const [failedTaskCount, setFailedTaskCount] = useState(0);
   const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
   const [task, setTask] = useState<TaskImpl | null>(null);
   const [selfInterval, setSelfInterval] = useState<any>(null);
@@ -65,6 +65,30 @@ const TaskList = ({
       setAreRunEnvironmentsLoading(false);
     }
   }, []);
+
+  const loadFailedTasksCount = async () => {
+    const {
+      q,
+      selectedRunEnvironmentUuids,
+      selectedStatuses
+    } = transformSearchParams(searchParams);
+
+    try {
+      setFailedTaskCount(await fetchTasksInErrorCount({
+        groupId: currentGroup?.id,
+        q,
+        runEnvironmentUuids: selectedRunEnvironmentUuids,
+        statuses: selectedStatuses,
+        abortSignal
+      }));
+    } catch (error) {
+      if (!isCancel(error)) {
+        //console.('Request canceled: ' + error.message);
+        return;
+      }
+    }
+  };
+
 
   const loadTasks = async () => {
     // This would cause the search input to lose focus, because it would be
@@ -98,9 +122,10 @@ const TaskList = ({
 
       setTaskPage(taskPage);
       setAreTasksLoading(false);
+
+      await loadFailedTasksCount();
     } catch (error) {
       if (isCancel(error)) {
-        console.log('Request canceled: ' + error.message);
         return;
       }
 
@@ -228,19 +253,6 @@ const TaskList = ({
     updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
   };
 
-  const failedTaskCount = useCallback((tasks: TaskImpl[]): number => {
-    let count = 0;
-    tasks.forEach(task => {
-      if (task.enabled && task.latest_task_execution &&
-          (C.TASK_EXECUTION_STATUSES_WITH_PROBLEMS.indexOf(
-            (task.latest_task_execution as any).status) >= 0)) {
-        count += 1;
-      }
-    });
-
-    return count;
-  }, [location]);
-
   const handleDeletion = useCallback(async (task: TaskImpl) => {
     const modal = create(AsyncConfirmationModal);
 
@@ -356,7 +368,7 @@ const TaskList = ({
           ? (<Onboarding />)
           : (
               <div className={styles.container}>
-                <FailureCountAlert itemName="Task" count={failedTaskCount(taskPage.results)} />
+                <FailureCountAlert itemName="Task" count={failedTaskCount} />
 
                 {
                   lastErrorMessage &&

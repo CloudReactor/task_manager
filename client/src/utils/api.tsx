@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import {
   plainToInstance
 } from 'class-transformer';
@@ -90,9 +92,12 @@ function makePageFetchParams(pageFetchOptions?: PageFetchOptions,
   } = pageFetchOptions ?? {};
 
   const params: { [key: string]: any }  = {
-    offset,
     limit: maxResults
   };
+
+  if (offset) {
+    params.offset = '' + offset;
+  }
 
   if (q) {
     params.search = q;
@@ -147,12 +152,12 @@ function makePageFetchWithGroupAndScopedRunEnvironmentParams(pageFetchOptions?: 
 
 
 
-export const itemsPerPageOptions: Array<{ value: number; text: number }> = [
+export const itemsPerPageOptions: Array<{ value: number; text: string }> = [
   //For testing
-  // { value: 5, text: 5 },
-  { value: 25, text: 25 },
-  { value: 50, text: 50 },
-  { value: 100, text: 100 }
+  //{ value: 5, text: '5' },
+  { value: 25, text: '25' },
+  { value: 50, text: '50' },
+  { value: 100, text: '100' }
 ];
 
 export async function fetchCurrentUser(fetchOptions?: FetchOptions): Promise<User> {
@@ -544,6 +549,7 @@ export async function deleteNotificationMethod(uuid: string, abortSignal?: Abort
 }
 
 export interface TaskPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
+  enabled?: boolean;
   isService?: boolean;
   statuses?: string[];
   otherParams?: any;
@@ -558,6 +564,10 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
   } = opts;
 
   const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
+
+  if (opts.enabled !== undefined) {
+    params['enabled'] = '' + opts.enabled;
+  }
 
   if (opts.isService !== undefined) {
     params['is_service'] = '' + opts.isService;
@@ -585,6 +595,25 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     count: page.count,
     results: plainToInstance(TaskImpl, page.results)
   });
+}
+
+export async function fetchTasksInErrorCount(opts?: TaskPageFetchOptions): Promise<number> {
+  const optsCopy = { ... (opts ?? {}) } ;
+
+  optsCopy.statuses = optsCopy.statuses ? _.intersection(optsCopy.statuses,
+    C.TASK_EXECUTION_STATUSES_WITH_PROBLEMS) :
+    C.TASK_EXECUTION_STATUSES_WITH_PROBLEMS
+
+  if (optsCopy.statuses.length === 0) {
+    return 0;
+  }
+
+  optsCopy.enabled = optsCopy.enabled ?? true;
+  optsCopy.offset = 0;
+  optsCopy.maxResults = 0;
+
+  const taskPage = await fetchTasks(optsCopy);
+  return taskPage.count;
 }
 
 export async function fetchTask(uuid: string,
