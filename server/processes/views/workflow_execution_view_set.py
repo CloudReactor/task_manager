@@ -58,9 +58,6 @@ class WorkflowExecutionPermission(IsCreatedByGroup):
 
 
 class WorkflowExecutionFilter(filters.FilterSet):
-    workflow__uuid = CharFilter()
-    workflow__created_by_group__id = CharFilter()
-
     class Meta:
         model = WorkflowExecution
         fields = ['workflow__uuid', 'workflow__created_by_group__id']

@@ -57,9 +57,6 @@ class TaskExecutionPermission(IsCreatedByGroup):
 
 
 class TaskExecutionFilter(filters.FilterSet):
-    task__uuid = CharFilter()
-    task__created_by_group__id = NumberFilter()
-
     class Meta:
         model = TaskExecution
         fields = ['task__uuid', 'task__created_by_group__id']
