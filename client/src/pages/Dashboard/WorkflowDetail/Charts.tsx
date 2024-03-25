@@ -130,7 +130,7 @@ const Charts = (props: Props & AbortSignalProps) => {
               labels={runDurations.labels}
               data={runDurations.dataset}
               width={50}
-              graphName="Run duration (mins)"
+              graphName="Run duration (minutes)"
               colors={runDurations.colors}
               borderColors={runDurations.borderColors|| runDurations.colors}
               hoverBackgroundColor="#1ad61a91"

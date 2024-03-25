@@ -82,7 +82,7 @@ const TaskDetail = ({
   const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
   const [stoppingTaskExecutionUuids, setStoppingTaskExecutionUuids] =
     useState(new Set<string>());
-  const [selectedTab, setSelectedTab] = useState('overview');
+  const [selectedTab, setSelectedTab] = useState('executions');
   const [selfInterval, setSelfInterval] = useState<any>(null);
 
   const context = useContext(GlobalContext);
@@ -315,7 +315,7 @@ const TaskDetail = ({
   const isStartAllowed = !!accessLevel && (accessLevel >= C.ACCESS_LEVEL_TASK);
   const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
 
-  const navItems = ['Overview', 'Settings', 'Notification Methods'];
+  const navItems = ['Executions', 'Settings', 'Notification Methods'];
 
   return (
     <div className={styles.container}>
