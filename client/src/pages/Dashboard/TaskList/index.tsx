@@ -35,7 +35,7 @@ const TaskList = ({
   const [areTasksLoading, setAreTasksLoading] = useState(true);
   const [areRunEnvironmentsLoading, setAreRunEnvironmentsLoading] = useState(false);
   const [taskPage, setTaskPage] = useState(api.makeEmptyResultsPage<TaskImpl>());
-  const [failedTaskCount, setFailedTaskCount] = useState(0);
+  const [tasksInErrorCount, setTasksInErrorCount] = useState(0);
   const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
   const [task, setTask] = useState<TaskImpl | null>(null);
   const [selfInterval, setSelfInterval] = useState<any>(null);
@@ -66,7 +66,7 @@ const TaskList = ({
     }
   }, []);
 
-  const loadFailedTasksCount = async () => {
+  const loadTasksInErrorCount = async () => {
     const {
       q,
       selectedRunEnvironmentUuids,
@@ -74,7 +74,7 @@ const TaskList = ({
     } = transformSearchParams(searchParams);
 
     try {
-      setFailedTaskCount(await fetchTasksInErrorCount({
+      setTasksInErrorCount(await fetchTasksInErrorCount({
         groupId: currentGroup?.id,
         q,
         runEnvironmentUuids: selectedRunEnvironmentUuids,
@@ -88,7 +88,6 @@ const TaskList = ({
       }
     }
   };
-
 
   const loadTasks = async () => {
     // This would cause the search input to lose focus, because it would be
@@ -123,7 +122,7 @@ const TaskList = ({
       setTaskPage(taskPage);
       setAreTasksLoading(false);
 
-      await loadFailedTasksCount();
+      await loadTasksInErrorCount();
     } catch (error) {
       if (isCancel(error)) {
         return;
@@ -368,7 +367,7 @@ const TaskList = ({
           ? (<Onboarding />)
           : (
               <div className={styles.container}>
-                <FailureCountAlert itemName="Task" count={failedTaskCount} />
+                <FailureCountAlert itemName="Task" count={tasksInErrorCount} />
 
                 {
                   lastErrorMessage &&

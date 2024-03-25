@@ -95,7 +95,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
       return <div>Invalid UUID</div>;
     }
 
-    const history = useNavigate();
+    const navigate = useNavigate();
 
     const loadEntity = useCallback(async () => {
       setLoading(true);
@@ -158,17 +158,17 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
         setFlashBody(`${entityName} '${entity.name}' has been cloned.`);
         setFlashAlertVariant('info');
 
-        history(listPath + '/' + encodeURIComponent(cloned.uuid));
+        navigate(listPath + '/' + encodeURIComponent(cloned.uuid));
       } catch (ex) {
         setCloning(false);
         setFlashAlertVariant('danger')
         setFlashBody(makeErrorElement(ex));
       }
-    }, [entity, abortSignal, history])
+    }, [entity, abortSignal, navigate])
 
     const pushToListView = useCallback(() => {
-      history(listPath);
-    }, [history, listPath]);
+      navigate(listPath);
+    }, [navigate, listPath]);
 
     const handleDeletionConfirmed = useCallback(async () => {
       if (!entity) {

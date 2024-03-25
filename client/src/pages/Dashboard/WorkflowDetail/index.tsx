@@ -88,7 +88,7 @@ const WorkflowDetail = ({
   const [selfInterval, setSelfInterval] = useState<any>(null);
   const [selectedTab, setSelectedTab] = useState<string | null>('graph');
 
-  const history = useNavigate();
+  const navigate = useNavigate();
 
   const handleLatestWorkflowExecutionUpdated = (execution: WorkflowExecution | null) => {
     setWorkflowExecution(execution);
@@ -199,7 +199,7 @@ const WorkflowDetail = ({
     updateTitle(updatedWorkflow);
 
     if (!oldWorkflow?.uuid && updatedWorkflow.uuid) {
-      history('/workflows/' + encodeURIComponent(updatedWorkflow.uuid),
+      navigate('/workflows/' + encodeURIComponent(updatedWorkflow.uuid),
         { replace: true });
     }
   }
@@ -211,7 +211,7 @@ const WorkflowDetail = ({
         try {
           const startedExecution = await startWorkflowExecution(cbData.uuid,
             abortSignal);
-          history('/workflow_executions/' +
+          navigate('/workflow_executions/' +
               encodeURIComponent(startedExecution.uuid));
         } catch (err) {
           if (isCancel(err)) {
@@ -232,7 +232,7 @@ const WorkflowDetail = ({
         try {
           const workflowExecution = await retryWorkflowExecution(cbData.uuid,
             abortSignal);
-          history('/workflow_executions/' +
+          navigate('/workflow_executions/' +
               encodeURIComponent(workflowExecution.uuid));
         } catch (err) {
           if (isCancel(err)) {
@@ -284,7 +284,7 @@ const WorkflowDetail = ({
       setShouldShowCloneModal(false);
       setCloning(false);
       setCloneErrorMessage(null);
-      history('/workflows/' + encodeURIComponent(clonedWorkflow.uuid));
+      navigate('/workflows/' + encodeURIComponent(clonedWorkflow.uuid));
     } catch (err) {
         if (isCancel(err)) {
           console.log("Request canceled: " + err.message);
@@ -314,7 +314,7 @@ const WorkflowDetail = ({
 
     try {
       await deleteWorkflow(workflow.uuid);
-      history('/workflows', { replace: true });
+      navigate('/workflows', { replace: true });
     } catch (err) {
       if (isCancel(err)) {
         console.log("Request canceled: " + err.message);

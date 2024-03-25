@@ -96,7 +96,7 @@ export function makeEntityList<T>({
       document.title = `CloudReactor - ${pluralEntityName}`;
     }, []);
 
-    const history = useNavigate();
+    const navigate = useNavigate();
 
     makeAbortable(async (abortSignal) => {
       try {
@@ -126,7 +126,7 @@ export function makeEntityList<T>({
         return;
       }
 
-      history(location.pathname + `/${uuid}`);
+      navigate(location.pathname + `/${uuid}`);
     }
 
     const setOffsetAndPageQuery = (i: number)  => {
@@ -148,7 +148,7 @@ export function makeEntityList<T>({
         path += '?' + params.toString();
       }
 
-      history(path, { replace: true });
+      navigate(path, { replace: true });
     }
 
     const goToFirstPage = () => {
