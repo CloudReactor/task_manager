@@ -316,6 +316,7 @@ export async function deleteApiKey(uuid: string, abortSignal?: AbortSignal): Pro
 }
 
 export interface WorkflowPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
+  enabled?: boolean;
   statuses?: string[];
 }
 
@@ -333,6 +334,10 @@ export async function fetchWorkflowSummaries(opts?: WorkflowPageFetchOptions)
     params['latest_workflow_execution__status'] = opts.statuses.join(',');
   }
 
+  if (opts.enabled !== undefined) {
+    params['enabled'] = '' + opts.enabled;
+  }
+
   const response = await makeAuthenticatedClient().get(
     'api/v1/workflows/', {
       signal: abortSignal,
@@ -340,6 +345,25 @@ export async function fetchWorkflowSummaries(opts?: WorkflowPageFetchOptions)
     });
 
   return response.data as ResultsPage<WorkflowSummary>;
+}
+
+export async function fetchWorkflowsInErrorCount(opts?: WorkflowPageFetchOptions): Promise<number> {
+  const optsCopy = { ... (opts ?? {}) } ;
+
+  optsCopy.statuses = optsCopy.statuses ? _.intersection(optsCopy.statuses,
+    C.WORKFLOW_EXECUTION_STATUSES_WITH_PROBLEMS) :
+    C.WORKFLOW_EXECUTION_STATUSES_WITH_PROBLEMS
+
+  if (optsCopy.statuses.length === 0) {
+    return 0;
+  }
+
+  optsCopy.enabled = optsCopy.enabled ?? true;
+  optsCopy.offset = 0;
+  optsCopy.maxResults = 0;
+
+  const workflowPage = await fetchWorkflowSummaries(optsCopy);
+  return workflowPage.count;
 }
 
 export async function fetchWorkflow(uuid: string, abortSignal?: AbortSignal): Promise<Workflow> {

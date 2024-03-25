@@ -24,7 +24,7 @@ class WorkflowFilter(filters.FilterSet):
         model = Workflow
         fields = {
             'name': ['exact'],
-            'description': ['exact'],
+            'enabled': ['exact'],
             'run_environment__uuid': ['exact', 'in'],
         }
 

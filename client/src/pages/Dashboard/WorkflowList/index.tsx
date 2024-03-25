@@ -10,6 +10,7 @@ import {
   fetchRunEnvironments,
   deleteWorkflow,
   fetchWorkflowSummaries,
+  fetchWorkflowsInErrorCount,
   startWorkflowExecution,
   stopWorkflowExecution,
   saveWorkflow
@@ -45,13 +46,13 @@ const WorkflowList = (props: AbortSignalProps) => {
 
   const { currentGroup } = useContext(GlobalContext);
 
-
   const [areRunEnvironmentsLoading, setAreRunEnvironmentsLoading] = useState(false);
   const [lastLoadErrorMessage, setLastLoadErrorMessage] = useState<string | null>(null);
   const [runEnvironments, setRunEnvironments] = useState<Array<RunEnvironment>>([]);
   const [areWorkflowsLoading, setAreWorkflowsLoading] = useState(true);
   const [workflowPage, setWorkflowPage] = useState(
     makeEmptyResultsPage<WorkflowSummary>());
+  const [workflowsInErrorCount, setWorkflowsInErrorCount] = useState(0);
   const [shouldShowDeletionModal, setShouldShowDeletionModal] = useState(false);
   const [workflow, setWorkflow] = useState<WorkflowSummary | null>(null);
   const [selfInterval, setSelfInterval] = useState<any>(null);
@@ -80,6 +81,29 @@ const WorkflowList = (props: AbortSignalProps) => {
       setAreRunEnvironmentsLoading(false);
     }
   }, []);
+
+  const loadWorkflowsInErrorCount = async () => {
+    const {
+      q,
+      selectedRunEnvironmentUuids,
+      selectedStatuses
+    } = transformSearchParams(searchParams);
+
+    try {
+      setWorkflowsInErrorCount(await fetchWorkflowsInErrorCount({
+        groupId: currentGroup?.id,
+        q,
+        runEnvironmentUuids: selectedRunEnvironmentUuids,
+        statuses: selectedStatuses,
+        abortSignal
+      }));
+    } catch (error) {
+      if (!isCancel(error)) {
+        //console.('Request canceled: ' + error.message);
+        return;
+      }
+    }
+  };
 
   const loadWorkflows = async () => {
     // This would cause the search input to lose focus, because it would be
@@ -113,6 +137,8 @@ const WorkflowList = (props: AbortSignalProps) => {
 
       setWorkflowPage(workflowPage);
       setAreWorkflowsLoading(false);
+
+      await loadWorkflowsInErrorCount();
     } catch (error) {
       if (isCancel(error)) {
         console.log('Request canceled: ' + error.message);
@@ -179,19 +205,6 @@ const WorkflowList = (props: AbortSignalProps) => {
     this.setState({
       currentPage: this.state.currentPage + 1
     }, this.loadWorkflows); */
-
-  const failedWorkflowCount = useCallback((workflows: WorkflowSummary[]): number => {
-    let count = 0;
-    workflows.forEach(wf => {
-      if (wf.enabled && wf.latest_workflow_execution &&
-          ((wf.latest_workflow_execution.status === C.WORKFLOW_EXECUTION_STATUS_FAILED) ||
-           (wf.latest_workflow_execution.status === C.WORKFLOW_EXECUTION_STATUS_TERMINATED_AFTER_TIME_OUT))) {
-        count += 1;
-      }
-    });
-
-    return count;
-  }, []);
 
   const handleDeletionRequest = useCallback((wf: WorkflowSummary) => {
     setShouldShowDeletionModal(true);
@@ -361,8 +374,8 @@ const WorkflowList = (props: AbortSignalProps) => {
           <Loading />
         ) : (
           <div className={styles.container}>
-            <FailureCountAlert count={failedWorkflowCount(workflowPage.results)}
-             itemName="Workflow" />
+            <FailureCountAlert itemName="Workflow" count={workflowsInErrorCount} />
+
             {
               flashBody &&
               <Alert variant={flashAlertVariant || 'success'}>
