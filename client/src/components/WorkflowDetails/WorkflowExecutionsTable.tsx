@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import { isCancel } from 'axios';
 
 import { transformSearchParams, updateSearchParams } from '../../utils/url_search';
 import { catchableToString, colorPicker, timeDuration, timeFormat } from '../../utils';
@@ -92,7 +93,7 @@ const WorkflowExecutionsTable = ({
       const updatedWorkflowExecutionsPage = await fetchWorkflowExecutionSummaries({
         workflowUuid: workflow.uuid,
         statuses: selectedStatuses,
-        sortBy,
+        sortBy: sortBy ?? 'started_at',
         descending: (sortBy ? descending : true),
         offset,
         maxResults: rowsPerPage,
@@ -101,6 +102,9 @@ const WorkflowExecutionsTable = ({
 
       setWorkflowExecutionsPage(updatedWorkflowExecutionsPage);
     } catch (err) {
+      if (isCancel(err)) {
+        return;
+      }
 
       onActionError('loadWorkflowExecutions', workflow, catchableToString(err));
     }
