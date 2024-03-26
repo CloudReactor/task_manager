@@ -1,4 +1,4 @@
-import * as C from '../../utils/constants';
+import * as C from '../../../utils/constants';
 
 import React, { Component } from "react";
 import { Formik, Form, Field, ErrorMessage } from 'formik';
@@ -10,7 +10,7 @@ import Button from 'react-bootstrap/Button';
 import {
   GlobalContext,
   accessLevelForCurrentGroup
-} from '../../context/GlobalContext';
+} from '../../../context/GlobalContext';
 
 interface Props {
   size?: string;

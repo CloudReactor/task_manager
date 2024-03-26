@@ -1,7 +1,7 @@
 
-import {EntityReference, Task, WorkflowTaskInstance} from '../../types/domain_types';
-import * as C from '../../utils/constants'
-import { fetchTasks } from '../../utils/api';
+import {EntityReference, Task, WorkflowTaskInstance} from '../../../types/domain_types';
+import * as C from '../../../utils/constants'
+import { fetchTasks } from '../../../utils/api';
 
 import React, { Component, Fragment } from 'react';
 
@@ -19,7 +19,7 @@ import Button from 'react-bootstrap/Button';
 import {
   GlobalContext,
   accessLevelForCurrentGroup
-} from '../../context/GlobalContext';
+} from '../../../context/GlobalContext';
 
 interface Props {
   workflowTaskInstance: WorkflowTaskInstance | null;

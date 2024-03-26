@@ -15,8 +15,10 @@ import * as C from '../../../utils/constants';
 
 import { shouldRefreshWorkflowExecution } from '../../../utils/domain_utils';
 
-import React, { Fragment, useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import {
+  useNavigate, useParams, useSearchParams
+} from 'react-router-dom';
 
 import {
   Alert,
@@ -33,14 +35,12 @@ import {
 
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
-import Charts from './Charts';
 import ActionButton from '../../../components/common/ActionButton';
 import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
 import ConfirmationModal from '../../../components/common/ConfirmationModal';
 import Loading from '../../../components/Loading';
 import AccessDenied from '../../../components/AccessDenied';
-import WorkflowEditor from '../../../components/WorkflowDetails/WorkflowEditor';
-import WorkflowExecutionsTable from '../../../components/WorkflowDetails/WorkflowExecutionsTable';
+import WorkflowEditor from './WorkflowEditor';
 import styles from './index.module.scss';
 
 import _ from 'lodash';
@@ -86,9 +86,13 @@ const WorkflowDetail = ({
   const [isDeleting, setDeleting] = useState(false);
   const [deletionErrorMessage, setDeletionErrorMessage] = useState<string | null>(null);
   const [selfInterval, setSelfInterval] = useState<any>(null);
-  const [selectedTab, setSelectedTab] = useState<string | null>('graph');
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const selectedTab = searchParams.get('tab') ?? 'graph';
+
+  console.debug('selectedTab:', selectedTab);
 
   const handleLatestWorkflowExecutionUpdated = (execution: WorkflowExecution | null) => {
     setWorkflowExecution(execution);
@@ -118,9 +122,12 @@ const WorkflowDetail = ({
     }
   }
 
-  const onTabChange = (selectedTab: string | null) => {
-    const value = selectedTab?.toLowerCase() ?? null;
-    setSelectedTab(value);
+  const handleTabChange = (selectedTab: string | null) => {
+    const value = selectedTab?.toLowerCase() || 'graph';
+    setSearchParams(oldSearchParams => {
+      oldSearchParams.set('tab', value);
+      return oldSearchParams;
+    }, { replace: true });
   };
 
   const loadLatestWorkflowExecution = async () => {
@@ -144,8 +151,6 @@ const WorkflowDetail = ({
     try {
       const fetchedWorkflow = await fetchWorkflow(uuid, abortSignal);
 
-      updateTitle(fetchedWorkflow);
-
       setWorkflow(fetchedWorkflow);
       setLoadErrorMessage(null);
     } catch (err) {
@@ -167,30 +172,6 @@ const WorkflowDetail = ({
     setErrorMessage(errorMessage);
   };
 
-  const renderExecutionsSection = (workflow: Workflow) => {
-    return (
-      <Fragment>
-        <Charts uuid={uuid} />
-        <section>
-          <hr/>
-          <h2>Executions</h2>
-          <WorkflowExecutionsTable
-            workflow={workflow}
-            onActionError={handleActionError}
-            onWorkflowExecutionUpdated={handleWorkflowExecutionUpdated} />
-        </section>
-      </Fragment>
-    );
-  }
-
-  const renderNoExecutionsSection = () => {
-    return (
-      <h2 className="mt-5">
-        This Workflow has not run yet. When it does, you&apos;ll be able to see
-        a table of Workflow Executions here.
-      </h2>
-    );
-  };
 
   const handleWorkflowChanged = (updatedWorkflow: Workflow) => {
     const oldWorkflow = workflow;
@@ -340,6 +321,8 @@ const WorkflowDetail = ({
     } else if (!workflow && !isWorkflowLoading && !loadErrorMessage) {
       document.title = `CloudReactor - Loading Workflow ...`
       loadWorkflowDetails();
+    } else if (workflow) {
+      updateTitle(workflow);
     } else {
       document.title = `CloudReactor - Workflow not found`
     }
@@ -465,15 +448,11 @@ const WorkflowDetail = ({
         workflow &&
         <WorkflowEditor workflow={workflow}
           workflowExecution={workflowExecution}
-          onTabChanged={onTabChange}
-          onWorkflowChanged={handleWorkflowChanged} />
-      }
-      {
-        (selectedTab !== 'graph')
-        ? null
-        : (workflow && workflow.latest_workflow_execution)
-          ? renderExecutionsSection(workflow)
-          : renderNoExecutionsSection()
+          tab={selectedTab}
+          onTabChanged={handleTabChange}
+          onWorkflowChanged={handleWorkflowChanged}
+          onActionError={handleActionError}
+          onWorkflowExecutionUpdated={handleWorkflowExecutionUpdated} />
       }
     </div>
   );

@@ -1,13 +1,13 @@
 import _ from 'lodash';
 
-import * as C from '../../utils/constants';
+import * as C from '../../../utils/constants';
 
 import {
   Workflow,
   WorkflowTaskInstance,
   WorkflowTransition,
   WorkflowExecution
-} from "../../types/domain_types";
+} from "../../../types/domain_types";
 
 import React, { Component, Fragment }  from 'react';
 import ReactDOM, { createPortal } from 'react-dom';
@@ -15,7 +15,7 @@ import ReactDOM, { createPortal } from 'react-dom';
 import {
   GlobalContext,
   accessLevelForCurrentGroup
-} from '../../context/GlobalContext';
+} from '../../../context/GlobalContext';
 
 import WorkflowTaskInstanceEditor from './WorkflowTaskInstanceEditor';
 import WorkflowTransitionEditor from './WorkflowTransitionEditor';
@@ -28,7 +28,7 @@ import {
   GraphUtils
 } from 'react-digraph';
 
-import * as WorkflowGraph from '../../utils/workflow_graph';
+import * as WorkflowGraph from '../../../utils/workflow_graph';
 
 interface Props {
   workflow: Workflow;

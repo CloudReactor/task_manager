@@ -1,14 +1,14 @@
 import _ from 'lodash';
 import { isCancel } from 'axios';
 
-import { transformSearchParams, updateSearchParams } from '../../utils/url_search';
-import { catchableToString, colorPicker, timeDuration, timeFormat } from '../../utils';
+import { transformSearchParams, updateSearchParams } from '../../../utils/url_search';
+import { catchableToString, colorPicker, timeDuration, timeFormat } from '../../../utils';
 
 import React, { Fragment, useEffect, useState } from 'react';
 
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
-import abortableHoc, { AbortSignalProps } from '../../hocs/abortableHoc';
+import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import {
   Form,
@@ -16,7 +16,7 @@ import {
 } from 'react-bootstrap';
 
 import TablePagination from '@material-ui/core/TablePagination';
-import DefaultPagination from '../Pagination/Pagination';
+import DefaultPagination from '../../../components/Pagination/Pagination';
 
 import {
   fetchWorkflowExecutionSummaries,
@@ -24,24 +24,21 @@ import {
   stopWorkflowExecution,
   retryWorkflowExecution,
   itemsPerPageOptions
-} from '../../utils/api';
+} from '../../../utils/api';
 
-import {Workflow, WorkflowExecution, WorkflowExecutionSummary} from '../../types/domain_types';
-import * as C from '../../utils/constants';
-import * as UIC from '../../utils/ui_constants';
+import {Workflow, WorkflowExecution, WorkflowExecutionSummary} from '../../../types/domain_types';
+import * as C from '../../../utils/constants';
+import * as UIC from '../../../utils/ui_constants';
 
 
-import ActionButton from '../../components/common/ActionButton';
+import ActionButton from '../../../components/common/ActionButton';
 
-import { TableColumnInfo } from "../../types/ui_types";
+import { TableColumnInfo } from "../../../types/ui_types";
 
-import Status from '../Status/Status';
-import StatusFilter from "../../components/common/StatusFilter/StatusFilter";
+import Status from '../../../components/Status/Status';
+import StatusFilter from "../../../components/common/StatusFilter/StatusFilter";
 
-import {
-  WORKFLOW_EXECUTION_STATUS_RUNNING
-} from '../../utils/constants';
-import "../../styles/tableStyles.scss";
+import "../../../styles/tableStyles.scss";
 
 const WORKFLOW_EXECUTION_COLUMNS: TableColumnInfo[] = [
   { name: 'Started', ordering: 'started_at' },
@@ -223,14 +220,12 @@ const WorkflowExecutionsTable = ({
 
   return (
     <Fragment key="workflowExecutionsTable">
-      <Form inline>
-        <Form.Group key="statusFilter">
-          <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
-          <StatusFilter selectedStatuses={selectedStatuses}
-            handleSelectedStatusesChanged={handleSelectedStatusesChanged}
-            forWorkflows={true} />
-        </Form.Group>
-      </Form>
+      <div>
+        <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
+        <StatusFilter selectedStatuses={selectedStatuses}
+          handleSelectedStatusesChanged={handleSelectedStatusesChanged}
+          forWorkflows={true} />
+      </div>
       {
         (workflowExecutionsPage?.results?.length === 0) ? (
           selectedStatuses ? (
@@ -324,7 +319,7 @@ const WorkflowExecutionsTable = ({
                             onActionRequested={handleActionRequested}
                             inProgress={workflowExecutionUuidsPendingRetry.indexOf(we.uuid) >= 0}
                             inProgressLabel="Retrying ..."
-                            disabled={!we || (we.status === WORKFLOW_EXECUTION_STATUS_RUNNING)} />
+                            disabled={!we || (we.status === C.WORKFLOW_EXECUTION_STATUS_RUNNING)} />
                         </td>
                       </tr>
                     );

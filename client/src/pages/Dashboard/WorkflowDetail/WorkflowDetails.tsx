@@ -1,11 +1,11 @@
-import * as C from '../../utils/constants';
+import * as C from '../../../utils/constants';
 
 import {
   Workflow,
   WorkflowTaskInstance,
   WorkflowTransition,
   WorkflowExecution
-} from '../../types/domain_types';
+} from '../../../types/domain_types';
 
 import React, { Component, Fragment }  from 'react';
 
@@ -16,9 +16,9 @@ import {
 
 import { FormikProps } from 'formik';
 
-import { GlobalContext, accessLevelForCurrentGroup } from '../../context/GlobalContext';
+import { GlobalContext, accessLevelForCurrentGroup } from '../../../context/GlobalContext';
 
-import CustomButton from '../../components/common/Button/CustomButton';
+import CustomButton from '../../../components/common/Button/CustomButton';
 import WorkflowGraphEditor from './WorkflowGraphEditor';
 
 interface Props {

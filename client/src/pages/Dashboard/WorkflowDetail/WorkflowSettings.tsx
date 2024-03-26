@@ -1,6 +1,6 @@
-import * as C from '../../utils/constants';
+import * as C from '../../../utils/constants';
 
-import { Workflow } from '../../types/domain_types';
+import { Workflow } from '../../../types/domain_types';
 
 import React, { useContext } from 'react';
 
@@ -14,17 +14,17 @@ import { Field, FormikProps } from 'formik';
 import {
   accessLevelForCurrentGroup,
   GlobalContext
-} from '../../context/GlobalContext';
+} from '../../../context/GlobalContext';
 
-import CustomInput from '../forms/CustomInput';
-import FormikErrorsSummary from '../common/FormikErrorsSummary';
-import RunEnvironmentSelector from '../common/RunEnvironmentSelector';
-import CustomButton from '../common/Button/CustomButton';
-import SettingsForm from '../forms/SettingsForm';
+import CustomInput from '../../../components/forms/CustomInput';
+import FormikErrorsSummary from '../../../components/common/FormikErrorsSummary';
+import RunEnvironmentSelector from '../../../components/common/RunEnvironmentSelector';
+import CustomButton from '../../../components/common/Button/CustomButton';
+import SettingsForm from '../../../components/forms/SettingsForm';
 import Items from './WorkflowSettingsItems';
 import styles from './WorkflowSettings.module.scss';
 
-import CustomInputStyles from '../forms/CustomInput.module.scss';
+import CustomInputStyles from '../../../components/forms/CustomInput.module.scss';
 
 interface Props {
   workflow: Workflow;

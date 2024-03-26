@@ -1,8 +1,8 @@
-import * as C from '../../utils/constants';
+import * as C from '../../../utils/constants';
 
 import {
   NotificationMethod
-} from '../../types/domain_types';
+} from '../../../types/domain_types';
 
 import React, { useContext }  from 'react';
 
@@ -15,10 +15,10 @@ import {
 import {
   accessLevelForCurrentGroup,
   GlobalContext
-} from '../../context/GlobalContext';
+} from '../../../context/GlobalContext';
 
-import NotificationMethodSelector from '../common/NotificationMethodSelector';
-import CustomButton from '../common/Button/CustomButton';
+import NotificationMethodSelector from '../../../components/common/NotificationMethodSelector';
+import CustomButton from '../../../components/common/Button/CustomButton';
 import styles from './WorkflowSettings.module.scss';
 
 interface Props {
