@@ -100,7 +100,7 @@ const WorkflowSettingsTab = ({ workflow, formikProps }: Props) => {
 
       {
         isSaveAllowed && (
-          <CustomButton
+          <CustomButton className={styles.saveButton}
             color="primary"
             type="button"
             disabled={isSubmitting}

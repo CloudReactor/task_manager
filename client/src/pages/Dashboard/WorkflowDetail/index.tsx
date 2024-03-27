@@ -51,6 +51,8 @@ type PathParamsType = {
 
 type Props = AbortSignalProps;
 
+const TAB_EXECUTIONS = 'executions';
+
 const WorkflowDetail = ({
   abortSignal
 }: Props) => {
@@ -90,7 +92,7 @@ const WorkflowDetail = ({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const selectedTab = searchParams.get('tab') ?? 'executions';
+  const selectedTab = searchParams.get('tab') ?? TAB_EXECUTIONS;
 
   console.debug('selectedTab:', selectedTab);
 
@@ -123,9 +125,13 @@ const WorkflowDetail = ({
   }
 
   const handleTabChange = (selectedTab: string | null) => {
-    const value = selectedTab?.toLowerCase() || 'executions';
+    const value = _.snakeCase(selectedTab ?? TAB_EXECUTIONS);
     setSearchParams(oldSearchParams => {
-      oldSearchParams.set('tab', value);
+      if (value === TAB_EXECUTIONS) {
+        oldSearchParams.delete('tab');
+      } else {
+        oldSearchParams.set('tab', value);
+      }
       return oldSearchParams;
     }, { replace: true });
   };
