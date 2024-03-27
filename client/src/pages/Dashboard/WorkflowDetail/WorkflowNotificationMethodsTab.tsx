@@ -25,7 +25,7 @@ interface Props {
   formikProps: FormikProps<any>;
 }
 
-export default function WorkflowNotificationMethods({ formikProps }: Props) {
+export default function WorkflowNotificationMethodsTab({ formikProps }: Props) {
   const {
     values, submitForm, isSubmitting
   } = formikProps;

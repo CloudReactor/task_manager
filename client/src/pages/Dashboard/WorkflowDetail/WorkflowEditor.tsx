@@ -23,9 +23,9 @@ import { BootstrapVariant } from '../../../types/ui_types';
 
 import WorkflowExecutionsTab from './WorkflowExecutionsTab';
 import ScheduleSelector from '../../../components/ScheduleSelector/ScheduleSelector';
-import WorkflowNotificationMethods from './WorkflowNotificationMethods';
-import WorkflowDetails from './WorkflowDetails';
-import WorkflowSettings from './WorkflowSettings';
+import WorkflowNotificationMethodsTab from './WorkflowNotificationMethodsTab';
+import WorkflowGraphTab from './WorkflowGraphTab';
+import WorkflowSettingsTab from './WorkflowSettingsTab';
 
 
 import styles from './WorkflowEditor.module.scss';
@@ -155,7 +155,7 @@ const WorkflowEditor: React.FC<Props> = (props) => {
                   />
                 </Tab>
                 <Tab eventKey="graph" title="Graph">
-                  <WorkflowDetails
+                  <WorkflowGraphTab
                     workflow={workflow}
                     workflowExecution={workflowExecution ?? undefined}
                     formikProps={formikProps}
@@ -163,7 +163,7 @@ const WorkflowEditor: React.FC<Props> = (props) => {
                   />
                 </Tab>
                 <Tab eventKey="settings" title="Settings" className={styles.tabContainer}>
-                  <WorkflowSettings
+                  <WorkflowSettingsTab
                     workflow={workflow}
                     formikProps={formikProps}
                     onWorkflowChanged={handleWorkflowChanged}
@@ -177,7 +177,7 @@ const WorkflowEditor: React.FC<Props> = (props) => {
                 </Tab>
                 <Tab eventKey="notification_methods" title="Notification Methods"
                  className={styles.tabContainer}>
-                  <WorkflowNotificationMethods formikProps={formikProps} />
+                  <WorkflowNotificationMethodsTab formikProps={formikProps} />
                 </Tab>
               </Tabs>
             </Form>

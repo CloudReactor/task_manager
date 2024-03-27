@@ -90,7 +90,7 @@ const WorkflowDetail = ({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const selectedTab = searchParams.get('tab') ?? 'graph';
+  const selectedTab = searchParams.get('tab') ?? 'executions';
 
   console.debug('selectedTab:', selectedTab);
 
@@ -123,7 +123,7 @@ const WorkflowDetail = ({
   }
 
   const handleTabChange = (selectedTab: string | null) => {
-    const value = selectedTab?.toLowerCase() || 'graph';
+    const value = selectedTab?.toLowerCase() || 'executions';
     setSearchParams(oldSearchParams => {
       oldSearchParams.set('tab', value);
       return oldSearchParams;

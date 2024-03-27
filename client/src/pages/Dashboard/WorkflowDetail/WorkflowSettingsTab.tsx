@@ -32,7 +32,7 @@ interface Props {
   formikProps: FormikProps<any>
 }
 
-const WorkflowSettings = ({ workflow, formikProps }: Props) => {
+const WorkflowSettingsTab = ({ workflow, formikProps }: Props) => {
   const {
     errors, handleChange, handleBlur, values, setValues,
     touched, submitForm, isSubmitting
@@ -115,4 +115,4 @@ const WorkflowSettings = ({ workflow, formikProps }: Props) => {
   );
 }
 
-export default WorkflowSettings;
+export default WorkflowSettingsTab;
