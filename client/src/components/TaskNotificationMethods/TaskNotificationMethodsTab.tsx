@@ -6,14 +6,14 @@ import { FormGroup } from 'react-bootstrap';
 import { Formik, Form, FieldArray } from 'formik';
 import NotificationMethodSelector from '../common/NotificationMethodSelector';
 import CustomButton from '../common/Button/CustomButton';
-import styles from './TaskNotificationMethods.module.scss';
+import styles from './TaskNotificationMethodsTab.module.scss';
 
 interface Props {
   task: Task;
   editTask: (uuid: string, data: any) => Promise<void>
 }
 
-const TaskNotificationMethods = ({
+const TaskNotificationMethodsTab = ({
   task,
   editTask
 }: Props) => {
@@ -51,7 +51,7 @@ const TaskNotificationMethods = ({
                 }} />
               </FormGroup>
             </div>
-            <CustomButton
+            <CustomButton className={styles.saveButton}
               color="primary"
               type="submit"
               disabled={isSubmitting}
@@ -67,4 +67,4 @@ const TaskNotificationMethods = ({
 	);
 }
 
-export default TaskNotificationMethods;
+export default TaskNotificationMethodsTab;

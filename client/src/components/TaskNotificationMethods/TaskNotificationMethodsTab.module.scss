@@ -8,6 +8,7 @@ $formSectionSpacing: 1.5em;
 .formContainer {
   width: 40%;
   min-width: 500px;
+  margin-left: 0.3rem;
   box-sizing: border-box;
   color: $highText;
 }
@@ -20,7 +21,7 @@ $formSectionSpacing: 1.5em;
 }
 
 .saveButton {
-  width: 400px;
+  margin-top: 1.5rem;
 }
 
 .formSection {

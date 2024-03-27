@@ -107,7 +107,7 @@ const Charts = ({ task, abortSignal }: InnerProps) => {
       ' col-md-12';
 
     return (
-      <Fragment>
+      <div className="mb-4">
         <div className="row pt-4">
           <div className={runDurationClass}>
             <Chart
@@ -143,7 +143,7 @@ const Charts = ({ task, abortSignal }: InnerProps) => {
           }
           </div>
         </div>
-      </Fragment>
+      </div>
     );
   }
   return null;

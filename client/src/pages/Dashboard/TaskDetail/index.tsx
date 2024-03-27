@@ -44,7 +44,7 @@ import { BootstrapVariant } from '../../../types/ui_types';
 import * as UIC from '../../../utils/ui_constants';
 
 import Charts from './Charts';
-import TaskNotificationMethods from '../../../components/TaskNotificationMethods/TaskNotificationMethods';
+import TaskNotificationMethodsTab from '../../../components/TaskNotificationMethods/TaskNotificationMethodsTab';
 import TaskSettings from '../../../components/TaskSettings/TaskSettings';
 import TaskLinks from '../../../components/TaskLinks/TaskLinks';
 import TaskSummary from '../../../components/TaskSummary/TaskSummary';
@@ -67,6 +67,8 @@ type PathParamsType = {
 
 type Props = AbortSignalProps;
 
+const TAB_EXECUTIONS = 'executions';
+
 const TaskDetail = ({
   abortSignal
 }: Props) => {
@@ -82,7 +84,6 @@ const TaskDetail = ({
   const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
   const [stoppingTaskExecutionUuids, setStoppingTaskExecutionUuids] =
     useState(new Set<string>());
-  const [selectedTab, setSelectedTab] = useState('executions');
   const [selfInterval, setSelfInterval] = useState<any>(null);
 
   const context = useContext(GlobalContext);
@@ -97,6 +98,8 @@ const TaskDetail = ({
   if (!uuid) {
     return <div>Invalid UUID</div>;
   }
+
+  const selectedTab = searchParams.get('tab') ?? TAB_EXECUTIONS;
 
   const handleActionRequested = async (action: string | undefined, cbData: any): Promise<void> => {
     if (!task) {
@@ -282,9 +285,17 @@ const TaskDetail = ({
     }
   }
 
-  const onTabChange = (selectedTabLabel: string) => {
-    setSelectedTab(_.snakeCase(selectedTabLabel));
-  }
+  const handleTabChange = (selectedTabLabel: string) => {
+    const value = _.snakeCase(selectedTabLabel ?? TAB_EXECUTIONS);
+    setSearchParams(oldSearchParams => {
+      if (value === TAB_EXECUTIONS) {
+        oldSearchParams.delete('tab');
+      } else {
+        oldSearchParams.set('tab', value);
+      }
+      return oldSearchParams;
+    }, { replace: true });
+  };
 
   useEffect(() => {
     loadTask().then(t => {
@@ -375,7 +386,7 @@ const TaskDetail = ({
 
             <TaskLinks links={task.links} />
             <div>
-              <Tabs selectedTab={selectedTab} navItems={navItems} onTabChange={onTabChange} />
+              <Tabs selectedTab={selectedTab} navItems={navItems} onTabChange={handleTabChange} />
             </div>
             <div>
               {(() => {
@@ -391,12 +402,11 @@ const TaskDetail = ({
                   case 'settings':
                     return <TaskSettings task={task} runEnvironment={runEnvironment ?? undefined} />;
                   case 'notification_methods':
-                    return <TaskNotificationMethods task={task} editTask={editTask} />;
+                    return <TaskNotificationMethodsTab task={task} editTask={editTask} />;
                   default:
                     return (
                       <Fragment>
                         <Charts task={task} />
-                        <h2 className="my-4">Executions</h2>
                         <DefaultPagination
                           currentPage={currentPage}
                           pageSize={rowsPerPage}
