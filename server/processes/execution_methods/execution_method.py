@@ -37,7 +37,6 @@ class ExecutionMethod:
     TASK_FIELDS_IN_CONTEXT = [
         'uuid', 'name',
         #'url', 'description', 'dashboard_url',
-        #'infrastructure_website_url',
         'max_manual_start_delay_before_alert_seconds',
         'max_manual_start_delay_before_abandonment_seconds',
         'heartbeat_interval_seconds',

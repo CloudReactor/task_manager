@@ -47,39 +47,3 @@ class AwsEcsConfiguration(AwsTaggedEntity):
 
     def get_aws_region(self) -> Optional[str]:
         raise Exception('Not implemented')
-
-    @property
-    def aws_subnet_infrastructure_website_urls(self) -> Optional[List[Optional[str]]]:
-        from ..common.aws import make_aws_console_subnet_url
-        if not self.aws_default_subnets:
-            return None
-
-        aws_region = self.get_aws_region()
-        return [make_aws_console_subnet_url(subnet_name, aws_region) \
-                for subnet_name in self.aws_default_subnets]
-
-    @property
-    def aws_security_group_infrastructure_website_urls(self) -> Optional[List[Optional[str]]]:
-        from ..common.aws import make_aws_console_security_group_url
-        if not self.aws_ecs_default_security_groups:
-            return None
-
-        aws_region = self.get_aws_region()
-        return [make_aws_console_security_group_url(security_group_name, aws_region) \
-                for security_group_name in self.aws_ecs_default_security_groups]
-
-    @property
-    def aws_ecs_cluster_infrastructure_website_url(self) -> Optional[str]:
-        from ..common.aws import make_aws_console_ecs_cluster_url
-        return make_aws_console_ecs_cluster_url(
-            self.aws_ecs_default_cluster_arn)
-
-    @property
-    def aws_ecs_execution_role_infrastructure_website_url(self) -> Optional[str]:
-        from ..common.aws import make_aws_console_role_url
-        return make_aws_console_role_url(self.aws_ecs_default_execution_role)
-
-    @property
-    def aws_ecs_task_role_infrastructure_website_url(self) -> Optional[str]:
-        from ..common.aws import make_aws_console_role_url
-        return make_aws_console_role_url(self.aws_ecs_default_task_role)

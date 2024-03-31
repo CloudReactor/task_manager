@@ -601,7 +601,7 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     params['latest_task_execution__status'] = opts.statuses.join(',');
   }
 
-  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,input_value_schema,alert_methods,links';
+  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,alert_methods,links';
 
   if (opts.otherParams) {
     Object.assign(params, opts.otherParams);
@@ -684,7 +684,7 @@ export async function fetchTaskExecutions(opts?: TaskExecutionPageFetchOptions):
     params['status__in'] = statuses.join(',');
   }
 
-  params['omit'] = 'debug_log_tail,environment_variables_overrides,execution_method,execution_method_details,infrastructure_settings';
+  params['omit'] = 'debug_log_tail,environment_variables_overrides,execution_method_details,infrastructure_settings';
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/task_executions/', {

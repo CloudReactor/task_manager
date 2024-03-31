@@ -24,7 +24,7 @@ from processes.common.aws import extract_cluster_name
 from processes.common.request_helpers import (
     context_with_request, make_fake_request
 )
-from processes.execution_methods import AwsSettings, AwsEcsExecutionMethod, SERVICE_PROVIDER_AWS_ECS
+from processes.execution_methods import *
 from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from processes.execution_methods.aws_cloudwatch_scheduling_settings import SCHEDULING_TYPE_AWS_CLOUDWATCH
 from processes.models import *
@@ -310,7 +310,7 @@ ENHANCED_TASK_ATTRIBUTES = [
 ]
 
 OUTPUT_TASK_ATTRIBUTES = COPIED_TASK_ATTRIBUTES + ENHANCED_TASK_ATTRIBUTES + [
-   'uuid', 'dashboard_url', 'infrastructure_website_url', 'logs_url',
+   'uuid', 'dashboard_url', 'logs_url',
    'created_at', 'updated_at',
 ]
 
@@ -354,8 +354,7 @@ ENHANCED_TASK_EXECUTION_ATTRIBUTES = [
 
 OUTPUT_TASK_EXECUTION_ATTRIBUTES = COPIED_TASK_EXECUTION_ATTRIBUTES \
     + ENHANCED_TASK_EXECUTION_ATTRIBUTES + [
-   'uuid', 'dashboard_url', 'infrastructure_website_url',
-   'created_at', 'updated_at',
+   'uuid', 'dashboard_url', 'created_at', 'updated_at',
 ]
 
 
@@ -633,7 +632,11 @@ def make_unknown_task_request_body(run_environment: RunEnvironment) -> dict[str,
             run_environment_name=run_environment.name,
             was_auto_created=True)
 
-    body['execution_method_type'] = 'Unknown'
+    body['execution_method_type'] = UnknownExecutionMethod.NAME
+
+    # Not necessary since TaskSerializer infers this from the Unknown
+    # execution method type.
+    # body['passive'] = True
 
     return body
 
@@ -705,22 +708,10 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
             if attr in emc:
                 assert getattr(model_task, attr) == emc[attr]
 
-        for attr in ['task_definition_arn',
-                'default_launch_type', 'supported_launch_types',
-                'default_platform_version', 'main_container_name',
-                'default_execution_role', 'default_task_role',
-                'default_security_groups', 'default_assign_public_ip']:
-            if attr in emc:
-                assert getattr(model_task, 'aws_ecs_' + attr) == emc[attr]
-
-
-        print(f"*** {model_task.infrastructure_settings=}")
-
         model_infra = AwsSettings.parse_obj(model_task.infrastructure_settings)
         model_network = model_infra.network
 
         if 'default_subnets' in emc:
-            assert model_task.aws_default_subnets == emc['default_subnets']
             assert model_network is not None
             assert model_network.subnet_infrastructure_website_urls is not None
             assert len(model_network.subnet_infrastructure_website_urls) == len(emc['default_subnets'])
@@ -728,7 +719,6 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
                 assert model_network.subnet_infrastructure_website_urls[i].index(subnet) >= 0
 
         if 'default_security_groups' in emc:
-            assert model_task.aws_ecs_default_security_groups == emc['default_security_groups']
             assert model_network is not None
             assert model_network.security_group_infrastructure_website_urls is not None
             assert len(model_network.security_group_infrastructure_website_urls) == len(emc['default_security_groups'])
@@ -749,14 +739,6 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
 
         if service_options is None:
             assert model_task.service_instance_count is None
-            for attr in nullable_service_attrs:
-                assert getattr(model_task, 'aws_ecs_service_' + attr) is None
-
-            assert not AwsEcsServiceLoadBalancerDetails.objects.filter(
-                    task__id=model_task.id).exists()
-
-            assert model_task.aws_ecs_service_propagate_tags == ''
-
             assert model_task.service_provider_type == ''
             assert model_task.service_settings is None
         else:
@@ -764,48 +746,14 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
 
             assert model_task.service_instance_count is not None
             assert model_task.service_instance_count >= 1
-            for attr in nullable_service_attrs:
-                if attr in service_options:
-                    assert getattr(model_task, 'aws_ecs_service_' + attr) == service_options[attr]
-
-            assert getattr(model_task, 'aws_ecs_service_propagate_tags') == \
-                    service_options.get('propagate_tags') or ''
 
             assert model_task.service_provider_type == 'AWS ECS'
             assert model_task.service_settings is not None
-
-            lb_settings = service_options.get('load_balancers')
-            model_lbs = AwsEcsServiceLoadBalancerDetails.objects.filter(
-                    task__id=model_task.id).all()
-
-            if lb_settings:
-                assert len(model_lbs) == len(lb_settings)
-
-                for lb in lb_settings:
-                    model_lb = [x for x in model_lbs if x.target_group_arn == lb['target_group_arn']][0]
-                    assert model_lb is not None
-                    ensure_attributes_match(lb, model_lb,
-                        ['container_name', 'container_port'])
-            else:
-                assert len(model_lbs) == 0
 
     execution_method_type = body_task.get('execution_method_type') or \
             execution_method_type
 
     emcd = body_task.get('execution_method_capability_details')
-
-    if emcd is not None:
-        # Check that deprecated columns are populated
-        for attr in ['task_definition_arn',
-                'supported_launch_types', 'main_container_name',]:
-            if attr in emcd:
-                assert getattr(model_task, 'aws_ecs_' + attr) == emcd[attr]
-
-        for attr in ['launch_type', 'platform_version', 'execution_role', 'task_role',]:
-            if attr in emcd:
-                assert getattr(model_task, 'aws_ecs_default_' + attr) == emcd[attr]
-
-        # End check that deprecated columns are populated
 
     infra = body_task.get('infrastructure_settings')
 
@@ -863,16 +811,6 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
         assert body_service_settings is None
         assert model_task.service_provider_type == ''
         assert model_task.service_settings is None
-        assert model_task.aws_ecs_service_load_balancer_health_check_grace_period_seconds is None
-        assert model_task.aws_ecs_service_deploy_rollback_on_failure is None
-        assert model_task.aws_ecs_service_deploy_minimum_healthy_percent is None
-        assert model_task.aws_ecs_service_deploy_maximum_percent is None
-        assert model_task.aws_ecs_service_deploy_enable_circuit_breaker is None
-        assert model_task.aws_ecs_service_enable_ecs_managed_tags is None
-        assert model_task.aws_ecs_service_propagate_tags == ''
-        assert model_task.aws_ecs_service_tags is None
-        assert model_task.aws_ecs_service_force_new_deployment is None
-        assert len(model_task.aws_ecs_service_load_balancer_details_set.all()) == 0
 
     if body_task.get('schedule'):
         body_is_scheduling_managed = body_task.get('is_scheduling_managed')
@@ -1167,33 +1105,6 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
             assert 'uuid' in body_task_execution
             assert body_task_execution['uuid'] == str(model_task_execution.uuid)
             assert body_task_execution['status'] != 'MANUALLY_STARTED'
-
-    # Deprecated schema
-    em = body_task_execution.get('execution_method')
-    if em is not None:
-        for attr in ['task_arn', 'task_definition_arn', 'cluster_arn',
-                'launch_type', 'platform_version'
-                'execution_role', 'task_role',
-                'security_groups', 'assign_public_ip']:
-            if attr in em:
-                assert getattr(model_task_execution, 'aws_ecs_' + attr) == em[attr], attr
-
-        if 'default_subnets' in em:
-            assert model_task_execution.aws_subnets == em['subnets']
-
-    emd = body_task_execution.get('execution_method_details')
-
-    if emd:
-        for attr in ['task_arn', 'task_definition_arn', 'cluster_arn',
-                'launch_type', 'platform_version']:
-
-            if attr in emd:
-                assert getattr(model_task_execution, 'aws_ecs_' + attr) == (emd[attr] or ''), attr
-
-        for attr in ['execution_role', 'task_role']:
-            if attr in emd:
-                assert getattr(model_task_execution, 'aws_ecs_' + attr) == (emd[attr  + '_arn'] or ''), attr
-
 
 
 def validate_serialized_workflow(body_workflow: dict[str, Any],

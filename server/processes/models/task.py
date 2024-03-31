@@ -147,27 +147,9 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     def dashboard_path(self) -> str:
         return 'tasks'
 
-    # Deprecated
-    @property
-    def infrastructure_website_url(self) -> Optional[str]:
-        return make_aws_console_ecs_task_definition_url(
-                self.aws_ecs_task_definition_arn)
-
-    # Deprecated
-    @property
-    def aws_ecs_task_definition_infrastructure_website_url(self) -> Optional[str]:
-        return make_aws_console_ecs_task_definition_url(
-                self.aws_ecs_task_definition_arn)
-
     @property
     def is_service(self) -> bool:
         return self.service_instance_count is not None
-
-    @property
-    def aws_ecs_service_infrastructure_website_url(self) -> Optional[str]:
-        return make_aws_console_ecs_service_url(
-                ecs_service_arn=self.aws_ecs_service_arn,
-                cluster_name=extract_cluster_name(self.aws_ecs_default_cluster_arn))
 
     def in_progress_executions_queryset(self):
         from .task_execution import TaskExecution

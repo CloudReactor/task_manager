@@ -46,32 +46,10 @@ class AwsEcsExecutionMethodCapabilitySerializer(
         self.is_service = is_service
 
     def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
-        validated: dict[str, Any] = {}
-
-        included_keys = self.get_fields().keys()
-
-        validated = self.copy_props_with_prefix(dest_dict=validated,
-                src_dict=data, included_keys=[
-                    'allocated_cpu_units', 'allocated_memory_mb',
-                ])
-
-        validated = self.copy_props_with_prefix(dest_dict=validated,
-                src_dict=data,
-                dest_prefix='aws_',
-                included_keys=[
-                    'tags'
-                ])
-
-        validated = self.copy_props_with_prefix(dest_dict=validated,
-                src_dict=data,
-                dest_prefix='aws_ecs_',
-                included_keys=included_keys,
-                except_keys=[
-                    'type', 'allocated_cpu_units', 'allocated_memory_mb',
-                    'default_subnets', 'service_options', 'tags'
-                ])
-
-        logger.info(f"After copy {validated=}")
+        validated = self.copy_props_with_prefix(dest_dict={},
+            src_dict=data, included_keys=[
+                'allocated_cpu_units', 'allocated_memory_mb',
+            ])
 
         cluster = validated.get('aws_ecs_default_cluster_arn')
         if cluster and not cluster.startswith('arn:'):
@@ -87,7 +65,6 @@ class AwsEcsExecutionMethodCapabilitySerializer(
                     ]
                 })
 
-        validated['aws_default_subnets'] = data.get('default_subnets')
         validated['execution_method_type'] = AwsEcsExecutionMethod.NAME
 
         emcd: dict[str, Any] = convert_empty_to_none_values({
@@ -132,25 +109,6 @@ class AwsEcsExecutionMethodCapabilitySerializer(
                     ]
                 })
 
-            self.copy_props_with_prefix(dest_dict=validated,
-                    src_dict=service_dict,
-                    dest_prefix='aws_ecs_service_',
-                    except_keys=['load_balancers'])
-
-            load_balancer_dicts = service_dict.get('load_balancers')
-
-            if load_balancer_dicts is not None:
-                load_balancer_details_list = []
-                for load_balancer_dict in load_balancer_dicts:
-                    load_balancer_details_list.append(AwsEcsServiceLoadBalancerDetails(
-                        task=None,
-                        target_group_arn=load_balancer_dict['target_group_arn'],
-                        container_name=load_balancer_dict.get('container_name', ''),
-                        container_port=load_balancer_dict['container_port'],
-                    ))
-
-                validated['aws_ecs_load_balancer_details_set'] = load_balancer_details_list
-
             service_settings: dict[str, Any] = {}
 
             self.copy_props_with_prefix(dest_dict=service_settings,
@@ -172,6 +130,7 @@ class AwsEcsExecutionMethodCapabilitySerializer(
                 }
             }
 
+            load_balancer_dicts = service_dict.get('load_balancers')
             if load_balancer_dicts is not None:
                 service_settings['load_balancer_settings'] = {
                     'health_check_grace_period_seconds': service_dict.get('load_balancer_health_check_grace_period_seconds'),

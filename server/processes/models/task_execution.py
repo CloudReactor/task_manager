@@ -240,54 +240,6 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     def dashboard_path(self) -> str:
         return 'task_executions'
 
-    @property
-    def infrastructure_website_url(self) -> Optional[str]:
-        if self.execution_method_details:
-            return cast(Optional[str], self.execution_method_details.get('infrastructure_website_url'))
-
-        return None
-
-    # Deprecated
-    @property
-    def aws_ecs_task_definition_infrastructure_website_url(self) -> Optional[str]:
-        return make_aws_console_ecs_task_definition_url(
-                self.aws_ecs_task_definition_arn)
-
-    # Deprecated
-    @property
-    def aws_ecs_cluster_infrastructure_website_url(self) -> Optional[str]:
-        return make_aws_console_ecs_cluster_url(self.aws_ecs_cluster_arn)
-
-    # Deprecated
-    @property
-    def aws_ecs_execution_role_infrastructure_website_url(self) -> Optional[str]:
-        return make_aws_console_role_url(self.aws_ecs_execution_role)
-
-    # Deprecated
-    @property
-    def aws_ecs_task_role_infrastructure_website_url(self) -> Optional[str]:
-        return make_aws_console_role_url(self.aws_ecs_task_role)
-
-    # Deprecated
-    @property
-    def aws_subnet_infrastructure_website_urls(self) -> Optional[List[Optional[str]]]:
-        if not self.aws_subnets:
-            return None
-
-        # TODO: use overridden region
-        aws_region = self.task.run_environment.aws_default_region
-        return [make_aws_console_subnet_url(subnet_name, aws_region) for subnet_name in self.aws_subnets]
-
-    # Deprecated
-    @property
-    def aws_security_group_infrastructure_website_urls(self) -> Optional[List[Optional[str]]]:
-        if not self.aws_ecs_security_groups:
-            return None
-
-        # TODO: use overridden region
-        aws_region = self.task.run_environment.aws_default_region
-        return [make_aws_console_security_group_url(sg_name, aws_region) for sg_name in self.aws_ecs_security_groups]
-
     def is_in_progress(self) -> bool:
         return self.status in TaskExecution.IN_PROGRESS_STATUSES
 

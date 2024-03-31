@@ -89,7 +89,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
         model = Task
         fields = [
             'uuid', 'name', 'url', 'description', 'dashboard_url',
-            'infrastructure_website_url',
             'max_manual_start_delay_before_alert_seconds',
             'max_manual_start_delay_before_abandonment_seconds',
             'heartbeat_interval_seconds',
@@ -135,7 +134,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'url', 'uuid',
             'is_service', 'capabilities',
             'latest_task_execution', 'current_service_info',
-            'dashboard_url', 'infrastructure_website_url', 'logs_url',
+            'dashboard_url', 'logs_url',
             'created_at', 'updated_at',
         ]
 
@@ -167,15 +166,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
         return TaskExecutionSerializer(instance=obj.latest_task_execution,
                 context=self.context, required=False,
                 omit='marked_done_by,killed_by').data
-
-    @extend_schema_field(PolymorphicProxySerializer(
-          component_name='ExecutionMethodCapability',
-          serializers=cast(list[Union[serializers.Serializer, Type[serializers.Serializer]]], [
-              AwsEcsExecutionMethodCapabilitySerializer,
-              UnknownExecutionMethodCapabilitySerializer
-          ]),
-          resource_type_field_name='type'
-    ))
 
     def get_capabilities(self, task: Task) -> list[str]:
         if task.passive:
@@ -287,9 +277,9 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         if is_legacy_schema:
             execution_method_type = legacy_emc.get('type', execution_method_type)
-
-        execution_method_type = validated.get('execution_method_type',
-            execution_method_type)
+        else:
+            execution_method_type = validated.get('execution_method_type',
+                execution_method_type)
 
         if execution_method_type:
             known_execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
@@ -308,6 +298,15 @@ class TaskSerializer(GroupSettingSerializerMixin,
         logger.debug(f"{execution_method_type=}")
 
         validated['execution_method_type'] = execution_method_type
+
+        # Task.passive is False by default, which isn't compatible with the
+        # default execution method of Unknown. So set it to True if
+        # execution_method_type is Unknown and passive was not explicitly
+        # specified in the request body. Note that validated['passive'] is True
+        # if not explicitly set in data, due to the default value.
+        if (execution_method_type == UnknownExecutionMethod.NAME) and \
+            (data.get('passive') is None):
+            validated['passive'] = True
 
         if execution_method_dict is not None:
             ems = self.execution_method_capability_serializer_for_type(

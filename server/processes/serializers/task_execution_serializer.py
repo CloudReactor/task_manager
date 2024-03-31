@@ -34,8 +34,6 @@ from .embedded_id_validating_serializer_mixin import (
 )
 
 from .serializer_helpers import SerializerHelpers
-from .aws_ecs_execution_method_serializer import AwsEcsExecutionMethodSerializer
-from .unknown_execution_method_serializer import UnknownExecutionMethodSerializer
 from .workflow_task_instance_execution_base_serializer import WorkflowTaskInstanceExecutionBaseSerializer
 
 logger = logging.getLogger(__name__)
@@ -73,17 +71,13 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
     class Meta:
         model = TaskExecution
         fields = ('url',
-                  'uuid', 'dashboard_url', 'infrastructure_website_url',
+                  'uuid', 'dashboard_url',
                   'task', 'auto_created_task_properties',
                   'task_version_number', 'task_version_text',
                   'task_version_signature', 'commit_url',
                   'other_instance_metadata',
                   'hostname',
                   'environment_variables_overrides',
-
-                  # Deprecated
-                  'execution_method',
-
                   'execution_method_type',
                   'execution_method_details',
                   'infrastructure_type',
@@ -136,7 +130,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         read_only_fields = [
             'url', 'uuid',
-            'dashboard_url', 'infrastructure_website_url',
+            'dashboard_url',
             'created_by_user', 'created_by_group',
             'created_at', 'updated_at'
         ]
@@ -153,7 +147,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         view_name='task_executions-detail',
         lookup_field='uuid'
     )
-    execution_method = serializers.SerializerMethodField()
     status = TaskExecutionStatusSerializer()
     stop_reason = TaskExecutionStopReasonSerializer(required=False,
         allow_null=True)
@@ -197,21 +190,17 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         return attrs
 
     def to_internal_value(self, data: dict[str, Any]):
-        # Remove process_version and process_hash once all process wrapper scripts < 1.2.0 are extinct
-        process_version_number = data.get('process_version_number',
-                                   data.get('process_version'))
+        # Remove once wrappers < 2.0 are extinct
+        process_version_number = data.get('process_version_number')
 
         if process_version_number is not None:
             data['task_version_number'] = process_version_number
 
-        process_version_signature = data.get('process_version_signature',
-            data.get('process_hash'))
+        process_version_signature = data.get('process_version_signature')
 
         if process_version_signature:
             data['task_version_signature'] = process_version_signature
-        # End legacy
 
-        # Remove once wrappers < 2.0 are extinct
         api_request_timeout_seconds = data.get('api_timeout_seconds')
         if api_request_timeout_seconds is not None:
             data['api_request_timeout_seconds'] = api_request_timeout_seconds
@@ -339,23 +328,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                           'allocated_memory_mb'])
 
             if execution_method_type == AwsEcsExecutionMethod.NAME:
-                self.copy_props_with_prefix(dest_dict=validated,
-                      src_dict=execution_method_dict,
-                      dest_prefix='aws_ecs_',
-                      included_keys=[
-                          'task_definition_arn', 'task_arn', 'launch_type',
-                          'cluster_arn', 'security_groups',
-                          'assign_public_ip','platform_version',
-                      ])
-
                 if is_legacy_schema:
-                    self.copy_props_with_prefix(dest_dict=validated,
-                        src_dict=execution_method_dict,
-                        dest_prefix='aws_ecs_',
-                        included_keys=[
-                            'execution_role', 'task_role',
-                        ])
-
                     validated['execution_method_details'] = convert_empty_to_none_values({
                         'launch_type': execution_method_dict.get('launch_type'),
                         'cluster_arn': execution_method_dict.get('cluster_arn'),
@@ -376,27 +349,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                             'assign_public_ip': execution_method_dict.get('assign_public_ip')
                         }
                     }
-                else:
-                    for p in ['execution_role', 'task_role']:
-                        if p in execution_method_dict:
-                            validated['aws_ecs_' + p] = execution_method_dict[p + '_arn'] or ''
-
-        infrastructure_type = data.get('infrastructure_type')
-
-        if infrastructure_type == INFRASTRUCTURE_TYPE_AWS:
-            infrastructure_settings = data.get('infrastructure_settings')
-
-            if infrastructure_settings:
-                network_settings = infrastructure_settings.get('network')
-                if network_settings:
-                    self.copy_props_with_prefix(dest_dict=validated,
-                        src_dict=network_settings,
-                        dest_prefix='aws_',
-                        included_keys=['subnets'])
-                    self.copy_props_with_prefix(dest_dict=validated,
-                        src_dict=network_settings,
-                        dest_prefix='aws_ecs_',
-                        included_keys=['security_groups', 'assign_public_ip'])
 
         # End set deprecated columns
 
@@ -528,18 +480,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         self.update_api_client_implicit_info(validated_data=validated_data)
 
         return super().update(instance, validated_data)
-
-    # Deprecated
-    @extend_schema_field(AwsEcsExecutionMethodSerializer)
-    def get_execution_method(self, obj: TaskExecution):
-        method_type = obj.task.execution_method_type
-
-        if method_type == AwsEcsExecutionMethod.NAME:
-            return AwsEcsExecutionMethodSerializer(obj, source='*',
-                    required=False).data
-        else:
-            return UnknownExecutionMethodSerializer(obj, source='*',
-                    required=False).data
 
 
     def get_build(self, obj: TaskExecution):

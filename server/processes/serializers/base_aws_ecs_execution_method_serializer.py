@@ -17,9 +17,6 @@ class BaseAwsEcsExecutionMethodSerializer(
             source='aws_default_subnets',
             child=serializers.CharField(max_length=1000), allow_null=True,
             allow_empty=False, required=False)
-    default_subnet_infrastructure_website_urls = serializers.ListField(
-            source='aws_subnet_infrastructure_website_urls',
-            child=serializers.CharField(), read_only=True)
 
     default_launch_type = serializers.ChoiceField(
             source='aws_ecs_default_launch_type',
@@ -36,17 +33,11 @@ class BaseAwsEcsExecutionMethodSerializer(
     default_cluster_arn = serializers.CharField(
             source='aws_ecs_default_cluster_arn',
             max_length=1000, required=False)
-    default_cluster_infrastructure_website_url = serializers.CharField(
-            source='aws_ecs_cluster_infrastructure_website_url',
-            read_only=True)
 
     default_security_groups = serializers.ListField(
             source='aws_ecs_default_security_groups',
             child=serializers.CharField(max_length=1000),
             allow_null=True, allow_empty=False, required=False)
-    default_security_group_infrastructure_website_urls = serializers.ListField(
-            source='aws_security_group_infrastructure_website_urls',
-            child=serializers.CharField(), read_only=True)
 
     default_assign_public_ip = serializers.BooleanField(
             source='aws_ecs_default_assign_public_ip',
@@ -55,17 +46,10 @@ class BaseAwsEcsExecutionMethodSerializer(
     default_execution_role = serializers.CharField(
             source='aws_ecs_default_execution_role', max_length=1000,
             required=False)
-    default_execution_role_infrastructure_website_url = serializers.CharField(
-            source='aws_ecs_execution_role_infrastructure_website_url',
-            read_only=True)
 
     default_task_role = serializers.CharField(
             source='aws_ecs_default_task_role', max_length=1000,
             required=False)
-
-    default_task_role_infrastructure_website_url = serializers.CharField(
-            source='aws_ecs_task_role_infrastructure_website_url',
-            read_only=True)
 
     default_platform_version = serializers.CharField(
             source='aws_ecs_default_platform_version', max_length=10,
