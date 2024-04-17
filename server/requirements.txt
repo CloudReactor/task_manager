@@ -252,7 +252,7 @@ django==3.2.25 \
     #   djoser
     #   drf-spectacular
     #   social-auth-app-django
-django-anymail[amazon_ses]==8.6 \
+django-anymail[amazon-ses]==8.6 \
     --hash=sha256:49d83d7c16316ca86a624097496881d59b7d71b16bf1c5211cffa5b19ef98d0c \
     --hash=sha256:783342d49dd07d68778b81dd12a94c86e1d217463a68a85450a0513fabe31345
     # via -r requirements.in
@@ -326,9 +326,9 @@ drf-spectacular==0.27.1 \
     --hash=sha256:0a4cada4b7136a0bf17233476c066c511a048bc6a485ae2140326ac7ba4003b2 \
     --hash=sha256:452e0cff3c12ee057b897508a077562967b9e62717992eeec10e62dbbc7b5a33
     # via -r requirements.in
-gunicorn==21.2.0 \
-    --hash=sha256:3213aa5e8c24949e792bcacfc176fef362e7aac80b76c56f6b5122bf350722f0 \
-    --hash=sha256:88ec8bff1d634f98e61b9f65bc4bf3cd918a90806c6f5c48bc5603849ec81033
+gunicorn==22.0.0 \
+    --hash=sha256:350679f91b24062c86e386e198a15438d53a7a8207235a78ba1b53df4c4378d9 \
+    --hash=sha256:4a0b436239ff76fb33f11c07a16482c521a7e09c1ce3cc293c2330afe01bec63
     # via -r requirements.in
 idna==3.6 \
     --hash=sha256:9ecdbbd083b06798ae1e86adcbfe8ab1479cf864e4ee30fe4e46a003d12491ca \
