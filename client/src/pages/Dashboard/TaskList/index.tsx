@@ -2,8 +2,11 @@ import { AxiosError, isCancel } from 'axios';
 
 import { exceptionToErrorMessages, makeAuthenticatedClient } from '../../../axios_config';
 import * as utils from '../../../utils';
-import * as api from '../../../utils/api';
-import { fetchTasks, fetchTasksInErrorCount, updateTask } from '../../../utils/api'
+import {
+  makeEmptyResultsPage,
+  fetchRunEnvironments,
+  fetchTasks, fetchTasksInErrorCount, updateTask
+} from '../../../utils/api'
 import { TaskImpl, RunEnvironment } from '../../../types/domain_types';
 
 import React, {Fragment, useCallback, useContext, useEffect, useState } from 'react';
@@ -34,7 +37,7 @@ const TaskList = ({
 
   const [areTasksLoading, setAreTasksLoading] = useState(true);
   const [areRunEnvironmentsLoading, setAreRunEnvironmentsLoading] = useState(false);
-  const [taskPage, setTaskPage] = useState(api.makeEmptyResultsPage<TaskImpl>());
+  const [taskPage, setTaskPage] = useState(makeEmptyResultsPage<TaskImpl>());
   const [tasksInErrorCount, setTasksInErrorCount] = useState(0);
   const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
   const [task, setTask] = useState<TaskImpl | null>(null);
@@ -48,10 +51,12 @@ const TaskList = ({
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  //console.log('TaskList: searchParams:', searchParams);
+
   const loadRunEnvironments = useCallback(async () => {
     setAreRunEnvironmentsLoading(true);
     try {
-      const page = await api.fetchRunEnvironments({
+      const page = await fetchRunEnvironments({
         groupId: currentGroup?.id,
         abortSignal
       });
@@ -104,6 +109,9 @@ const TaskList = ({
       currentPage,
     } = transformSearchParams(searchParams);
 
+    //console.log('loadTasks: searchParams:', searchParams);
+    //console.log('loadTasks: selectedRunEnvironmentUuids:', selectedRunEnvironmentUuids);
+
     const offset = currentPage * rowsPerPage;
 
     try {
@@ -139,7 +147,7 @@ const TaskList = ({
     }
   };
 
-  const handleActionRequested = useCallback(async (action: string | undefined, cbData: any) => {
+  const handleActionRequested = async (action: string | undefined, cbData: any) => {
     const cbTask = cbData as TaskImpl;
     if (action === 'config') {
       setTask(cbTask);
@@ -180,12 +188,12 @@ const TaskList = ({
 
         case 'enable_service':
           errorMessage += ' to enable service';
-          await api.updateTask(uuid, {enabled: true});
+          await updateTask(uuid, {enabled: true});
           break;
 
         case 'disable_service':
           errorMessage += ' to disable service';
-          await api.updateTask(uuid, {enabled: false});
+          await updateTask(uuid, {enabled: false});
           break;
 
         case 'config':
@@ -215,7 +223,7 @@ const TaskList = ({
 
       setTaskUuidToInProgressOperation(inProgressObj);
     }
-  }, [taskUuidToInProgressOperation]);
+  };
 
   const handleSortChanged = async (sortBy?: string, toggleDirection?: boolean) => {
     updateSearchParams(searchParams, setSearchParams, sortBy, 'sort_by');
@@ -252,7 +260,7 @@ const TaskList = ({
     updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
   };
 
-  const handleDeletion = useCallback(async (task: TaskImpl) => {
+  const handleDeletion = async (task: TaskImpl) => {
     const modal = create(AsyncConfirmationModal);
 
     const approveDeletion = await modal({
@@ -277,9 +285,9 @@ const TaskList = ({
 
       await loadTasks();
     }
-  }, []);
+  };
 
-  const editTask = useCallback(async (uuid: string, data: any) => {
+  const editTask = async (uuid: string, data: any) => {
     try {
       await updateTask(uuid, data);
       await loadTasks();
@@ -292,7 +300,7 @@ const TaskList = ({
 
       setLastErrorMessage(lastErrorMessage);
     }
-  }, []);
+  };
 
   const handleCloseConfigModal = useCallback(() => {
     setShouldShowConfigModal(false);
