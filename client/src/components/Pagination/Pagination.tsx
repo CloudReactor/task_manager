@@ -23,7 +23,7 @@ const DefaultPagination = ({
   handleSelectItemsPerPage,
   itemsPerPageOptions
 }: Props) => (
-  <div className="d-flex justify-content-between mt-3 mt-xl-0">
+  <div className="d-flex justify-content-between mt-4">
     <UltimatePagination
       onChange={(page: number) => handleClick(page - 1)}
       currentPage={currentPage + 1}

@@ -18,12 +18,13 @@ interface Props {
 }
 
 const TaskSummary = ({ task }: Props) => {
-  const scheduleText = task.is_service ? "Service (always-on)"
+  const taskTypeLabel = task.schedule ? 'Schedule' : 'Task Type';
+  const taskTypeValue = task.is_service ? "Service (always-on)"
     : (task.schedule || 'On-demand');
 
   const rows = [
     createData('Description', task.description ?? 'N/A'),
-    createData('Task Type', scheduleText),
+    createData(taskTypeLabel, taskTypeValue),
     createData('Run Environment',
         <Link to={'/run_environments/' + encodeURIComponent(task.run_environment.uuid)}>{task.run_environment.name}</Link>)
   ];
