@@ -9,7 +9,7 @@ import {
 } from '../../../utils/api'
 import { TaskImpl, RunEnvironment } from '../../../types/domain_types';
 
-import React, {Fragment, useCallback, useContext, useEffect, useState } from 'react';
+import React, {Fragment, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
@@ -39,9 +39,12 @@ const TaskList = ({
   const [areRunEnvironmentsLoading, setAreRunEnvironmentsLoading] = useState(false);
   const [taskPage, setTaskPage] = useState(makeEmptyResultsPage<TaskImpl>());
   const [tasksInErrorCount, setTasksInErrorCount] = useState(0);
+
+  const [loadTasksAbortController, setLoadTasksAbortController] = useState<AbortController | null>(null);
+  const [loadTasksInErrorAbortController, setLoadTasksInErrorAbortController] = useState<AbortController | null>(null);
   const [shouldShowConfigModal, setShouldShowConfigModal] = useState(false);
   const [task, setTask] = useState<TaskImpl | null>(null);
-  const [selfInterval, setSelfInterval] = useState<any>(null);
+  const [selfTimeout, setSelfTimeout] = useState<NodeJS.Timeout | null>(null);
   const [taskUuidToInProgressOperation, setTaskUuidToInProgressOperation] =
     useState<Record<string, string>>({});
   const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
@@ -50,6 +53,8 @@ const TaskList = ({
 
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const mounted = useRef(false);
 
   //console.log('TaskList: searchParams:', searchParams);
 
@@ -78,14 +83,22 @@ const TaskList = ({
       selectedStatuses
     } = transformSearchParams(searchParams);
 
+    if (loadTasksInErrorAbortController) {
+      loadTasksInErrorAbortController.abort('Operation superceded');
+    }
+    const updatedLoadTasksInErrorAbortController = new AbortController();
+    setLoadTasksInErrorAbortController(updatedLoadTasksInErrorAbortController);
+
     try {
       setTasksInErrorCount(await fetchTasksInErrorCount({
         groupId: currentGroup?.id,
         q,
         runEnvironmentUuids: selectedRunEnvironmentUuids,
         statuses: selectedStatuses,
-        abortSignal
+        abortSignal: updatedLoadTasksInErrorAbortController.signal
       }));
+
+      setLoadTasksInErrorAbortController(null);
     } catch (error) {
       if (!isCancel(error)) {
         //console.('Request canceled: ' + error.message);
@@ -98,6 +111,24 @@ const TaskList = ({
     // This would cause the search input to lose focus, because it would be
     // temporarily replaced with a loading indicator.
     //setAreTasksLoading(true);
+
+    //console.log('loadTasks');
+
+    if (loadTasksAbortController) {
+      loadTasksAbortController.abort('Operation superceded');
+    }
+
+    if (!mounted.current) {
+      return;
+    }
+
+    const updatedLoadTasksAbortController = new AbortController();
+    setLoadTasksAbortController(updatedLoadTasksAbortController);
+
+    if (selfTimeout) {
+      clearTimeout(selfTimeout);
+      setSelfTimeout(null);
+    }
 
     const {
       q,
@@ -124,21 +155,24 @@ const TaskList = ({
         q,
         runEnvironmentUuids: selectedRunEnvironmentUuids,
         statuses: selectedStatuses,
-        abortSignal
+        abortSignal: updatedLoadTasksAbortController.signal
       });
 
-      setTaskPage(taskPage);
-      setAreTasksLoading(false);
+      if (mounted.current) {
+        setLoadTasksAbortController(null);
+        setTaskPage(taskPage);
+        setAreTasksLoading(false);
 
-      await loadTasksInErrorCount();
+        await loadTasksInErrorCount();
+
+        if (mounted.current) {
+          //console.log('loadTasks: setSelfTimeout');
+          setSelfTimeout(setTimeout(loadTasks, UIC.TASK_REFRESH_INTERVAL_MILLIS));
+        }
+      }
     } catch (error) {
       if (isCancel(error)) {
         return;
-      }
-
-      if (selfInterval) {
-        clearInterval(selfInterval);
-        setSelfInterval(null);
       }
 
       setLastLoadErrorMessage('Failed to load Tasks');
@@ -306,25 +340,40 @@ const TaskList = ({
     setShouldShowConfigModal(false);
   }, []);
 
+  const cleanupLoading = () => {
+    if (loadTasksAbortController) {
+      loadTasksAbortController.abort('Operation canceled after component unmounted');
+    }
+
+    if (loadTasksInErrorAbortController) {
+      loadTasksInErrorAbortController.abort('Operation canceled after component unmounted');
+    }
+
+    if (selfTimeout) {
+      clearTimeout(selfTimeout);
+    }
+  };
+
   useEffect(() => {
+    mounted.current = true;
+
     loadRunEnvironments()
+
+    return () => {
+      //console.log('TaskList: cleanup on empty list');
+
+      mounted.current = false;
+
+      cleanupLoading();
+    };
   }, []);
 
   useEffect(() => {
-    loadTasks().then(_dummy => {
-      if (selfInterval) {
-        clearInterval(selfInterval);
-      }
-
-      const interval = setInterval(loadTasks,
-        UIC.TASK_REFRESH_INTERVAL_MILLIS);
-      setSelfInterval(interval);
-    });
+    loadTasks();
 
     return () => {
-      if (selfInterval) {
-        clearInterval(selfInterval);
-      }
+      console.log('TaskList: cleanup on location');
+      cleanupLoading();
     };
   }, [location]);
 

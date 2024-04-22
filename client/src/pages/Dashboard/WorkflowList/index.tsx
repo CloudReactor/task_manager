@@ -16,7 +16,7 @@ import {
   saveWorkflow
 } from '../../../utils/api';
 
-import React, {Fragment, useCallback, useContext, useEffect, useState } from 'react';
+import React, {Fragment, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
@@ -53,9 +53,11 @@ const WorkflowList = (props: AbortSignalProps) => {
   const [workflowPage, setWorkflowPage] = useState(
     makeEmptyResultsPage<WorkflowSummary>());
   const [workflowsInErrorCount, setWorkflowsInErrorCount] = useState(0);
+  const [loadWorkflowsAbortController, setLoadWorkflowsAbortController] = useState<AbortController | null>(null);
+  const [loadWorkflowsInErrorAbortController, setLoadWorkflowsInErrorAbortController] = useState<AbortController | null>(null);
   const [shouldShowDeletionModal, setShouldShowDeletionModal] = useState(false);
   const [workflow, setWorkflow] = useState<WorkflowSummary | null>(null);
-  const [selfInterval, setSelfInterval] = useState<any>(null);
+  const [selfTimeout, setSelfTimeout] = useState<NodeJS.Timeout | null>(null);
   const [flashBody, setFlashBody] = useState<string | null>(null);
   const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>('info');
   const [isDeleting, setDeleting] = useState(false);
@@ -63,6 +65,8 @@ const WorkflowList = (props: AbortSignalProps) => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const mounted = useRef(false);
 
   const loadRunEnvironments = useCallback(async () => {
     setAreRunEnvironmentsLoading(true);
@@ -89,6 +93,12 @@ const WorkflowList = (props: AbortSignalProps) => {
       selectedStatuses
     } = transformSearchParams(searchParams);
 
+    if (loadWorkflowsInErrorAbortController) {
+      loadWorkflowsInErrorAbortController.abort('Operation superceded');
+    }
+    const updatedLoadWorkflowsInErrorAbortController = new AbortController();
+    setLoadWorkflowsInErrorAbortController(updatedLoadWorkflowsInErrorAbortController);
+
     try {
       setWorkflowsInErrorCount(await fetchWorkflowsInErrorCount({
         groupId: currentGroup?.id,
@@ -97,6 +107,8 @@ const WorkflowList = (props: AbortSignalProps) => {
         statuses: selectedStatuses,
         abortSignal
       }));
+
+      setLoadWorkflowsInErrorAbortController(null);
     } catch (error) {
       if (!isCancel(error)) {
         //console.('Request canceled: ' + error.message);
@@ -109,6 +121,22 @@ const WorkflowList = (props: AbortSignalProps) => {
     // This would cause the search input to lose focus, because it would be
     // temporarily replaced with a loading indicator.
     //setAreWorkflowsLoading(true);
+
+    if (loadWorkflowsAbortController) {
+      loadWorkflowsAbortController.abort('Operation superceded');
+    }
+
+    if (!mounted.current) {
+      return;
+    }
+
+    const updatedLoadWorkflowsAbortController = new AbortController();
+    setLoadWorkflowsAbortController(updatedLoadWorkflowsAbortController);
+
+    if (selfTimeout) {
+      clearTimeout(selfTimeout);
+      setSelfTimeout(null);
+    }
 
     const {
       q,
@@ -135,27 +163,32 @@ const WorkflowList = (props: AbortSignalProps) => {
         abortSignal
       });
 
-      setWorkflowPage(workflowPage);
-      setAreWorkflowsLoading(false);
+      if (mounted.current) {
+        setLoadWorkflowsAbortController(null);
+        setWorkflowPage(workflowPage);
+        setAreWorkflowsLoading(false);
 
-      await loadWorkflowsInErrorCount();
+        await loadWorkflowsInErrorCount();
+
+        if (mounted.current) {
+          setSelfTimeout(setTimeout(loadWorkflows, UIC.TASK_REFRESH_INTERVAL_MILLIS));
+        }
+      }
     } catch (error) {
       if (isCancel(error)) {
         console.log('Request canceled: ' + error.message);
         return;
       }
 
-      if (selfInterval) {
-        clearInterval(selfInterval);
-        setSelfInterval(null);
+      if (selfTimeout) {
+        clearInterval(selfTimeout);
+        setSelfTimeout(null);
       }
 
       setLastLoadErrorMessage('Failed to load Workflows');
     } finally {
       setAreWorkflowsLoading(false);
     }
-
-    return;
   };
 
   const handleSelectItemsPerPage = (
@@ -308,25 +341,36 @@ const WorkflowList = (props: AbortSignalProps) => {
     navigate('/workflows/new')
   }, []);
 
+  const cleanupLoading = () => {
+    if (loadWorkflowsAbortController) {
+      loadWorkflowsAbortController.abort('Operation canceled after component unmounted');
+    }
+
+    if (loadWorkflowsInErrorAbortController) {
+      loadWorkflowsInErrorAbortController.abort('Operation canceled after component unmounted');
+    }
+
+    if (selfTimeout) {
+      clearTimeout(selfTimeout);
+    }
+  };
+
   useEffect(() => {
+    mounted.current = true;
+
     loadRunEnvironments()
+
+    return () => {
+      mounted.current = false;
+      cleanupLoading();
+    };
   }, []);
 
   useEffect(() => {
-    loadWorkflows().then(_dummy => {
-      if (selfInterval) {
-        clearInterval(selfInterval);
-      }
-
-      const interval = setInterval(loadWorkflows,
-        UIC.TASK_REFRESH_INTERVAL_MILLIS);
-      setSelfInterval(interval);
-    });
+    loadWorkflows();
 
     return () => {
-      if (selfInterval) {
-        clearInterval(selfInterval);
-      }
+      cleanupLoading();
     };
   }, [location]);
 
