@@ -2,10 +2,10 @@
 # https://pythonspeed.com/articles/base-image-python-docker-images/
 
 # For AWS
-FROM public.ecr.aws/docker/library/python:3.11.7-slim-bullseye
+FROM public.ecr.aws/docker/library/python:3.12.3-slim-bookworm
 
 # For generic infrastructure provider
-# FROM python:3.11.7-slim-bullseye
+# FROM python:3.12.3-slim-bullseye
 
 LABEL maintainer="jeff@cloudreactor.io"
 
@@ -50,8 +50,8 @@ RUN mkdir -p $WHITENOISE_ROOT
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN pip install pip==23.0.1
-RUN pip install --no-input --no-cache-dir pip-tools==6.12.3 requests==2.28.2
+RUN pip install pip==24.0
+RUN pip install --no-input --no-cache-dir pip-tools==7.4.1 requests==2.31.0
 
 WORKDIR /tmp
 COPY server/requirements.in .
