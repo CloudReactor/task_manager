@@ -1,4 +1,5 @@
 # From https://gist.github.com/prudnikov/3a968a1ee1cf9b02730cc40bc1d3d9f2
+import logging
 
 from typing import Any, Optional
 from django.db import transaction
@@ -14,25 +15,40 @@ from processes.exception import CommittableException
 __all__ = ['AtomicCreateModelMixin', 'AtomicUpdateModelMixin', 'AtomicDestroyModelMixin',
            'AtomicModelViewSetMixin', 'AtomicModelViewSet']
 
+logger = logging.getLogger(__name__)
+
 
 class AtomicContextManager:
     def __init__(self):
-        self.sid = None
+        self.saved_rv: Optional[Any] = None
+        self.saved_ex: Optional[Exception] = None
+        self.atomic: Optional[Any] = None
 
     def __enter__(self):
-        self.sid = transaction.savepoint()
+        self.atomic = transaction.atomic()
+
+        if self.atomic is None:
+            raise APIException("Can't start transaction")
+
+        self.atomic.__enter__()
+
+        return self
 
 
-    def __exit__(self, exc_type: Optional[Any], exc_value: Optional[Exception], exc_tb: Optional[Any]):
-        if isinstance(exc_value, CommittableException):
-            transaction.savepoint_commit(self.sid)
-            raise exc_value.cause or APIException("Partial failure")
-        elif exc_value:
-            transaction.savepoint_rollback(self.sid)
-            raise exc_value
-        else:
-            transaction.savepoint_commit(self.sid)
+    def __exit__(self, exc_type: Optional[Any], exc_value: Optional[Exception],
+            traceback: Any):
+        if self.atomic is None:
+            raise exc_value or APIException("Can't commit transaction")
 
+        try:
+            if isinstance(exc_value, CommittableException):
+                logger.info(f"Committing after exception: {exc_value}")
+                self.atomic.__exit__(exc_type=None, exc_value=None, traceback=None)
+                raise exc_value.cause or APIException("Partial failure")
+
+            self.atomic.__exit__(exc_type=exc_type, exc_value=exc_value, traceback=traceback)
+        finally:
+            self.atomic = None
 
 class AtomicCreateModelMixin(mixins.CreateModelMixin):
     def create(self, request: Request, *args, **kwargs) -> Response:
