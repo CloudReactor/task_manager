@@ -5,7 +5,7 @@ import { RunEnvironment, Task, TaskExecution } from '../../../types/domain_types
 import * as UIC from '../../../utils/ui_constants';
 import { fetchRunEnvironment, fetchTask, fetchTaskExecution } from '../../../utils/api';
 
-import React, {  useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from 'react-router-dom'
 
 import { Row, Col } from 'react-bootstrap';
@@ -35,12 +35,15 @@ const TaskExecutionDetail = ({
     return <div>Invalid UUID</div>;
   }
 
+  const [isLoading, setLoading] = useState(false);
   const [taskExecution, setTaskExecution] = useState<TaskExecution | null>(null);
   const [task, setTask] = useState<Task | null>(null);
   const [runEnvironment, setRunEnvironment] = useState<RunEnvironment | null>(null);
   const [selfInterval, setSelfInterval] = useState<any>(null);
 
-  const fetchExecutionDetails = async () => {
+  const loadExecutionDetails = useCallback(async () => {
+    setLoading(true);
+
     try {
       const fetchedExecution = await fetchTaskExecution(uuid, abortSignal);
 
@@ -55,38 +58,38 @@ const TaskExecutionDetail = ({
           setRunEnvironment(fetchedRunEnvironment);
         }
       }
-
-      if (TASK_EXECUTION_STATUSES_IN_PROGRESS.includes(fetchedExecution.status)) {
-        if (!selfInterval) {
-          const interval = setInterval(fetchExecutionDetails,
-            UIC.TASK_REFRESH_INTERVAL_MILLIS);
-          setSelfInterval(interval);
-        }
-      } else {
-        if (selfInterval) {
-          clearInterval(selfInterval);
-          setSelfInterval(null);
-        }
-      }
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [task, runEnvironment]);
 
   useEffect(() => {
     document.title = 'Task Execution Details';
-    if (!taskExecution) {
-      fetchExecutionDetails();
-    }
-  }, [taskExecution]);
 
-  useEffect(() => {
+    if (!taskExecution && !isLoading) {
+      loadExecutionDetails();
+    }
+
+    if (taskExecution) {
+      if (selfInterval) {
+        clearInterval(selfInterval);
+        setSelfInterval(null);
+      }
+      if (TASK_EXECUTION_STATUSES_IN_PROGRESS.includes(taskExecution.status)) {
+        const interval = setInterval(loadExecutionDetails,
+          UIC.TASK_REFRESH_INTERVAL_MILLIS);
+        setSelfInterval(interval);
+      }
+    }
+
     return () => {
       if (selfInterval) {
         clearInterval(selfInterval);
       }
     };
-  }, []);
+  }, [isLoading, taskExecution, task, runEnvironment]);
 
   if (!taskExecution) {
     return <Loading />

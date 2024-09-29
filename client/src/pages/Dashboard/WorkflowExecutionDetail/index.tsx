@@ -62,34 +62,23 @@ const WorkflowExecutionDetail = (props: Props & AbortSignalProps) => {
 
   const {
     uuid
-  }  = useParams();
+  }  = useParams<PathParamsType>();
 
   if (!uuid) {
-    return <div>Invalid UUID</div>;
+    return (<div>
+      <p>
+        Can&apos;t find the Workflow Execution. It may have been purged from the
+        history if it ran too long ago.
+      </p>
+    </div>);
   }
 
-  const setupRefresh = (execution: WorkflowExecution) => {
-    if (execution && shouldRefreshWorkflowExecution(execution)) {
-      if (!selfInterval) {
-        console.log('setupRefresh: setInterval');
-        const updatedInterval = setInterval(fetchExecutionDetails,
-          UIC.TASK_REFRESH_INTERVAL_MILLIS);
-        setSelfInterval(updatedInterval);
-      }
-    } else if (selfInterval) {
-      console.log('setupRefresh: clear');
-      clearInterval(selfInterval)
-      setSelfInterval(null);
-    }
-  }
-
-  const fetchExecutionDetails = async () => {
+  const loadExecutionDetails = async () => {
     setLoadErrorMessage(null);
     setLoading(true);
     try {
       const execution = await fetchWorkflowExecution(uuid, abortSignal);
       setWorkflowExecution(execution);
-      setupRefresh(execution);
       setFlashBody(null);
       return execution;
     } catch (ex) {
@@ -101,12 +90,27 @@ const WorkflowExecutionDetail = (props: Props & AbortSignalProps) => {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    document.title = 'Task Execution Details';
+    document.title = 'Workflow Execution Details';
     if (!isLoading && !workflowExecution && !loadErrorMessage) {
-      fetchExecutionDetails();
+      loadExecutionDetails();
+    }
+
+    if (workflowExecution) {
+      if (selfInterval) {
+        console.log('setupRefresh: clear');
+        clearInterval(selfInterval)
+        setSelfInterval(null);
+      }
+
+      if (shouldRefreshWorkflowExecution(workflowExecution)) {
+        console.log('setupRefresh: setInterval');
+        const updatedInterval = setInterval(loadExecutionDetails,
+          UIC.TASK_REFRESH_INTERVAL_MILLIS);
+        setSelfInterval(updatedInterval);
+      }
     }
 
     return () => {
@@ -115,7 +119,7 @@ const WorkflowExecutionDetail = (props: Props & AbortSignalProps) => {
         clearInterval(selfInterval);
       }
     };
-  }, []);
+  }, [isLoading, workflowExecution]);
 
   if (!workflowExecution) {
     return <Loading />;
@@ -132,9 +136,8 @@ const WorkflowExecutionDetail = (props: Props & AbortSignalProps) => {
   const handleWorkflowExecutionUpdated = async (workflowExecutionUuid: string, execution?: WorkflowExecution) => {
     if (execution) {
       setWorkflowExecution(execution);
-      setupRefresh(execution);
     } else {
-      await fetchExecutionDetails();
+      await loadExecutionDetails();
     }
   }
 
