@@ -67,6 +67,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     pair('Exit code', te.exit_code),
     pair('Stop reason', te.stop_reason),
     pair('Stopped by', te.killed_by),
+    pair('Error details', te.error_details ? JSON.stringify(te.error_details) : 'None'),
     pair('Last status message', te.last_status_message),
     pair('Success count', formatNumber(te.success_count)),
     pair('Skipped count', formatNumber(te.skipped_count)),

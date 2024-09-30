@@ -585,6 +585,7 @@ export interface TaskExecution {
   embedded_mode: boolean | null;
   environment_variables_overrides: any;
   error_count: number;
+  error_details: any;
   error_log_tail: string | null;
   // Deprecated
   execution_method: {
