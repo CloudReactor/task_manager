@@ -26,7 +26,7 @@ import {
   stopTaskExecution
 } from '../../../utils';
 
-import React, { Fragment, useContext, useEffect, useState } from 'react';
+import React, { Fragment, useCallback, useContext, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { Alert } from 'react-bootstrap';
@@ -186,22 +186,22 @@ const TaskDetail = ({
     }
   };
 
-  const loadRunEnvironment = async (t: TaskImpl) => {
+  const loadRunEnvironment = useCallback(async (t: TaskImpl) => {
     if (!t || runEnvironment) {
       return;
     }
 
     try {
-      const runEnvironment = await fetchRunEnvironment(
+      const fetchedRunEnvironment = await fetchRunEnvironment(
         t.run_environment.uuid, abortSignal);
-      setRunEnvironment(runEnvironment);
+      setRunEnvironment(fetchedRunEnvironment);
     } catch (err) {
       if (!isCancel(err)) {
         setFlashAlertVariant('danger');
         setLastErrorMessage('Failed to load Run Environment.');
       }
     }
-  }
+  }, [runEnvironment]);
 
   const handleSort = async (sortBy: string) => {
     updateSearchParams(searchParams, setSearchParams, sortBy, 'sort_by');
@@ -302,6 +302,9 @@ const TaskDetail = ({
       if (t) {
         loadRunEnvironment(t);
         loadTaskExecutions().then(() => {
+          if (selfInterval) {
+            clearInterval(selfInterval);
+          }
           const interval = setInterval(loadTaskExecutions,
             UIC.TASK_REFRESH_INTERVAL_MILLIS);
           setSelfInterval(interval);
@@ -390,25 +393,28 @@ const TaskDetail = ({
             </div>
             <div>
               {(() => {
-                const {
-                  selectedStatuses,
-                  sortBy,
-                  descending,
-                  rowsPerPage,
-                  currentPage,
-                } = transformSearchParams(searchParams, false, true);
-
                 switch (selectedTab) {
                   case 'settings':
                     return <TaskSettings task={task} runEnvironment={runEnvironment ?? undefined} />;
                   case 'notification_methods':
                     return <TaskNotificationMethodsTab task={task} editTask={editTask} />;
-                  default:
+                  default: {
+                    const {
+                      selectedStatuses,
+                      sortBy,
+                      descending,
+                      rowsPerPage,
+                      currentPage,
+                    } = transformSearchParams(searchParams, false, true);
+
+                    const maxCurrentPage = (taskExecutionsPage.count / rowsPerPage);
+                    const adjustedCurrentPage = Math.min(currentPage, maxCurrentPage);
+
                     return (
                       <Fragment>
                         <Charts task={task} />
                         <DefaultPagination
-                          currentPage={currentPage}
+                          currentPage={adjustedCurrentPage}
                           pageSize={rowsPerPage}
                           count={taskExecutionsPage.count}
                           handleClick={handlePageChanged}
@@ -433,13 +439,15 @@ const TaskDetail = ({
                               labelRowsPerPage="Showing"
                               count={taskExecutionsPage.count}
                               rowsPerPage={rowsPerPage}
-                              page={currentPage}
+                              page={adjustedCurrentPage}
                               onPageChange={(event) => null}
                             />
                           )
                         }
                       </Fragment>
                     );
+
+                  }
                 }
               })()}
             </div>
