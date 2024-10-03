@@ -4,7 +4,7 @@ export interface AbortSignalProps {
 	abortSignal: AbortSignal;
 }
 
-export default function abortableHoc<P>(WrappedComponent: React.ComponentType<P & AbortSignalProps>): React.ComponentType<P> {
+export default function abortableHoc<P>(WrappedComponent: React.ComponentType<React.PropsWithChildren<P & AbortSignalProps>>): React.ComponentType<React.PropsWithChildren<P>> {
   const AbortableComponent = (props: P) => {
     const [abortController, setAbortController] = useState(new AbortController());
 

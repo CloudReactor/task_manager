@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Switch } from '@material-ui/core';
+import { Switch } from '@mui/material';
 
 import { WorkflowSummary } from '../../types/domain_types';
 

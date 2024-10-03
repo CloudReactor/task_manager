@@ -8,7 +8,7 @@ import {
   FormControl,
   FormControlLabel,
   RadioGroup
-} from '@material-ui/core';
+} from '@mui/material';
 
 import { Alert } from 'react-bootstrap';
 
@@ -221,7 +221,7 @@ const ConfigModalBody = ({
           label={isMutationAllowed ? 'Cancel' : 'Close'}
           onActionRequested={(action, cbData) => handleClose()}
           size="medium"
-          color="default"
+          color="primary"
           variant="contained"
           className="ml-3"
         />

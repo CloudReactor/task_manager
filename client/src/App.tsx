@@ -13,7 +13,7 @@ import Dashboard from "./pages/Dashboard";
 
 import * as path from "./constants/routes";
 
-const App: React.FC = () => (
+const App: React.FC<React.PropsWithChildren<unknown>> = () => (
   <GlobalProvider>
     <ModalContainer />
     <Routes>

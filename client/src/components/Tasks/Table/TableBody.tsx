@@ -11,7 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Tooltip,
   Switch
- } from '@material-ui/core';
+ } from '@mui/material';
+
 
 import {
   GlobalContext,
@@ -71,9 +72,9 @@ const TableBody = ({
   return (
     <tbody>
       {tasks.map(task => {
-        const lpe = task.latest_task_execution as any; // hack
-        const colors = lpe ? colorPicker(lpe.status, task.is_service, task.enabled) : '';
-        const pushToProcessPage = () =>
+        const lte = task.latest_task_execution as any; // hack
+        const colors = lte ? colorPicker(lte.status, task.is_service, task.enabled) : '';
+        const pushToTaskPage = () =>
           history(`${path.TASKS}/${task.uuid}`, { state: { item: task }});
 
         const taskInProgressAction =
@@ -89,11 +90,11 @@ const TableBody = ({
           (task.is_service ? 'disable_service' : 'stop'));
 
         const isStopDisabled = task.is_service ? !task.enabled :
-          (!lpe || (C.TASK_EXECUTION_STATUSES_IN_PROGRESS.indexOf(lpe.status) < 0));
+          (!lte || (C.TASK_EXECUTION_STATUSES_IN_PROGRESS.indexOf(lte.status) < 0));
 
         return (
           <tr key={task.uuid} className="custom_status_bg">
-            <td onClick={pushToProcessPage}>
+            <td onClick={pushToTaskPage}>
               {task.name}
             </td>
             <td className="text-center pointer">
@@ -103,46 +104,46 @@ const TableBody = ({
                  onChange={event => {editTask(task.uuid, { enabled: event.target.checked })}} />
               </Tooltip>
             </td>
-            <td onClick={pushToProcessPage}>
+            <td onClick={pushToTaskPage}>
               {task.is_service
                 ? 'Service'
                 : task.schedule
                 ? 'Scheduled'
                 : 'On-demand'}
             </td>
-            <td className={colors} onClick={pushToProcessPage}>
+            <td className={colors} onClick={pushToTaskPage}>
               <Status enabled={task.enabled} isService={task.is_service}
-               status={lpe?.status} forExecutionDetail={false} />
+               status={lte?.status} forExecutionDetail={false} />
             </td>
-            <td onClick={pushToProcessPage}>
+            <td onClick={pushToTaskPage}>
               {timeOrDuration(task, "started_at", "Never started", false)}
             </td>
-            <td onClick={pushToProcessPage}>
+            <td onClick={pushToTaskPage}>
               {
-                !lpe
+                !lte
                 ? null
-                : !lpe.finished_at
+                : !lte.finished_at
                 ? null
                 : timeOrDuration(task, "finished_at", "Not finished", false)
               }
             </td>
-            <td onClick={pushToProcessPage}>
-              {(lpe &&
+            <td onClick={pushToTaskPage}>
+              {(lte &&
                 `${timeDuration(
-                  lpe.started_at,
-                  lpe.finished_at
+                  lte.started_at,
+                  lte.finished_at
                 )}`)}
             </td>
-            <td onClick={pushToProcessPage}>
+            <td onClick={pushToTaskPage}>
               {timeOrDuration(task, "last_heartbeat_at", "No heartbeat received", true)}
             </td>
-            <td className="text-right pointer" onClick={pushToProcessPage}>
+            <td className="text-right pointer" onClick={pushToTaskPage}>
               {
-                lpe && (typeof lpe.success_count === 'number') &&
-                numberFormat.format(lpe.success_count)
+                lte && (typeof lte.success_count === 'number') &&
+                numberFormat.format(lte.success_count)
               }
             </td>
-            <td  onClick={pushToProcessPage}>
+            <td  onClick={pushToTaskPage}>
               {task.schedule}
             </td>
             <td className="tableActionsColumn">

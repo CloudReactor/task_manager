@@ -35,7 +35,7 @@ import {
 
 import '../Tasks/style.scss';
 
-import { Button } from '@material-ui/core/';
+import { Button } from '@mui/material/';
 
 import RunEnvironmentSelector from '../common/RunEnvironmentSelector';
 import EmailNotificationProfileSelector from '../common/EmailNotificationProfileSelector';

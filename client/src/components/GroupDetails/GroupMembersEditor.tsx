@@ -18,8 +18,8 @@ import {
   Row, Col
 } from 'react-bootstrap';
 
-import BootstrapTable from 'react-bootstrap-table-nextgen';
-import cellEditFactory, { Type } from 'react-bootstrap-table-nextgen-editor';
+import BootstrapTable from 'react-bootstrap-table-next-react18-node20';
+import cellEditFactory, { Type } from 'react-bootstrap-table2-editor-react18-node20';
 
 import { create } from 'react-modal-promise';
 
@@ -53,6 +53,7 @@ interface State {
 }
 
 class GroupMembersEditor extends Component<Props, State> {
+  context: any;
   static contextType = GlobalContext;
 
   constructor(props: Props) {

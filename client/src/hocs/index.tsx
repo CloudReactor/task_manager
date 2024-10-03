@@ -12,7 +12,7 @@ import {
 } from '../context/GlobalContext';
 
 export default function isAuth<P extends object>(
-    WrappedComponent: React.ComponentType<P>): React.ComponentType<P> {
+    WrappedComponent: React.ComponentType<React.PropsWithChildren<P>>): React.ComponentType<React.PropsWithChildren<P>> {
   const AuthenticatedComponent = (props: P) => {
     const {
       currentUser,

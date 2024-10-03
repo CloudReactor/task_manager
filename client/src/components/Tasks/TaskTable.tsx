@@ -10,7 +10,7 @@ import {
 
 import { DebounceInput } from 'react-debounce-input';
 
-import TablePagination from "@material-ui/core/TablePagination";
+import TablePagination from "@mui/material/TablePagination";
 import RunEnvironmentSelector from "../common/RunEnvironmentSelector/RunEnvironmentSelector";
 import StatusFilter from "../common/StatusFilter/StatusFilter";
 import TableHeader from "./Table/TableHeader";

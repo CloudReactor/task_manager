@@ -55,6 +55,8 @@ const workflowTransitionSchema = Yup.object().shape({
 export default class WorkflowTransitionEditor extends Component<Props, State> {
   static contextType = GlobalContext;
 
+  context: any;
+
   constructor(props: Props) {
     super(props);
 

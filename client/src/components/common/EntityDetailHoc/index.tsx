@@ -49,7 +49,7 @@ export interface EntityDetailInnerProps<T extends EntityReference> extends Abort
 }
 
 export const makeEntityDetailComponent = <T extends EntityReference, P>(
-  WrappedComponent: React.ComponentType<P & EntityDetailInnerProps<T>>, config: EntityDetailConfig<T>) => {
+  WrappedComponent: React.ComponentType<React.PropsWithChildren<P & EntityDetailInnerProps<T>>>, config: EntityDetailConfig<T>) => {
 
   const EntityDetail = (props: P & AbortSignalProps) => {
     const context = useContext(GlobalContext);

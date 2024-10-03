@@ -25,6 +25,7 @@ interface State {
 }
 
 class RunEnvironmentSelector extends Component<InnerProps, State> {
+  context: any;
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {

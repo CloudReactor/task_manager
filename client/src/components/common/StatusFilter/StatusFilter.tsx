@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import React, { Fragment, ReactNode } from 'react';
 
-import { Checkbox, ListItemText, MenuItem, Select } from '@material-ui/core';
+import { Checkbox, ListItemText, MenuItem, Select } from '@mui/material';
 
 import {
   TASK_EXECUTION_STATUSES,

@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { Bar } from "react-chartjs-2";
-import { Typography } from '@material-ui/core';
+import { Typography } from '@mui/material';
 import styles from './Chart.module.scss';
 
 interface Props {

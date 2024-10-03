@@ -61,7 +61,7 @@ export default class WorkflowTaskInstancePanel extends Component<Props, State> {
     const latestTaskExecution = latestExecution ? latestExecution.task_execution : null;
 
     return (
-      <Fragment>
+      (<Fragment>
         <Row>
           <Col>
              <h4>{wti.name}</h4>
@@ -190,7 +190,7 @@ export default class WorkflowTaskInstancePanel extends Component<Props, State> {
             </dl>
           </Col>
         </Row>
-      </Fragment>
+      </Fragment>)
     );
   }
 

@@ -55,6 +55,8 @@ const WorkflowTaskInstanceSchema = Yup.object().shape({
 export default class WorkflowTaskInstanceEditor extends Component<Props, State> {
   static contextType = GlobalContext;
 
+  context: any;
+
   constructor(props: Props) {
     super(props);
 

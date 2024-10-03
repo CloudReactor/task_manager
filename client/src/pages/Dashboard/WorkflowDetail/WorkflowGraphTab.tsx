@@ -19,7 +19,7 @@ interface Props {
   onWorkflowChanged?: (workflow: Workflow) => void;
 }
 
-const WorkflowGraphTab: React.FC<Props> = ({
+const WorkflowGraphTab: React.FC<React.PropsWithChildren<Props>> = ({
   workflow,
   workflowExecution,
   formikProps,

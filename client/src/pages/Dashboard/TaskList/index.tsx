@@ -372,7 +372,6 @@ const TaskList = ({
     loadTasks();
 
     return () => {
-      console.log('TaskList: cleanup on location');
       cleanupLoading();
     };
   }, [location]);

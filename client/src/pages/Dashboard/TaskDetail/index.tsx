@@ -31,7 +31,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 
 import { Alert } from 'react-bootstrap';
 
-import TablePagination from '@material-ui/core/TablePagination';
+import TablePagination from '@mui/material/TablePagination';
 
 import {
   GlobalContext,
@@ -57,7 +57,7 @@ import '../../../components/Tasks/style.scss';
 import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
 import ActionButton from '../../../components/common/ActionButton';
 
-import { Switch, Tooltip } from '@material-ui/core';
+import { Switch, Tooltip } from '@mui/material';
 import styles from './index.module.scss'
 import TaskExecutionTable from './TaskExecutionTable';
 

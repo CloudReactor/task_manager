@@ -15,7 +15,7 @@ import {
   Table
 } from 'react-bootstrap';
 
-import TablePagination from '@material-ui/core/TablePagination';
+import TablePagination from '@mui/material/TablePagination';
 import DefaultPagination from '../../../components/Pagination/Pagination';
 
 import {
