@@ -15,7 +15,6 @@ import {
   GraphView,
   IGraphInput,
   IEdge,
-  INode,
   GraphUtils,
   SelectionT
 } from 'react-digraph';
@@ -135,11 +134,6 @@ export default class WorkflowExecutionDiagram extends Component<Props, State> {
                         afterRenderEdge={this.afterRenderEdge}
                         readOnly={true}
                         onSelect={this.onSelect}
-                        onCreateNode={this.onCreateNode}
-                        onUpdateNode={this.onUpdateNode}
-                        onCreateEdge={this.onCreateEdge}
-                        onSwapEdge={this.onSwapEdge}
-                        onUndo={this.onUndo}
                         zoomDelay={0}
                         zoomDur={500} />
           </div>
@@ -282,8 +276,8 @@ export default class WorkflowExecutionDiagram extends Component<Props, State> {
         isTaskInstancePanelOpen,
       } = this.state;
 
-      const viewNodeId = nodes.keys()[0];
-      const viewNode = nodes.values()[0];
+      const viewNodeId = nodes.keys().next().value;
+      const viewNode = nodes.values().next().value;
 
       if (viewNode) {
         selectedWorkflowTaskInstance = nodeIdsToWorkflowTaskInstances[viewNodeId];
@@ -311,7 +305,7 @@ export default class WorkflowExecutionDiagram extends Component<Props, State> {
         viewEdgeToEdit
       } = this.state;
 
-      const viewEdge = edges.values()[0];
+      const viewEdge = edges.values().next().value;
 
       const viewEdgeKey = viewEdge ? WorkflowGraph.computeEdgeKey(viewEdge) : '';
 
@@ -331,21 +325,6 @@ export default class WorkflowExecutionDiagram extends Component<Props, State> {
       });
     }
   }
-
-  onCreateNode = (x: number, y: number) => { }
-
-  onUpdateNode = (viewNode: INode) => { }
-
-  onCreateEdge = (sourceViewNode: INode, targetViewNode: INode) => { }
-
-  // Called when an edge is reattached to a different target.
-  onSwapEdge = (
-    sourceViewNode: INode,
-    targetViewNode: INode,
-    viewEdge: IEdge
-  ) => { };
-
-  onUndo = () => { }
 
   handleStartWorkflowTaskInstanceRequested = async (wpti: WorkflowTaskInstance) => {
     const {

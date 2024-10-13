@@ -11,14 +11,16 @@ import {
   GlobalContext,
   accessLevelForCurrentGroup
 } from '../../../context/GlobalContext';
+import _ from 'lodash';
 
 interface Props {
+  edge: any | null;
+  workflowTransition: any | null
   size?: string;
   isOpen: boolean;
-  onSave: (wpti: any) => void;
+  onSave: (wt: any) => void;
   onCancel: () => void;
-  workflowTransition: any | null
-}
+  onRemove: (edge: any | null, wt: any | null) => void;}
 
 interface State {
   open: boolean;
@@ -85,9 +87,19 @@ export default class WorkflowTransitionEditor extends Component<Props, State> {
     this.props.onCancel();
   }
 
+  handleRemoveAndClose = () => {
+    this.props.onRemove(this.props.edge, this.props.workflowTransition);
+  };
+
   public render() {
     const accessLevel = accessLevelForCurrentGroup(this.context);
     const canSave = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
+
+    const {
+      edge
+    } = this.props;
+
+    console.dir(edge);
 
     const {
       open,
@@ -152,8 +164,19 @@ export default class WorkflowTransitionEditor extends Component<Props, State> {
               </Button>
 
               {
+                canSave && this.props.workflowTransition && (
+                  <Button variant="danger"
+                   onClick={this.handleRemoveAndClose}>
+                   <i className="fa fa-trash" /> Remove
+                  </Button>
+                )
+              }
+
+              {
                 canSave && (
                   <Button variant="primary" onClick={submitForm}>
+                    <i className={"fa fa-" + (this.props.workflowTransition ? 'bolt' : 'plus')} />
+                    &nbsp;
                     {
                       this.props.workflowTransition ?
                       (isSubmitting ? 'Updating ...' : 'Update') :

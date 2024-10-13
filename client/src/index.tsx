@@ -10,21 +10,14 @@ import App from './App';
 
 import * as serviceWorker from './serviceWorker';
 
-import { ThemeProvider, Theme, StyledEngineProvider, createTheme, adaptV4Theme } from '@mui/material/styles';
+import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material/styles';
 
 import CssBaseline from '@mui/material/CssBaseline';
 import 'react-bootstrap-table-next-react18-node20/dist/react-bootstrap-table2.min.css';
 
 import './styles/index.scss';
 
-
-declare module '@mui/styles/defaultTheme' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface DefaultTheme extends Theme {}
-}
-
-
-const darkTheme = createTheme(adaptV4Theme({
+const darkTheme = createTheme({
   // settings for Material UI components
   palette: {
     mode: 'dark',
@@ -44,17 +37,17 @@ const darkTheme = createTheme(adaptV4Theme({
   typography: {
     fontFamily: 'Roboto, Arial',
   },
-}));
+});
 
 const router = createBrowserRouter([
   {
     path: "*",
     element: (
       <StyledEngineProvider injectFirst>
-        (<ThemeProvider theme={darkTheme}>
+        <ThemeProvider theme={darkTheme}>
           <CssBaseline />
           <App />
-        </ThemeProvider>)
+        </ThemeProvider>
       </StyledEngineProvider>
     )
   }

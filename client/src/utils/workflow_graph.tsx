@@ -104,6 +104,7 @@ export function makeGraph(workflow: Workflow, workflowExecution?: WorkflowExecut
       wt.to_workflow_process_type_instance ?? {uuid: ''}).uuid;
 
     edges.push({
+      id: wt.uuid,
       source: fromWtiUuid,
       target: toWtiUuid,
       handleText: wt.rule_type,

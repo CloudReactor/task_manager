@@ -1,7 +1,13 @@
 import React, { memo } from "react";
 import { Bar } from "react-chartjs-2";
 import { Typography } from '@mui/material';
+import { ErrorBoundary } from "react-error-boundary";
+
 import styles from './Chart.module.scss';
+
+import { Chart, registerables} from 'chart.js';
+
+Chart.register(...registerables);
 
 interface Props {
   labels: string[];
@@ -20,7 +26,7 @@ interface Props {
   onClick?: (event: any, chartElements: any[]) => void;
 }
 
-const Chart = memo(
+const MyChart = memo(
   ({
     graphName,
     labels,
@@ -41,37 +47,40 @@ const Chart = memo(
         <Typography variant="subtitle1" align="center">
           {graphName}
         </Typography>
-        <Bar
-          data={{
-            labels,
-            datasets: [
-              {
-                backgroundColor: colors || backgroundColor,
-                borderColor: borderColors || borderColor,
-                borderWidth: 1,
-                hoverBackgroundColor: colors || hoverBackgroundColor,
-                hoverBorderColor: borderColors || hoverBorderColor,
-                data
-              }
-            ]
-          }}
-          width={width || 100}
-          height={height || 100}
-          options={{
-            plugins: {
-              legend: {
-                display: false
+
+        <ErrorBoundary fallback={<div>Something went wrong</div>}>
+          <Bar
+            data={{
+              labels,
+              datasets: [
+                {
+                  backgroundColor: colors || backgroundColor,
+                  borderColor: borderColors || borderColor,
+                  borderWidth: 1,
+                  hoverBackgroundColor: colors || hoverBackgroundColor,
+                  hoverBorderColor: borderColors || hoverBorderColor,
+                  data
+                }
+              ]
+            }}
+            width={width || 100}
+            height={height || 100}
+            options={{
+              plugins: {
+                legend: {
+                  display: false
+                },
               },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-              }
-            },
-            maintainAspectRatio: false,
-            onClick
-          }}
-        />
+              scales: {
+                y: {
+                  beginAtZero: true,
+                }
+              },
+              maintainAspectRatio: false,
+              onClick
+            }}
+          />
+        </ErrorBoundary>
       </div>
     ) : (
        <div className="no-data">
@@ -81,6 +90,6 @@ const Chart = memo(
     )
 );
 
-Chart.displayName = 'Chart';
+MyChart.displayName = 'Chart';
 
-export default Chart;
+export default MyChart;

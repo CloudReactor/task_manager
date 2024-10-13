@@ -22,12 +22,14 @@ import {
 } from '../../../context/GlobalContext';
 
 interface Props {
+  node: any,
   workflowTaskInstance: WorkflowTaskInstance | null;
   runEnvironmentUuid: string | null;
   size?: string;
   isOpen: boolean;
-  onSave: (wti: any) => void;
-  onCancel: () => void;
+  onSave: (node: any, wti: any) => void;
+  onCancel: (node: any) => void;
+  onDelete: (node: any, wti: any) => void;
 }
 
 interface State {
@@ -90,8 +92,16 @@ export default class WorkflowTaskInstanceEditor extends Component<Props, State> 
   }
 
   toggle = () => {
-    this.props.onCancel();
+    this.props.onCancel(this.props.node);
   }
+
+  handleRemoveAndClose = () => {
+    this.props!.onDelete(this.props.node, this.props.workflowTaskInstance);
+
+    this.setState({
+      open: false
+    });
+  };
 
   async componentDidMount() {
     await this.loadTasks();
@@ -99,7 +109,8 @@ export default class WorkflowTaskInstanceEditor extends Component<Props, State> 
 
   public render() {
     const {
-      runEnvironmentUuid
+      node,
+      runEnvironmentUuid,
     } = this.props;
 
     const accessLevel = accessLevelForCurrentGroup(this.context);
@@ -130,7 +141,7 @@ export default class WorkflowTaskInstanceEditor extends Component<Props, State> 
         </Modal.Header>
 
         <Formik
-         initialValues={ {name,taskUuid, startTransitionCondition, failureBehavior, timeoutBehavior,
+         initialValues={ {name, taskUuid, startTransitionCondition, failureBehavior, timeoutBehavior,
                           allowWorkflowExecutionAfterFailure, allowWorkflowExecutionAfterTimeout} }
          enableReinitialize={true}
          validationSchema={WorkflowTaskInstanceSchema}
@@ -244,13 +255,24 @@ export default class WorkflowTaskInstanceEditor extends Component<Props, State> 
             </Modal.Body>
 
             <Modal.Footer>
-              <Button variant="secondary" onClick={this.toggle}>
+              <Button variant="default" onClick={this.toggle}>
                 { canSave ? 'Cancel' : 'Close' }
               </Button>
 
               {
+                canSave && node && (
+                  <Button variant="danger"
+                   onClick={this.handleRemoveAndClose}>
+                   <i className="fa fa-trash" /> Remove
+                  </Button>
+                )
+              }
+
+              {
                 canSave && (
-                  <Button variant="primary" onClick={submitForm}>
+                  <Button variant="primary" color="success" onClick={submitForm}>
+                    <i className={"fa fa-" + (this.props.workflowTaskInstance ? 'bolt' : 'plus')} />
+                    &nbsp;
                     {
                       this.props.workflowTaskInstance ?
                       (isSubmitting ? 'Updating ...' : 'Update') :
@@ -279,7 +301,7 @@ export default class WorkflowTaskInstanceEditor extends Component<Props, State> 
     this.setState({
       workflowTaskInstance: this.props.workflowTaskInstance || {},
     }, () => {
-      this.props.onSave(wti);
+      this.props.onSave(this.props.node, wti);
     });
   }
 
