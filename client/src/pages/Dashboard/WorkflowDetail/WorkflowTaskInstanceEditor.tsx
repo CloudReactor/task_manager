@@ -260,7 +260,7 @@ export default class WorkflowTaskInstanceEditor extends Component<Props, State> 
               </Button>
 
               {
-                canSave && node && (
+                canSave && node && this.props.workflowTaskInstance && (
                   <Button variant="danger"
                    onClick={this.handleRemoveAndClose}>
                    <i className="fa fa-trash" /> Remove

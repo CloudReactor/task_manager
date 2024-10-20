@@ -42,14 +42,15 @@ interface Props {
 
 interface State {
   graph: IGraphInput;
-  copiedNode: any;
-  selectedNode: any;
+  selected: SelectionT | null,
+  selectedNode: INode | null;
   lastSelectionAt: number | null;
   workflowTaskInstanceToEdit: any;
   isTaskInstanceEditorOpen: boolean;
   workflowTransitionToEdit: any;
   isTransitionEditorOpen: boolean;
   selectedEdge: IEdge | null;
+  copiedNode: any;
   savedX: number | null;
   savedY: number | null;
   nodeIdsToWorkflowTaskInstances: any;
@@ -58,6 +59,7 @@ interface State {
 }
 
 const DOUBLE_CLICK_DELAY_MILLIS = 500;
+const PENDING_TRANSITION_TEXT = '[pending]';
 
 export default class WorkflowGraphEditor extends Component<Props, State> {
   static contextType = GlobalContext;
@@ -75,6 +77,7 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
 
     this.state = {
       graph,
+      selected: null,
       selectedNode: null,
       lastSelectionAt: null,
       copiedNode: null,
@@ -134,6 +137,7 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
 
     const {
       graph,
+      selected,
       selectedNode,
       workflowTaskInstanceToEdit,
       isTaskInstanceEditorOpen,
@@ -166,6 +170,8 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
           <GraphView  nodeKey={WorkflowGraph.NODE_KEY}
                       nodes={nodes}
                       edges={edges}
+                      allowMultiselect={true}
+                      selected={selected}
                       nodeTypes={NodeTypes}
                       nodeSubtypes={NodeSubtypes}
                       edgeTypes={EdgeTypes}
@@ -249,9 +255,9 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
   }
 
   onSelect = (selected: SelectionT, event?: any) => {
-    console.log('onSelect');
-
-    console.dir(selected)
+    this.setState({
+      selected
+    });
 
     const {
       nodes,
@@ -259,10 +265,13 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
     } = selected;
 
     const {
-      selectedNode: selection,
+      selectedNode,
       lastSelectionAt,
       nodeIdsToWorkflowTaskInstances
     } = this.state;
+
+    console.log('onSelect')
+    console.dir(selected);
 
     let isMultiSelect = false;
 
@@ -298,8 +307,8 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
 
     if (!edges || (edges.size === 0)) {
       this.setState({
-        workflowTransitionToEdit: null,
         selectedEdge: null,
+        workflowTransitionToEdit: null,
         isTransitionEditorOpen: false
       });
     }
@@ -312,26 +321,22 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
         savedY
       } = this.state;
 
-      const viewNodeId = nodes.keys().next().value;
-      const viewNode = nodes.values().next().value;
+      const newSelectedNodeId = nodes.keys().next().value;
+      const newSelectedNode = nodes.values().next().value ?? null;
 
       const now = new Date().getTime();
 
-      if (viewNode && selection && (selection.id === viewNodeId) &&
+      if (newSelectedNode && selectedNode && (selectedNode.id === newSelectedNodeId) &&
           lastSelectionAt && (lastSelectionAt + DOUBLE_CLICK_DELAY_MILLIS > now )) {
-        console.log('Double click of node');
-
-        workflowTaskInstanceToEdit = nodeIdsToWorkflowTaskInstances[viewNode.id];
+        workflowTaskInstanceToEdit = nodeIdsToWorkflowTaskInstances[newSelectedNode.id];
         isTaskInstanceEditorOpen = true;
-        savedX = viewNode.x ?? 0;
-        savedY = viewNode.y ?? 0;
-        console.log('wti to edit = ');
-        console.dir(workflowTaskInstanceToEdit);
+        savedX = newSelectedNode.x ?? 0;
+        savedY = newSelectedNode.y ?? 0;
       }
 
       // Deselect events will send Null viewNode
       this.setState({
-        selectedNode: viewNode,
+        selectedNode: newSelectedNode,
         lastSelectionAt: now,
         workflowTaskInstanceToEdit,
         isTaskInstanceEditorOpen,
@@ -342,47 +347,41 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
 
     if (edges && (edges.size === 1)) {
       const {
+        selectedEdge,
         lastSelectionAt,
         edgeToWorkflowTransitions
       } = this.state;
 
       let {
         workflowTransitionToEdit,
-        isTransitionEditorOpen,
-        selectedEdge
+        isTransitionEditorOpen
       } = this.state;
 
       const now = new Date().getTime();
 
-      const viewEdge = edges.values().next().value;
+      const newSelectedEdge = edges.values().next().value ?? null;
+      const newSelectedEdgeKey = newSelectedEdge ? WorkflowGraph.computeEdgeKey(newSelectedEdge) : '';
+      const selectedEdgeKey = selectedEdge ? WorkflowGraph.computeEdgeKey(selectedEdge) : '';
 
-      const viewEdgeKey = viewEdge ? WorkflowGraph.computeEdgeKey(viewEdge) : '';
-      const selectedEdgeKey = selection ? WorkflowGraph.computeEdgeKey(selection) : '';
+      //console.log(`NSEK = '${newSelectedEdgeKey}', SEK = '${selectedEdgeKey}'`);
 
-      console.log(`VEK = '${viewEdgeKey}', SEK = '${selectedEdgeKey}'`);
-
-      if (viewEdge && (selectedEdgeKey === viewEdgeKey) &&
-          lastSelectionAt && (lastSelectionAt + DOUBLE_CLICK_DELAY_MILLIS > now )) {
-        console.log('Double click of edge');
-
-        workflowTransitionToEdit = edgeToWorkflowTransitions[viewEdgeKey];
-        isTransitionEditorOpen = true;
-        selectedEdge = viewEdge;
+      if (newSelectedEdge && (selectedEdgeKey === newSelectedEdgeKey)) {
+        if (lastSelectionAt && (lastSelectionAt + DOUBLE_CLICK_DELAY_MILLIS > now)) {
+          workflowTransitionToEdit = edgeToWorkflowTransitions[newSelectedEdgeKey];
+          isTransitionEditorOpen = true;
+        }
       }
 
       this.setState({
-        selectedNode: viewEdge,
+        selectedEdge: newSelectedEdge,
         lastSelectionAt: now,
         workflowTransitionToEdit,
-        isTransitionEditorOpen,
-        selectedEdge
+        isTransitionEditorOpen
       });
     }
   }
 
   onCreateNode = (x: number, y: number) => {
-    console.log('onCreateNode');
-
     const accessLevel = accessLevelForCurrentGroup(this.context);
     if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
       return;
@@ -397,8 +396,6 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
   }
 
   onUpdateNode = (viewNode: INode) => {
-    console.log('onUpdateNode');
-
     const accessLevel = accessLevelForCurrentGroup(this.context);
     if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
       return;
@@ -433,7 +430,6 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
   }
 
   canDeleteSelected = (selected: SelectionT) => {
-    console.log('canDeleteSelected');
     return true;
   };
 
@@ -471,7 +467,8 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
       graph,
       nodeIdsToWorkflowTaskInstances,
       edgeToWorkflowTransitions,
-      selectedNode: null
+      selected: null,
+      selectedNode: null,
     }, this.updateParentWithGraph);
   }
 
@@ -494,17 +491,12 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
     this.setState({
       graph,
       edgeToWorkflowTransitions,
-      selectedNode: null,
+      selected: null,
       selectedEdge: null
     }, this.updateParentWithGraph);
   };
 
   onDeleteSelected = (selected: SelectionT) => {
-    // After upgrading to react-digraph 9.x, this was added instead of
-    // onDeleteNode(), but it is not triggering.
-
-    console.log('onDeleteSelected');
-
     const {
       nodes,
       edges
@@ -514,16 +506,6 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
     if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
       return;
     }
-
-    const {
-      graph,
-      edgeToWorkflowTransitions
-    } = this.state;
-
-    console.dir(nodes);
-
-    //debugger;
-
 
     if (nodes) {
       for (const [nodeId, node] of nodes) {
@@ -539,8 +521,6 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
   }
 
   onCreateEdge = (sourceViewNode: INode, targetViewNode: INode) => {
-    console.log('onCreateEdge');
-
     const accessLevel = accessLevelForCurrentGroup(this.context);
     if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
       return;
@@ -563,7 +543,7 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
       source,
       target,
       type,
-      handleText: '[pending]'
+      handleText: PENDING_TRANSITION_TEXT
     };
 
     const {
@@ -720,9 +700,6 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
 
 
   onTaskInstanceDeleted = (node: any, wpti: any) => {
-    console.log('onTaskInstanceDeleted');
-    console.dir(node);
-
     const accessLevel = accessLevelForCurrentGroup(this.context);
     if (!accessLevel || (accessLevel < C.ACCESS_LEVEL_DEVELOPER)) {
       return;
@@ -778,7 +755,7 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
       isTransitionEditorOpen: false,
       selectedEdge: null,
       edgeToWorkflowTransitions,
-      selectedNode: selectedEdge
+      selectedNode: null
     }, () => {
       this.forceUpdate();
       console.log('forceUpdate done');
@@ -792,22 +769,41 @@ export default class WorkflowGraphEditor extends Component<Props, State> {
     });
   }
 
-  onTransitionModalCancelled = () => {
+  onTransitionModalCancelled = (edge: any | null, wt: any | null) => {
+    let {
+      selectedEdge
+    } = this.state;
+
+    if (edge && (edge.handleText === PENDING_TRANSITION_TEXT)) {
+      this.removeEdge(edge);
+
+      if (edge === selectedEdge) {
+        selectedEdge = null;
+      }
+    }
+
     this.setState({
-      isTransitionEditorOpen: false
+      isTransitionEditorOpen: false,
+      selectedEdge
     });
   }
 
   onTransitionDeleted = (edge: any | null, wt: any | null) => {
-    console.log('onTransitionDeleted');
-    console.dir(edge);
+    let {
+      selectedEdge
+    } = this.state;
 
     if (edge) {
       this.removeEdge(edge);
+
+      if (edge === selectedEdge) {
+        selectedEdge = null;
+      }
     }
 
     this.setState({
-      isTransitionEditorOpen: false
+      isTransitionEditorOpen: false,
+      selectedEdge
     });
   }
 

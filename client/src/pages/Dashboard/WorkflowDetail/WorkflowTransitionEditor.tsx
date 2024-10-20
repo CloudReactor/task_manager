@@ -19,8 +19,9 @@ interface Props {
   size?: string;
   isOpen: boolean;
   onSave: (wt: any) => void;
-  onCancel: () => void;
-  onRemove: (edge: any | null, wt: any | null) => void;}
+  onCancel: (edge: any | null, wt: any | null) => void;
+  onRemove: (edge: any | null, wt: any | null) => void;
+}
 
 interface State {
   open: boolean;
@@ -84,7 +85,7 @@ export default class WorkflowTransitionEditor extends Component<Props, State> {
   }
 
   toggle = () => {
-    this.props.onCancel();
+    this.props.onCancel(this.props.edge, this.props.workflowTransition);
   }
 
   handleRemoveAndClose = () => {
