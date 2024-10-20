@@ -15,9 +15,9 @@ import {
   fetchNotificationMethods
 } from '../../utils/api';
 
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import FormGroup from '@material-ui/core/FormGroup';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormGroup from '@mui/material/FormGroup';
 
 interface Props {
   entityTypeLabel: string,
@@ -36,6 +36,7 @@ interface State {
 }
 
 class NotificationMethodSelector extends Component<InnerProps, State> {
+  context: any;
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {

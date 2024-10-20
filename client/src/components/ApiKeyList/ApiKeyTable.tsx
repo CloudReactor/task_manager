@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom'
 
 import { Button, ButtonGroup, ButtonToolbar, Row, Col, Toast } from 'react-bootstrap'
 
-import BootstrapTable from 'react-bootstrap-table-nextgen';
+import BootstrapTable from 'react-bootstrap-table-next-react18-node20';
 
 import CopyToClipboard from 'react-copy-to-clipboard';
 

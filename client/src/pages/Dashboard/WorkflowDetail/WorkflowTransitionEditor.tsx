@@ -11,13 +11,16 @@ import {
   GlobalContext,
   accessLevelForCurrentGroup
 } from '../../../context/GlobalContext';
+import _ from 'lodash';
 
 interface Props {
+  edge: any | null;
+  workflowTransition: any | null
   size?: string;
   isOpen: boolean;
-  onSave: (wpti: any) => void;
-  onCancel: () => void;
-  workflowTransition: any | null
+  onSave: (wt: any) => void;
+  onCancel: (edge: any | null, wt: any | null) => void;
+  onRemove: (edge: any | null, wt: any | null) => void;
 }
 
 interface State {
@@ -55,6 +58,8 @@ const workflowTransitionSchema = Yup.object().shape({
 export default class WorkflowTransitionEditor extends Component<Props, State> {
   static contextType = GlobalContext;
 
+  context: any;
+
   constructor(props: Props) {
     super(props);
 
@@ -80,12 +85,22 @@ export default class WorkflowTransitionEditor extends Component<Props, State> {
   }
 
   toggle = () => {
-    this.props.onCancel();
+    this.props.onCancel(this.props.edge, this.props.workflowTransition);
   }
+
+  handleRemoveAndClose = () => {
+    this.props.onRemove(this.props.edge, this.props.workflowTransition);
+  };
 
   public render() {
     const accessLevel = accessLevelForCurrentGroup(this.context);
     const canSave = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
+
+    const {
+      edge
+    } = this.props;
+
+    console.dir(edge);
 
     const {
       open,
@@ -150,8 +165,19 @@ export default class WorkflowTransitionEditor extends Component<Props, State> {
               </Button>
 
               {
+                canSave && this.props.workflowTransition && (
+                  <Button variant="danger"
+                   onClick={this.handleRemoveAndClose}>
+                   <i className="fa fa-trash" /> Remove
+                  </Button>
+                )
+              }
+
+              {
                 canSave && (
                   <Button variant="primary" onClick={submitForm}>
+                    <i className={"fa fa-" + (this.props.workflowTransition ? 'bolt' : 'plus')} />
+                    &nbsp;
                     {
                       this.props.workflowTransition ?
                       (isSubmitting ? 'Updating ...' : 'Update') :

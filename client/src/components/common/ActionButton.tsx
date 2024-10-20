@@ -5,7 +5,7 @@ import React from 'react';
 import {
   Button,
   Tooltip
-} from '@material-ui/core';
+} from '@mui/material';
 
 interface Props {
 	cbData?: any,
@@ -19,7 +19,7 @@ interface Props {
   inProgressLabel?: string;
   variant?: 'contained' | 'outlined' | 'text';
   size?: 'small' | 'medium' | 'large';
-  color?: 'primary' | 'secondary' | 'default';
+  color?: 'primary' | 'secondary';
   tooltip?: string;
   className?: string;
   style?: any;
@@ -42,7 +42,7 @@ const ActionButton = (p: Props) => {
           style={p.style ?? {}}
           size={ p.size ?? 'small' }
           variant={ p.variant ?? 'outlined' }
-          color={ p.color ?? 'default' }
+          color={ p.color ?? 'grey' }
           disabled={(p.disabled ?? false) && !p.inProgress}
           onClick={() => p.onActionRequested && p.onActionRequested(p.action, p.cbData)}>
           { iconName && <i className={'fas fa-' + iconName + ' pl-1 pr-1'} /> }

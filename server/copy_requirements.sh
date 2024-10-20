@@ -12,3 +12,6 @@ docker cp $TEMP_CONTAINER_NAME:/tmp/dev-requirements.txt dev-requirements.txt
 docker rm $TEMP_CONTAINER_NAME
 
 echo "Done copying requirement files back to host."
+
+exec pip-sync requirements.txt dev-requirements.txt
+

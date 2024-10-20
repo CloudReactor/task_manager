@@ -15,8 +15,8 @@ import {
   GraphView,
   IGraphInput,
   IEdge,
-  INode,
-  GraphUtils
+  GraphUtils,
+  SelectionT
 } from 'react-digraph';
 
 import WorkflowTaskInstancePanel from './WorkflowTaskInstancePanel';
@@ -133,15 +133,7 @@ export default class WorkflowExecutionDiagram extends Component<Props, State> {
                         renderNodeText={this.renderNodeText}
                         afterRenderEdge={this.afterRenderEdge}
                         readOnly={true}
-                        onSelectNode={this.onSelectNode}
-                        onCreateNode={this.onCreateNode}
-                        onUpdateNode={this.onUpdateNode}
-                        onDeleteNode={this.onDeleteNode}
-                        onSelectEdge={this.onSelectEdge}
-                        onCreateEdge={this.onCreateEdge}
-                        onSwapEdge={this.onSwapEdge}
-                        onDeleteEdge={this.onDeleteEdge}
-                        onUndo={this.onUndo}
+                        onSelect={this.onSelect}
                         zoomDelay={0}
                         zoomDur={500} />
           </div>
@@ -230,84 +222,109 @@ export default class WorkflowExecutionDiagram extends Component<Props, State> {
     }
   }
 
-  onSelectNode = (viewNode: INode | null) => {
-    console.log('onSelectNode');
+  onSelect = (selected: SelectionT, event?: any) => {
+    console.log('onSelect');
 
     const {
-      nodeIdsToWorkflowTaskInstances
-    } = this.state;
+      nodes,
+      edges
+    } = selected;
 
-    let {
-      selectedWorkflowTaskInstance,
-      isTaskInstancePanelOpen,
-    } = this.state;
+    let isMultiSelect = false;
 
-    if (viewNode) {
-      selectedWorkflowTaskInstance = nodeIdsToWorkflowTaskInstances[viewNode.id];
-      isTaskInstancePanelOpen = !!selectedWorkflowTaskInstance;
+    if (nodes && (nodes.size > 1)) {
+      isMultiSelect = true;
+      this.setState({
+        selected: null,
+        selectedWorkflowTaskInstance: null
+      });
     }
 
-    // Deselect events will send Null viewNode
-    this.setState({
-      selected: viewNode,
-      selectedWorkflowTaskInstance: selectedWorkflowTaskInstance,
-      selectedWorkflowTransition: null,
-      isTaskInstancePanelOpen: isTaskInstancePanelOpen,
-      isTransitionPanelOpen: false
-    });
-  }
-
-  onCreateNode = (x: number, y: number) => { }
-
-  onUpdateNode = (viewNode: INode) => { }
-
-  onDeleteNode = (viewNode: INode, nodeId: string, nodeArr: INode[]) => { }
-
-  onSelectEdge = (viewEdge: IEdge) => {
-    console.log('onSelectEdge');
-
-    const {
-      edgeToWorkflowTransitions
-    } = this.state;
-
-    let {
-      selectedWorkflowTransition,
-      isTransitionPanelOpen,
-      viewEdgeToEdit
-    } = this.state;
-
-    const viewEdgeKey = viewEdge ? WorkflowGraph.computeEdgeKey(viewEdge) : '';
-
-    if (viewEdge) {
-       selectedWorkflowTransition = edgeToWorkflowTransitions[viewEdgeKey];
-       isTransitionPanelOpen = !!selectedWorkflowTransition;
-       viewEdgeToEdit = viewEdge;
+    if (edges && (edges.size > 1)) {
+      isMultiSelect = true;
+      this.setState({
+        selectedWorkflowTransition: null,
+        isTransitionPanelOpen: false
+      });
     }
 
-    this.setState({
-      selected: viewEdge,
-      selectedWorkflowTaskInstance: null,
-      selectedWorkflowTransition,
-      isTaskInstancePanelOpen: false,
-      isTransitionPanelOpen,
-      viewEdgeToEdit
-    });
+    if (isMultiSelect) {
+      return;
+    }
+
+    if (!nodes || (nodes.size === 0)) {
+      this.setState({
+        selected: null,
+        selectedWorkflowTaskInstance: null
+      });
+    }
+
+    if (!edges || (edges.size === 0)) {
+      this.setState({
+        selectedWorkflowTransition: null,
+        isTransitionPanelOpen: false
+      });
+    }
+
+    if (nodes && (nodes.size === 1)) {
+      const {
+        nodeIdsToWorkflowTaskInstances
+      } = this.state;
+
+      let {
+        selectedWorkflowTaskInstance,
+        isTaskInstancePanelOpen,
+      } = this.state;
+
+      const viewNodeId = nodes.keys().next().value;
+      const viewNode = nodes.values().next().value;
+
+      if (viewNode) {
+        selectedWorkflowTaskInstance = nodeIdsToWorkflowTaskInstances[viewNodeId];
+        isTaskInstancePanelOpen = !!selectedWorkflowTaskInstance;
+      }
+
+      // Deselect events will send Null viewNode
+      this.setState({
+        selected: viewNode,
+        selectedWorkflowTaskInstance,
+        selectedWorkflowTransition: null,
+        isTaskInstancePanelOpen,
+        isTransitionPanelOpen: false
+      });
+    }
+
+    if (edges && (edges.size === 1)) {
+      const {
+        edgeToWorkflowTransitions
+      } = this.state;
+
+      let {
+        selectedWorkflowTransition,
+        isTransitionPanelOpen,
+        viewEdgeToEdit
+      } = this.state;
+
+      const viewEdge = edges.values().next().value;
+
+      const viewEdgeKey = viewEdge ? WorkflowGraph.computeEdgeKey(viewEdge) : '';
+
+      if (viewEdge) {
+        selectedWorkflowTransition = edgeToWorkflowTransitions[viewEdgeKey];
+        isTransitionPanelOpen = !!selectedWorkflowTransition;
+        viewEdgeToEdit = viewEdge;
+      }
+
+      this.setState({
+        selected: viewEdge,
+        selectedWorkflowTaskInstance: null,
+        selectedWorkflowTransition,
+        isTaskInstancePanelOpen: false,
+        isTransitionPanelOpen,
+        viewEdgeToEdit
+      });
+    }
   }
-
-  onCreateEdge = (sourceViewNode: INode, targetViewNode: INode) => { }
-
-  // Called when an edge is reattached to a different target.
-  onSwapEdge = (
-    sourceViewNode: INode,
-    targetViewNode: INode,
-    viewEdge: IEdge
-  ) => { };
-
-  // Called when an edge is deleted
-  onDeleteEdge = (viewEdge: IEdge, edges: IEdge[]) => { }
-
-  onUndo = () => { }
-
 
   handleStartWorkflowTaskInstanceRequested = async (wpti: WorkflowTaskInstance) => {
     const {

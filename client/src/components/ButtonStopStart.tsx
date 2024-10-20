@@ -1,6 +1,5 @@
 import React from 'react';
-import Button from '@material-ui/core/Button';
-import { makeStyles } from '@material-ui/core/styles';
+import Button from '@mui/material/Button';
 
 interface Props {
 	uuid: string;
@@ -9,16 +8,9 @@ interface Props {
   disabled: boolean;
 }
 
-const useStyles = makeStyles(theme => ({
-  buttonMargin: {    
-    marginLeft: '5px',   
-    marginRight: '5px',   
-  },
-}));
+const styles = { marginLeft: '5px', marginRight: '5px' };
 
 const ButtonStopStart = ({handleStopStart, uuid, type, disabled}: Props) => {
-  const classes = useStyles();
-
 	if (type === "stop") {
 		return (
 			<Button
@@ -27,8 +19,8 @@ const ButtonStopStart = ({handleStopStart, uuid, type, disabled}: Props) => {
 				color="primary"
 				disabled={disabled}
 				onClick={() => handleStopStart(uuid, type)}
-				className={classes.buttonMargin}
-			>
+				sx={styles}
+		  >
 				<i className="fas fa-stop pl-2 pr-2"/>
 				Stop
 			</Button>
@@ -41,7 +33,7 @@ const ButtonStopStart = ({handleStopStart, uuid, type, disabled}: Props) => {
 				color="primary"
 				disabled={disabled}
 				onClick={() => handleStopStart(uuid, type)}
-				className={classes.buttonMargin}
+				sx={styles}
 			>
 				<i className="fas fa-play pl-2 pr-2"/>
 				Start

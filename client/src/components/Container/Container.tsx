@@ -7,7 +7,7 @@ type LoadingProps = {
   type?: 'formContainer' | null;
 }
 
-const Container: FunctionComponent<LoadingProps> = ({style, type, children}) => {
+const Container: FunctionComponent<React.PropsWithChildren<LoadingProps>> = ({style, type, children}) => {
   const styleProperties: React.CSSProperties = {...style};
 
   return (

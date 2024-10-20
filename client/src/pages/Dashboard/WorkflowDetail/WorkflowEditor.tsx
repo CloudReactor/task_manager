@@ -40,7 +40,7 @@ type Props = {
   onWorkflowExecutionUpdated: (execution: WorkflowExecution) => void;
 };
 
-const WorkflowEditor: React.FC<Props> = (props) => {
+const WorkflowEditor: React.FC<React.PropsWithChildren<Props>> = (props) => {
   const { currentGroup } = useContext(GlobalContext);
   const [workflow, setWorkflow] = useState<Workflow>(props.workflow);
   const [isSaving, setIsSaving] = useState(false);

@@ -23,6 +23,7 @@ interface State {
 type InnerProps = Props & AbortSignalProps;
 
 class PagerDutyProfileSelector extends Component<InnerProps, State> {
+  context: any;
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {

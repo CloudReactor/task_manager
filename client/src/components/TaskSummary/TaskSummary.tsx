@@ -39,14 +39,14 @@ const TaskSummary = ({ task }: Props) => {
   }
 
   return (
-    <div className={styles.summaryContainer}>
+    (<div className={styles.summaryContainer}>
       {
         rows.map((row, index) => {
           if (row.name === 'Description') {
             return (<div key={index} className={styles.description}>{row.data}</div>);
           } else {
-            return(
-              <div key={index}>{row.name}:{' '}
+            return (
+              (<div key={index}>{row.name}:{' '}
                 {
                   (row.isUrl && row.data) ? (
                       /^https?:\/\//.test(row.data.toString())
@@ -64,14 +64,12 @@ const TaskSummary = ({ task }: Props) => {
                     </CopyToClipboard>
                   )
                 }
-
-
-              </div>
+              </div>)
             );
           }
         }
       )}
-    </div>
+    </div>)
   );
 }
 

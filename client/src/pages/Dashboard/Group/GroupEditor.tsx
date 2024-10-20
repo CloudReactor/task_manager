@@ -17,7 +17,7 @@ import {
   Row,
 } from 'react-bootstrap';
 
-import { Button } from '@material-ui/core/';
+import { Button } from '@mui/material/';
 
 import {
   GlobalContext

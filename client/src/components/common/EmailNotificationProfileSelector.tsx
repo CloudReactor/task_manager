@@ -24,6 +24,7 @@ interface State {
 }
 
 class EmailNotificationProfileSelector extends Component<InnerProps, State> {
+  context: any;
   static contextType = GlobalContext;
 
   constructor(props: InnerProps) {

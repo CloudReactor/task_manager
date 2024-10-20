@@ -41,10 +41,10 @@ import {
   FormLabel,
 } from 'react-bootstrap';
 
-import { Button } from '@material-ui/core/';
-import AddBoxIcon from '@material-ui/icons/AddBox';
-import DeleteIcon from '@material-ui/icons/Delete';
-import IconButton from '@material-ui/core/IconButton';
+import { Button } from '@mui/material/';
+import AddBoxIcon from '@mui/icons-material/AddBox';
+import DeleteIcon from '@mui/icons-material/Delete';
+import IconButton from '@mui/material/IconButton';
 
 import RunEnvironmentSelector from '../common/RunEnvironmentSelector';
 import FormikErrorsSummary from '../common/FormikErrorsSummary';
@@ -101,7 +101,7 @@ const EmailNotificationProfileEditor = ({
   }, enp) as any;
 
   return (
-    <Container type="formContainer">
+    (<Container type="formContainer">
       <Formik
         initialValues={initialValues}
         enableReinitialize={true}
@@ -218,41 +218,41 @@ const EmailNotificationProfileEditor = ({
                   const addresses = values[rt + '_addresses'];
 
                   return (
-                  <Row key={rt} className="pb-3">
-                    <Col sm={12} md={3} className="align-text-top">
-                      <label>{rtLabel} Email Addresses</label>
-                    </Col>
-
-                    <Col sm={12} md={9}>
-                      <FieldArray
-                        name={rt + '_addresses'}
-                        render={(arrayHelpers: any) => (
-                          <Fragment>
-                            {addresses && addresses.length > 0 ? (
-                            addresses.map((item: any, index: any) => (
-                                <InputGroup key={index} className="mb-3">
-                                  <Field name={`${rt}_addresses.${index}`} type="text"
-                                  className="form-control"/>
-                                  <InputGroup.Append>
-                                    <IconButton
-                                      aria-label="delete"
-                                      onClick={() => arrayHelpers.remove(index)}
-                                  >
-                                      <DeleteIcon />
-                                    </IconButton>
-                                  </InputGroup.Append>
-                                </InputGroup>
-                              ))
-                            ) : null }
-                            <Button variant="outlined" size="small" onClick={() => arrayHelpers.push('')}>
-                              <AddBoxIcon style={leftIcon} />
-                              Add email address
-                            </Button>
-                          </Fragment>
-                        )}
-                      />
-                    </Col>
-                  </Row>);
+                    (<Row key={rt} className="pb-3">
+                      <Col sm={12} md={3} className="align-text-top">
+                        <label>{rtLabel} Email Addresses</label>
+                      </Col>
+                      <Col sm={12} md={9}>
+                        <FieldArray
+                          name={rt + '_addresses'}
+                          render={(arrayHelpers: any) => (
+                            <Fragment>
+                              {addresses && addresses.length > 0 ? (
+                              addresses.map((item: any, index: any) => (
+                                  <InputGroup key={index} className="mb-3">
+                                    <Field name={`${rt}_addresses.${index}`} type="text"
+                                    className="form-control"/>
+                                    <InputGroup.Append>
+                                      <IconButton
+                                        aria-label="delete"
+                                        onClick={() => arrayHelpers.remove(index)}
+                                        size="large">
+                                        <DeleteIcon />
+                                      </IconButton>
+                                    </InputGroup.Append>
+                                  </InputGroup>
+                                ))
+                              ) : null }
+                              <Button variant="outlined" size="small" onClick={() => arrayHelpers.push('')}>
+                                <AddBoxIcon style={leftIcon} />
+                                Add email address
+                              </Button>
+                            </Fragment>
+                          )}
+                        />
+                      </Col>
+                    </Row>)
+                  );
                 })
               }
             </div>
@@ -271,7 +271,7 @@ const EmailNotificationProfileEditor = ({
 
         )}
       </Formik>
-    </Container>
+    </Container>)
   );
 }
 

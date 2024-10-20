@@ -43,10 +43,10 @@ import {
   accessLevelForCurrentGroup
 } from '../../context/GlobalContext';
 
-import { Button } from '@material-ui/core/';
-import AddBoxIcon from '@material-ui/icons/AddBox';
-import DeleteIcon from '@material-ui/icons/Delete';
-import IconButton from '@material-ui/core/IconButton';
+import { Button } from '@mui/material/';
+import AddBoxIcon from '@mui/icons-material/AddBox';
+import DeleteIcon from '@mui/icons-material/Delete';
+import IconButton from '@mui/material/IconButton';
 
 import FormikErrorsSummary from '../common/FormikErrorsSummary';
 
@@ -286,7 +286,7 @@ const RunEnvironmentEditor = ({
   const validationSchema = Yup.object().shape(yupObjectShape);
 
   return (
-    <Formik
+    (<Formik
       initialValues={runEnv}
       enableReinitialize={true}
       validationSchema={validationSchema}
@@ -343,7 +343,7 @@ const RunEnvironmentEditor = ({
         }
 
         return (
-          <Form className="run_environment_settings_form">
+          (<Form className="run_environment_settings_form">
             <fieldset disabled={isSubmitting}>
               {
                 debugMode && (
@@ -386,7 +386,8 @@ const RunEnvironmentEditor = ({
                                     <InputGroup.Append className={styles.deleteButtonInputGroupAppend}>
                                       <IconButton
                                         aria-label="delete"
-                                        onClick={() => { arrayHelpers.remove(index); }}>
+                                        onClick={() => { arrayHelpers.remove(index); }}
+                                        size="large">
                                         <DeleteIcon/>
                                       </IconButton>
                                     </InputGroup.Append>
@@ -430,7 +431,8 @@ const RunEnvironmentEditor = ({
                                         aria-label="delete"
                                         onClick={() => {
                                           arrayHelpers.remove(index);
-                                        }}>
+                                        }}
+                                        size="large">
                                         <DeleteIcon />
                                       </IconButton>
                                     </InputGroup.Append>
@@ -504,11 +506,11 @@ const RunEnvironmentEditor = ({
                 </Col>
               </Row>
             </fieldset>
-          </Form>
+          </Form>)
         );
       }
       }
-    </Formik>
+    </Formik>)
   );
 }
 

@@ -5,8 +5,8 @@ import { Button, ButtonGroup, ButtonToolbar, Modal } from 'react-bootstrap'
 
 import { InstanceProps } from 'react-modal-promise';
 
-import BootstrapTable from 'react-bootstrap-table-nextgen';
-import cellEditFactory from 'react-bootstrap-table-nextgen-editor';
+import BootstrapTable from 'react-bootstrap-table-next-react18-node20';
+import cellEditFactory from 'react-bootstrap-table2-editor-react18-node20';
 
 import { Formik, Form } from 'formik';
 

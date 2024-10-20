@@ -35,7 +35,7 @@ import {
 import FormikErrorsSummary from '../../components/common/FormikErrorsSummary';
 import RunEnvironmentSelector from '../../components/common/RunEnvironmentSelector';
 
-import { Button } from '@material-ui/core/';
+import { Button } from '@mui/material/';
 
 import '../Tasks/style.scss';
 
