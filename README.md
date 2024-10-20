@@ -122,10 +122,7 @@ in the `server` directory, run:
 
     ./copy_requirements.sh
 
-This will update `server/requirements.txt` and `server/dev-requirements.txt`.
-Finally, run:
-
-    pip-sync requirements.txt dev-requirements.txt
+This will update `server/requirements.txt` and `server/dev-requirements.txt`, then install them.
 
 ## License
 

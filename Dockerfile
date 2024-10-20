@@ -2,10 +2,10 @@
 # https://pythonspeed.com/articles/base-image-python-docker-images/
 
 # For AWS
-FROM public.ecr.aws/docker/library/python:3.12.3-slim-bookworm
+FROM public.ecr.aws/docker/library/python:3.12.6-slim-bookworm
 
 # For generic infrastructure provider
-# FROM python:3.12.3-slim-bullseye
+# FROM python:3.12.6-slim-bookworm
 
 LABEL maintainer="jeff@cloudreactor.io"
 
@@ -16,6 +16,7 @@ RUN apt-get update \
   && apt-get install binutils libproj-dev \
   gdal-bin git \
   libpq-dev build-essential \
+  expat \
   -y --no-install-recommends \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -50,8 +51,8 @@ RUN mkdir -p $WHITENOISE_ROOT
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN pip install pip==24.0
-RUN pip install --no-input --no-cache-dir pip-tools==7.4.1 requests==2.31.0
+RUN pip install pip==24.2
+RUN pip install --no-input --no-cache-dir pip-tools==7.4.1 requests==2.32.3
 
 WORKDIR /tmp
 COPY server/requirements.in .
