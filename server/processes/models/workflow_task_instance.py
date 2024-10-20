@@ -98,8 +98,11 @@ class WorkflowTaskInstance(UuidModel):
     allocated_cpu_units = models.IntegerField(null=True, blank=True)
     allocated_memory_mb = models.IntegerField(null=True, blank=True)
 
+    # Legacy
     use_task_alert_methods = models.BooleanField(default=False,
-            db_column='use_process_type_alert_methods')
+        db_column='use_process_type_alert_methods')
+
+    use_task_notification_profiles = models.BooleanField(default=False)
 
     failure_behavior = models.CharField(max_length=50,
         choices=FAILURE_BEHAVIOR_CHOICES,

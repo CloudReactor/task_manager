@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 import logging
 
@@ -65,6 +65,11 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         logger.debug(f"wts: to_internal value, validated = {validated}")
 
+        wts: Optional[WorkflowTransition] = None
+
+        if self.instance:
+            wts = cast(WorkflowTransition, self.instance)
+
         #workflow = self.instance.workflow if self.instance else None
 
         from_workflow: Optional[Workflow] = None
@@ -95,26 +100,33 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
                 except NotFound as nfe:
                     raise UnprocessableEntity({
                         p: [
-                            ErrorDetail('Workflow Task Instance was not found or not accessible', code='not_found')
+                            ErrorDetail('Workflow of Workflow Task Instance not found or not accessible', code='not_found')
                         ]
                     }) from nfe
 
                 if wti:
                     workflow = wti.workflow
 
+                    if workflow is None:
+                        raise UnprocessableEntity({
+                            p: [
+                                ErrorDetail('Workflow Task Instance was not found or not accessible', code='not_found')
+                            ]
+                        })
+
                     ensure_group_access_level(group=workflow.created_by_group,
                         min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
                         run_environment=workflow.run_environment)
 
                     validated[f'{x}_workflow_task_instance'] = wti
-                elif not self.instance:
+                elif wts is None:
                     raise serializers.ValidationError({
                         p: [
                             ErrorDetail('Workflow Task Instance is missing', code='missing')
                         ]
                     })
             else:
-                if not self.instance:
+                if wts is None:
                     raise serializers.ValidationError({
                         p: [
                             ErrorDetail('Workflow Task Instance must be specified', code='missing')
@@ -122,10 +134,16 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
                     })
 
             if workflow is None:
-                if is_to:
-                    workflow = self.instance.to_workflow_task_instance.workflow
+                if wts is None:
+                    raise serializers.ValidationError({
+                        p: [
+                            ErrorDetail('Workflow not found', code='missing')
+                        ]
+                    })
+                elif is_to:
+                    workflow = wts.to_workflow_task_instance.workflow
                 else:
-                    workflow = self.instance.from_workflow_task_instance.workflow
+                    workflow = wts.from_workflow_task_instance.workflow
 
             if is_to:
                 if workflow != from_workflow:

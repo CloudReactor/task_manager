@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class BaseReadOnlyViewSetMixin(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'uuid'
-    model_class: Type[models.Model]
+    model_class: type[models.Model]
     ordering_fields: Any = ('name',)
     ordering = 'name'
 

@@ -39,6 +39,7 @@ class SerializerHelpers(serializers.BaseSerializer):
                 logger.warning('get_request_group(): user has multiple groups, returning None')
         return group
 
+    # Legacy
     def set_validated_alert_methods(self,
             data: Mapping[str, Any],
             validated: dict[str, Any],
@@ -72,6 +73,42 @@ class SerializerHelpers(serializers.BaseSerializer):
                 updated_alert_methods.append(am)
 
             validated[property_name] = updated_alert_methods
+
+
+    def set_validated_notification_profiles(self,
+            data: Mapping[str, Any],
+            validated: dict[str, Any],
+            run_environment: Optional[RunEnvironment],
+            property_name: str = 'notification_profiles',
+            allow_any_run_environment: bool = False):
+        from processes.models import NotificationProfile
+
+        group = validated['created_by_group']
+
+        body_notification_profiles = data.get(property_name)
+
+        if body_notification_profiles is not None:
+            updated_notification_profiles = []
+
+            for body_notification_profile in body_notification_profiles:
+                try:
+                    am = NotificationProfile.find_by_uuid_or_name(body_notification_profile,
+                            required_group=group,
+                            allowed_run_environment=run_environment,
+                            allow_any_run_environment=allow_any_run_environment)
+                except serializers.ValidationError as validation_error:
+                    self.handle_to_internal_value_exception(validation_error, field_name='notification_profiles')
+                except NotFound as nfe:
+                    raise UnprocessableEntity({
+                        property_name: [
+                            ErrorDetail('Notification Method not found', code='invalid')
+                        ]
+                    }) from nfe
+
+                updated_notification_profiles.append(am)
+
+            validated[property_name] = updated_notification_profiles
+
 
     @staticmethod
     def validate_schedule(schedule: Optional[str]) -> Optional[str]:

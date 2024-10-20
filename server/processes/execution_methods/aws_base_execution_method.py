@@ -37,7 +37,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
         settings_to_merge: list[dict[str, Any]] = [ {} ]
 
         if task:
-            if task.run_environment.aws_settings:
+            if task.run_environment and task.run_environment.aws_settings:
                 settings_to_merge.append(task.run_environment.aws_settings)
 
             if task.infrastructure_settings and \
@@ -63,12 +63,13 @@ class AwsBaseExecutionMethod(ExecutionMethod):
 
             if not region:
                 run_environment = self.task.run_environment
-                re_aws_settings = run_environment.aws_settings
-                if re_aws_settings:
-                    region = re_aws_settings.get('region')
+                if run_environment:
+                    re_aws_settings = run_environment.aws_settings
+                    if re_aws_settings:
+                        region = re_aws_settings.get('region')
 
-                    if (not region) and re_aws_settings.get('network'):
-                        region = re_aws_settings['network'].get('region')
+                        if (not region) and re_aws_settings.get('network'):
+                            region = re_aws_settings['network'].get('region')
 
         return region
 

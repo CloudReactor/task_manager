@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     help = 'Ensure usage limits are applied'
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser) -> None:
         #parser.add_argument('poll_ids', nargs='+', type=int)
         pass
 
-    def handle(self, *args, **options):
+    def handle(self, *args, **options) -> None:
         logger.info('Starting usage limit enforcer ...')
 
         exceptions: List[Exception] = []

@@ -22,8 +22,7 @@ import pytest
 
 from rest_framework.test import APIClient
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from conftest import *
 
 
@@ -151,9 +150,7 @@ def ensure_serialized_task_valid(response_task: dict[str, Any],
 
   # TODO: check filtering, non-default ordering
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_list(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -449,9 +446,7 @@ def make_request_body(uuid_send_type: Optional[str],
    SEND_ID_CORRECT,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_fetch(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int],
@@ -500,9 +495,7 @@ def test_task_fetch(
   (False, True, False),
   (False, False, True),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_create_aws_ecs_task(is_legacy_schema: bool,
         is_service: bool, is_scheduled: bool,
         user_factory, group_factory,
@@ -607,7 +600,7 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
    SEND_ID_NONE, SEND_ID_IN_WRONG_GROUP,
    422, 'run_environment'),
 
-   # Developer with scoped API Key succeeds when Alert Method is scoped
+   # Developer with scoped API Key succeeds when Notification Profile is scoped
    # with the same Run Environment
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
@@ -670,9 +663,7 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
    SEND_ID_NONE, SEND_ID_CORRECT,
    401, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_create_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -814,9 +805,7 @@ def test_task_create_passive_task(em_type: str, is_legacy_schema,
   (4, 201),
   (3, 422)
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_create_task_limit(max_tasks: int,
         status_code: int,
         subscription_plan, user_factory, group_factory,
@@ -894,9 +883,7 @@ def test_task_create_task_limit(max_tasks: int,
         assert response_dict['error_code'] == 'limit_exceeded'
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_create_with_links(
         user_factory, group_factory, run_environment_factory,
         task_factory, api_client) -> None:
@@ -990,90 +977,88 @@ def test_task_create_with_links(
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
   api_key_access_level, api_key_scope_type,
-  run_environment_send_type, alert_method_send_type,
+  run_environment_send_type, notification_profile_send_type,
   status_code, validation_error_attribute
 """, [
   # Developer authenticated with JWT succeeds with no Run Environment
-  # where Alert Method is also unscoped
+  # where Notification Profile is also unscoped
   (None, None,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    201, None),
-  # Developer authenticated with JWT succeeds where Alert Method is scoped
+  # Developer authenticated with JWT succeeds where Notification Profile is scoped
   # correctly
   (None, None,
    SEND_ID_OTHER, SEND_ID_CORRECT,
    201, None),
-  # Developer authenticated with JWT gets 422 where Alert Method is
+  # Developer authenticated with JWT gets 422 where Notification Profile is
   # scoped to a different Run Environment
   (None, None,
    SEND_ID_CORRECT, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'alert_methods'),
+   422, 'notification_profiles'),
   # Developer authenticated with JWT gets succeeds a specific Run Environment
-  # where Alert Method is unscoped
+  # where Notification Profile is unscoped
   (None, None,
    SEND_ID_OTHER, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    201, None),
   # Developer with unscoped API Key succeeds
-  # where Task and Alert Method are also unscoped
+  # where Task and Notification Profile are also unscoped
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    201, None),
   # Developer with unscoped API Key succeeds
-  # where Run Environment is omitted and Alert Method is unscoped
+  # where Run Environment is omitted and Notification Profile is unscoped
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    None, SEND_ID_CORRECT,
    201, None),
- # Developer with unscoped API Key succeeds when Alert Method Run Environment
- # matches Alert Method Run Environment
+ # Developer with unscoped API Key succeeds when Notification Profile Run Environment
+ # matches Notification Profile Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_OTHER, SEND_ID_OTHER,
    201, None),
- # Developer with unscoped API Key fails when Alert Method Run Environment
- # does not match Alert Method Run Environment
+ # Developer with unscoped API Key fails when Notification Profile Run Environment
+ # does not match Notification Profile Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_OTHER, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'alert_methods'),
+   422, 'notification_profiles'),
   # Developer with scoped API Key succeeds with correct Run Environment
-  # and an Alert Method that scoped to the same Run Environment
+  # and an Notification Profile that scoped to the same Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    201, None),
   # Developer with scoped API Key succeeds no explicit Run Environment
-  # and an Alert Method that scoped to the API Key's Run Environment
+  # and an Notification Profile that scoped to the API Key's Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_CORRECT,
    201, None),
   # Developer with scoped API Key fails using with Task Run Environment and
-  # Alert Method with different Run Environment
+  # Notification Profile with different Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'alert_methods'),
+   422, 'notification_profiles'),
   # Developer with scoped API Key fails using with no explicit Run Environment
-  # Alert Method with different Run Environment
+  # Notification Profile with different Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'alert_methods'),
+   422, 'notification_profiles'),
   # Developer with scoped API Key succeeds using matching Run Environment
-  # but unscoped Alert Method
+  # but unscoped Notification Profile
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    201, None),
   # Developer with scoped API Key fails using no explicit Run Environment
-  # but unscoped Alert Method
+  # but unscoped Notification Profile
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    201, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
-def test_task_set_alert_methods(
+@mock_aws
+def test_task_set_notification_profiles(
         api_key_access_level: Optional[int], api_key_scope_type: str,
         run_environment_send_type: Optional[str],
-        alert_method_send_type: Optional[str],
+        notification_profile_send_type: Optional[str],
         status_code: int, validation_error_attribute: Optional[str],
         user_factory, group_factory, run_environment_factory,
-        task_factory, alert_method_factory,
+        task_factory, notification_profile_factory,
         api_client) -> None:
     """
     Tests for setting method details.
@@ -1116,33 +1101,33 @@ def test_task_set_alert_methods(
         am_group = user.groups.first()
         am_run_environment = run_environment
 
-        if alert_method_send_type == SEND_ID_CORRECT:
+        if notification_profile_send_type == SEND_ID_CORRECT:
             am_run_environment = am_run_environment or \
                     api_key_run_environment
-        if alert_method_send_type == SEND_ID_WRONG:
+        if notification_profile_send_type == SEND_ID_WRONG:
             am_group = group_factory()
-        elif alert_method_send_type == SEND_ID_IN_WRONG_GROUP:
+        elif notification_profile_send_type == SEND_ID_IN_WRONG_GROUP:
             am_group = group_factory()
             set_group_access_level(user=user, group=am_group,
                     access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
-        elif alert_method_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
+        elif notification_profile_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
             am_run_environment = run_environment_factory(created_by_group=am_group)
-        elif alert_method_send_type == SEND_ID_WITHOUT_RUN_ENVIRONMENT:
+        elif notification_profile_send_type == SEND_ID_WITHOUT_RUN_ENVIRONMENT:
             am_run_environment = None
 
-        alert_method = alert_method_factory(created_by_group=am_group,
+        notification_profile = notification_profile_factory(created_by_group=am_group,
                 run_environment=am_run_environment)
 
-        if alert_method_send_type:
-            am_uuid = alert_method.uuid
-            if alert_method_send_type == SEND_ID_NOT_FOUND:
+        if notification_profile_send_type:
+            am_uuid = notification_profile.uuid
+            if notification_profile_send_type == SEND_ID_NOT_FOUND:
                 am_uuid = uuid.uuid4()
 
-            body_alert_methods = [{
+            body_notification_profiles = [{
                 'uuid': str(am_uuid)
             }]
 
-            request_data['alert_methods'] = body_alert_methods
+            request_data['notification_profiles'] = body_notification_profiles
 
         if is_post:
             response = client.post(url, data=request_data)
@@ -1177,7 +1162,7 @@ def test_task_set_alert_methods(
                     api_key_access_level=api_key_access_level,
                     api_key_run_environment=api_key_run_environment)
 
-            assert(response_task['alert_methods'][0]['uuid'] == str(alert_method.uuid))
+            assert(response_task['notification_profiles'][0]['uuid'] == str(notification_profile.uuid))
         else:
             assert new_count == old_count
             check_validation_error(response, validation_error_attribute)
@@ -1354,9 +1339,7 @@ def test_task_set_alert_methods(
    None,
    401, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_update_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -1364,7 +1347,7 @@ def test_task_update_access_control(
         run_environment_send_type: str,
         status_code: int, validation_error_attribute: Optional[str],
         user_factory, group_factory, run_environment_factory,
-        alert_method_factory, task_factory,
+        notification_profile_factory, task_factory,
         api_client) -> None:
     """
     This only tests access control to the PATCH endpoint, not the actual changes.
@@ -1496,9 +1479,7 @@ def test_task_update_access_control(
    SEND_ID_CORRECT,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_delete(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,

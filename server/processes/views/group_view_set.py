@@ -9,7 +9,7 @@ from django_filters import rest_framework as filters
 
 from rest_framework import permissions
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied
 from rest_framework.request import Request
 
 from processes.models.user_group_access_level import UserGroupAccessLevel
@@ -83,13 +83,16 @@ class GroupViewSet(BaseViewSet, AtomicCreateModelMixin,
     def get_queryset(self):
         user, group = user_and_group_from_request()
 
-        if user.is_superuser:
+        if user and user.is_superuser:
             return Group.objects.all().order_by(self.ordering)
 
         if group:
-            return Group.objects.filter(pk=group.pk)
-        else:
+            return Group.objects.filter(pk=group.pk).order_by(self.ordering)
+        elif user:
             return user.groups.all().order_by(self.ordering)
+
+        raise APIException("No user or group found")
+
 
     def create(self, request: Request, *args, **kwargs):
         ensure_api_key_not_used(request)

@@ -1,5 +1,7 @@
 import logging
 
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -30,19 +32,25 @@ class TaskLink(NamedWithUuidModel):
             logger.debug('Processing link URL template')
             pt = self.task
 
-            template_kwargs = {
+            template_kwargs: dict[str, Any] = {
                 'current_timestamp': round(timezone.now().timestamp()),
                 'task': {
+                    'uuid': str(pt.uuid),
+                    'run_environment': None,
                     'name': pt.name,
                     'project_url': pt.project_url,
                     'log_query': pt.log_query,
-                    'run_environment': {
-                       'uuid': str(pt.uuid),
-                       'name': pt.run_environment.name
-                    },
                     'other_metadata': pt.other_metadata
                 }
             }
+
+            run_env = pt.run_environment
+
+            if run_env:
+                template_kwargs['task']['run_environment'] = {
+                    'uuid': str(run_env.uuid),
+                    'name': run_env.name
+                }
 
             sandbox = SandboxedEnvironment()
 

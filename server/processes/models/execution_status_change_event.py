@@ -1,0 +1,117 @@
+from datetime import datetime, timedelta
+import enum
+import logging
+
+from typing import Optional
+
+from django.db import models
+from django.utils import timezone
+
+from .event import Event
+from .execution import Execution
+from .schedulable import Schedulable
+from .task_execution import TaskExecution
+
+logger = logging.getLogger(__name__)
+
+
+class ExecutionStatusChangeEvent(Event):
+    status = models.IntegerField(null=True)
+    postponed_until = models.DateTimeField(null=True)
+    count_with_same_status_after_postponement = models.IntegerField(null=True)
+    count_with_success_status_after_postponement = models.IntegerField(null=True)
+    accelerated_at = models.DateTimeField(null=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.successful_status: enum.IntEnum = TaskExecution.Status.SUCCEEDED
+        self.failed_status: enum.IntEnum = TaskExecution.Status.FAILED
+        self.terminated_status: enum.IntEnum = TaskExecution.Status.TERMINATED_AFTER_TIME_OUT
+
+    def maybe_postpone(self, schedulable: Schedulable) -> bool:
+        should_postpone = False
+        if (self.status == self.failed_status) and \
+                ((schedulable.max_postponed_failure_count or 0) > 0) and \
+                schedulable.postponed_failure_before_success_seconds and \
+                (schedulable.postponed_failure_before_success_seconds > 0):
+            should_postpone = True
+            self.postponed_until = timezone.now() + timedelta(seconds=schedulable.postponed_failure_before_success_seconds)
+        elif (self.status == self.terminated_status) and \
+                ((schedulable.max_postponed_timeout_count or 0) > 0) and \
+                schedulable.postponed_timeout_before_success_seconds and \
+                (schedulable.postponed_timeout_before_success_seconds > 0):
+            should_postpone = True
+            self.postponed_until = timezone.now() + timedelta(seconds=schedulable.postponed_timeout_before_success_seconds)
+
+        if should_postpone:
+            self.save()
+
+        return should_postpone
+
+    def update_after_postponed(self, status: enum.IntEnum, utc_now: datetime) -> bool:
+        if not self.postponed_until:
+            logger.info("ExecutionStatusChangeEvent.update_after_postponed called but event not postponed")
+            return False
+
+        if self.resolved_at:
+            logger.warning("ExecutionStatusChangeEvent.update_after_postponed called but event is already resolved")
+            return False
+
+        if self.accelerated_at:
+            logger.info("ExecutionStatusChangeEvent.update_after_postponed called but event is already accelerated")
+            return False
+
+        schedulable = self.get_schedulable()
+
+        if schedulable is None:
+            logger.warning("ExecutionStatusChangeEvent.update_after_postponed called Schedulable is missing")
+        elif status == self.successful_status:
+            success_count = (self.count_with_success_status_after_postponement or 0) + 1
+            self.count_with_success_status_after_postponement = success_count
+
+            if (schedulable.required_success_count_to_clear_failure is not None) and \
+                    (success_count >= schedulable.required_success_count_to_clear_failure):
+                logger.info(f"Clearing postponed event {self.uuid} for Task {schedulable.uuid} since success count reached")
+                self.resolved_at = utc_now
+
+            self.save()
+
+            return True
+        elif not schedulable.enabled:
+            logger.info("ExecutionStatusChangeEvent.update_after_postponed called on disabled Schedulable")
+        elif status == self.status:
+            count_with_same_status = (self.count_with_same_status_after_postponement or 0) + 1
+            self.count_with_same_status_after_postponement = count_with_same_status
+
+            threshold_count: Optional[int] = None
+
+            if status == self.failed_status:
+                threshold_count = schedulable.max_postponed_failure_count or 0
+            elif status == self.terminated_status:
+                threshold_count = schedulable.max_postponed_timeout_count or 0
+
+            if (threshold_count is not None) and \
+                    (count_with_same_status >= threshold_count):
+                logger.info(f"Accelerating postponed event {self.uuid} for Task {schedulable.uuid} since same status count reached")
+                self.accelerated_at = utc_now
+                self.save()
+
+                execution = self.get_execution()
+                if execution:
+                    execution.send_event_notifications(event=self)
+
+                return True
+
+        return False
+
+    def get_schedulable(self) -> Optional[Schedulable]:
+        execution = self.get_execution()
+
+        if execution is None:
+            return None
+
+        return execution.get_schedulable()
+
+    def get_execution(self) -> Optional[Execution]:
+        return None

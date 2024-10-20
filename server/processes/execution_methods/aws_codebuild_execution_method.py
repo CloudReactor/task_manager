@@ -144,7 +144,7 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
             self.environment_type = lookup_string(environment, 'type')
             self.build_image = lookup_string(environment, 'image')
             self.compute_type = lookup_string(environment, 'computeType')
-            self.privileged_mode = lookup_string(environment, 'privilegedMode')
+            self.privileged_mode = lookup_bool(environment, 'privilegedMode')
             self.image_pull_credentials_type = lookup_string(environment, 'imagePullCredentialsType')
 
         artifact_dict = build_dict.get('artifacts')
@@ -318,7 +318,8 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
 
         task_env = task_execution.make_environment()
 
-        task_env["CLOUDREACTOR_RUN_ENVIRONMENT_NAME"] = task.run_environment.name
+        if task.run_environment:
+            task_env["CLOUDREACTOR_RUN_ENVIRONMENT_NAME"] = task.run_environment.name
 
         # For scripts that assume role before passing temp credentials to Docker,
         # such as cr_deploy.sh in the AWS ECS Deployer.
@@ -489,10 +490,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
                 if cloudwatch_logs_dict.get('status') == 'ENABLED':
                     logging_settings.driver = 'awslogs'
                     log_options = logging_settings.options or AwsLogOptions()
-
-                    if not logging_settings.region:
-                        logging_settings.region = region
-
+                    log_options.region = log_options.region or region
                     logging_settings.options = log_options
                     log_options.group = lookup_string(cloudwatch_logs_dict, 'groupName')
                     log_options.stream = lookup_string(cloudwatch_logs_dict, 'streamName')

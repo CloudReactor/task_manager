@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional, Type, TYPE_CHECKING
 
 from datetime import datetime
 import json
@@ -29,6 +29,10 @@ from .schedulable import Schedulable
 from .run_environment import RunEnvironment
 from .workflow_transition import WorkflowTransition
 
+if TYPE_CHECKING:
+    from .alert_method import AlertMethod
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,13 +51,13 @@ class Workflow(Schedulable):
         related_name='+',
         on_delete=models.SET_NULL, null=True, blank=True)
 
-    run_environment = models.ForeignKey(RunEnvironment,
-        related_name='+', on_delete=models.CASCADE, blank=True, null=True)
     scheduling_run_environment = models.ForeignKey(RunEnvironment, on_delete=models.SET_NULL, blank=True, null=True)
     aws_scheduled_execution_rule_name = models.CharField(max_length=1000, blank=True)
     aws_scheduled_event_rule_arn = models.CharField(max_length=1000, blank=True)
     aws_event_target_rule_name = models.CharField(max_length=1000, blank=True)
     aws_event_target_id = models.CharField(max_length=1000, blank=True)
+
+    # Legacy
     alert_methods = models.ManyToManyField('AlertMethod', blank=True)
 
     def workflow_transitions(self):
@@ -102,7 +106,12 @@ class Workflow(Schedulable):
     def clone(self, data):
         workflow = self
         original_id = self.id
+
+        # Deprecated
         original_alert_methods = self.alert_methods.all()
+
+        original_notification_profiles = self.notification_profiles.all()
+
         workflow.pk = None
         workflow.uuid = python_uuid.uuid4()
         workflow.name = data.get('name', generate_clone_name(workflow.name))
@@ -115,7 +124,11 @@ class Workflow(Schedulable):
         workflow.aws_event_target_id = ''
         workflow.save()
 
+        # Deprecated
         workflow.alert_methods.set(original_alert_methods)
+        workflow.save()
+
+        workflow.notification_profiles.set(original_notification_profiles)
         workflow.save()
 
         original_workflow = Workflow.objects.get(id=original_id)
@@ -381,7 +394,7 @@ class Workflow(Schedulable):
         run_env = run_environment or self.run_environment_for_scheduling()
         return run_env.make_boto3_client('events')
 
-    def run_environment_for_scheduling(self):
+    def run_environment_for_scheduling(self) -> RunEnvironment:
         if self.scheduling_run_environment and \
                 self.scheduling_run_environment.can_schedule_workflow():
             return self.scheduling_run_environment
@@ -392,10 +405,14 @@ class Workflow(Schedulable):
 
         logger.info('Looking for a Run Environment suitable for scheduling ...')
 
+
         for wti in self.workflow_task_instances.all():
-            run_env = wti.task.run_environment
-            if run_env.can_schedule_workflow():
-                return run_env
+            task = wti.task
+
+            if task:
+                run_env = task.run_environment
+                if run_env and run_env.can_schedule_workflow():
+                    return run_env
 
         raise serializers.ValidationError({
           'schedule': ['A Run Environment is required to schedule Workflows']

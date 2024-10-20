@@ -31,6 +31,9 @@ from processes.models import *
 from processes.serializers import *
 
 from tests.factories import (
+    # Legacy
+    AlertMethodFactory,
+
     GroupFactory,
     GroupInfoFactory,
     UserFactory,
@@ -48,7 +51,7 @@ from tests.factories import (
     WorkflowTaskInstanceExecutionFactory,
     PagerDutyProfileFactory,
     EmailNotificationProfileFactory,
-    AlertMethodFactory
+    NotificationProfileFactory
 )
 
 SEND_ID_NONE = 'none'
@@ -81,10 +84,13 @@ register(WorkflowTaskInstanceFactory)
 register(WorkflowTransitionFactory)
 register(WorkflowExecutionFactory)
 register(WorkflowTaskInstanceExecutionFactory)
+
+register(NotificationProfileFactory)
+
+# Legacy
+register(AlertMethodFactory)
 register(PagerDutyProfileFactory)
 register(EmailNotificationProfileFactory)
-register(AlertMethodFactory)
-
 
 @pytest.fixture
 def api_client():

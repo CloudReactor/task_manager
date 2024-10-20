@@ -2,6 +2,8 @@ from django.contrib import admin
 
 from rest_framework.authtoken.models import TokenProxy
 
+from typedmodels.admin import TypedModelAdmin
+
 from .models import *
 
 class UserGroupAccessLevelAdmin(admin.ModelAdmin):
@@ -73,34 +75,63 @@ class EmailNotificationProfileAdmin(admin.ModelAdmin):
     search_fields = ('name', 'uuid',)
 
 
+class EventAdmin(TypedModelAdmin):
+    pass
+
+
+class TaskExecutionEventAdmin(TypedModelAdmin):
+    pass
+
+class MissingHeartbeatDetectionEventAdmin(TypedModelAdmin):
+    pass
+
+class TaskExecutionStatusChangeEventAdmin(TypedModelAdmin):
+    pass
+
+class WorkflowExecutionEventAdmin(TypedModelAdmin):
+    pass
+
+class WorkflowExecutionStatusChangeEventAdmin(TypedModelAdmin):
+    pass
+
 admin.site.unregister(TokenProxy)
 admin.site.register(UserGroupAccessLevel, UserGroupAccessLevelAdmin)
 admin.site.register(SubscriptionPlan)
 admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(SaasToken)
 admin.site.register(RunEnvironment, RunEnvironmentAdmin)
+
+
+# Legacy
 admin.site.register(AlertMethod, AlertMethodAdmin)
 admin.site.register(PagerDutyProfile, PagerDutyProfileAdmin)
 admin.site.register(EmailNotificationProfile, EmailNotificationProfileAdmin)
-admin.site.register(Task, TaskAdmin)
-admin.site.register(TaskExecution, TaskExecutionAdmin)
-admin.site.register(AwsEcsServiceLoadBalancerDetails)
 admin.site.register(MissingScheduledTaskExecution)
 admin.site.register(MissingScheduledTaskExecutionAlert)
 admin.site.register(DelayedProcessStartDetectionEvent)
 admin.site.register(DelayedProcessStartAlert)
-admin.site.register(HeartbeatDetectionEvent)
-admin.site.register(HeartbeatDetectionAlert)
 admin.site.register(InsufficientServiceInstancesEvent)
 admin.site.register(InsufficientServiceInstancesAlert)
+admin.site.register(MissingScheduledWorkflowExecution)
+admin.site.register(MissingScheduledWorkflowExecutionAlert)
+
+admin.site.register(Event, EventAdmin)
+admin.site.register(MissingHeartbeatDetectionEvent)
+admin.site.register(TaskExecutionStatusChangeEvent, TaskExecutionStatusChangeEventAdmin)
+admin.site.register(WorkflowExecutionStatusChangeEvent, WorkflowExecutionStatusChangeEventAdmin)
+admin.site.register(NotificationProfile)
+admin.site.register(Notification)
+
+admin.site.register(Task, TaskAdmin)
+admin.site.register(TaskExecution, TaskExecutionAdmin)
+admin.site.register(AwsEcsServiceLoadBalancerDetails)
+
 admin.site.register(Workflow, WorkflowAdmin)
 admin.site.register(WorkflowTaskInstance, WorkflowTaskInstanceAdmin)
 admin.site.register(WorkflowTransition, WorkflowTransitionAdmin)
 admin.site.register(WorkflowExecution, WorkflowExecutionAdmin)
 admin.site.register(WorkflowTaskInstanceExecution, WorkflowTaskInstanceExecutionAdmin)
 admin.site.register(WorkflowTransitionEvaluation, WorkflowTransitionEvaluationAdmin)
-admin.site.register(MissingScheduledWorkflowExecution)
-admin.site.register(MissingScheduledWorkflowExecutionAlert)
 
 admin.site.register(UserProfile)
 admin.site.register(GroupInfo)

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 import logging
 
@@ -45,7 +45,7 @@ class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
                   'timeout_behavior', 'allow_workflow_execution_after_timeout',
                   'environment_variables_overrides',
                   'allocated_cpu_units', 'allocated_memory_mb',
-                  'use_task_alert_methods',
+                  'use_task_notification_profiles',
                   'ui_color', 'ui_icon_type', 'ui_scale',
                   'ui_center_margin_top', 'ui_center_margin_left',
                   'created_at', 'updated_at',)
@@ -73,8 +73,10 @@ class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
 
         workflow = self.embedded_in_workflow
 
-        if self.instance:
-            workflow = workflow or self.instance.workflow
+        wti = cast(Optional[WorkflowTaskInstance], self.instance)
+
+        if wti:
+            workflow = workflow or wti.workflow
 
             if self.embedded_in_workflow and (workflow != self.embedded_in_workflow):
                 logger.error('WTI Serializer: embedded in workflow and instance workflow do not match')

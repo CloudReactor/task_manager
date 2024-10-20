@@ -1,6 +1,6 @@
 from typing import (
     Any, Mapping, Optional,
-    Type, Union,
+    # Type, Union,
     cast
 )
 
@@ -16,7 +16,7 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
 from drf_spectacular.utils import (
     extend_schema_field,
-    PolymorphicProxySerializer,
+    # PolymorphicProxySerializer,
 )
 
 # Legacy
@@ -122,7 +122,11 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'default_input_value', 'input_value_schema', 'output_value_schema',
             'managed_probability', 'failure_report_probability',
             'timeout_report_probability',
+
+            # Deprecated
             'alert_methods',
+
+            'notification_profiles',
             'other_metadata',
             'latest_task_execution',
             'created_by_user', 'created_by_group',
@@ -147,9 +151,15 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
     capabilities = serializers.SerializerMethodField()
 
+    # Deprecated
     alert_methods = NameAndUuidSerializer(
             include_name=True,
             view_name='alert_methods-detail',
+            many=True, required=False)
+
+    notification_profiles = NameAndUuidSerializer(
+            include_name=True,
+            view_name='notification_profiles-detail',
             many=True, required=False)
 
     links = LinkSerializer(many=True, required=False)
@@ -229,8 +239,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         validated['__existing_instance__'] = task
 
-        run_environment = validated.get('run_environment',
-            task.run_environment if task else None)
+        run_environment = cast(Optional[RunEnvironment], validated.get('run_environment',
+            task.run_environment if task else None))
 
         if run_environment is None:
             raise ValidationError({
@@ -239,7 +249,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         # Ensure the API key has Developer access to the Run Environment
         # of the Task that will be updated.
-        if task and (run_environment.pk != task.run_environment.pk):
+        if task and task.run_environment and (run_environment.pk != task.run_environment.pk):
             ensure_group_access_level(group=group,
                 min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
                 run_environment=task.run_environment,
@@ -489,7 +499,11 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 })
             validated['scheduled_instance_count'] = None
 
+        # Legacy
         self.set_validated_alert_methods(data=data, validated=validated,
+            run_environment=run_environment)
+
+        self.set_validated_notification_profiles(data=data, validated=validated,
                 run_environment=run_environment)
 
         if body_task_links is not None:
@@ -553,7 +567,12 @@ class TaskSerializer(GroupSettingSerializerMixin,
         is_service_defined = (is_service and service_instance_count) or (is_service is False)
 
         load_balancer_details_list = defaults.pop('aws_ecs_load_balancer_details_set', None)
+
+        # Legacy
         alert_methods = defaults.pop('alert_methods', None)
+
+        notification_profiles = defaults.pop('notification_profiles', None)
+
         task_links = defaults.pop('task_links', None)
 
         group = validated_data.get('created_by_group')
@@ -635,8 +654,12 @@ class TaskSerializer(GroupSettingSerializerMixin,
             task.synchronize_with_run_environment(old_self=old_self, is_saving=True)
             task.should_skip_synchronize_with_run_environment = False
 
+        # Legacy
         if alert_methods is not None:
             task.alert_methods.set(alert_methods)
+
+        if notification_profiles is not None:
+            task.notification_profiles.set(notification_profiles)
 
         if task_links is not None:
             task.tasklink_set.all().delete()

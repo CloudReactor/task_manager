@@ -568,7 +568,7 @@ def test_run_environment_update_access_control(
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
   is_post, api_key_access_level, api_key_scope_type,
-  alert_method_send_type,
+  notification_profile_send_type,
   status_code, validation_error_attribute
 """, [
   # POST - Developer authenticated with JWT succeeds with no Run Environment
@@ -590,12 +590,12 @@ def test_run_environment_update_access_control(
   # where Alert Method is scoped to a different Run Environment
   (True, None, None,
    SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'default_alert_methods'),
+   422, 'notification_profiles'),
   # PUT - Developer authenticated with JWT succeeds
   # where Alert Method is scoped to a different Run Environment
   (False, None, None,
    SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'default_alert_methods'),
+   422, 'notification_profiles'),
   # POST - Developer with unscoped API Key succeeds
   # where Alert Method is also unscoped
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
@@ -615,19 +615,19 @@ def test_run_environment_update_access_control(
   # Alert Method with different Run Environment
   (False, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
-   422, 'default_alert_methods'),
+   422, 'notification_profiles'),
   # PUT - Developer with scoped API Key fails using matching Run Environment
   # but unscoped Alert Method
   (False, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    200, None),
 ])
-def test_run_environment_set_alert_methods(is_post: bool,
+def test_run_environment_set_notification_profiles(is_post: bool,
         api_key_access_level: Optional[int], api_key_scope_type: str,
-        alert_method_send_type: Optional[str],
+        notification_profile_send_type: Optional[str],
         status_code: int, validation_error_attribute: Optional[str],
         user_factory, group_factory, run_environment_factory,
-        alert_method_factory,
+        notification_profile_factory,
         api_client) -> None:
     """
     Tests for setting method details.
@@ -656,34 +656,34 @@ def test_run_environment_set_alert_methods(is_post: bool,
 
     am_group = user.groups.first()
     am_run_environment: Optional[RunEnvironment] = None
-    if alert_method_send_type == SEND_ID_CORRECT:
+    if notification_profile_send_type == SEND_ID_CORRECT:
         am_run_environment = run_environment
-    if alert_method_send_type == SEND_ID_WRONG:
+    if notification_profile_send_type == SEND_ID_WRONG:
         am_group = group_factory()
-    elif alert_method_send_type == SEND_ID_IN_WRONG_GROUP:
+    elif notification_profile_send_type == SEND_ID_IN_WRONG_GROUP:
         am_group = group_factory()
         set_group_access_level(user=user, group=am_group,
                 access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
-    elif alert_method_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
+    elif notification_profile_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
         am_run_environment = run_environment_factory(created_by_group=am_group)
-    elif alert_method_send_type == SEND_ID_WITHOUT_RUN_ENVIRONMENT:
+    elif notification_profile_send_type == SEND_ID_WITHOUT_RUN_ENVIRONMENT:
         am_run_environment = None
 
-    alert_method = alert_method_factory(created_by_group=am_group,
+    notification_profile = notification_profile_factory(created_by_group=am_group,
         run_environment=am_run_environment)
 
-    print(f"am_run_environment = {am_run_environment}, alert_method = {alert_method}")
+    print(f"am_run_environment = {am_run_environment}, notification_profile = {notification_profile}")
 
-    if alert_method_send_type:
-        am_uuid = alert_method.uuid
-        if alert_method_send_type == SEND_ID_NOT_FOUND:
+    if notification_profile_send_type:
+        am_uuid = notification_profile.uuid
+        if notification_profile_send_type == SEND_ID_NOT_FOUND:
             am_uuid = uuid.uuid4()
 
-        body_alert_methods = [{
+        body_notification_profiles = [{
             'uuid': str(am_uuid)
         }]
 
-        request_data['default_alert_methods'] = body_alert_methods
+        request_data['notification_profiles'] = body_notification_profiles
 
     old_count = RunEnvironment.objects.count()
 
@@ -720,7 +720,7 @@ def test_run_environment_set_alert_methods(is_post: bool,
 
         print(f"response = {response_re}")
 
-        assert(response_re['default_alert_methods'][0]['uuid'] == str(alert_method.uuid))
+        assert(response_re['notification_profiles'][0]['uuid'] == str(notification_profile.uuid))
     else:
         assert new_count == old_count
         check_validation_error(response, validation_error_attribute)

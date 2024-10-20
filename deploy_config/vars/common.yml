@@ -287,3 +287,14 @@ task_name_to_config:
     wrapper:
       process_timeout_seconds: 600
       enable_status_update_listener: true
+
+  notification_method_migrator:
+    description: "Migrate alert methods to notification methods"
+    command: "python manage.py notification_method_migrator"
+    max_concurrency: 1
+    ecs:
+      cpu_units: 1024
+      memory_mb: 2048
+    wrapper:
+      process_timeout_seconds: 600
+      enable_status_update_listener: true

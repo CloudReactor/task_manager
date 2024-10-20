@@ -7,7 +7,6 @@ from django.utils import timezone
 from ..common.request_helpers import context_with_request
 from ..models import *
 from ..serializers import (
-    HeartbeatDetectionEventSerializer,
     DelayedTaskStartDetectionEventSerializer
 )
 
@@ -155,6 +154,7 @@ class TaskExecutionChecker:
                 f"Last heartbeat of Task Execution {te.uuid} was {last_heartbeat_seconds_ago} seconds ago, interval = {heartbeat_interval_seconds}, expected heartbeat at {expected_heartbeat_at}")
 
             # Don't alert on missing heartbeats on processes started before the service was updated
+            # TODO: generalize to all service types
             alert_eligible = (task.aws_ecs_service_updated_at is None) or \
                      (te.started_at > task.aws_ecs_service_updated_at)
 
@@ -177,59 +177,31 @@ class TaskExecutionChecker:
                 is_missing = True
                 logger.info(f"Last heartbeat of Task Execution {te.uuid}: missing heartbeat eligible for warning")
 
-                last_heartbeat_detection_event = HeartbeatDetectionEvent.objects.filter(
-                    task_execution=te).order_by('-detected_at', '-id').first()
+                last_heartbeat_detection_event = MissingHeartbeatDetectionEvent.objects.filter(
+                    task_execution=te, resolved_event__isnull=True).order_by('-detected_at', '-id').first()
 
                 if (not last_heartbeat_detection_event) or \
                         last_heartbeat_detection_event.resolved_at or \
                         (last_heartbeat_detection_event.detected_at - utc_now).total_seconds() > HEARTBEAT_DETECTION_INTERVAL_SECONDS:
                     logger.info(f"Saving missing heartbeat detection event for Task Execution {te.uuid}")
-                    hde = HeartbeatDetectionEvent(
+
+                    mhde = MissingHeartbeatDetectionEvent(
+                        severity=task.notification_event_severity_on_missing_heartbeat,
+                        grouping_key=f"missing_heartbeat-{te.uuid}",
                         task_execution=te,
                         resolved_at=None,
+                        resolved_event=None,
                         last_heartbeat_at=last_heartbeat_at.replace(microsecond=0),
                         expected_heartbeat_at=expected_heartbeat_at.replace(microsecond=0),
                         heartbeat_interval_seconds=heartbeat_interval_seconds)
-                    hde.save()
-                    self.send_heartbeat_detection_alerts(hde)
+                    mhde.save()
+                    te.send_event_notifications(event=mhde)
                 else:
                     logger.debug(f"Found existing last heartbeat detection event for Task Execution {te.uuid}")
             else:
                 logger.debug(f'Not abandoning or sending alert for Task Execution {te.uuid} with {task.max_heartbeat_lateness_before_alert_seconds=}')
 
         return is_missing
-
-    def send_heartbeat_detection_alerts(self, hde: HeartbeatDetectionEvent):
-        te = hde.task_execution
-        details = HeartbeatDetectionEventSerializer(hde,
-            context=context_with_request()).data
-
-        if te.last_heartbeat_at and details['task_execution']['last_heartbeat_at']:
-            details['task_execution']['last_heartbeat_at'] = \
-                te.last_heartbeat_at.replace(microsecond=0).isoformat()
-
-        for am in te.task.alert_methods.filter(
-                enabled=True).exclude(error_severity_on_missing_heartbeat='').all():
-            severity = am.error_severity_on_missing_heartbeat
-            mha = HeartbeatDetectionAlert(heartbeat_detection_event=hde,
-                                          alert_method=am)
-            mha.save()
-
-            try:
-                # task_execution is already in details
-                result = am.send(details=details, severity=severity,
-                                 summary_template=self.MISSING_HEARTBEAT_EVENT_SUMMARY_TEMPLATE,
-                                 grouping_key=f"missing_heartbeat-{te.uuid}")
-                mha.send_result = result
-                mha.send_status = AlertSendStatus.SUCCEEDED
-                mha.completed_at = timezone.now()
-            except Exception as ex:
-                logger.exception(f"Failed to send alert for missing heartbeat of Task Execution {hde.task_execution.uuid}")
-                mha.send_result = ''
-                mha.send_status = AlertSendStatus.FAILED
-                mha.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
-
-            mha.save()
 
     def send_delayed_task_start_alerts(self,
             dpsde: DelayedProcessStartDetectionEvent):

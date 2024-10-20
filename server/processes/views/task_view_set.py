@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 
 from django_filters import rest_framework as filters
 
-from processes.models import Task, TaskExecution, RunEnvironment, AlertMethod
+from processes.models import Task, TaskExecution, RunEnvironment, NotificationProfile, AlertMethod
 from processes.serializers import TaskSerializer
 
 from .base_view_set import BaseViewSet
@@ -85,9 +85,14 @@ class TaskViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
         if 'links' not in omitted:
             qs = qs.prefetch_related('tasklink_set')
 
+        # Legacy
         if 'alert_methods' not in omitted:
             alert_methods_qs = AlertMethod.objects.only('uuid', 'name')
             qs = qs.prefetch_related(Prefetch('alert_methods', queryset=alert_methods_qs))
+
+        if 'notification_profiles' not in omitted:
+            notification_profiles_qs = NotificationProfile.objects.only('uuid', 'name')
+            qs = qs.prefetch_related(Prefetch('notification_profiles', queryset=notification_profiles_qs))
 
         ordering = self.request.query_params.get('ordering')
 

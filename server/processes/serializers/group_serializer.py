@@ -35,7 +35,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
 
         super().__init__(instance, data, **kwargs)
 
-    def get_user_access_levels(self, obj: UserGroupAccessLevel) -> Optional[Sequence[dict[str, Any]]]:
+    def get_user_access_levels(self, obj: Group) -> Optional[Sequence[dict[str, Any]]]:
         if not self.include_users:
             return None
 

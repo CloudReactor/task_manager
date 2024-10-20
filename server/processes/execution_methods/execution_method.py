@@ -71,7 +71,7 @@ class ExecutionMethod:
         #'scheduling_settings',
         #'service_provider_type',
         #'service_settings',
-        #'alert_methods',
+        #'notification_profiles',
         'other_metadata',
         #'latest_task_execution',
         #'created_by_user', 'created_by_group',
@@ -260,12 +260,10 @@ class ExecutionMethod:
     @staticmethod
     def make_execution_method(task: Optional['Task'] = None,
             task_execution: Optional['TaskExecution'] = None) -> 'ExecutionMethod':
-        from . import (
-            AwsCodeBuildExecutionMethod,
-            AwsEcsExecutionMethod,
-            AwsLambdaExecutionMethod,
-            UnknownExecutionMethod
-        )
+        from .aws_codebuild_execution_method import AwsCodeBuildExecutionMethod
+        from .aws_ecs_execution_method import AwsEcsExecutionMethod
+        from .aws_lambda_execution_method import AwsLambdaExecutionMethod
+        from .unknown_execution_method import UnknownExecutionMethod
 
         emt = UnknownExecutionMethod.NAME
 

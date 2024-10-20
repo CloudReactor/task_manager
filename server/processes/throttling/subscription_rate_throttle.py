@@ -63,7 +63,7 @@ class SubscriptionRateThrottle(UserRateThrottle):
 
             throttled = False
 
-            if api_credits >= max_api_credits_per_month:
+            if (max_api_credits_per_month is not None) and (api_credits >= max_api_credits_per_month):
                 throttled = True
             else:
                 group_info.api_credits_used_current_month = api_credits + 1

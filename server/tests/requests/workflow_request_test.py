@@ -21,8 +21,7 @@ import pytest
 
 from rest_framework.test import APIClient
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from conftest import *
 
 
@@ -576,9 +575,7 @@ def test_workflow_fetch(
    SEND_ID_NONE, SEND_ID_CORRECT,
    401, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_create_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -648,9 +645,7 @@ def test_workflow_create_access_control(
   (4, 201),
   (3, 422)
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_create_workflow_limit(max_workflows: int,
         status_code: int,
         subscription_plan, user_factory, group_factory,
@@ -725,7 +720,7 @@ def test_task_create_workflow_limit(max_workflows: int,
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
   api_key_access_level, api_key_scope_type,
-  run_environment_send_type, alert_method_send_type,
+  run_environment_send_type, notification_profile_send_type,
   existing_has_run_environment,
   status_code, validation_error_attribute
 """, [
@@ -762,7 +757,7 @@ def test_task_create_workflow_limit(max_workflows: int,
   (None, None,
    SEND_ID_CORRECT, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    True,
-   422, 'alert_methods'),
+   422, 'notification_profiles'),
 
   # Developer authenticated with JWT gets 422 with a specific Run Environment
   # where Alert Method is unscoped
@@ -812,7 +807,7 @@ def test_task_create_workflow_limit(max_workflows: int,
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_OTHER, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    True,
-   422, 'alert_methods'),
+   422, 'notification_profiles'),
 
   # Developer with scoped API Key succeeds with correct Run Environment
   # and an Alert Method that scoped to the same Run Environment
@@ -834,14 +829,14 @@ def test_task_create_workflow_limit(max_workflows: int,
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    True,
-   422, 'alert_methods'),
+   422, 'notification_profiles'),
 
   # Developer with scoped API Key fails using with no explicit Run Environment
   # Alert Method with different Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    True,
-   422, 'alert_methods'),
+   422, 'notification_profiles'),
 
   # Developer with scoped API Key fails using matching Run Environment
   # but unscoped Alert Method
@@ -857,14 +852,14 @@ def test_task_create_workflow_limit(max_workflows: int,
    True,
    201, None),
 ])
-def test_workflow_set_alert_methods(
+def test_workflow_set_notification_profiles(
         api_key_access_level: Optional[int], api_key_scope_type: str,
         run_environment_send_type: Optional[str],
-        alert_method_send_type: Optional[str],
+        notification_profile_send_type: Optional[str],
         existing_has_run_environment: bool,
         status_code: int, validation_error_attribute: Optional[str],
         user_factory, group_factory, run_environment_factory,
-        workflow_factory, alert_method_factory,
+        workflow_factory, notification_profile_factory,
         api_client) -> None:
     """
     Tests for setting Alert Methods.
@@ -910,33 +905,33 @@ def test_workflow_set_alert_methods(
         am_group = user.groups.first()
         am_run_environment = run_environment
 
-        if alert_method_send_type == SEND_ID_CORRECT:
+        if notification_profile_send_type == SEND_ID_CORRECT:
             am_run_environment = am_run_environment or \
                     api_key_run_environment
-        if alert_method_send_type == SEND_ID_WRONG:
+        if notification_profile_send_type == SEND_ID_WRONG:
             am_group = group_factory()
-        elif alert_method_send_type == SEND_ID_IN_WRONG_GROUP:
+        elif notification_profile_send_type == SEND_ID_IN_WRONG_GROUP:
             am_group = group_factory()
             set_group_access_level(user=user, group=am_group,
                     access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
-        elif alert_method_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
+        elif notification_profile_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
             am_run_environment = run_environment_factory(created_by_group=am_group)
-        elif alert_method_send_type == SEND_ID_WITHOUT_RUN_ENVIRONMENT:
+        elif notification_profile_send_type == SEND_ID_WITHOUT_RUN_ENVIRONMENT:
             am_run_environment = None
 
-        alert_method = alert_method_factory(created_by_group=am_group,
+        notification_profile = notification_profile_factory(created_by_group=am_group,
                 run_environment=am_run_environment)
 
-        if alert_method_send_type:
-            am_uuid = alert_method.uuid
-            if alert_method_send_type == SEND_ID_NOT_FOUND:
+        if notification_profile_send_type:
+            am_uuid = notification_profile.uuid
+            if notification_profile_send_type == SEND_ID_NOT_FOUND:
                 am_uuid = uuid.uuid4()
 
-            body_alert_methods = [{
+            body_notification_profiles = [{
                 'uuid': str(am_uuid)
             }]
 
-            request_data['alert_methods'] = body_alert_methods
+            request_data['notification_profiles'] = body_notification_profiles
 
         if is_post:
             response = client.post(url, data=request_data)
@@ -971,7 +966,7 @@ def test_workflow_set_alert_methods(
                     api_key_access_level=api_key_access_level,
                     api_key_run_environment=api_key_run_environment)
 
-            assert(response_workflow['alert_methods'][0]['uuid'] == str(alert_method.uuid))
+            assert(response_workflow['notification_profiles'][0]['uuid'] == str(notification_profile.uuid))
         else:
             assert new_count == old_count
             check_validation_error(response, validation_error_attribute)
@@ -1177,9 +1172,7 @@ def test_workflow_set_alert_methods(
    None, True,
    401, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_update_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -1357,9 +1350,7 @@ def test_workflow_update_access_control(
    True,
    422, 'workflow_task_instances'),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_set_task_instances(
         api_key_access_level: Optional[int], api_key_scope_type: str,
         run_environment_send_type: Optional[str], wti_send_type: Optional[str],
@@ -1608,9 +1599,7 @@ def test_workflow_set_task_instances(
    SEND_ID_CORRECT, True,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_delete(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,

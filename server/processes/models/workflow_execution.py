@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional, Type, TYPE_CHECKING
 
 import enum
 import logging
@@ -17,15 +17,19 @@ from processes.common.notification import *
 from processes.common.request_helpers import context_with_request
 from processes.exception.unprocessable_entity import UnprocessableEntity
 
-from .uuid_model import UuidModel
+from .execution import Execution
+from .schedulable import Schedulable
 from .task_execution import TaskExecution
 from .workflow import Workflow
+
+if TYPE_CHECKING:
+    from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
 
 logger = logging.getLogger(__name__)
 
 
-class WorkflowExecution(UuidModel):
+class WorkflowExecution(Execution):
     """
     A WorkflowExecution holds data on a specific execution (run) of a Workflow.
     """
@@ -76,35 +80,20 @@ class WorkflowExecution(UuidModel):
 
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
     workflow_snapshot = models.JSONField(null=True, blank=True)
-    status = models.IntegerField(default=Status.RUNNING.value)
-    run_reason = models.IntegerField(default=0)
-    stop_reason = models.IntegerField(null=True, blank=True)
-    started_at = models.DateTimeField(auto_now_add=True, blank=True)
-    started_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
-                                   blank=True, related_name='+')
-    finished_at = models.DateTimeField(null=True, blank=True)
-    last_heartbeat_at = models.DateTimeField(null=True, blank=True)
-    marked_done_at = models.DateTimeField(null=True, blank=True)
-    marked_done_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
-                                       blank=True, related_name='+')
-    kill_started_at = models.DateTimeField(null=True, blank=True)
-    kill_finished_at = models.DateTimeField(null=True, blank=True)
-    kill_error_code = models.IntegerField(null=True, blank=True)
-    killed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
-                                  blank=True, related_name='+')
-    failed_attempts = models.IntegerField(default=0)
-    timed_out_attempts = models.IntegerField(default=0)
 
     def __str__(self):
         return self.workflow.name + ' / ' + str(self.uuid)
 
+    def get_schedulable(self) -> Optional[Schedulable]:
+        return self.workflow
+
     def workflow_task_instance_executions(self):
-        from . import WorkflowTaskInstanceExecution
+        from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
         return WorkflowTaskInstanceExecution.objects.prefetch_related('task_execution').\
             filter(workflow_execution=self).order_by('task_execution__started_at')
 
     def workflow_transition_evaluations(self):
-        from . import WorkflowTransitionEvaluation
+        from .workflow_transition_evaluation import WorkflowTransitionEvaluation
         return WorkflowTransitionEvaluation.objects.filter(
             workflow_execution=self).order_by('evaluated_at')
 
@@ -160,7 +149,7 @@ class WorkflowExecution(UuidModel):
             self.save()
 
     def retry(self):
-        from . import WorkflowTaskInstanceExecution
+        from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
         logger.info(f"Retrying Workflow Execution with UUID = {self.uuid} ...")
 
@@ -209,9 +198,9 @@ class WorkflowExecution(UuidModel):
         self.save()
         return self
 
-    def handle_workflow_task_instance_execution_finished(self, wptie,
+    def handle_workflow_task_instance_execution_finished(self, wptie: 'WorkflowTaskInstanceExecution',
         skipped=False, retry_mode=False) -> None:
-        from . import WorkflowTransitionEvaluation
+        from .workflow_transition_evaluation import WorkflowTransitionEvaluation
 
         if self.status in [WorkflowExecution.Status.STOPPING, WorkflowExecution.Status.STOPPED]:
             logger.info(f"Ignoring task instance execution finished since workflow execution is already {self.status}")
@@ -275,7 +264,7 @@ class WorkflowExecution(UuidModel):
                 pass
 
     def start_task_instance_executions(self, wti_uuids):
-        from . import WorkflowTaskInstance
+        from .workflow_task_instance import WorkflowTaskInstance
 
         wtis = WorkflowTaskInstance.objects.filter(uuid__in=wti_uuids,
                 workflow=self.workflow)
@@ -299,7 +288,7 @@ class WorkflowExecution(UuidModel):
         return self
 
     def invalidate_reachable_task_instance_executions(self, wti_uuids) -> None:
-        from . import WorkflowTaskInstanceExecution
+        from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
         logger.info(f"wti UUIDs = {wti_uuids}")
 
@@ -341,7 +330,9 @@ class WorkflowExecution(UuidModel):
         return updated_status not in WorkflowExecution.IN_PROGRESS_STATUSES
 
     def compute_updated_status(self, is_pending_transition_activation: bool = False):
-        from . import WorkflowTaskInstance, WorkflowTaskInstanceExecution, WorkflowTransitionEvaluation
+        from .workflow_task_instance import WorkflowTaskInstance
+        from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
+        from .workflow_transition_evaluation import WorkflowTransitionEvaluation
 
         if self.status != WorkflowExecution.Status.RUNNING:
             return self.status
@@ -467,8 +458,13 @@ class WorkflowExecution(UuidModel):
         self.stop_running_task_executions(
             TaskExecution.StopReason.WORKFLOW_EXECUTION_STOPPED, current_user)
 
+    # TODO: Implement update_postponed_events(),
+    # maybe_create_and_send_status_change_event(), and
+    # send_event_notifications like TaskExecution
     def send_alerts_if_necessary(self):
-        from . import AlertSendStatus, Alert, WorkflowExecutionAlert
+        from .alert_send_status import AlertSendStatus
+        from .alert import Alert
+        from .workflow_execution_alert import WorkflowExecutionAlert
 
         workflow = self.workflow
 
@@ -516,7 +512,7 @@ class WorkflowExecution(UuidModel):
                 logger.debug(f"Skipping alert method {am.uuid} / {am.name}")
 
     def invalidate_alerts(self) -> None:
-        from . import WorkflowExecutionAlert
+        from .workflow_execution_alert import WorkflowExecutionAlert
         WorkflowExecutionAlert.objects.filter(workflow_execution=self).update(
             for_latest_execution=False)
 
@@ -577,7 +573,7 @@ class WorkflowExecution(UuidModel):
         self.save()
 
     def stop_running_task_executions(self, stop_reason, current_user: Optional[User]) -> int:
-        from . import WorkflowTaskInstanceExecution
+        from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
         task_execution_uuids = WorkflowTaskInstanceExecution.objects.select_related(
             'task_execution').filter(workflow_execution=self, is_latest=True,
                                         task_execution__status__in=TaskExecution.IN_PROGRESS_STATUSES).\

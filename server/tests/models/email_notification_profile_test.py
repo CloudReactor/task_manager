@@ -6,8 +6,7 @@ from django.contrib.auth.models import Group
 
 from model_bakery import baker
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from processes.common.request_helpers import context_with_request
 from processes.models import (
     RunEnvironment
@@ -18,9 +17,7 @@ from processes.serializers import (
 )
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_send(group: Group, run_environment: RunEnvironment, mailoutbox):
     task = baker.make('Task',
             run_environment=run_environment,
@@ -51,9 +48,7 @@ def test_task_execution_send(group: Group, run_environment: RunEnvironment, mail
     assert escape(run_environment.dashboard_url) in m.body
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_execution_send(group: Group, mailoutbox):
     workflow = baker.make('Workflow', created_by_group=group)
     we = baker.make('WorkflowExecution',

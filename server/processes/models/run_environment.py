@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional, Type, TYPE_CHECKING
 
 import logging
 
@@ -19,6 +19,11 @@ from .infrastructure_configuration import InfrastructureConfiguration
 from .subscription import Subscription
 
 logger = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+    from .alert_method import AlertMethod
+    from .notification_profile import NotificationProfile
 
 
 class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
@@ -42,7 +47,10 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
     default_aws_ecs_configuration = models.JSONField(null=True, blank=True)
     default_aws_lambda_configuration = models.JSONField(null=True, blank=True)
 
+    # Deprecated
     default_alert_methods = models.ManyToManyField('AlertMethod', blank=True)
+
+    notification_profiles = models.ManyToManyField('NotificationProfile')
 
     # Deprecated, use InfrastructureSettings.can_manage_infrastructure()
     def can_control_aws_ecs(self) -> bool:

@@ -55,6 +55,11 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
         else:
             group = authenticated_group
 
+        if group is None:
+            raise UnprocessableEntity({
+                'created_by_group': ["Missing created_by_group"]
+            })
+
         logger.info(f"Got {group=}")
 
         if self.instance and self.instance.created_by_group and \

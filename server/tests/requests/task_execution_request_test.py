@@ -20,8 +20,7 @@ import pytest
 
 from rest_framework.test import APIClient
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from conftest import *
 
 
@@ -156,9 +155,7 @@ def ensure_serialized_task_execution_valid(
 
   # TODO: check filtering, non-default ordering
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_list(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -396,9 +393,7 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
    SEND_ID_CORRECT,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_fetch(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int],
@@ -562,9 +557,7 @@ def test_task_execution_fetch(
     SEND_ID_NONE, SEND_ID_CORRECT, 'MANUALLY_STARTED',
     401, None, None),
     ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_create_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -666,8 +659,7 @@ def test_task_execution_create_access_control(
   (True, True),
   (True, False),
 ])
-@mock_ecs
-@mock_sts
+@mock_aws
 def test_task_create_aws_ecs_task_execution(auto_create: bool,
         is_legacy_schema: bool,
         user_factory, group_factory, run_environment_factory, task_factory,
@@ -759,8 +751,7 @@ def test_task_create_aws_ecs_task_execution(auto_create: bool,
         400, 'passive', 'invalid'
     ),
 ])
-@mock_ecs
-@mock_sts
+@mock_aws
 def test_task_execution_with_unknown_method_auto_creation(
         was_auto_created: bool, passive: bool, is_legacy_schema: bool,
         status_code: int, validation_error_attribute: Optional[str],
@@ -869,8 +860,7 @@ def test_task_execution_with_unknown_method_auto_creation(
     (TaskExecution.Status.FAILED.name,
      201, None, None),
 ])
-@mock_ecs
-@mock_sts
+@mock_aws
 def test_task_execution_of_passive_task_creation(
         status,
         status_code, validation_error_attribute, error_code,
@@ -932,9 +922,7 @@ def test_task_execution_of_passive_task_creation(
 
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_create_history_purging(subscription_plan,
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
@@ -1006,8 +994,7 @@ def test_task_execution_create_history_purging(subscription_plan,
 
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
+@mock_aws
 def test_task_execution_create_with_legacy_task_property(
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
@@ -1227,9 +1214,7 @@ def test_task_execution_create_with_legacy_task_property(
    None,
    401, None, None, False),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_update_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -1308,9 +1293,7 @@ skip_response_body
   (False),
   (True)
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_update_conflict(skip_response_body: bool,
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
@@ -1350,9 +1333,7 @@ def test_task_execution_update_conflict(skip_response_body: bool,
 
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_update_unmodifiable_properties(
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
@@ -1495,9 +1476,7 @@ def test_task_execution_update_unmodifiable_properties(
    SEND_ID_CORRECT,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_delete(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,

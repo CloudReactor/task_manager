@@ -6,12 +6,9 @@ from processes.serializers import TaskExecutionSerializer
 
 import pytest
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_basic_task_execution_serialization(task_execution_factory):
     task_execution = cast(TaskExecution, task_execution_factory())
     context = context_with_request()
@@ -20,9 +17,7 @@ def test_basic_task_execution_serialization(task_execution_factory):
 
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_execution_in_workflow_serialization(task_execution_factory,
         workflow_task_instance_execution_factory):
     task_execution = cast(TaskExecution, task_execution_factory())
@@ -38,10 +33,8 @@ def test_task_execution_in_workflow_serialization(task_execution_factory,
     assert data['workflow_task_instance_execution']['uuid'] == str(wtie.uuid)
 
 
+@mock_aws
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
 @pytest.mark.parametrize("""
   is_passive, is_legacy_schema
 """, [

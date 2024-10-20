@@ -3,7 +3,8 @@ import logging
 from rest_framework import serializers
 
 from processes.models import InsufficientServiceInstancesEvent
-from . import NameAndUuidSerializer
+
+from .name_and_uuid_serializer import NameAndUuidSerializer
 
 logger = logging.getLogger(__name__)
 

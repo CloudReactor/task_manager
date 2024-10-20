@@ -1,6 +1,6 @@
 from django.db import models
 
-from . import MissingScheduledExecution
+from .missing_scheduled_execution import MissingScheduledExecution
 
 class MissingScheduledTaskExecution(MissingScheduledExecution):
     task = models.ForeignKey('Task', on_delete=models.CASCADE,

@@ -7,15 +7,12 @@ from processes.serializers import TaskSerializer
 
 import pytest
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from conftest import *
 
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_basic_task_serialization(task_factory):
     task = cast(Task, task_factory())
     context = context_with_request()
@@ -24,9 +21,7 @@ def test_basic_task_serialization(task_factory):
 
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_task_serialization_with_unsupported_emcd(task_factory):
     task = cast(Task, task_factory())
     task.execution_method_type = 'Voodoo'
@@ -52,10 +47,8 @@ def test_task_serialization_with_unsupported_emcd(task_factory):
     assert validated['execution_method_capability_details'] == task.execution_method_capability_details
 
 
+@mock_aws
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
 @pytest.mark.parametrize("""
   is_legacy_schema, is_service, is_scheduled
 """, [
@@ -106,10 +99,8 @@ def test_aws_ecs_task_deserialization(is_legacy_schema: bool,
     validate_serialized_task(reserialized_data, task)
 
 
+@mock_aws
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
 @pytest.mark.parametrize("""
   api_key_access_level, is_api_key_scoped,
   run_environment_send_type,

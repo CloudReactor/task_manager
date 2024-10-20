@@ -27,6 +27,8 @@ router.register(r'api_keys', views.SaasTokenViewSet,
                 basename='api_keys')
 router.register(r'invitations', views.InvitationViewSet,
                 basename='invitations')
+
+# Legacy
 router.register(r'alert_methods', views.AlertMethodViewSet,
                 basename='alert_methods')
 router.register(r'email_notification_profiles',
@@ -34,6 +36,9 @@ router.register(r'email_notification_profiles',
         basename='email_notification_profiles')
 router.register(r'pagerduty_profiles',
         views.PagerDutyProfileViewSet, basename='pagerduty_profiles')
+
+router.register(r'notification_profiles', views.NotificationProfileViewSet,
+                basename='notification_profiles')
 
 # Deprecated
 router.register(r'process_types', views.TaskViewSet,

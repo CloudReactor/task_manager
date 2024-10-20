@@ -2,8 +2,8 @@ from datetime import datetime
 
 from django.db import models
 
-from .task_execution_detection_event import TaskExecutionDetectionEvent
+from .legacy_task_execution_detection_event import LegacyTaskExecutionDetectionEvent
 
 
-class DelayedProcessStartDetectionEvent(TaskExecutionDetectionEvent):
+class DelayedProcessStartDetectionEvent(LegacyTaskExecutionDetectionEvent):
     expected_started_before = models.DateTimeField(default=datetime.now)

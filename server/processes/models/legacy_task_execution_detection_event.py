@@ -4,7 +4,7 @@ from django.db import models
 
 from .task_execution import TaskExecution
 
-class TaskExecutionDetectionEvent(models.Model):
+class LegacyTaskExecutionDetectionEvent(models.Model):
     class Meta:
         abstract = True
 

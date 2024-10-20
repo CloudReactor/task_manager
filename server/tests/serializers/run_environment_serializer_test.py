@@ -7,8 +7,7 @@ from processes.serializers import TaskSerializer
 
 import pytest
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from conftest import *
 
 

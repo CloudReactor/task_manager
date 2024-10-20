@@ -104,10 +104,12 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
             settings_to_merge: list[dict[str, Any]] = [ {} ]
 
             if task:
-                settings_to_merge = [
-                    task.run_environment.default_aws_lambda_configuration or {},
-                    task.execution_method_capability_details or {}
-                ]
+                settings_to_merge = []
+
+                if task.run_environment:
+                    settings_to_merge.append(task.run_environment.default_aws_lambda_configuration or {})
+
+                settings_to_merge.append(task.execution_method_capability_details or {})
 
             if task_execution and task_execution.execution_method_details:
                 settings_to_merge.append(task_execution.execution_method_details)

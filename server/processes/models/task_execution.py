@@ -1,4 +1,4 @@
-from typing import cast, List, Optional, Type
+from typing import cast, Optional, Type, TYPE_CHECKING
 
 import enum
 import json
@@ -7,7 +7,7 @@ import logging
 from django.db import models
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from django.contrib.auth.models import User
+
 from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
 
@@ -20,16 +20,27 @@ from ..common.request_helpers import context_with_request
 from ..common.pagerduty import *
 from ..common.utils import coalesce
 from ..execution_methods import ExecutionMethod
-from .uuid_model import UuidModel
+
+from .execution import Execution
 from .task import Task
+from .event import Event
+from .alert_send_status import AlertSendStatus
 from .infrastructure_configuration import InfrastructureConfiguration
+from .schedulable import Schedulable
 from .aws_tagged_entity import AwsTaggedEntity
+
+
+if TYPE_CHECKING:
+    from .task_execution_status_change_event import (
+        TaskExecutionStatusChangeEvent
+    )
+    from .missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent
 
 
 logger = logging.getLogger(__name__)
 
 
-class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
+class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, Execution):
     @enum.unique
     class Status(enum.IntEnum):
         RUNNING = 0
@@ -108,34 +119,15 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
             db_column='process_version_signature')
     task_version_text = models.CharField(max_length=200, null=True, blank=True,
             db_column='process_version_text')
-    status = models.IntegerField(default=Status.RUNNING.value)
-    run_reason = models.IntegerField(default=0)
-    stop_reason = models.IntegerField(null=True, blank=True)
     heartbeat_interval_seconds = models.IntegerField(null=True, blank=True)
     hostname = models.CharField(max_length=1000, null=True, blank=True)
     environment_variables_overrides = models.JSONField(null=True, blank=True)
     allocated_cpu_units = models.IntegerField(null=True, blank=True)
     allocated_memory_mb = models.IntegerField(null=True, blank=True)
-    other_instance_metadata = models.JSONField(null=True, blank=True)
-    started_at = models.DateTimeField(auto_now_add=True, blank=True)
-    started_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
-                                   blank=True, related_name='+')
-    finished_at = models.DateTimeField(null=True, blank=True)
-    last_heartbeat_at = models.DateTimeField(null=True, blank=True)
+
     last_app_heartbeat_at = models.DateTimeField(null=True, blank=True)
-    marked_done_at = models.DateTimeField(null=True, blank=True)
-    marked_done_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
-                                       blank=True, related_name='+')
-    marked_outdated_at = models.DateTimeField(null=True, blank=True)
-    kill_started_at = models.DateTimeField(null=True, blank=True)
-    kill_finished_at = models.DateTimeField(null=True, blank=True)
-    kill_error_code = models.IntegerField(null=True, blank=True)
-    killed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
-                                  blank=True, related_name='+')
-    failed_attempts = models.PositiveIntegerField(default=0)
-    timed_out_attempts = models.PositiveIntegerField(default=0)
     exit_code = models.IntegerField(null=True, blank=True)
-    error_details = models.JSONField(null=True, blank=True)
+
     debug_log_tail = models.CharField(max_length=5000000, null=True, blank=True)
     error_log_tail = models.CharField(max_length=5000000, null=True, blank=True)
     last_status_message = models.CharField(max_length=5000, null=True, blank=True)
@@ -143,7 +135,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
     error_count = models.BigIntegerField(null=True, blank=True)
     skipped_count = models.BigIntegerField(null=True, blank=True)
     expected_count = models.BigIntegerField(null=True, blank=True)
-    other_runtime_metadata = models.JSONField(null=True, blank=True)
+
     current_cpu_units = models.PositiveIntegerField(null=True, blank=True)
     mean_cpu_units = models.PositiveIntegerField(null=True, blank=True)
     max_cpu_units = models.IntegerField(null=True, blank=True)
@@ -199,9 +191,6 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
             blank=True, default='')
     execution_method_details = models.JSONField(null=True, blank=True)
 
-    input_value = models.JSONField(null=True, blank=True)
-    output_value = models.JSONField(null=True, blank=True)
-
     build_task_execution = models.ForeignKey(
       'TaskExecution', on_delete=models.DO_NOTHING,
       to_field='uuid', db_column='build_task_execution_uuid',
@@ -235,6 +224,9 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
     def __str__(self) -> str:
         return self.task.name + ' / ' + str(self.uuid)
+
+    def get_schedulable(self) -> Optional[Schedulable]:
+        return self.task
 
     @property
     def dashboard_path(self) -> str:
@@ -284,16 +276,23 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
         env: dict[str, str] = {}
 
         if include_wrapper_vars:
+            deployment = self.deployment
+
+            if (not deployment) and task.run_environment:
+                deployment = task.run_environment.name
+
             env = {
                 'PROC_WRAPPER_TASK_EXECUTION_UUID': str(self.uuid),
                 'PROC_WRAPPER_TASK_NAME': task.name,
-                'PROC_WRAPPER_DEPLOYMENT': self.deployment or task.run_environment.name,
                 'PROC_WRAPPER_INPUT_VALUE': json.dumps(
                     coalesce(self.input_value, task.default_input_value)),
                 'PROC_WRAPPER_MANAGED_PROBABILITY': str(task.managed_probability),
                 'PROC_WRAPPER_FAILURE_REPORT_PROBABILITY': str(task.failure_report_probability),
                 'PROC_WRAPPER_TIMEOUT_REPORT_PROBABILITY': str(task.timeout_report_probability)
             }
+
+            if deployment:
+                env['PROC_WRAPPER_DEPLOYMENT'] = deployment
 
             if self.wrapper_log_level:
                 env['PROC_WRAPPER_LOG_LEVEL'] = self.wrapper_log_level
@@ -416,118 +415,141 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
                             env[name] = str(value)
         return env
 
-    def should_send_alert(self, alert_method) -> bool:
-        from .alert_send_status import AlertSendStatus
-        from .task_execution_alert import TaskExecutionAlert
+    def should_create_status_change_event(self) -> bool:
+        from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
 
         if self.skip_alert:
-            logger.info("Skipping alerting since skip_alert = True")
+            logger.info("Skipping status change event creation since skip_alert = True")
             return False
 
         task = self.task
 
-        if not task.enabled:
-            logger.info(f"Skipping alerting since task {task.uuid} is disabled")
+        if not task:
+            logger.info("Skipping status change event creation since Task is missing")
             return False
 
-        am = alert_method
+        if not task.enabled:
+            logger.info(f"Skipping status change event creation since Task {task.uuid} is disabled")
+            return False
 
-        should_send = False
+        if self.status == TaskExecution.Status.ABORTED:
+            # TODO: keep track of service updated_at for generic services
+            if task.aws_ecs_service_updated_at and \
+                    (task.aws_ecs_service_updated_at > self.started_at):
+                logger.info(f"Skipping status change event creation for Task Execution {self.uuid} started after service updated")
+                return False
 
-        if self.status == TaskExecution.Status.SUCCEEDED:
-            should_send = am.notify_on_success
-        elif self.status == TaskExecution.Status.FAILED:
-            should_send = am.notify_on_failure
-        elif self.status == TaskExecution.Status.ABORTED:
-            if am.notify_on_failure:
-                should_send = True
-                if task.aws_ecs_service_updated_at and \
-                        (task.aws_ecs_service_updated_at > self.started_at):
-                    logger.info(f"Not sending alert for task execution {self.uuid} started after service updated")
-                    should_send = False
-        elif (self.status == TaskExecution.Status.TERMINATED_AFTER_TIME_OUT) or \
-             (self.status == TaskExecution.Status.ABANDONED):
-            should_send = am.notify_on_timeout
-        elif self.status == TaskExecution.Status.STOPPING:
-            should_send = am.notify_on_timeout and \
-                (self.stop_reason == TaskExecution.StopReason.MAX_EXECUTION_TIME_EXCEEDED)
+        if TaskExecutionStatusChangeEvent.objects.filter(task_execution=self, status=self.status).exists():
+            logger.info(f"Skipping status change event creation for Task Execution {self.uuid} since it already has a status change event")
+            return False
 
-        logger.debug(f"When {self.status=}, should_send_alert = {should_send}")
+        return True
 
-        if should_send:
-            should_send = not TaskExecutionAlert.objects.filter(task_execution=self,
-               alert_method=am, send_status=AlertSendStatus.SUCCEEDED).exists()
 
-        return should_send
+    def update_postponed_events(self) -> int:
+        from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
 
-    def send_alerts_if_necessary(self):
-        from .alert_send_status import AlertSendStatus
-        from .alert import Alert
-        from .task_execution_alert import TaskExecutionAlert
+        task = self.task
+
+        if not task:
+            logger.warning("Skipping updating postponed notifications since Task is missing")
+            return 0
+
+        # CHECKME: task.enabled?
+
+        status = self.status
+        utc_now = timezone.now()
+        events = TaskExecutionStatusChangeEvent.objects.filter(task_execution=self,
+                postponed_until__isnull=False, postponed_until__gt=utc_now,
+                resolved_at__isnull=True, accelerated_at__isnull=True)
+
+        if not events.exists():
+            return 0
+
+        updated_count = 0
+
+        for event in events.all():
+            if event.update_after_postponed(status=status, utc_now=utc_now):
+                updated_count += 1
+
+        return updated_count
+
+    def maybe_create_and_send_status_change_event(self) -> Optional['TaskExecutionStatusChangeEvent']:
+        from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
 
         if self.skip_alert:
-            logger.info("Skipping alerting since skip_alert = True")
-            return
+            logger.info("Skipping status change event creation since skip_alert = True")
+            return None
+
+        task = self.task
+
+        if task is None:
+            logger.info("Skipping status change event creation since Task is missing")
+            return None
+
+        if not task.enabled:
+            logger.info(f"Skipping status change event creation since Task {task.uuid} is disabled")
+            return None
 
         utc_now = timezone.now()
 
         if self.finished_at and \
             ((utc_now - self.finished_at).total_seconds() > self.MAX_STATUS_ALERT_AGE_SECONDS):
-            logger.info(f"Skipping alerting since finished_at={self.finished_at} is too long ago")
-            return
+            logger.info(f"Skipping status change event creation since finished_at={self.finished_at} is too long ago")
+            return None
+
+        if not self.should_create_status_change_event():
+            logger.info(f"Skipping status change event creation since Task {task.uuid} should not create status change event")
+            return None
+
+        severity: Optional[int] = TaskExecutionStatusChangeEvent.SEVERITY_ERROR
+
+        if self.status == TaskExecution.Status.SUCCEEDED:
+            severity = task.notification_event_severity_on_success
+        elif self.status == TaskExecution.Status.FAILED:
+            severity = task.notification_event_severity_on_failure
+        elif self.status == TaskExecution.Status.TERMINATED_AFTER_TIME_OUT:
+            severity = task.notification_event_severity_on_timeout
+
+        # TODO: default to Run Environment's severities, override with TaskExecution severities
+
+        if (severity is None) or (severity == TaskExecutionStatusChangeEvent.SEVERITY_NONE):
+            logger.info(f"Skipping notifications since Task {task.uuid} has no severity set for status {self.status}")
+            return None
+
+        status_change_event = TaskExecutionStatusChangeEvent(
+            severity=severity,
+            task_execution=self,
+            status=self.status,
+            details={
+
+            },
+            count_with_same_status_after_postponement=0,
+            count_with_success_status_after_postponement=0
+        )
+
+        status_change_event.save()
+
+        if status_change_event.maybe_postpone(schedulable=task):
+            logger.info(f"Postponing notifications on Task {task.uuid} after execution status = {self.status}")
+        else:
+            logger.info(f"Not postponing notifications on Task {task.uuid} after execution status = {self.status}")
+            self.send_event_notifications(event=status_change_event)
+
+        return status_change_event
+
+    def send_event_notifications(self, event: Event) -> int:
 
         task = self.task
 
-        if not task.enabled:
-            logger.info(f"Skipping alerting since Task {task.uuid} is disabled")
-            return
+        if task is None:
+            logger.warning("Skipping sending notifications since Task is missing")
+            return 0
 
-        # if self.should_postpone_alerts():
-        #     logger.info(f"Postponing alerts on Task {task.uuid} after execution status = {self.status}")
-        #     return
-
-        run_env = task.run_environment
-        alert_methods = task.alert_methods.filter(enabled=True)
-        if not alert_methods.exists():
-            alert_methods = run_env.default_alert_methods.filter(enabled=True)
-
-        severity = DEFAULT_PAGERDUTY_EVENT_SUCCESS_SEVERITY if (self.status == TaskExecution.Status.SUCCEEDED) else \
-            DEFAULT_PAGERDUTY_EVENT_ERROR_SEVERITY
-        source = self.hostname or DEFAULT_PAGERDUTY_EVENT_SOURCE
-
-        for am in alert_methods:
-            if self.should_send_alert(am):
-                tea = TaskExecutionAlert(task_execution=self, alert_method=am)
-                tea.save()
-
-                # TODO: retry
-                try:
-                    logger.info(f"Sending alert for Task {task.uuid} with status {self.status} ...")
-
-                    tea.send_result = am.send(severity=severity, source=source,
-                        task_execution=self) or ''
-
-                    if tea.send_result:
-                        tea.send_result = tea.send_result[:Alert.MAX_SEND_RESULT_LENGTH]
-
-                    logger.info(f"Done sending alert for Task {task.uuid} with status {self.status}")
-
-                    tea.send_status = AlertSendStatus.SUCCEEDED
-                    tea.completed_at = timezone.now()
-
-                except Exception as ex:
-                    logger.exception(f"Can't send using Alert Method {am.uuid} / {am.name} for task execution UUID {self.uuid}")
-
-                    tea.send_status = AlertSendStatus.FAILED
-                    tea.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
-
-                tea.save()
-            else:
-                logger.debug(f"Skipping Alert Method {am.uuid} / {am.name}")
+        return task.send_event_notifications(event=event)
 
     def clear_missing_scheduled_execution_alerts(self, mspe):
         from .alert import Alert
-        from .alert_send_status import AlertSendStatus
         from .missing_scheduled_task_execution_alert import MissingScheduledTaskExecutionAlert
         from processes.serializers import MissingScheduledTaskExecutionSerializer
 
@@ -544,6 +566,8 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
             try:
                 # task is already in details
                 epoch_minutes = divmod(mspe.expected_execution_at.timestamp(), 60)[0]
+
+                # FIXME: wrong signature
                 result = am.send(details=details,
                         summary_template=self.FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE,
                         grouping_key=f"missing_scheduled_task-{self.task.uuid}-{epoch_minutes}",
@@ -560,42 +584,17 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, UuidModel):
 
             mha.save()
 
-    def clear_heartbeat_detection_alerts(self, hde):
-        from .alert import Alert
-        from .alert_send_status import AlertSendStatus
-        from .heartbeat_detection_alert import HeartbeatDetectionAlert
-        from processes.serializers import HeartbeatDetectionEventSerializer
-
-        details = HeartbeatDetectionEventSerializer(hde,
-                context=context_with_request()).data
-
-        for am in self.task.alert_methods.filter(
-                enabled=True).exclude(error_severity_on_missing_heartbeat='').all():
-            mha = HeartbeatDetectionAlert(heartbeat_detection_event=hde,
-                                          alert_method=am)
-            mha.save()
-
+    def send_resolved_missing_heartbeat_detection_notifications(self, hde: 'MissingHeartbeatDetectionEvent'):
+        for np in self.task.notification_profiles.filter(enabled=True).all():
             try:
-                # task_execution is already in details
-                result = am.send(details=details,
-                                 summary_template=self.FOUND_HEARTBEAT_EVENT_SUMMARY_TEMPLATE,
-                                 grouping_key=f"missing_heartbeat-{self.uuid}",
-                                 is_resolution=True)
-                mha.send_result = result
-                mha.send_status = AlertSendStatus.SUCCEEDED
-                mha.completed_at = timezone.now()
+                np.send(event=hde)
             except Exception as ex:
+                te_id = str(hde.task_execution.uuid) if hde.task_execution else '[REMOVED]'
                 logger.exception(
-                    f"Failed to clear alert for missing heartbeat of Task Execution {hde.task_execution.uuid}")
-                mha.send_result = ''
-                mha.send_status = AlertSendStatus.FAILED
-                mha.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
-
-            mha.save()
+                    f"Failed to clear alert for missing heartbeat of Task Execution {te_id}")
 
     def clear_delayed_task_start_alerts(self, dpsde):
         from .alert import Alert
-        from .alert_send_status import AlertSendStatus
         from .delayed_process_start_alert import DelayedProcessStartAlert
         from processes.serializers import DelayedTaskStartDetectionEventSerializer
 
@@ -679,7 +678,7 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
 def post_save_task_execution(sender: TaskExecution, **kwargs):
     from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
-    instance = kwargs['instance']
+    instance = cast(TaskExecution, kwargs['instance'])
 
     in_progress = instance.is_in_progress()
     task = instance.task
@@ -723,27 +722,48 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
         last_heartbeat_seconds_ago = (utc_now - instance.last_heartbeat_at).total_seconds()
         if (not in_progress) or (
                 last_heartbeat_seconds_ago < heartbeat_interval_seconds + max_heartbeat_lateness_before_alert_seconds):
-            from .heartbeat_detection_event import HeartbeatDetectionEvent
-            last_heartbeat_detection_event = HeartbeatDetectionEvent.objects.filter(
-                task_execution=instance).order_by('-detected_at', '-id').first()
+            from .missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent
 
-            if last_heartbeat_detection_event and (last_heartbeat_detection_event.resolved_at is None):
+            last_heartbeat_detection_event = MissingHeartbeatDetectionEvent.objects.filter(
+                task_execution=instance, resolved_at__isnull=True, resolved_event__isnull=True) \
+                .order_by('-detected_at').first()
+
+            if last_heartbeat_detection_event:
                 logger.info(f"Found last heartbeat detection event {last_heartbeat_detection_event.uuid} to resolve for Task {task.uuid}")
                 last_heartbeat_detection_event.resolved_at = utc_now
                 last_heartbeat_detection_event.save()
-                instance.clear_heartbeat_detection_alerts(last_heartbeat_detection_event)
+
+                resolving_event = MissingHeartbeatDetectionEvent(
+                    event_at=utc_now,
+                    detected_at=utc_now,
+                    severity=Event.SEVERITY_INFO,
+                    grouping_key=last_heartbeat_detection_event.grouping_key,
+                    resolved_event = last_heartbeat_detection_event,
+                    task_execution=instance,
+                    last_heartbeat_at=instance.last_heartbeat_at,
+                    expected_heartbeat_at=last_heartbeat_detection_event.expected_heartbeat_at,
+                    heartbeat_interval_seconds=last_heartbeat_detection_event.heartbeat_interval_seconds,
+                )
+                resolving_event.save()
+                instance.send_resolved_missing_heartbeat_detection_notifications(resolving_event)
+
 
     wtie = WorkflowTaskInstanceExecution.objects.filter(
         task_execution=instance).first()
 
     # TODO: use snapshot
-    if (not in_progress) and \
-            ((wtie is None) or
-             wtie.workflow_task_instance.use_task_alert_methods):
+    if not in_progress:
         try:
-            instance.send_alerts_if_necessary()
+            instance.update_postponed_events()
         except Exception:
-            logger.exception(f"Can't notify after error: {instance}")
+            logger.exception(f"Can't update postponed event after error: {instance}")
+
+
+        if (wtie is None) or wtie.workflow_task_instance.use_task_notification_profiles:
+            try:
+                instance.maybe_create_and_send_status_change_event()
+            except Exception:
+                logger.exception(f"Can't send notifications after error: {instance}")
 
     if wtie:
         workflow_execution = wtie.workflow_execution

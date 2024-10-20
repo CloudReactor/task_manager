@@ -1,6 +1,6 @@
 from django.db import models
 
-from . import Alert
+from .alert import Alert
 
 
 class DelayedProcessStartAlert(Alert):

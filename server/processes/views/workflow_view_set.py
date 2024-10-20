@@ -2,7 +2,6 @@ import logging
 
 from django.db import transaction
 
-from django_filters import CharFilter
 from django_filters import rest_framework as filters
 
 from rest_framework import status

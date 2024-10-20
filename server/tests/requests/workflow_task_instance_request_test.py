@@ -19,8 +19,7 @@ import pytest
 
 from rest_framework.test import APIClient
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from conftest import *
 
 
@@ -158,9 +157,7 @@ def ensure_serialized_workflow_task_instance_valid(response_workflow_task_instan
 
   # TODO: check filtering, non-default ordering
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_task_instance_list(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -483,9 +480,7 @@ def make_request_body(uuid_send_type: Optional[str],
    SEND_ID_CORRECT,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_task_instance_fetch(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int],
@@ -624,9 +619,7 @@ def test_workflow_task_instance_fetch(
    SEND_ID_NONE, SEND_ID_CORRECT,
    401, None, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_task_instance_create_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -837,9 +830,7 @@ def test_workflow_task_instance_create_access_control(
    None,
    401, None, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_task_instance_update_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -969,9 +960,7 @@ def test_workflow_task_instance_update_access_control(
    SEND_ID_WITH_OTHER_RUN_ENVIRONMENT, True,
    422),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_set_task(
         api_key_access_level: Optional[int], api_key_scope_type: str,
         task_send_type: Optional[str], existing_has_run_environment: bool,
@@ -1141,9 +1130,7 @@ def test_workflow_set_task(
    SEND_ID_CORRECT,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_task_instance_delete(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,

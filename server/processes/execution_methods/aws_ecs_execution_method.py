@@ -163,7 +163,10 @@ class AwsApplicationLoadBalancer(BaseModel):
         self.target_group_infrastructure_website_url = None
 
         if self.target_group_arn:
-            region = task.run_environment.aws_default_region
+            region: Optional[str] = None
+
+            if task.run_environment:
+                region = task.run_environment.aws_default_region
 
             if aws_settings and aws_settings.network:
                 region = aws_settings.network.region or region
@@ -277,7 +280,7 @@ class AwsEcsServiceSettings(BaseModel):
             if dcb:
                 parsed_dcb = AwsEcsServiceDeploymentCircuitBreaker(
                     enable=dcb.get('enable'),
-                    rollback=dcb.get('rollback')
+                    rollback_on_failure=dcb.get('rollback')
                 )
 
             ss.deployment_configuration = AwsEcsServiceDeploymentConfiguration(
@@ -401,10 +404,12 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         settings_to_merge: list[dict[str, Any]] = [ {} ]
 
         if task:
-            settings_to_merge = [
-                task.run_environment.default_aws_ecs_configuration or {},
-                task.execution_method_capability_details or {}
-            ]
+            settings_to_merge = []
+
+            if task.run_environment:
+                settings_to_merge.append(task.run_environment.default_aws_ecs_configuration or {})
+
+            settings_to_merge.append(task.execution_method_capability_details or {})
 
         if task_execution and task_execution.execution_method_details:
             settings_to_merge.append(task_execution.execution_method_details)
@@ -1139,8 +1144,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         main_container_cpu_units = aws_ecs_settings.main_container_cpu_units
         computed_main_container_cpu_units: Optional[int] = None
 
-        if (main_container_cpu_units is None) and self.task.allocated_cpu_units and task_aws_ecs_settings.main_container_cpu_units:
-            computed_main_container_cpu_units = (cpu_units - self.task.allocated_cpu_units) + task_aws_ecs_settings.main_container_cpu_units
+        if (main_container_cpu_units is None) and task.allocated_cpu_units and task_aws_ecs_settings.main_container_cpu_units:
+            computed_main_container_cpu_units = (cpu_units - task.allocated_cpu_units) + task_aws_ecs_settings.main_container_cpu_units
 
             if (main_container_cpu_units is not None) and (main_container_cpu_units != computed_main_container_cpu_units):
                 logger.warning(f"Overriding {main_container_cpu_units=} with {computed_main_container_cpu_units=}")
@@ -1151,8 +1156,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         computed_main_container_memory_mb: Optional[int] = None
 
-        if (main_container_memory_mb is None) and self.task.allocated_memory_mb and task_aws_ecs_settings.main_container_memory_mb:
-            computed_main_container_memory_mb = (memory_mb - self.task.allocated_memory_mb) + task_aws_ecs_settings.main_container_memory_mb
+        if (main_container_memory_mb is None) and task.allocated_memory_mb and task_aws_ecs_settings.main_container_memory_mb:
+            computed_main_container_memory_mb = (memory_mb - task.allocated_memory_mb) + task_aws_ecs_settings.main_container_memory_mb
 
             if (main_container_memory_mb is not None) and (main_container_memory_mb != computed_main_container_memory_mb):
                 logger.warning(f"Overriding {main_container_memory_mb=} with {computed_main_container_memory_mb=}")
@@ -1194,7 +1199,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         # use the default main container name.
         main_container_name = self.settings.main_container_name or DEFAULT_MAIN_CONTAINER_NAME
 
-        main_container_override = {
+        main_container_override: dict[str, Any] = {
             'name': main_container_name
         }
 
@@ -1357,10 +1362,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if self.task:
             if self.task.uuid:
                 session_id = str(self.task.uuid)
-            else:
+            elif self.task.run_environment:
                 session_id = str(self.task.run_environment.uuid)
-        else:
-            session_id = str(uuid.uuid4())
+
+        session_id = session_id or str(uuid.uuid4())
 
         return self.aws_settings.make_boto3_client('ecs',
               session_uuid=session_id)

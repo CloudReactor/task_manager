@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 from collections import abc
 import logging
 import re
@@ -103,17 +103,17 @@ def deepmerge(*args, append_lists: bool=False, ignore_none: bool=True) -> Any:
     return deepmerge_core(append_lists, ignore_none, *args)
 
 
-def lookup_string(d: dict[str, Any], key: str) -> Optional[str]:
+def lookup_string(d: Mapping[str, Any], key: str) -> Optional[str]:
     x = d.get(key)
     return str(x) if x else None
 
 
-def lookup_int(d: dict[str, Any], key: str) -> Optional[int]:
+def lookup_int(d: Mapping[str, Any], key: str) -> Optional[int]:
     x = d.get(key)
     return None if (not x) and (x != 0) else int(x)
 
 
-def lookup_bool(d: dict[str, Any], key: str) -> Optional[bool]:
+def lookup_bool(d: Mapping[str, Any], key: str) -> Optional[bool]:
     x = d.get(key)
     return None if x is None else bool(x)
 

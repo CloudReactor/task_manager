@@ -353,8 +353,10 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         # End set deprecated columns
 
         build_dict = data.pop('build', None)
+
+        dte: Optional[TaskExecution] = None
+
         if build_dict and ('task_execution' in build_dict):
-            dte: Optional[TaskExecution] = None
             build_task_execution_dict = build_dict['task_execution']
             if build_task_execution_dict and ('uuid' in build_task_execution_dict):
                 dte = TaskExecution.objects.filter(uuid=build_task_execution_dict['uuid']).first()
@@ -363,7 +365,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         deployment_dict = data.pop('deploy', None)
         if deployment_dict and ('task_execution' in deployment_dict):
-            dte: Optional[TaskExecution] = None
             deployment_task_execution_dict = deployment_dict['task_execution']
             if deployment_task_execution_dict and ('uuid' in deployment_task_execution_dict):
                 dte = TaskExecution.objects.filter(uuid=deployment_task_execution_dict['uuid']).first()

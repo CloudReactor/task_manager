@@ -83,7 +83,12 @@ class WorkflowSerializer(
     class Meta:
         model = Workflow
         fields = COMMON_FIELDS + [
-            'alert_methods', 'workflow_task_instances',
+
+            # Legacy
+            'alert_methods',
+
+            'notification_profiles',
+            'workflow_task_instances',
             'workflow_transitions',
         ]
         read_only_fields = COMMON_READ_ONLY_FIELDS
@@ -93,8 +98,12 @@ class WorkflowSerializer(
 
     workflow_transitions = WorkflowTransitionSerializer(many=True, read_only=True)
 
+    # Legacy
     alert_methods = NameAndUuidSerializer(include_name=True,
             view_name='alert_methods-detail', many=True, required=False)
+
+    notification_profiles = NameAndUuidSerializer(include_name=True,
+            view_name='notification_profiles-detail', many=True, required=False)
 
     def to_internal_value(self, data):
         logger.info(f"wfs: to_internal value, data = {data}")
@@ -114,7 +123,12 @@ class WorkflowSerializer(
         run_environment = validated.get('run_environment',
           workflow.run_environment if workflow else None)
 
+        # Deprecated
         self.set_validated_alert_methods(data=data, validated=validated,
+                run_environment=run_environment,
+                allow_any_run_environment=(run_environment is None))
+
+        self.set_validated_notification_profiles(data=data, validated=validated,
                 run_environment=run_environment,
                 allow_any_run_environment=(run_environment is None))
 
@@ -128,7 +142,11 @@ class WorkflowSerializer(
 
     def create_or_update(self, instance, validated_data):
         defaults = validated_data
+
+        # Deprecated
         alert_methods = defaults.pop('alert_methods', None)
+
+        notification_profiles = defaults.pop('notification_profiles', None)
         wtis = defaults.pop('workflow_task_instances', None)
         wts = defaults.pop('workflow_transitions', None)
 
@@ -140,8 +158,12 @@ class WorkflowSerializer(
             workflow = Workflow(**defaults)
             workflow.save()
 
+        # Legacy
         if alert_methods is not None:
             workflow.alert_methods.set(alert_methods)
+
+        if notification_profiles is not None:
+            workflow.notification_profiles.set(notification_profiles)
 
         if wtis is None:
             return workflow
@@ -275,12 +297,12 @@ class WorkflowSerializer(
                         to_wti_dict['uuid'] = str(new_wtis_by_uuid[wti_uuid].uuid)
 
                 if existing_wt:
-                    ser = WorkflowTransitionSerializer(existing_wt, data=wt_dict, context=self.context)
+                    wts_ser = WorkflowTransitionSerializer(existing_wt, data=wt_dict, context=self.context)
                 else:
-                    ser = WorkflowTransitionSerializer(data=wt_dict, context=self.context)
+                    wts_ser = WorkflowTransitionSerializer(data=wt_dict, context=self.context)
 
-                ser.is_valid(raise_exception=True)
-                ser.save()
+                wts_ser.is_valid(raise_exception=True)
+                wts_ser.save()
 
             WorkflowTransition.objects.filter(uuid__in=old_wts_by_uuid.keys()).delete()
 

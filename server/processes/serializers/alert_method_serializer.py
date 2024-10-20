@@ -110,8 +110,8 @@ class AlertMethodSerializer(GroupSettingSerializerMixin,
         if method_details_dict:
             method_type = method_details_dict.get('type')
 
-        if not method_type and self.instance:
-            method_type = self.method_type_of_instance(self.instance)
+        if not method_type and alert_method:
+            method_type = self.method_type_of_instance(alert_method)
             if not method_type:
                 raise ValidationError({
                     'method_details': [

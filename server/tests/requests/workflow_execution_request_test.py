@@ -18,8 +18,7 @@ import pytest
 
 from rest_framework.test import APIClient
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from conftest import *
 
 
@@ -450,9 +449,7 @@ def make_request_body(uuid_send_type: Optional[str],
    SEND_ID_CORRECT,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_execution_fetch(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int],
@@ -596,9 +593,6 @@ def test_workflow_execution_fetch(
    SEND_ID_NONE, SEND_ID_CORRECT,
    401, None, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
 def test_workflow_execution_create_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -664,9 +658,7 @@ def test_workflow_execution_create_access_control(
         check_validation_error(response, validation_error_attribute, error_code)
 
 @pytest.mark.django_db
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_execution_create_history_purging(
         subscription_plan, user_factory, group_factory, run_environment_factory,
         workflow_factory, workflow_execution_factory,
@@ -890,9 +882,7 @@ def test_workflow_execution_create_history_purging(
    None,
    401, None, None),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_execution_update_access_control(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,
@@ -1032,9 +1022,7 @@ def test_workflow_execution_update_access_control(
    SEND_ID_CORRECT,
    401),
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_workflow_execution_delete(
         is_authenticated: bool, group_access_level: Optional[int],
         api_key_access_level: Optional[int], api_key_scope_type: str,

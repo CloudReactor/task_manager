@@ -14,7 +14,6 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from django_filters import CharFilter
 from django_filters import rest_framework as filters
 
 from ..models import *

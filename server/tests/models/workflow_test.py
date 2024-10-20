@@ -7,8 +7,7 @@ from django.utils import timezone
 
 import pytest
 
-from moto import mock_ecs, mock_sts, mock_events
-
+from moto import mock_aws
 from processes.models import (
     Subscription,
     SubscriptionPlan,
@@ -28,9 +27,7 @@ from processes.models import (
   (2, 1, -1),
   (0, 0, -1)
 ])
-@mock_ecs
-@mock_sts
-@mock_events
+@mock_aws
 def test_purge_history(max_executions: int, reservation_count: int,
         max_to_purge: int, subscription_plan: SubscriptionPlan,
         workflow_factory, workflow_execution_factory):

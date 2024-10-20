@@ -27,7 +27,7 @@ class WorkflowTaskInstanceFactory(factory.django.DjangoModelFactory):
     environment_variables_overrides = None
     allocated_cpu_units = None
     allocated_memory_mb = None
-    use_task_alert_methods = False
+    use_task_notification_profiles = False
     failure_behavior = WorkflowTaskInstance.FAILURE_BEHAVIOR_FAIL_WORKFLOW_IF_UNHANDLED
     allow_workflow_execution_after_failure = False
     timeout_behavior = WorkflowTaskInstance.TIMEOUT_BEHAVIOR_TIMEOUT_WORKFLOW_IF_UNHANDLED

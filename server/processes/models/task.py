@@ -1,4 +1,4 @@
-from typing import Any, Optional, Type, cast
+from typing import Any, Optional, Type, cast, TYPE_CHECKING
 
 from datetime import datetime
 import logging
@@ -20,11 +20,16 @@ from ..execution_methods import (
 )
 from ..exception import CommittableException, UnprocessableEntity
 
-from .subscription import Subscription
 from .aws_ecs_configuration import AwsEcsConfiguration
-from .schedulable import Schedulable
 from .infrastructure_configuration import InfrastructureConfiguration
 from .run_environment import RunEnvironment
+from .schedulable import Schedulable
+from .subscription import Subscription
+
+
+if TYPE_CHECKING:
+    from .alert_method import AlertMethod
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +65,6 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
 
     project_url = models.CharField(max_length=1000, blank=True)
     log_query = models.CharField(max_length=1000, blank=True)
-    run_environment = models.ForeignKey(RunEnvironment,
-            on_delete=models.CASCADE, blank=True)
 
     execution_method_type = models.CharField(max_length=100, null=False,
             blank=False, default='Unknown')
@@ -128,7 +131,10 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
 
     allocated_cpu_units = models.PositiveIntegerField(null=True, blank=True)
     allocated_memory_mb = models.PositiveIntegerField(null=True, blank=True)
+
+    # Deprecated
     alert_methods = models.ManyToManyField('AlertMethod', blank=True)
+
     other_metadata = models.JSONField(null=True, blank=True)
     latest_task_execution = models.OneToOneField('TaskExecution',
         # Don't backreference, since TaskExecutions already point to Tasks
@@ -141,6 +147,9 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     should_skip_synchronize_with_run_environment = False
 
     def get_aws_region(self) -> Optional[str]:
+        if self.run_environment is None:
+            return None
+
         return self.run_environment.get_aws_region()
 
     @property
@@ -196,13 +205,17 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
             else:
                 # Assume Cloudwatch logs
                 run_env = self.run_environment
-                region = run_env.aws_default_region or 'us-west-2'
+                region = 'us-west-2'
+                if run_env:
+                    region = run_env.aws_default_region or region
+
                 limit = 2000
 
                 return f"https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logs-insights:queryDetail=~(end~0~start~-86400~timeType~'RELATIVE~unit~'seconds~editorString~'fields*20*40timestamp*2c*20*40message*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" + \
                         quote(lq, safe='').replace('%', '*') + '))'
         else:
             return None
+
 
     def purge_history(self, reservation_count: int = 0,
             max_to_purge: int = -1) -> int:
