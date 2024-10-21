@@ -14,7 +14,7 @@ ENV PATH /work/client/node_modules/.bin:$PATH
 # install and cache app dependencies
 COPY client/package-lock.json client/package.json ./
 
-RUN npm install --ignore-optional
+RUN npm install --ignore-optional --legacy-peer-deps
 
 COPY client/ ./
 COPY deploy_config/files/client.env ../deploy_config/files/client.env
