@@ -1,0 +1,45 @@
+@use '../../styles/settings.scss';
+$formSectionSpacing: 1.5em;
+
+$inputAndLabelWidth: 18rem;
+
+.formContainer {
+  padding-left: 0.5em;
+  //width: 40%;
+  min-width: 500px;
+  //margin-left: 0.3rem;
+  //box-sizing: border-box;
+  color: settings.$highText;
+
+  :global .input-group {
+    width: $inputAndLabelWidth;
+
+    :global .input-group-append {
+      width: 7.5rem;
+      margin-left: 0;
+
+    }
+
+    :global .input-group-text {
+      width: 7.5rem;
+      flex-grow: 1;
+    }
+  }
+}
+
+.labelColumn {
+  min-width: $inputAndLabelWidth;
+  align-content: center;
+}
+
+.saveButton {
+  margin-top: 1.5em;
+}
+
+.formSection {
+  border-bottom: 1px solid hsla(360,100%,100%,0.1);
+  padding-bottom: $formSectionSpacing;
+  &:not(:first-child) {
+    padding-top: $formSectionSpacing;
+  }
+}

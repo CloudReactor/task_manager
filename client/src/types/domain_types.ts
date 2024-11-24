@@ -334,13 +334,19 @@ export interface Executable {
   max_postponed_missing_execution_count: number | null;
   max_postponed_timeout_count: number | null;
   min_missing_execution_delay_seconds: number | null;
+  notification_event_severity_on_success: number | null;
+  notification_event_severity_on_failure: number | null;
+  notification_event_severity_on_timeout: number | null;
+  notification_event_severity_on_missing_execution: number | null;
+  notification_event_severity_on_missing_heartbeat: number | null;
+  notification_event_severity_on_service_down: number | null;
   postponed_failure_before_success_seconds: number | null;
   postponed_missing_execution_before_start_seconds: number | null;
   postponed_timeout_before_success_seconds: number | null;
+  required_success_count_to_clear_failure: number | null;
+  required_success_count_to_clear_timeout: number | null;
   schedule: string;
   scheduled_instance_count: number | null;
-  should_clear_failure_alerts_on_success: boolean;
-  should_clear_timeout_alerts_on_success: boolean;
 }
 
 export interface AwsLoadBalancer {
@@ -531,11 +537,19 @@ implements Task {
   min_missing_execution_delay_seconds = null;
   min_service_instance_count = null;
   other_metadata = null;
+  notification_event_severity_on_success = null;
+  notification_event_severity_on_failure = null;
+  notification_event_severity_on_timeout = null;
+  notification_event_severity_on_missing_execution = null;
+  notification_event_severity_on_missing_heartbeat = null;
+  notification_event_severity_on_service_down = null;
   passive = false;
   postponed_failure_before_success_seconds = null;
   postponed_missing_execution_before_start_seconds = null;
   postponed_timeout_before_success_seconds = null;
   project_url = '';
+  required_success_count_to_clear_failure = null;
+  required_success_count_to_clear_timeout = null;
   run_environment = new EntityReferenceImpl();
   schedule = '';
   scheduled_instance_count = null;
@@ -544,8 +558,8 @@ implements Task {
   service_instance_count = 0;
   service_provider_type = null;
   service_settings = null;
-  should_clear_failure_alerts_on_success = false;
-  should_clear_timeout_alerts_on_success = false;
+
+
   was_auto_created = false;
 
   canManuallyStart(): boolean {
@@ -807,13 +821,19 @@ export function makeNewWorkflow(): Workflow {
     max_postponed_missing_execution_count: null,
     max_postponed_timeout_count: null,
     min_missing_execution_delay_seconds: null,
+    notification_event_severity_on_success: null,
+    notification_event_severity_on_failure: null,
+    notification_event_severity_on_timeout: null,
+    notification_event_severity_on_missing_execution: null,
+    notification_event_severity_on_missing_heartbeat: null,
+    notification_event_severity_on_service_down: null,
     postponed_failure_before_success_seconds: null,
     postponed_missing_execution_before_start_seconds: null,
     postponed_timeout_before_success_seconds: null,
+    required_success_count_to_clear_failure: null,
+    required_success_count_to_clear_timeout: null,
     schedule: '',
     scheduled_instance_count: null,
-    should_clear_failure_alerts_on_success: false,
-    should_clear_timeout_alerts_on_success: false,
     workflow_task_instances: [],
     workflow_transitions: [],
     latest_workflow_execution: null,
