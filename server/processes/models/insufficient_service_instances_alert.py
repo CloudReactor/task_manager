@@ -4,5 +4,5 @@ from . import Alert
 
 
 class InsufficientServiceInstancesAlert(Alert):
-    event = models.ForeignKey('InsufficientServiceInstancesEvent',
+    event = models.ForeignKey('LegacyInsufficientServiceInstancesEvent',
                               on_delete=models.CASCADE)

@@ -203,6 +203,7 @@ class TaskExecutionChecker:
 
         return is_missing
 
+    # FUTURE: convert to new event model
     def send_delayed_task_start_alerts(self,
             dpsde: DelayedProcessStartDetectionEvent):
         details = DelayedTaskStartDetectionEventSerializer(dpsde,

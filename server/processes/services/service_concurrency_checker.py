@@ -11,7 +11,7 @@ import intervals as I
 from ..common.notification import *
 from ..common.request_helpers import context_with_request
 from ..models import *
-from ..serializers import InsufficientServiceInstancesEventSerializer
+from ..serializers import LegacyInsufficientServiceInstancesEventSerializer
 
 LOOKBACK_DURATION_SECONDS = 5 * 60
 DEFAULT_MAX_STARTUP_DURATION_SECONDS = 120
@@ -116,13 +116,13 @@ class ServiceConcurrencyChecker:
         elif (service.min_service_instance_count is not None) and (min_concurrency_found < service.min_service_instance_count):
             logger.info(f"Found insufficient min concurrency {min_concurrency_found} for service {service.uuid}")
 
-            event = InsufficientServiceInstancesEvent.objects.filter(
+            event = LegacyInsufficientServiceInstancesEvent.objects.filter(
                     task=service).order_by('-detected_at', '-id').first()
 
             if (event is None) or event.resolved_at:
                 logger.info(f"Found insufficient min concurrency {min_concurrency_found}, creating event")
                 # set microseconds to 0 so that formatted date in alert doesn't have fractional seconds
-                current_event = InsufficientServiceInstancesEvent(
+                current_event = LegacyInsufficientServiceInstancesEvent(
                     task=service,
                     interval_start_at=make_aware(datetime.utcfromtimestamp(min_concurrency_found_interval.lower).replace(microsecond=0)),
                     interval_end_at=make_aware(datetime.utcfromtimestamp(min_concurrency_found_interval.upper).replace(microsecond=0)),
@@ -139,7 +139,7 @@ class ServiceConcurrencyChecker:
         else:
             logger.info(f"Found sufficient min concurrency {min_concurrency_found} for service {service.uuid}")
 
-            for event in InsufficientServiceInstancesEvent.objects.filter(task=service,
+            for event in LegacyInsufficientServiceInstancesEvent.objects.filter(task=service,
                     resolved_at__isnull=True):
                 logger.info(f"Resolving InsufficientServiceInstancesEvent {event.uuid} since concurrency is sufficient")
                 event.resolved_at = utc_now
@@ -147,11 +147,10 @@ class ServiceConcurrencyChecker:
                 self.trigger_or_resolve_alerts(event)
 
     def trigger_or_resolve_alerts(self, event):
-        details = InsufficientServiceInstancesEventSerializer(event,
+        details = LegacyInsufficientServiceInstancesEventSerializer(event,
             context=context_with_request()).data
 
-        for am in event.task.alert_methods.filter(
-                enabled=True).exclude(error_severity_on_service_down='').all():
+        for am in event.task.alert_methods.filter(enabled=True).all():
 
             is_resolution = (event.resolved_at is not None)
 

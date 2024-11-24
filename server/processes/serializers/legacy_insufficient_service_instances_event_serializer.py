@@ -2,14 +2,14 @@ import logging
 
 from rest_framework import serializers
 
-from processes.models import InsufficientServiceInstancesEvent
+from processes.models import LegacyInsufficientServiceInstancesEvent
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
 
 logger = logging.getLogger(__name__)
 
 
-class InsufficientServiceInstancesEventSerializer(serializers.ModelSerializer):
+class LegacyInsufficientServiceInstancesEventSerializer(serializers.ModelSerializer):
     """
     Represents an event that is created when the number of running
     Task Executions for a service Task goes below min_service_instance_count
@@ -17,7 +17,7 @@ class InsufficientServiceInstancesEventSerializer(serializers.ModelSerializer):
     """
 
     class Meta:
-        model = InsufficientServiceInstancesEvent
+        model = LegacyInsufficientServiceInstancesEvent
         fields = ('uuid', 'task',
                   'interval_start_at', 'interval_end_at',
                   'detected_concurrency', 'required_concurrency',

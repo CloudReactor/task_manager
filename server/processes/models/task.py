@@ -44,6 +44,10 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
         db_table = 'processes_processtype'
         unique_together = (('name', 'created_by_group'),)
 
+    # Override Schedulable field so that run_environment is required
+    run_environment = models.ForeignKey(RunEnvironment,
+        related_name='+', on_delete=models.CASCADE, null=False)
+
     passive = models.BooleanField(default=False)
     max_manual_start_delay_before_alert_seconds = models.PositiveIntegerField(
         null=True, blank=True, default=600)
