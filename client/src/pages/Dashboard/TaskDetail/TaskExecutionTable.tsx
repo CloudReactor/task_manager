@@ -76,7 +76,7 @@ const TaskExecutionTable = ({
         <Form.Group>
           <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
           <StatusFilter selectedStatuses={selectedStatuses}
-           handleSelectedStatusesChanged={handleSelectedStatusesChanged} />
+           onSelectedStatusesChanged={handleSelectedStatusesChanged} />
         </Form.Group>
       </Form>
     </div>

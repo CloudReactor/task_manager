@@ -1,3 +1,7 @@
+@use "~bootswatch/dist/slate/variables";
+
+@use "sass:color";
+
 // media breakpoints
 $mobileTinyWidth: 320px; // around iPhone 5's width
 $mobileWidth: 576px; // reflex xs
@@ -31,4 +35,4 @@ $minDashboardWidth: 1000px;
 
 // link colour
 $linkColor: #01c39a;
-$linkHoverColor: darken($color: #01c39a, $amount: 10%);
+$linkHoverColor: color.adjust($color: #01c39a, $lightness: -10%);

@@ -1,4 +1,6 @@
-@import "../styles/settings.scss";
+@use "sass:color";
+
+@use "../styles/settings.scss";
 // from Bootstrap
 $white:    #fff !default;
 $gray-100: #f8f9fa !default;
@@ -16,11 +18,11 @@ $black:    #000 !default;
 $input-bg:                              $gray-700;
 $input-disabled-bg:                     $gray-800;
 
-$input-color:                           $highText;
+$input-color:                           settings.$highText;
 $input-border-color:                    $gray-700;
 
 $input-focus-bg:                        $input-bg;
-$input-focus-border-color:              lighten($input-bg, 25%);
+$input-focus-border-color:              color.adjust($input-bg, $lightness: 25%, $space: hsl);
 $input-focus-color:                     $input-color;
 
 @import "~bootswatch/dist/slate/variables";
@@ -48,18 +50,37 @@ $h1Color: #f0f0f0;
     background-color: $input-bg;
     color: $input-color;
     margin-bottom: 0.5rem;
+
+    &:disabled {
+      color: settings.$disabledText;
+    }
+
+    // To add some distance between the number and the up/down arrows
+    // See https://stackoverflow.com/questions/32505389/how-can-i-add-padding-right-to-an-input-type-number-when-aligning-right
+    &[type="number"] {
+      &::-webkit-outer-spin-button, &::-webkit-inner-spin-button {
+        margin-left: 0.5rem;
+        margin-right: -0.5rem;
+      }
+    }
   }
 
-  input:disabled {
-    color: $disabledText;
-  }
 
   input, select {
     max-width: 800px;
   }
 
-  .form-check-label {
-    margin-top: 2px;
+  .input-group {
+    input {
+      margin-bottom: 0;
+    }
+    .input-group-text {
+      color: $gray-700;
+    }
+  }
+
+  .post-input-label {
+    margin-top: 0.5rem;
   }
 
   /* Dark mode modifications */

@@ -1,4 +1,4 @@
-@import '../../../styles/settings.scss';
+@use '../../../styles/settings.scss';
 $formSectionSpacing: 1.5em;
 
 .container {
@@ -10,7 +10,7 @@ $formSectionSpacing: 1.5em;
   min-width: 500px;
   box-sizing: border-box;
   margin-top: 12px;
-  color: $highText;
+  color: settings.$highText;
 }
 
 .buttonContainer {

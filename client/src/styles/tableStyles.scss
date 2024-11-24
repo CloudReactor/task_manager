@@ -1,4 +1,4 @@
-@import "~bootswatch/dist/slate/variables";
+@use "~bootswatch/dist/slate/variables";
 
 table {
 	.th-header {
@@ -9,15 +9,15 @@ table {
   	cursor: pointer;
 
 		.danger {
-			color: $danger;
+			color: variables.$danger;
 		}
 
 		.success {
-			color: $success;
+			color: variables.$success;
 		}
 
 		.warning {
-			color: $warning;
+			color: variables.$warning;
 		}
 	}
 

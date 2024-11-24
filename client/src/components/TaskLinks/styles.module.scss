@@ -1,6 +1,6 @@
-@import '../../styles/settings.scss';
+@use '../../styles/settings.scss';
 
-$linkHoverBorder: $lightGray;
+$linkHoverBorder: settings.$lightGray;
 
 .links {
   margin-bottom: 10px;

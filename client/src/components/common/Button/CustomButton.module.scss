@@ -1,4 +1,5 @@
-@import '../../../styles/settings.scss';
+@use "sass:color";
+@use '../../../styles/settings.scss';
 
 $height: 48px;
 $outlineBorderColor: red;
@@ -10,12 +11,12 @@ $paddingHorizontal: 22px;
 $borderRadius: 5px;
 
 // primary button colors
-$primaryBackground: $mainBlue;
-$primaryBackgroundHover: darken($primaryBackground, 15%);
+$primaryBackground: settings.$mainBlue;
+$primaryBackgroundHover: color.adjust($primaryBackground, $lightness: -15%);
 
 // other button colors (not used yet)
 $secondary: green;
-$danger: $red;
+$danger: settings.$red;
 
 
 .button {
@@ -32,7 +33,7 @@ $danger: $red;
   box-sizing: border-box;
   user-select: none;
   background-color: $primaryBackground; // default colour
-  color: $priorityText;
+  color: settings.$priorityText;
   font-size: 16px;
   cursor: pointer;
 
@@ -40,14 +41,14 @@ $danger: $red;
     text-decoration: none;
     &:hover {
       text-decoration: none;
-      color: darken($priorityText, 15%)
+      color: color.adjust(settings.$priorityText, $lightness: -15%)
     }
   }
 
   &:not(.disabled) {
     &:hover, &:focus {
       background-color: $primaryBackgroundHover;
-      color: darken($priorityText, 15%)
+      color: color.adjust(settings.$priorityText, $lightness: -15%)
     }
     &:active {
     }
@@ -64,7 +65,7 @@ $danger: $red;
   }
 
   &.outline {
-    background-color: $transparent;
+    background-color: settings.$transparent;
     border: 1px solid $outlineBorderColor;
   }
 
@@ -76,7 +77,7 @@ $danger: $red;
 }
 
 .outlined {
-  background-color: $transparent; // default colour
+  background-color: settings.$transparent; // default colour
   border: 1px solid $primaryBackground;
 }
 

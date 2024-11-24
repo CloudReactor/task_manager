@@ -1,9 +1,9 @@
-@import '../styles/settings.scss';
+@use '../styles/settings.scss';
 
 
 .loadingContainer {
   font-size: 48px;
-  color: $highText;
+  color: settings.$highText;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -15,7 +15,7 @@
     opacity: 0.05;
     animation: fadeInOut 3s ease-in-out infinite
   }
-  
+
   .text {
     padding: 0.5em 0em;
   }

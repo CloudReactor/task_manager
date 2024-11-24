@@ -1,7 +1,7 @@
-@import '../../styles/settings.scss';
+@use '../../styles/settings.scss';
 
 .container {
-  min-width: $minDashboardWidth;
+  min-width: settings.$minDashboardWidth;
   box-sizing: border-box;
   width: 100%;
   margin-right: auto;
@@ -17,5 +17,5 @@
   box-sizing: border-box;
   margin-right: auto;
   margin-left: auto;
-  color: $highText;
+  color: settings.$highText;
 }

@@ -13,7 +13,7 @@ import styles from './StatusFilter.module.scss';
 
 interface Props {
   selectedStatuses?: string[];
-  handleSelectedStatusesChanged: (statuses?: string[]) => void;
+  onSelectedStatusesChanged: (statuses?: string[]) => void;
   forWorkflows?: boolean;
 }
 
@@ -39,7 +39,7 @@ const StatusFilter = (props: Props) => {
       newSelectedStatuses = undefined
     }
 
-    props.handleSelectedStatusesChanged(newSelectedStatuses);
+    props.onSelectedStatusesChanged(newSelectedStatuses);
   };
 
   const ss = selectedStatuses ?? [ANY_STATUS];

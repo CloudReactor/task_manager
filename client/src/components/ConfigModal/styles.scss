@@ -1,4 +1,4 @@
-@import "~bootswatch/dist/slate/variables";
+@use "~bootswatch/dist/slate/variables";
 
 .config-modal-section {
 	padding-top: 0.8rem;
@@ -11,7 +11,7 @@
 }
 
 .config-modal-section-title {
-	color: $info;
+	color: variables.$info;
 	font-size: 18px;
 }
 

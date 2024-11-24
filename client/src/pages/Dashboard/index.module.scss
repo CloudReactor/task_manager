@@ -1,4 +1,4 @@
-@import '../../styles/settings.scss';
+@use '../../styles/settings.scss';
 
 .dashboardContainer {
   display: flex;
@@ -17,5 +17,5 @@
 
 .dashboardFooter {
   padding: 10px 15px;
-  color: $mediumText;
+  color: settings.$mediumText;
 }

@@ -1,4 +1,4 @@
-@import '../../../styles/settings.scss';
+@use '../../../styles/settings.scss';
 
 .container {
   display: flex;
@@ -11,7 +11,7 @@
   width: 800px;
   padding: 3em;
   border-radius: 5px;
-  color: $highText;
+  color: settings.$highText;
 }
 
 .content {
@@ -23,11 +23,11 @@
   }
 
   a {
-    color: $linkColor;
+    color: settings.$linkColor;
     text-decoration: underline;
 
     &:hover {
-      color: $linkHoverColor;
+      color: settings.$linkHoverColor;
     }
   }
 }

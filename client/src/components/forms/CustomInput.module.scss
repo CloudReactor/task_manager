@@ -1,6 +1,6 @@
-@import '../../styles/settings.scss';
+@use '../../styles/settings.scss';
 
 .subText {
-  color: $mediumText;
+  color: settings.$mediumText;
   font-size: 14px;
 }

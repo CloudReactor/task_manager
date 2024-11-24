@@ -1,4 +1,4 @@
-@import '../../styles/settings.scss';
+@use '../../styles/settings.scss';
 
 .tabsNavItem {
 	padding-top: 0.5rem;
@@ -23,12 +23,12 @@
 }
 
 .tabBar {
-  border-bottom: 1px solid $darkGray;
-  border-top: 1px solid $darkGray;
+  border-bottom: 1px solid settings.$darkGray;
+  border-top: 1px solid settings.$darkGray;
 	margin-bottom: 0.5rem;
 	display: flex;
 	flex-wrap: wrap;
-	padding-left: 15px;
+	padding-left: 5px;
 
 	// fix to extend to borders to full page width. Previously used Bootstrap Row, which uses this style too
 	margin-right: -15px;

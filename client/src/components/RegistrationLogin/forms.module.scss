@@ -1,4 +1,4 @@
-@import '../../styles/settings.scss';
+@use '../../styles/settings.scss';
 
 .formContainer {
   font-size: 16px;
@@ -14,18 +14,18 @@
 
 .loginError {
   padding-top: 20px;
-  color: $red;
+  color: settings.$red;
 }
 
 .signUpOrLogin {
   text-align: center;
 
   a {
-    color: $linkColor;
+    color: settings.$linkColor;
     text-decoration: underline;
 
     &:hover {
-      color: $linkHoverColor;
+      color: settings.$linkHoverColor;
     }
   }
 }

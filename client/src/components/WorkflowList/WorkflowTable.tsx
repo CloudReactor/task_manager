@@ -64,7 +64,7 @@ const WorkflowTable = (props: Props) => {
           <Form.Group>
             <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
             <StatusFilter selectedStatuses={props.selectedStatuses}
-             handleSelectedStatusesChanged={props.handleSelectedStatusesChanged}
+             onSelectedStatusesChanged={props.handleSelectedStatusesChanged}
              forWorkflows={true} />
           </Form.Group>
         </Form>

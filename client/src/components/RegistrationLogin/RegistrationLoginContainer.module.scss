@@ -1,4 +1,4 @@
-@import '../../styles/settings.scss';
+@use '../../styles/settings.scss';
 
 .container {
   max-width: 600px;
@@ -9,7 +9,7 @@
   padding: 100px 0px;
 
   h1 {
-    color: $highText;
+    color: settings.$highText;
     text-align: center;
     padding-bottom: 30px;
   }

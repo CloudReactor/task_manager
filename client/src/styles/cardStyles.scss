@@ -1,5 +1,5 @@
-@import "~bootswatch/dist/slate/variables";
-@import './settings.scss';
+@use "~bootswatch/dist/slate/variables";
+@use 'settings.scss';
 
 .custom_bg_hover {
 	width: 400px;
@@ -17,6 +17,6 @@
 .card-footer {
   cursor: default;
 	.text-muted {
-		color: $gray-300 !important;
+		color: variables.$gray-300 !important;
 	}
 }

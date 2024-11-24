@@ -27,7 +27,7 @@ import {
 } from '../../../utils';
 
 import React, { Fragment, useCallback, useContext, useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 
 import { Alert } from 'react-bootstrap';
 
@@ -44,7 +44,7 @@ import { BootstrapVariant } from '../../../types/ui_types';
 import * as UIC from '../../../utils/ui_constants';
 
 import Charts from './Charts';
-import TaskNotificationMethodsTab from '../../../components/TaskNotificationMethods/TaskNotificationMethodsTab';
+import TaskNotificationsTab from '../../../components/TaskNotificationMethods/TaskNotificationsTab';
 import TaskSettings from '../../../components/TaskSettings/TaskSettings';
 import TaskLinks from '../../../components/TaskLinks/TaskLinks';
 import TaskSummary from '../../../components/TaskSummary/TaskSummary';
@@ -89,7 +89,6 @@ const TaskDetail = ({
   const context = useContext(GlobalContext);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const {
     uuid
@@ -263,14 +262,12 @@ const TaskDetail = ({
     setShouldShowConfigModal(true);
   };
 
-  const editTask = async (uuid: string, data: any) => {
+  const handleTaskSubmitted = async (uuid: string, data: any) => {
     try {
       const updatedTask = await updateTask(uuid, data, abortSignal);
       setFlashAlertVariant('success');
       setLastErrorMessage('Updated Task settings');
       setTask(updatedTask);
-
-      navigate("#", { state: { item: updatedTask }})
     } catch (err) {
       if (isCancel(err)) {
         return;
@@ -329,7 +326,7 @@ const TaskDetail = ({
   const isStartAllowed = !!accessLevel && (accessLevel >= C.ACCESS_LEVEL_TASK);
   const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
 
-  const navItems = ['Executions', 'Settings', 'Notification Methods'];
+  const navItems = ['Executions', 'Settings', 'Notifications'];
 
   return (
     <div className={styles.container}>
@@ -363,7 +360,7 @@ const TaskDetail = ({
                     disabled={!isMutationAllowed}
                     className={styles.switch}
                     onChange={event => {
-                      editTask(
+                      handleTaskSubmitted(
                         task.uuid,
                         { enabled: event.target.checked }
                       )}
@@ -396,8 +393,8 @@ const TaskDetail = ({
                 switch (selectedTab) {
                   case 'settings':
                     return <TaskSettings task={task} runEnvironment={runEnvironment ?? undefined} />;
-                  case 'notification_methods':
-                    return <TaskNotificationMethodsTab task={task} editTask={editTask} />;
+                  case 'notifications':
+                    return <TaskNotificationsTab task={task} onTaskSaved={handleTaskSubmitted} />;
                   default: {
                     const {
                       selectedStatuses,
@@ -436,7 +433,7 @@ const TaskDetail = ({
                           (taskExecutionsPage.count > 0) && (
                             <TablePagination
                               component="div"
-                              labelRowsPerPage="Showing"
+                              labelRowsPerPage="Showing "
                               count={taskExecutionsPage.count}
                               rowsPerPage={rowsPerPage}
                               page={adjustedCurrentPage}
@@ -446,7 +443,6 @@ const TaskDetail = ({
                         }
                       </Fragment>
                     );
-
                   }
                 }
               })()}
@@ -458,7 +454,7 @@ const TaskDetail = ({
             >
               <ConfigModalBody
                 task={task}
-                editTask={editTask}
+                editTask={handleTaskSubmitted}
                 handleClose={handleCloseConfigModal}
               />
             </ConfigModalContainer>

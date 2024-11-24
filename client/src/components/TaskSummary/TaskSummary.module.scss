@@ -1,11 +1,11 @@
-@import '../../styles/settings.scss';
+@use '../../styles/settings.scss';
 
 .summaryContainer {
   margin-left: 6px;
   margin-bottom: 20px;
   font-size: 14px;
   line-height: 24px;
-  color: $mediumText;
+  color: settings.$mediumText;
 
   .description {
     font-size: 18px;

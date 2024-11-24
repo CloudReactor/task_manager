@@ -34,5 +34,8 @@ module.exports = {
     "@typescript-eslint/no-empty-interface": ["off"],
     "@typescript-eslint/no-inferrable-types": ["off"],
     "@typescript-eslint/no-unused-vars": ["off"],
+
+    // For development
+    "no-debugger": ["off"],
   },
 };
