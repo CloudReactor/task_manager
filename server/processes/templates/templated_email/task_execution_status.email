@@ -91,7 +91,7 @@ CloudReactor Task '{{ task.name }}' finished with status {{ task_execution.statu
       <td align="left">{{ task_execution.task_version_text | default:"N/A"}}</td>
     </tr>
     <tr>
-      <td style="font-weight: bold;">Deployment</td>
+      <td style="font-weight: bold;">Deployment environment</td>
       <td align="left">{{ task_execution.deployment | default:"N/A"}}</td>
     </tr>
     <tr>
@@ -148,7 +148,11 @@ CloudReactor Task '{{ task.name }}' finished with status {{ task_execution.statu
     </tr>
     <tr>
       <td style="font-weight: bold;">Execution method</td>
-      <td align="left">{{ task_execution.execution_method.type }}</td>
+      <td align="left">{{ task_execution.execution_method_type | default:'N/A' }}</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold;">Infrastructure</td>
+      <td align="left">{{ task_execution.infrastructure_type | default:"N/A" }}</td>
     </tr>
   </tbody>
 </table>
