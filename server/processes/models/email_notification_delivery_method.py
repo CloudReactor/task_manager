@@ -84,7 +84,7 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
         notification_generator = NotificationGenerator()
 
         template_params = notification_generator.make_template_params(
-            task_execution=event.task_execution,
+            workflow_execution=event.workflow_execution,
             severity=event.severity_label)
 
         template_params['model_workflow_execution'] = event.workflow_execution

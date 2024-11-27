@@ -26,7 +26,7 @@ class NotificationProfile(NamedWithUuidAndRunEnvironmentModel):
 
     enabled = models.BooleanField(default=True)
 
-    notification_delivery_methods = models.ManyToManyField(NotificationDeliveryMethod)
+    notification_delivery_methods = models.ManyToManyField(NotificationDeliveryMethod, blank=True)
 
     def send(self, event: Event) -> None:
         if not self.enabled:

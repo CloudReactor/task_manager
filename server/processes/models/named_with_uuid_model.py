@@ -21,9 +21,9 @@ class NamedWithUuidModel(UuidModel):
     name = models.CharField(max_length=200)
     description = models.CharField(max_length=5000, blank=True)
     created_by_user = models.ForeignKey(User, on_delete=models.SET_NULL,
-            null=True, editable=False)
+            null=True, editable=True)
     created_by_group = models.ForeignKey(Group, on_delete=models.CASCADE,
-            editable=False)
+            editable=True)
 
     @classmethod
     def find_by_uuid_or_name(cls, obj_dict,

@@ -63,6 +63,7 @@ class WorkflowTransitionEvaluationAdmin(admin.ModelAdmin):
                        'workflow_execution',
                       )
 
+# Legacy
 class AlertMethodAdmin(admin.ModelAdmin):
     search_fields = ('name', 'uuid',)
 
@@ -73,10 +74,18 @@ class PagerDutyProfileAdmin(admin.ModelAdmin):
 
 class EmailNotificationProfileAdmin(admin.ModelAdmin):
     search_fields = ('name', 'uuid',)
+# End Legacy
 
 
 class EventAdmin(TypedModelAdmin):
     pass
+
+class EmailNotificationDeliveryMethodAdmin(TypedModelAdmin):
+    search_fields = ('name', 'uuid',)
+
+
+class PagerDutyNotificationDeliveryMethodAdmin(TypedModelAdmin):
+    search_fields = ('name', 'uuid',)
 
 
 class TaskExecutionEventAdmin(TypedModelAdmin):
@@ -120,6 +129,8 @@ admin.site.register(MissingHeartbeatDetectionEvent)
 admin.site.register(TaskExecutionStatusChangeEvent, TaskExecutionStatusChangeEventAdmin)
 admin.site.register(WorkflowExecutionStatusChangeEvent, WorkflowExecutionStatusChangeEventAdmin)
 admin.site.register(NotificationProfile)
+admin.site.register(EmailNotificationDeliveryMethod, EmailNotificationDeliveryMethodAdmin)
+admin.site.register(PagerDutyNotificationDeliveryMethod, PagerDutyNotificationDeliveryMethodAdmin)
 admin.site.register(Notification)
 
 admin.site.register(Task, TaskAdmin)
