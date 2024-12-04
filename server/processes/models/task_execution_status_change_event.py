@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 
 from .execution import Execution
+from .schedulable import Schedulable
 from .execution_status_change_event import ExecutionStatusChangeEvent
 from .task_execution import TaskExecution
 from .task_execution_event import TaskExecutionEvent
@@ -13,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEvent):
     ERROR_SUMMARY_TEMPLATE = \
-        """Task '{{task.name}}' finished with status {{task_execution.status}}"""
+        """Execution {{task_execution.uuid}} of Task '{{task.name}}' finished with status {{task_execution.status}}"""
 
     ERROR_MESSAGE_TEMPLATE = \
-        """Task '{{task.name}}' finished with status {{task_execution.status}}"""
+        """Execution {{task_execution.uuid}} of Task '{{task.name}}' finished with status {{task_execution.status}}"""
 
     def __init__(self, *args, **kwargs):
         from ..services.notification_generator import NotificationGenerator
@@ -37,6 +38,15 @@ class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEv
                 template_params=template_params,
                 template=self.ERROR_SUMMARY_TEMPLATE,
                 task_execution=self.task_execution)
+
+    def get_schedulable(self) -> Optional[Schedulable]:
+        if self.task:
+            return self.task
+
+        if self.task_execution:
+            return self.task_execution.task
+
+        return None
 
     def get_execution(self) -> Optional[Execution]:
         return self.task_execution

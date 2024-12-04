@@ -455,13 +455,16 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, Execution):
             logger.warning("Skipping updating postponed notifications since Task is missing")
             return 0
 
-        # CHECKME: task.enabled?
+        if not task.enabled:
+            logger.info("Skipping updating postponed notifications since Task is disabled")
+            return 0
+
 
         status = self.status
         utc_now = timezone.now()
-        events = TaskExecutionStatusChangeEvent.objects.filter(task_execution=self,
+        events = TaskExecutionStatusChangeEvent.objects.filter(task=self.task,
                 postponed_until__isnull=False, postponed_until__gt=utc_now,
-                resolved_at__isnull=True, accelerated_at__isnull=True)
+                resolved_at__isnull=True, triggered_at__isnull=True)
 
         if not events.exists():
             return 0
@@ -519,6 +522,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, Execution):
 
         status_change_event = TaskExecutionStatusChangeEvent(
             severity=severity,
+            task=self.task,
             task_execution=self,
             status=self.status,
             details={
@@ -615,7 +619,7 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, Execution):
                                  summary_template=self.CLEARED_DELAYED_PROCESS_START_EVENT_SUMMARY_TEMPLATE,
                                  grouping_key=f"delayed_task_start-{self.uuid}",
                                  is_resolution=True)
-                dpsa.send_result = result
+                dpsa.send_result = result or ''
                 dpsa.send_status = AlertSendStatus.SUCCEEDED
                 dpsa.completed_at = timezone.now()
             except Exception as ex:

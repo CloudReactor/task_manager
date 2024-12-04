@@ -2,24 +2,23 @@
 {% load humanize %}
 
 {% block subject %}
-CloudReactor Task '{{ task.name }}' finished with status {{ task_execution.status }}
+{{ severity | upper }} - Task Execution {{ task_execution.uuid }} of '{% if task %}{{ task.name }}{% else %}N/A{% endif %}' finished with status {{ task_execution.status }}
 {% endblock %}
 
 {% block html %}
 <p>
-  CloudReactor Task
+  CloudReactor Task Execution <a href="{{ task_execution.dashboard_url }}">{{ task_execution.uuid }}</a> of
   {% if task %}
     <a href="{{ task.dashboard_url }}">{{ task.name }}</a>
   {% else %}
   [N/A]
   {% endif %}
-  finished with status {{ task_execution.status }}
+  finished with status {{ task_execution.status }} in
   {% if run_environment %}
-  in Run Environment <a href="{{ run_environment.dashboard_url }}">{{ run_environment.name }}</a>.
+  Run Environment <a href="{{ run_environment.dashboard_url }}">{{ run_environment.name }}</a>.
   {% else %}
-  in unknown Run Environment.
+  a previous Run Environment.
   {% endif %}
-  See this <a href="{{ task_execution.dashboard_url }}">Task Execution</a> in the CloudReactor Dashboard.
 </p>
 <table class="table table-sm table-striped table-bordered table-hover">
   <tbody>
@@ -153,6 +152,37 @@ CloudReactor Task '{{ task.name }}' finished with status {{ task_execution.statu
     <tr>
       <td style="font-weight: bold;">Infrastructure</td>
       <td align="left">{{ task_execution.infrastructure_type | default:"N/A" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Event ID</td>
+      <td align="left">{{ event.uuid | default:"N/A" }}</td>
+    </tr>
+
+
+    <tr>
+      <td style="font-weight: bold;">Event severity</td>
+      <td align="left">{{ severity | upper }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Event timestamp</td>
+      <td align="left">{{ event.event_at | date:"c" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Detected at</td>
+      <td align="left">{{ event.detected_at | date:"c" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Triggered at</td>
+      <td align="left">{{ event.triggered_at | date:"c" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Event Group</td>
+      <td align="left">{{ event.grouping_key | default:"N/A" }}</td>
     </tr>
   </tbody>
 </table>

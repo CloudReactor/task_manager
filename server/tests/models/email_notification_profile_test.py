@@ -39,7 +39,7 @@ def test_task_execution_send(group: Group, run_environment: RunEnvironment, mail
     m = mailoutbox[0]
     assert m.from_email == 'webmaster@cloudreactor.io'
     assert list(m.to) == ['to@example.com']
-    assert m.subject == f"CloudReactor Task '{task.name}' finished with status {ser_pe['status']}"
+    assert m.subject == f"ERROR - Task Execution {te.uuid} of '{task.name}' finished with status {ser_pe['status']}"
     assert te.dashboard_url in m.body
     assert escape(task.name) in m.body
     assert escape(task.dashboard_url) in m.body

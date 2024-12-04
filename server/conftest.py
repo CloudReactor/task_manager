@@ -288,8 +288,8 @@ EXECUTABLE_ATTRIBUTES = [
     'postponed_missing_execution_before_start_seconds',
     'max_postponed_missing_execution_count',
     'min_missing_execution_delay_seconds',
-    'should_clear_failure_alerts_on_success',
-    'should_clear_timeout_alerts_on_success',
+    'required_success_count_to_clear_failure',
+    'required_success_count_to_clear_timeout',
 ]
 
 COPIED_TASK_ATTRIBUTES = [

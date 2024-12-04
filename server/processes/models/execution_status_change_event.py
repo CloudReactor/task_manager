@@ -20,7 +20,7 @@ class ExecutionStatusChangeEvent(Event):
     postponed_until = models.DateTimeField(null=True)
     count_with_same_status_after_postponement = models.IntegerField(null=True)
     count_with_success_status_after_postponement = models.IntegerField(null=True)
-    accelerated_at = models.DateTimeField(null=True)
+    triggered_at = models.DateTimeField(null=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -35,17 +35,21 @@ class ExecutionStatusChangeEvent(Event):
                 ((schedulable.max_postponed_failure_count or 0) > 0) and \
                 schedulable.postponed_failure_before_success_seconds and \
                 (schedulable.postponed_failure_before_success_seconds > 0):
+            logger.info(f"ExecutionStatusChangeEvent.maybe_postpone called, postponing failed event {self.uuid}")
             should_postpone = True
             self.postponed_until = timezone.now() + timedelta(seconds=schedulable.postponed_failure_before_success_seconds)
         elif (self.status == self.terminated_status) and \
                 ((schedulable.max_postponed_timeout_count or 0) > 0) and \
                 schedulable.postponed_timeout_before_success_seconds and \
                 (schedulable.postponed_timeout_before_success_seconds > 0):
+            logger.info(f"ExecutionStatusChangeEvent.maybe_postpone called, postponing timeout event {self.uuid}")
             should_postpone = True
             self.postponed_until = timezone.now() + timedelta(seconds=schedulable.postponed_timeout_before_success_seconds)
+        else:
+            logger.info(f"ExecutionStatusChangeEvent.maybe_postpone called but not postponing event {self.uuid}")
+            self.triggered_at = timezone.now()
 
-        if should_postpone:
-            self.save()
+        self.save()
 
         return should_postpone
 
@@ -58,14 +62,16 @@ class ExecutionStatusChangeEvent(Event):
             logger.warning("ExecutionStatusChangeEvent.update_after_postponed called but event is already resolved")
             return False
 
-        if self.accelerated_at:
-            logger.info("ExecutionStatusChangeEvent.update_after_postponed called but event is already accelerated")
+        if self.triggered_at:
+            logger.info("ExecutionStatusChangeEvent.update_after_postponed called but event is already triggered")
             return False
 
         schedulable = self.get_schedulable()
 
         if schedulable is None:
             logger.warning("ExecutionStatusChangeEvent.update_after_postponed called Schedulable is missing")
+        elif not schedulable.enabled:
+            logger.info("ExecutionStatusChangeEvent.update_after_postponed called on disabled Schedulable")
         elif status == self.successful_status:
             success_count = (self.count_with_success_status_after_postponement or 0) + 1
             self.count_with_success_status_after_postponement = success_count
@@ -78,8 +84,6 @@ class ExecutionStatusChangeEvent(Event):
             self.save()
 
             return True
-        elif not schedulable.enabled:
-            logger.info("ExecutionStatusChangeEvent.update_after_postponed called on disabled Schedulable")
         elif status == self.status:
             count_with_same_status = (self.count_with_same_status_after_postponement or 0) + 1
             self.count_with_same_status_after_postponement = count_with_same_status
@@ -94,7 +98,7 @@ class ExecutionStatusChangeEvent(Event):
             if (threshold_count is not None) and \
                     (count_with_same_status >= threshold_count):
                 logger.info(f"Accelerating postponed event {self.uuid} for Task {schedulable.uuid} since same status count reached")
-                self.accelerated_at = utc_now
+                self.triggered_at = utc_now
                 self.save()
 
                 execution = self.get_execution()
@@ -102,6 +106,8 @@ class ExecutionStatusChangeEvent(Event):
                     execution.send_event_notifications(event=self)
 
                 return True
+            else:
+                self.save()
 
         return False
 

@@ -57,7 +57,7 @@ class Command(BaseCommand):
                     success_count += 1
                 except Exception:
                     failure_count += 1
-                    msg = 'TaskExecutionChecker failed'
+                    msg = 'TaskScheduleChecker failed'
                     logger.exception(msg)
                     status_updater.send_update(last_status_message=msg,
                             success_count=success_count,
@@ -85,7 +85,7 @@ class Command(BaseCommand):
                 run_duration = int((current_time - last_start_time).total_seconds())
                 total_run_duration += run_duration
 
-                logger.info(f"Checking all workflow schedules took {run_duration} seconds")
+                logger.info(f"Checking all Workflow schedules took {run_duration} seconds")
 
                 attempt_count += 1
                 try:
@@ -122,6 +122,18 @@ class Command(BaseCommand):
                 total_run_duration += run_duration
 
                 logger.info(f"Checking all Workflow Executions took {run_duration} seconds")
+
+
+                try:
+                    PostponedEventChecker().check_all()
+                    success_count += 1
+                except Exception:
+                    failure_count += 1
+                    msg = 'PostponedEventChecker failed'
+                    logger.exception(msg)
+                    status_updater.send_update(last_status_message=msg,
+                            success_count=success_count,
+                            failure_count=failure_count)
 
                 if failure_count == attempt_count:
                     msg = 'All checks failed to execute, exiting'

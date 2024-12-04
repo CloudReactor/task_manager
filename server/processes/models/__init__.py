@@ -28,6 +28,7 @@ from .email_notification_delivery_method import EmailNotificationDeliveryMethod
 from .alert_send_status import AlertSendStatus
 from .notification_profile import NotificationProfile
 from .event import Event
+from .execution_status_change_event import ExecutionStatusChangeEvent
 from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
 from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 from .missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent

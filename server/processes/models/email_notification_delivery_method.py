@@ -60,6 +60,7 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
             severity=event.severity_label)
 
         template_params['model_task_execution'] = event.task_execution
+        template_params['event'] = event
 
         if event.details:
             template_params.update(event.details)
@@ -88,6 +89,7 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
             severity=event.severity_label)
 
         template_params['model_workflow_execution'] = event.workflow_execution
+        template_params['event'] = event
 
         if event.details:
             template_params.update(event.details)

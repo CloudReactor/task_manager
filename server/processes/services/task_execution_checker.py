@@ -10,18 +10,22 @@ from ..serializers import (
     DelayedTaskStartDetectionEventSerializer
 )
 
-HEARTBEAT_DETECTION_INTERVAL_SECONDS = 60 * 60
-MAX_STOPPING_DURATION_SECONDS = 10 * 60
+
+
 
 logger = logging.getLogger(__name__)
 
 
 class TaskExecutionChecker:
+    HEARTBEAT_DETECTION_INTERVAL_SECONDS = 60 * 60
+    MAX_STOPPING_DURATION_SECONDS = 10 * 60
+    MAX_DELAYED_START_DETECTION_TASK_AGE_SECONDS = 30 * 24 * 60 * 60
+
     MISSING_HEARTBEAT_EVENT_SUMMARY_TEMPLATE = \
-        """Task '{{task_execution.task.name}}' has not sent a heartbeat for more than {{heartbeat_interval_seconds}} seconds after the previous heartbeat at {{last_heartbeat_at}}"""
+        """Execution {{task_execution.task.uuid}} of Task '{{task_execution.task.name}}' has not sent a heartbeat for more than {{heartbeat_interval_seconds}} seconds after the previous heartbeat at {{last_heartbeat_at}}"""
 
     DELAYED_TASK_START_EVENT_SUMMARY_TEMPLATE = \
-        """Task '{{task_execution.task.name}}' was initiated at {{task_execution.started_at}} but not started yet after {{max_manual_start_delay_before_alert_seconds}} seconds"""
+        """Execution {{task_execution.task.uuid}} of Task '{{task_execution.task.name}}' was initiated at {{task_execution.started_at}} but not started yet after {{max_manual_start_delay_before_alert_seconds}} seconds"""
 
     def check_all(self):
         # TODO: optimize query to only fetch problematic executions
@@ -54,6 +58,7 @@ class TaskExecutionChecker:
             return True
 
         utc_now = timezone.now()
+
         run_duration = (utc_now - te.started_at).total_seconds()
 
         logger.info(f"Task Execution {te.uuid} has been manually started for {run_duration} seconds")
@@ -65,19 +70,20 @@ class TaskExecutionChecker:
             on_time = False
             logger.info(f"Task Execution {te.uuid} has been manually started for {run_duration} seconds which exceeds the max manual start delay before alert of {max_delay_seconds} seconds")
 
-            existing_dpde = DelayedProcessStartDetectionEvent.objects.filter(
-                task_execution=te
-            ).first()
-
-            if existing_dpde:
-                logger.debug(f"Found existing delayed Task start event {existing_dpde.uuid}, not creating another")
+            if te.created_at < utc_now - timedelta(seconds=self.MAX_DELAYED_START_DETECTION_TASK_AGE_SECONDS):
+                logger.debug(f"Task Execution {te.uuid} has been manually started but is too old to check for delayed start")
             else:
-                expected_started_before = (te.started_at + timedelta(seconds=max_delay_seconds)).replace(microsecond=0)
-                dpsde = DelayedProcessStartDetectionEvent(task_execution=te,
-                                                          resolved_at=None,
-                                                          expected_started_before=expected_started_before)
-                dpsde.save()
-                self.send_delayed_task_start_alerts(dpsde)
+                existing_dpde = DelayedProcessStartDetectionEvent.objects.filter(task_execution=te).first()
+
+                if existing_dpde:
+                    logger.debug(f"Found existing delayed Task start event {existing_dpde.uuid}, not creating another")
+                else:
+                    expected_started_before = (te.started_at + timedelta(seconds=max_delay_seconds)).replace(microsecond=0)
+                    dpsde = DelayedProcessStartDetectionEvent(task_execution=te,
+                                                              resolved_at=None,
+                                                              expected_started_before=expected_started_before)
+                    dpsde.save()
+                    self.send_delayed_task_start_alerts(dpsde)
 
         max_delay_seconds = te.task.max_manual_start_delay_before_abandonment_seconds
 
@@ -98,7 +104,7 @@ class TaskExecutionChecker:
         logger.info(f"Run duration of Task Execution {te.uuid} is {run_duration} seconds")
 
         if te.status == TaskExecution.Status.STOPPING:
-            if run_duration >= MAX_STOPPING_DURATION_SECONDS:
+            if run_duration >= self.MAX_STOPPING_DURATION_SECONDS:
                 logger.info(
                     f"Run duration of Task Execution {te.uuid} {run_duration} seconds > max stopping duration {task.max_age_seconds} seconds, abandoning")
                 te.status = TaskExecution.Status.ABANDONED
@@ -178,11 +184,11 @@ class TaskExecutionChecker:
                 logger.info(f"Last heartbeat of Task Execution {te.uuid}: missing heartbeat eligible for warning")
 
                 last_heartbeat_detection_event = MissingHeartbeatDetectionEvent.objects.filter(
-                    task_execution=te, resolved_event__isnull=True).order_by('-detected_at', '-id').first()
+                    task_execution=te, resolved_event__isnull=True).order_by('-detected_at').first()
 
                 if (not last_heartbeat_detection_event) or \
                         last_heartbeat_detection_event.resolved_at or \
-                        (last_heartbeat_detection_event.detected_at - utc_now).total_seconds() > HEARTBEAT_DETECTION_INTERVAL_SECONDS:
+                        (last_heartbeat_detection_event.detected_at - utc_now).total_seconds() > self.HEARTBEAT_DETECTION_INTERVAL_SECONDS:
                     logger.info(f"Saving missing heartbeat detection event for Task Execution {te.uuid}")
 
                     mhde = MissingHeartbeatDetectionEvent(
@@ -221,6 +227,8 @@ class TaskExecutionChecker:
                 enabled=True).exclude(error_severity_on_missing_execution='').all():
             severity = am.error_severity_on_missing_execution
             dpsa = DelayedProcessStartAlert(delayed_process_start_detection_event=dpsde,
+                                            send_result='',
+                                            error_message='',
                                             alert_method=am)
             dpsa.save()
 
@@ -229,7 +237,7 @@ class TaskExecutionChecker:
                 result = am.send(details=details, severity=severity,
                         summary_template=self.DELAYED_TASK_START_EVENT_SUMMARY_TEMPLATE,
                         grouping_key=f"delayed_task_start-{te.uuid}")
-                dpsa.send_result = result
+                dpsa.send_result = result or ''
                 dpsa.send_status = AlertSendStatus.SUCCEEDED
                 dpsa.completed_at = timezone.now()
             except Exception as ex:

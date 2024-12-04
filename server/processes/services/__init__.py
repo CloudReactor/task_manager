@@ -3,4 +3,5 @@ from .workflow_schedule_checker import WorkflowScheduleChecker
 from .task_execution_checker import TaskExecutionChecker
 from .workflow_execution_checker import WorkflowExecutionChecker
 from .service_concurrency_checker import ServiceConcurrencyChecker
+from .postponed_event_checker import PostponedEventChecker
 from .notification_generator import NotificationGenerator

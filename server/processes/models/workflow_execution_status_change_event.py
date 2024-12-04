@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 
 from .execution import Execution
+from .schedulable import Schedulable
 from .execution_status_change_event import ExecutionStatusChangeEvent
 from .workflow_execution import WorkflowExecution
 from .workflow_execution_event import WorkflowExecutionEvent
@@ -37,6 +38,16 @@ class WorkflowExecutionStatusChangeEvent(ExecutionStatusChangeEvent, WorkflowExe
                 template_params=template_params,
                 template=self.ERROR_SUMMARY_TEMPLATE,
                 workflow_execution=self.workflow_execution)
+
+
+    def get_schedulable(self) -> Optional[Schedulable]:
+        if self.workflow:
+            return self.workflow
+
+        if self.workflow_execution:
+            return self.workflow_execution.workflow
+
+        return None
 
     def get_execution(self) -> Optional[Execution]:
         return self.workflow_execution

@@ -18,5 +18,5 @@ class Alert(models.Model):
     attempted_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     send_status = models.IntegerField(null=True, blank=True, default=AlertSendStatus.SENDING)
-    send_result = models.CharField(max_length=MAX_SEND_RESULT_LENGTH, blank=True)
-    error_message = models.CharField(max_length=MAX_ERROR_MESSAGE_LENGTH, blank=True)
+    send_result = models.CharField(max_length=MAX_SEND_RESULT_LENGTH, blank=True, default='')
+    error_message = models.CharField(max_length=MAX_ERROR_MESSAGE_LENGTH, blank=True, default='')
