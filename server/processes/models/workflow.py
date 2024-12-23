@@ -122,6 +122,8 @@ class Workflow(Schedulable):
         workflow.aws_scheduled_event_rule_arn = ''
         workflow.aws_event_target_rule_name = ''
         workflow.aws_event_target_id = ''
+        workflow.schedule = ''
+        workflow.schedule_updated_at = None
         workflow.save()
 
         # Deprecated
@@ -235,23 +237,22 @@ class Workflow(Schedulable):
         logger.info(f"Removed {num_in_progress_deleted=} in-progress Workflow Execution history items")
         return num_completed_deleted + num_in_progress_deleted
 
-    def setup_scheduled_execution(self) -> None:
+    def setup_scheduled_execution(self, run_environment: RunEnvironment) -> None:
         from .workflow_execution import WorkflowExecution
 
-        logger.info("Workflow.schedule_execution()")
+        logger.info("Workflow.setup_schedule_execution()")
 
         if not self.schedule.startswith('cron') and not self.schedule.startswith('rate'):
             raise APIException(detail=f"Schedule '{self.schedule}' is invalid")
 
         aws_scheduled_execution_rule_name = f"CR_WF_{self.uuid}"
 
-        run_env = self.run_environment_for_scheduling()
-        client = self.make_events_client(run_environment=run_env)
+        client = self.make_events_client(run_environment=run_environment)
 
         state = 'ENABLED' if self.enabled else 'DISABLED'
 
-        execution_role_arn = run_env.aws_ecs_default_execution_role
-        aws_workflow_starter_lambda_arn = run_env.aws_workflow_starter_lambda_arn
+        execution_role_arn = run_environment.aws_ecs_default_execution_role
+        aws_workflow_starter_lambda_arn = run_environment.aws_workflow_starter_lambda_arn
 
         if not execution_role_arn or not aws_workflow_starter_lambda_arn:
             raise Exception('Missing execution_role_arn or aws_workflow_starter_lambda_arn required to schedule workflows')
@@ -321,7 +322,7 @@ class Workflow(Schedulable):
             'request_method': 'POST',
             'request_headers': {
                 'Authorization': 'Token ' + token,
-                'X-Url-Requester-Access-Key': run_env.aws_workflow_starter_access_key
+                'X-Url-Requester-Access-Key': run_environment.aws_workflow_starter_access_key
             },
             'request_body': json.dumps(request_body_dict)
         }
@@ -340,12 +341,19 @@ class Workflow(Schedulable):
 
         self.aws_event_target_rule_name = aws_event_target_rule_name
         self.aws_event_target_id = aws_event_target_id
-        self.scheduling_run_environment = run_env
+        self.scheduling_run_environment = run_environment
 
-    def teardown_scheduled_execution(self) -> None:
+    def teardown_scheduled_execution(self, run_environment: Optional[RunEnvironment] = None) -> None:
+        run_environment = run_environment or self.run_environment_for_scheduling(fallback_to_tasks=False)
+
+        if run_environment is None:
+            raise serializers.ValidationError({
+                'scheduling_run_environment': ['A Run Environment is required to un-schedule Workflows']
+            })
+
         client = None
         if self.aws_event_target_rule_name and self.aws_event_target_id:
-            client = self.make_events_client()
+            client = self.make_events_client(run_environment=run_environment)
 
             try:
                 response = client.remove_targets(
@@ -369,7 +377,7 @@ class Workflow(Schedulable):
                     raise client_error
 
         if self.aws_scheduled_execution_rule_name:
-            client = client or self.make_events_client()
+            client = client or self.make_events_client(run_environment=run_environment)
 
             try:
                 client.delete_rule(
@@ -390,11 +398,10 @@ class Workflow(Schedulable):
 
             self.aws_scheduled_event_rule_arn = ''
 
-    def make_events_client(self, run_environment: Optional[RunEnvironment] = None):
-        run_env = run_environment or self.run_environment_for_scheduling()
-        return run_env.make_boto3_client('events')
+    def make_events_client(self, run_environment: RunEnvironment):
+        return run_environment.make_boto3_client('events')
 
-    def run_environment_for_scheduling(self) -> RunEnvironment:
+    def run_environment_for_scheduling(self, fallback_to_tasks: bool=True) -> Optional[RunEnvironment]:
         if self.scheduling_run_environment and \
                 self.scheduling_run_environment.can_schedule_workflow():
             return self.scheduling_run_environment
@@ -403,26 +410,28 @@ class Workflow(Schedulable):
                 self.run_environment.can_schedule_workflow():
             return self.run_environment
 
-        logger.info('Looking for a Run Environment suitable for scheduling ...')
+        if fallback_to_tasks:
+            logger.info('Looking for a Run Environment suitable for scheduling in Tasks ...')
 
+            for wti in self.workflow_task_instances.all():
+                task = wti.task
 
-        for wti in self.workflow_task_instances.all():
-            task = wti.task
+                if task:
+                    run_env = task.run_environment
+                    if run_env and run_env.can_schedule_workflow():
+                        return run_env
 
-            if task:
-                run_env = task.run_environment
-                if run_env and run_env.can_schedule_workflow():
-                    return run_env
+            logger.info('No suitable Run Environment found for scheduling in Tasks')
 
-        raise serializers.ValidationError({
-          'schedule': ['A Run Environment is required to schedule Workflows']
-        })
+        logger.info("No Run Environment found for scheduling")
+
+        return None
 
 
 @receiver(pre_save, sender=Workflow)
 def pre_save_workflow(sender: Type[Workflow], **kwargs) -> None:
     instance = kwargs['instance']
-    logger.info(f"pre-save with instance {instance}")
+    logger.info(f"pre_save_workflow with Workflow {instance}")
 
     old_instance: Optional[Workflow] = None
     if instance.pk is None:
@@ -438,28 +447,68 @@ def pre_save_workflow(sender: Type[Workflow], **kwargs) -> None:
     else:
         old_instance = Workflow.objects.filter(id=instance.id).first()
 
-    should_update_schedule = True
+    should_update_schedule = bool(instance.schedule)
 
-    if old_instance:
-        if instance.schedule != old_instance.schedule:
-            instance.schedule_updated_at = timezone.now()
+    effective_run_env_for_scheduling: Optional[RunEnvironment] = None
 
-        should_update_schedule = False
-        for attr in Workflow.AWS_SCHEDULE_ATTRIBUTES:
-            new_value = getattr(instance, attr)
-            old_value = getattr(old_instance, attr)
+    if instance.schedule:
+        effective_run_env_for_scheduling = instance.run_environment_for_scheduling()
 
-            if new_value != old_value:
-                logger.info(f"{attr} changed from {old_value} to {new_value}, adjusting schedule")
-                should_update_schedule = True
+    old_effective_run_env_for_scheduling: Optional[RunEnvironment] = None
+    run_env_for_scheduling_changed = False
+    if old_instance and old_instance.schedule:
+        old_effective_run_env_for_scheduling = old_instance.run_environment_for_scheduling(
+                fallback_to_tasks=False)
+        run_env_for_scheduling_changed = (effective_run_env_for_scheduling != old_effective_run_env_for_scheduling)
+
+        should_update_schedule = (instance.schedule != old_instance.schedule) or \
+                (instance.enabled != old_instance.enabled) or run_env_for_scheduling_changed
+
+        if not should_update_schedule:
+            for attr in Workflow.AWS_SCHEDULE_ATTRIBUTES:
+                new_value = getattr(instance, attr)
+                old_value = getattr(old_instance, attr)
+
+                if new_value != old_value:
+                    logger.info(f"{attr} changed from {old_value} to {new_value}, adjusting schedule")
+                    should_update_schedule = True
 
     if should_update_schedule:
         logger.info("Updating schedule params ...")
+
+        updated = False
+        torn_down = False
+
+        if run_env_for_scheduling_changed and old_effective_run_env_for_scheduling and \
+                old_instance and old_instance.schedule:
+            instance.teardown_scheduled_execution(run_environment=old_effective_run_env_for_scheduling)
+            torn_down = True
+            updated = True
+
         if instance.schedule:
-            instance.setup_scheduled_execution()
-        else:
-            instance.teardown_scheduled_execution()
-        logger.info("Done updating schedule params ...")
+            if effective_run_env_for_scheduling is None:
+                raise serializers.ValidationError({
+                    'schedule': ['A Run Environment is required to schedule Workflows']
+                })
+
+            instance.setup_scheduled_execution(run_environment=effective_run_env_for_scheduling)
+            updated = True
+        elif old_instance and old_instance.schedule:
+            if torn_down:
+                logger.info("Skipping redundant teardown")
+            elif old_effective_run_env_for_scheduling:
+                # Update the fields in instance, but use the previous scheduling_run_environment
+                instance.teardown_scheduled_execution(
+                    run_environment=old_effective_run_env_for_scheduling)
+                updated = True
+            else:
+                logger.warning("No scheduling_run_environment can be used teardown")
+        elif not torn_down:
+            logger.warning("should_update_schedule is True, but not setting up or tearing down")
+
+        if updated:
+            instance.schedule_updated_at = timezone.now()
+            logger.info("Done updating schedule params ...")
     else:
         logger.info("Not updating schedule params")
 
@@ -467,7 +516,7 @@ def pre_save_workflow(sender: Type[Workflow], **kwargs) -> None:
 @receiver(pre_delete, sender=Workflow)
 def pre_delete_workflow(sender: Type[Workflow], **kwargs) -> None:
     instance = kwargs['instance']
-    logger.info(f"pre-save with instance {instance}")
+    logger.info(f"pre_delete_workflow with workflow {instance}")
 
     if instance.schedule:
         instance.teardown_scheduled_execution()

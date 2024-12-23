@@ -470,7 +470,7 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
 @receiver(pre_save, sender=Task)
 def pre_save_task(sender: Type[Task], **kwargs):
     instance = kwargs['instance']
-    logger.info(f"pre-save with task {instance}")
+    logger.info(f"pre_save_task with Task {instance}")
 
     if instance.pk is None:
         usage_limits = Subscription.compute_usage_limits(instance.created_by_group)
