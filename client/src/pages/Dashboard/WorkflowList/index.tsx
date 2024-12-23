@@ -450,8 +450,9 @@ const WorkflowList = (props: AbortSignalProps) => {
             {workflow && <ConfirmationModal shouldShow={shouldShowDeletionModal}
             disabled={isDeleting} title="Delete Workflow"
             body={`Delete Workflow "${workflow.name}"?`}
-            confirmLabel="Delete" cancelLabel="Cancel"
+            confirmLabel="Delete" confirmIcon="trash"
             confirmButtonVariant="danger"
+            cancelLabel="Cancel"
             onConfirm={handleDeletionConfirmed}
             onCancel={handleDeletionCancelled} /> }
           </div>

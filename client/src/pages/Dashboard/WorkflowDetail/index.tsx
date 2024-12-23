@@ -394,6 +394,7 @@ const WorkflowDetail = ({
           <ConfirmationModal shouldShow={shouldShowCloneModal}
             disabled={isCloning || isDeleting} title="Clone Workflow"
             confirmLabel="Clone"
+            confirmIcon="clone"
             onConfirm={handleCloneConfirmed}
             onCancel={handleCloneCancelled}>
             <div>
@@ -430,7 +431,7 @@ const WorkflowDetail = ({
 
           <ConfirmationModal shouldShow={shouldShowDeletionModal}
             disabled={!workflow.uuid || isDeleting} title="Delete Workflow"
-            confirmLabel="Delete"
+            confirmLabel="Delete" confirmIcon="trash"
             onConfirm={handleDeletionConfirmed}
             onCancel={handleDeletionCanceled}
             confirmButtonVariant="danger">
