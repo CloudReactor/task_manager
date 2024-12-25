@@ -34,9 +34,9 @@ class WorkflowExecutionChecker:
         workflow = we.workflow
         utc_now = timezone.now()
         run_duration = (utc_now - (we.started_at or we.created_at)).total_seconds()
-        logger.debug(f"Run duration of Workflow Execution {we.uuid} is {run_duration} seconds")
 
         if workflow.max_age_seconds is not None:
+            logger.debug(f"Run duration of Workflow Execution {we.uuid} is {run_duration} seconds")
             if run_duration > workflow.max_age_seconds:
                 logger.info(
                     f"Run duration of Workflow Execution {we.uuid} {run_duration} seconds > max age {workflow.max_age_seconds} seconds, stopping")
