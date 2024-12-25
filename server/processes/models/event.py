@@ -45,5 +45,9 @@ class Event(TypedModel):
     def severity_label(self):
         return self.SEVERITY_TO_LABEL.get(self.severity, 'unknown')
 
+    @property
+    def is_resolution(self):
+        return self.resolved_at is not None
+
     def __repr__(self):
         return f"<{self.__class__.__name__}>, {self.error_summary}"
