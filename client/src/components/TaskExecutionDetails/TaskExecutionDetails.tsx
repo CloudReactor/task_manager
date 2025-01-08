@@ -119,7 +119,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
           pair('ECS cluster', makeLink(awsEcsTem.cluster_arn, awsEcsTem.cluster_infrastructure_website_url)),
           pair('ECS task definition ARN', makeLink(awsEcsTem.task_definition_arn,
             awsEcsTem.task_definition_infrastructure_website_url)),
-          pair('ECS task ARN', makeLink(awsEcsTem.task_arn, te.infrastructure_website_url)),
+          pair('ECS task ARN', makeLink(awsEcsTem.task_arn, awsEcsTem.infrastructure_website_url)),
           pair('ECS task role ARN', makeLink(awsEcsTem.task_role_arn,
             awsEcsTem.task_role_infrastructure_website_url)),
           pair('ECS platform version', awsEcsTem.platform_version),
