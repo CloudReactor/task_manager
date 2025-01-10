@@ -50,7 +50,7 @@ class Subscription(models.Model):
             logger.debug(f'No subscription found for {group=}, returning default limits')
             return UsageLimits.default_limits()
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.group and self.subscription_plan:
             return self.group.name + '/' + self.subscription_plan.name + '/'+ str(self.pk)
 

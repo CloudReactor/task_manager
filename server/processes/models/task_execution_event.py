@@ -18,6 +18,6 @@ class TaskExecutionEvent(Event):
             self.created_by_group = self.task.created_by_group
 
 
-    def __str__(self):
+    def __str__(self) -> str:
         te_id = str(self.task_execution.uuid) if self.task_execution else '[REMOVED]'
         return 'Task Execution ' + te_id + ' / ' + str(self.uuid)

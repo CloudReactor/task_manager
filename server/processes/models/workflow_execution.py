@@ -81,7 +81,7 @@ class WorkflowExecution(Execution):
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
     workflow_snapshot = models.JSONField(null=True, blank=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.workflow.name + ' / ' + str(self.uuid)
 
     def get_schedulable(self) -> Optional[Schedulable]:

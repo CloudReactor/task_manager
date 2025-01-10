@@ -18,6 +18,6 @@ class WorkflowExecutionEvent(Event):
             self.created_by_group = self.workflow.created_by_group
 
 
-    def __str__(self):
+    def __str__(self) -> str:
         we_id = str(self.workflow_execution.uuid) if self.workflow_execution else '[REMOVED]'
         return 'Workflow Execution ' + we_id + ' / ' + str(self.uuid)

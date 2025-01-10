@@ -74,3 +74,9 @@ class Notification(models.Model):
             logger.info('Updating an existing Notification')
 
         super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        event_id = str(self.event.uuid) if self.event else '[REMOVED]'
+        np_id = str(self.notification_profile.uuid) if self.notification_profile else '[REMOVED]'
+        ndm_id = str(self.notification_delivery_method.uuid) if self.notification_delivery_method else '[REMOVED]'
+        return f"Event {event_id} / NP {np_id} / NDM {ndm_id} / {self.uuid}"

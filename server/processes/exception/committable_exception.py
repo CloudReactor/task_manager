@@ -9,5 +9,5 @@ class CommittableException(Exception):
         self.message = message or f"CommitableException: cause={self.cause}"
         super().__init__(self.message)
 
-    def __str__(self):
-        return self.message
+    def __str__(self) -> str:
+        return self.message or '[MISSING MESSAGE]'

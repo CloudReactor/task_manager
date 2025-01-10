@@ -153,7 +153,7 @@ class WorkflowTaskInstance(UuidModel):
 
         return wti
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (self.name or 'Unnamed') + ' / ' + str(self.uuid)
 
     def start(self, workflow_execution):

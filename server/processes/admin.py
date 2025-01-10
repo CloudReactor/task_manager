@@ -13,13 +13,19 @@ class UserGroupAccessLevelAdmin(admin.ModelAdmin):
 class SubscriptionAdmin(admin.ModelAdmin):
     search_fields = ('subscription__name',)
 
+class SaasTokenAdmin(admin.ModelAdmin):
+    list_filter = ["group"]
+    search_fields = ('key', 'name',)
+
 
 class RunEnvironmentAdmin(admin.ModelAdmin):
+    list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
 
 
 class TaskAdmin(admin.ModelAdmin):
-    search_fields = ('name', 'uuid',)
+    list_filter = ["created_by_group"]
+    search_fields = ('name', 'uuid', 'run_environment__name')
     readonly_fields = ('latest_task_execution',)
 
 
@@ -29,6 +35,7 @@ class TaskExecutionAdmin(admin.ModelAdmin):
 
 
 class WorkflowAdmin(admin.ModelAdmin):
+    list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
     readonly_fields = ('latest_workflow_execution',)
 
@@ -65,49 +72,71 @@ class WorkflowTransitionEvaluationAdmin(admin.ModelAdmin):
 
 # Legacy
 class AlertMethodAdmin(admin.ModelAdmin):
+    list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
 
 
 class PagerDutyProfileAdmin(admin.ModelAdmin):
+    list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
 
 
 class EmailNotificationProfileAdmin(admin.ModelAdmin):
+    list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
 # End Legacy
 
 
 class EventAdmin(TypedModelAdmin):
-    pass
+    list_filter = ["created_by_group"]
+    search_fields = ('uuid',)
 
 class EmailNotificationDeliveryMethodAdmin(TypedModelAdmin):
+    list_filter = ["created_by_group"]
+    search_fields = ('name', 'uuid',)
+
+
+class NotificationAdmin(admin.ModelAdmin):
+    list_filter = ["created_by_group"]
+    search_fields = ('uuid', 'event__uuid', 'notification_delivery_method__uuid',
+        'notification_profile__uuid')
+
+
+class NotificationProfileAdmin(admin.ModelAdmin):
+    list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
 
 
 class PagerDutyNotificationDeliveryMethodAdmin(TypedModelAdmin):
+    list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
 
 
 class TaskExecutionEventAdmin(TypedModelAdmin):
-    pass
+    list_filter = ["created_by_group"]
+    search_fields = ('uuid',)
 
 class MissingHeartbeatDetectionEventAdmin(TypedModelAdmin):
-    pass
+    list_filter = ["created_by_group"]
+    search_fields = ('uuid',)
 
 class TaskExecutionStatusChangeEventAdmin(TypedModelAdmin):
-    pass
+    list_filter = ["created_by_group"]
+    search_fields = ('uuid',)
 
 class WorkflowExecutionEventAdmin(TypedModelAdmin):
-    pass
+    list_filter = ["created_by_group"]
+    search_fields = ('uuid',)
 
 class WorkflowExecutionStatusChangeEventAdmin(TypedModelAdmin):
-    pass
+    list_filter = ["created_by_group"]
+    search_fields = ('uuid',)
 
 admin.site.unregister(TokenProxy)
 admin.site.register(UserGroupAccessLevel, UserGroupAccessLevelAdmin)
 admin.site.register(SubscriptionPlan)
 admin.site.register(Subscription, SubscriptionAdmin)
-admin.site.register(SaasToken)
+admin.site.register(SaasToken, SaasTokenAdmin)
 admin.site.register(RunEnvironment, RunEnvironmentAdmin)
 
 
@@ -125,13 +154,13 @@ admin.site.register(MissingScheduledWorkflowExecution)
 admin.site.register(MissingScheduledWorkflowExecutionAlert)
 
 admin.site.register(Event, EventAdmin)
-admin.site.register(MissingHeartbeatDetectionEvent)
+admin.site.register(MissingHeartbeatDetectionEvent, MissingHeartbeatDetectionEventAdmin)
 admin.site.register(TaskExecutionStatusChangeEvent, TaskExecutionStatusChangeEventAdmin)
 admin.site.register(WorkflowExecutionStatusChangeEvent, WorkflowExecutionStatusChangeEventAdmin)
-admin.site.register(NotificationProfile)
+admin.site.register(NotificationProfile, NotificationProfileAdmin)
 admin.site.register(EmailNotificationDeliveryMethod, EmailNotificationDeliveryMethodAdmin)
 admin.site.register(PagerDutyNotificationDeliveryMethod, PagerDutyNotificationDeliveryMethodAdmin)
-admin.site.register(Notification)
+admin.site.register(Notification, NotificationAdmin)
 
 admin.site.register(Task, TaskAdmin)
 admin.site.register(TaskExecution, TaskExecutionAdmin)
