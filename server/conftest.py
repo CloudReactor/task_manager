@@ -454,6 +454,8 @@ def validate_saved_run_environment(body_re: dict[str, Any],
 class AwsEcsSetup(NamedTuple):
     cluster: Mapping[str, Any]
     task_definition: Mapping[str, Any]
+    subnets: list[str]
+    security_groups: list[str]
 
     @property
     def task_definition_arn(self) -> str:
@@ -463,10 +465,39 @@ def setup_aws_ecs_cluster(run_environment: RunEnvironment) -> str:
     ecs_client = run_environment.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
             clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
-    print(f"{cluster_response=}")
     return cluster_response['cluster']
 
 def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
+    ec2_client = run_environment.make_boto3_client('ec2')
+
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")
+
+    vpc_id = vpc["Vpc"]["VpcId"]
+
+    subnet1 = ec2_client.create_subnet(
+        AvailabilityZone="us-west-2a",
+        CidrBlock="10.0.0.0/24",
+        VpcId=vpc_id,
+    )
+
+    subnet2 = ec2_client.create_subnet(
+        AvailabilityZone="us-west-2a",
+        CidrBlock="10.0.1.0/24",
+        VpcId=vpc_id,
+    )
+
+    sg1 = ec2_client.create_security_group(
+        Description="Security Group 1",
+        GroupName="sg1",
+        VpcId=vpc_id,
+    )
+
+    sg2 = ec2_client.create_security_group(
+        Description="Security Group 2",
+        GroupName="sg2",
+        VpcId=vpc_id,
+    )
+
     ecs_client = run_environment.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
             clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
@@ -500,11 +531,13 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     print(f"{task_def_response=}")
 
     return AwsEcsSetup(cluster=cluster_response['cluster'],
-        task_definition=task_def_response['taskDefinition'])
+        task_definition=task_def_response['taskDefinition'],
+        subnets=[subnet1['Subnet']['SubnetId'], subnet2['Subnet']['SubnetId']],
+        security_groups=[sg1['GroupId'], sg2['GroupId']])
 
 
 def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
-        task_definition_arn: Optional[str] = None,
+        aws_ecs_setup: AwsEcsSetup,
         is_service: bool = False, schedule: str = '',
         was_auto_created: bool = False,
         is_legacy_schema=False) -> dict[str, Any]:
@@ -517,7 +550,7 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
     if is_service:
         body['service_instance_count'] = 1
 
-    task_definition_arn = task_definition_arn or 'arn:aws:ecs:us-west-1:123456789012:task-definition/hello_world:8'
+    task_definition_arn = aws_ecs_setup.task_definition_arn
 
     if is_legacy_schema:
         emc = {
@@ -531,8 +564,8 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
             'allocated_memory_mb': 2048,
             'default_execution_role': run_environment.aws_ecs_default_execution_role,
             'default_task_role': 'arn:aws:iam::123456789012:role/task',
-            'default_subnets': ['subnet1', 'subnet2'],
-            'default_security_groups': ['sg1', 'sg2'],
+            'default_subnets': aws_ecs_setup.subnets,
+            'default_security_groups': aws_ecs_setup.security_groups,
             'tags': {
                 'TagA': 'A',
                 'TagB': 'B'
@@ -580,8 +613,8 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
         body['infrastructure_settings'] = {
             'region': 'us-west-1',
             'network': {
-                'subnets': ['subnet1', 'subnet2'],
-                'security_groups': ['sg1', 'sg2'],
+                'subnets': aws_ecs_setup.subnets,
+                'security_groups': aws_ecs_setup.security_groups,
             },
             'logging': {
                 'driver': 'awslogs',
@@ -919,7 +952,7 @@ def make_aws_ecs_task_execution_request_body(
         task_execution_status: str = 'RUNNING',
         task_property_name: str = 'task',
         task: Optional[Task] = None,
-        task_definition_arn: Optional[str] = None,
+        aws_ecs_setup: Optional[AwsEcsSetup] = None,
         was_auto_created: bool = False, is_passive: bool = False,
         is_legacy_schema: bool = False) -> dict[str, Any]:
     body = make_task_execution_request_body(
@@ -948,7 +981,7 @@ def make_aws_ecs_task_execution_request_body(
             assert run_environment is not None
             task_request_fragment = make_aws_ecs_task_request_body(
                 run_environment=run_environment,
-                task_definition_arn=task_definition_arn,
+                aws_ecs_setup=aws_ecs_setup,
                 was_auto_created=was_auto_created,
                 is_legacy_schema=is_legacy_schema)
 
@@ -968,7 +1001,7 @@ def make_aws_ecs_task_execution_request_body(
     launch_type = emcd.get(default_attr_prefix + "launch_type", "FARGATE")
     emd = {
         "task_arn": "arn:aws:ecs:us-east-1:012345678910:task/9781c248-0edd-4cdb-9a93-f63cb662a5d3",
-        "task_definition_arn": emcd.get('task_definition_arn', task_definition_arn),
+        "task_definition_arn": emcd.get('task_definition_arn', aws_ecs_setup.task_definition_arn),
         "launch_type": launch_type
     }
 
@@ -1008,7 +1041,7 @@ def make_aws_ecs_task_execution_request_body(
                             "ip_v4_subnet_cidr_block": "192.0.2.0/24",
                             "dns_servers": ["192.0.2.2"],
                             "dns_search_list": ["us-west-2.compute.internal"],
-                            "private_dns_name": "ip-10-0-0-222.us-west-2.compute.internal",
+                            "private_dns_name": "ip-10-0-0-222.us-east-2.compute.internal",
                             "subnet_gateway_ip_v4_address": "192.0.2.0/24"
                         }
                     ]

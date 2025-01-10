@@ -68,7 +68,7 @@ def test_auto_created_aws_ecs_task_execution_deserialization(
         task_execution_factory=task_execution_factory,
         user=user,
         was_auto_created=True, is_passive=is_passive,
-        task_definition_arn=aws_ecs_setup.task_definition_arn,
+        aws_ecs_setup=aws_ecs_setup,
         is_legacy_schema=is_legacy_schema)
 
     ser = TaskExecutionSerializer(data=request_body.copy(), context=context)

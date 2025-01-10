@@ -529,7 +529,7 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
 
     request_data = make_aws_ecs_task_request_body(
         run_environment=api_key_run_environment,
-        task_definition_arn=aws_ecs_setup.task_definition_arn,
+        aws_ecs_setup=aws_ecs_setup,
         is_service=is_service, schedule=schedule,
         is_legacy_schema=is_legacy_schema)
 

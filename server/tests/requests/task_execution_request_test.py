@@ -607,7 +607,7 @@ def test_task_execution_create_access_control(
         task_execution_status=task_execution_status,
         uuid_send_type=body_uuid_type,
         task_send_type=task_send_type,
-        task_definition_arn=aws_ecs_setup.task_definition_arn,
+        aws_ecs_setup=aws_ecs_setup,
         task=sent_task,
         was_auto_created=auto_create,
         is_legacy_schema=is_legacy_schema)
@@ -685,7 +685,7 @@ def test_task_create_aws_ecs_task_execution(auto_create: bool,
 
     request_data = make_aws_ecs_task_execution_request_body(
         run_environment=api_key_run_environment,
-        task_definition_arn=aws_ecs_setup.task_definition_arn,
+        aws_ecs_setup=aws_ecs_setup,
         task=None if auto_create else task,
         was_auto_created=auto_create,
         is_legacy_schema=is_legacy_schema,
