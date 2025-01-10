@@ -16,5 +16,5 @@ class GroupInfo(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.group.name if self.group else str(self.pk)

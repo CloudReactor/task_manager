@@ -24,6 +24,8 @@ class SubscriptionPlan(models.Model):
     max_workflow_task_instances = models.PositiveIntegerField(null=True)
     max_workflow_execution_history_items = models.PositiveIntegerField(null=True)
     max_alerts_per_day = models.PositiveIntegerField(null=True)
+    max_events = models.PositiveIntegerField(null=True)
+    max_notifications = models.PositiveIntegerField(null=True)
 
     @property
     def usage_limits(self) -> UsageLimits:
@@ -39,8 +41,10 @@ class SubscriptionPlan(models.Model):
                 max_workflow_task_instances=self.max_workflow_task_instances,
                 max_workflow_execution_history_items=self.max_workflow_execution_history_items,
                 max_alerts_per_day=self.max_alerts_per_day,
+                max_events=self.max_events,
+                max_notifications=self.max_notifications,
         )
 
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name

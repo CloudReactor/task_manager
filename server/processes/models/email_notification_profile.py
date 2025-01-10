@@ -18,7 +18,7 @@ from .workflow_execution import WorkflowExecution
 
 logger = logging.getLogger(__name__)
 
-
+# Legacy, use EmailNotificationDeliveryMethod instead
 class EmailNotificationProfile(NamedWithUuidAndRunEnvironmentModel):
     DEFAULT_EMAIL_NOTIFICATION_TASK_EXECUTION_SUBJECT_TEMPLATE = \
         DEFAULT_NOTIFICATION_TASK_EXECUTION_SUMMARY_TEMPLATE

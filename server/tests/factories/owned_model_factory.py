@@ -1,5 +1,3 @@
-from typing import Optional
-
 from processes.models import NamedWithUuidModel, UserGroupAccessLevel
 
 import factory

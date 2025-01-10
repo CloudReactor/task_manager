@@ -19,4 +19,6 @@ class Fixture(BaseFixture):
             'max_workflow_task_instances': 200,
             'max_workflow_execution_history_items': 5000,
             'max_alerts_per_day': 5000,
+            'max_events': 50000,
+            'max_notifications': 50000,
         })

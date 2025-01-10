@@ -23,6 +23,8 @@ class UsageLimits:
     max_workflow_task_instances: Optional[int] = None
     max_workflow_execution_history_items: Optional[int] = None
     max_alerts_per_day: Optional[int] = None
+    max_events: Optional[int] = None
+    max_notifications: Optional[int] = None
 
     def combine(self, other: 'UsageLimits') -> 'UsageLimits':
         return UsageLimits(
@@ -37,6 +39,8 @@ class UsageLimits:
                 max_workflow_task_instances=add_limits(self.max_workflow_task_instances, other.max_workflow_task_instances),
                 max_workflow_execution_history_items=add_limits(self.max_workflow_execution_history_items, other.max_workflow_execution_history_items),
                 max_alerts_per_day=add_limits(self.max_alerts_per_day, other.max_alerts_per_day),
+                max_events=add_limits(self.max_events, other.max_events),
+                max_notifications=add_limits(self.max_notifications, other.max_notifications),
         )
 
     @staticmethod
@@ -53,4 +57,6 @@ class UsageLimits:
                 max_workflow_task_instances=200,
                 max_workflow_execution_history_items=1000,
                 max_alerts_per_day=1000,
+                max_events=20000,
+                max_notifications=20000,
         )

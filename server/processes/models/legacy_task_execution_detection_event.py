@@ -15,5 +15,5 @@ class LegacyTaskExecutionDetectionEvent(models.Model):
     detected_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'Task Execution ' + str(self.task_execution.uuid) + ' / ' + str(self.uuid)

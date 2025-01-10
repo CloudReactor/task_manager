@@ -1,16 +1,23 @@
-from typing import TYPE_CHECKING
+from typing import Type, TYPE_CHECKING
 
+import logging
 import uuid
 
 from django.db import models
 
+from django.contrib.auth.models import Group
+
 from .event import Event
 
 from .alert_send_status import AlertSendStatus
+from .subscription import Subscription
 
 if TYPE_CHECKING:
     from .notification_profile import NotificationProfile
     from .notification_delivery_method import NotificationDeliveryMethod
+
+
+logger = logging.getLogger(__name__)
 
 
 class Notification(models.Model):
@@ -24,3 +31,46 @@ class Notification(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     send_status = models.IntegerField(null=True, blank=True, default=AlertSendStatus.SENDING)
     send_result = models.JSONField(blank=True, null=True)
+
+    # null=True until we can populate this field for existing notifications
+    created_by_group = models.ForeignKey(Group, on_delete=models.CASCADE,
+            null=True, editable=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_by_group', 'attempted_at']),
+        ]
+
+
+    def save(self, *args, **kwargs) -> None:
+        logger.info(f"pre-save with Notification {self.uuid}, {self._state.adding=}, {self.created_by_group=}")
+
+        if (self.created_by_group is None) and self.event:
+            self.created_by_group = self.event.created_by_group
+
+        # https://stackoverflow.com/questions/2037320/what-is-the-canonical-way-to-find-out-if-a-django-model-is-saved-to-db
+        if self._state.adding:
+            group = self.created_by_group
+
+            if group is None:
+                logger.warning(f"Notification {self.uuid} has no group")
+            else:
+                existing_notification_count = Notification.objects.filter(created_by_group=group).count()
+                usage_limits = Subscription.compute_usage_limits(group)
+                max_notification_count = usage_limits.max_notifications
+
+                if (max_notification_count is not None) and (existing_notification_count >= max_notification_count):
+                    diff = existing_notification_count - max_notification_count + 1
+                    for notification in Notification.objects.filter(created_by_group=group) \
+                            .order_by('attempted_at')[:diff].iterator():
+                        id = notification.uuid
+                        logger.info(f"Deleting Notification {id} because {group=} has reached the limit of {max_notification_count}")
+                        try:
+                            notification.delete()
+                            logger.info(f"Deleted Notification {id} successfully")
+                        except Exception:
+                            logger.warning(f"Failed to delete Notification {id}", exc_info=True)
+        else:
+            logger.info('Updating an existing Notification')
+
+        super().save(*args, **kwargs)

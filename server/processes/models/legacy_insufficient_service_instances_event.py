@@ -18,5 +18,5 @@ class LegacyInsufficientServiceInstancesEvent(models.Model):
         ordering = ['detected_at']
         db_table = 'processes_insufficientserviceinstancesevent'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.task.name + ' / ' + str(self.uuid)

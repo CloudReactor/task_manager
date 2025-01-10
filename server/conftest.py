@@ -51,7 +51,10 @@ from tests.factories import (
     WorkflowTaskInstanceExecutionFactory,
     PagerDutyProfileFactory,
     EmailNotificationProfileFactory,
-    NotificationProfileFactory
+    BasicEventFactory,
+    NotificationProfileFactory,
+    EmailNotificationDeliveryMethodFactory,
+    NotificationFactory,
 )
 
 SEND_ID_NONE = 'none'
@@ -85,7 +88,9 @@ register(WorkflowTransitionFactory)
 register(WorkflowExecutionFactory)
 register(WorkflowTaskInstanceExecutionFactory)
 
+register(BasicEventFactory)
 register(NotificationProfileFactory)
+register(NotificationFactory)
 
 # Legacy
 register(AlertMethodFactory)
