@@ -1,7 +1,7 @@
 six>=1.15.0,<2.0.0
 beautifulsoup4>=4.12.3,<5.0.0
 boto3>=1.35.87,<2.0.0
-cloudreactor-procwrapper[allextras]>=5.4.0,<6.0.0
+cloudreactor-procwrapper[allextras]==5.3.2
 crontab>=1.0.1,<2.0.0 # https://github.com/josiahcarlson/parse-crontab
 cryptography==43.0.3
 Django>=4.2.17,<5.0.0
