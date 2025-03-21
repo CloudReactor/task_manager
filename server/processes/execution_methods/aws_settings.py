@@ -17,15 +17,38 @@ from .execution_method import ExecutionMethod
 INFRASTRUCTURE_TYPE_AWS = 'AWS'
 
 
+class SecurityGroup(BaseModel):
+    name: Optional[str] = None
+    id: Optional[str] = None
+    infrastructure_website_url: Optional[str] = None
+
+class Vpc(BaseModel):
+    name: Optional[str] = None
+    id: Optional[str] = None
+    infrastructure_website_url: Optional[str] = None
+
+class Subnet(BaseModel):
+    name: Optional[str] = None
+    id: Optional[str] = None
+    infrastructure_website_url: Optional[str] = None
+
 class AwsNetwork(BaseModel):
     network_mode: Optional[str] = None
+    device_number: Optional[int] = None
+    eni_id: Optional[str] = None
+    aws_account_id: Optional[str] = None
     ip_v4_subnet_cidr_block: Optional[str] = None
+    ip_v6_subnet_cidr_block: Optional[str] = None
     dns_servers: Optional[list[str]] = None
     dns_search_list: Optional[list[str]] = None
     private_dns_name: Optional[str] = None
+    public_dns_name: Optional[str] = None
     subnet_gateway_ip_v4_address: Optional[str] = None
     ip_v4_addresses: Optional[list[str]] = None
+    ip_v6_addresses: Optional[list[str]] = None
     mac_address: Optional[str] = None
+    security_groups: Optional[SecurityGroup] = None
+    vpc: Optional[Vpc] = None
 
 
 class AwsNetworkSettings(BaseModel):
