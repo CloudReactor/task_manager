@@ -81,3 +81,61 @@ def test_auto_created_aws_ecs_task_execution_deserialization(
     reserialized_data = TaskExecutionSerializer(task_execution,
             context=context).data
     validate_serialized_task_execution(reserialized_data, task_execution)
+
+
+@pytest.mark.django_db
+def test_unsupported_execution_method_task_execution_deserialization(
+        user_factory, group_factory, run_environment_factory,
+        task_factory, task_execution_factory):
+    user = user_factory()
+    group = user.groups.all()[0]
+    run_environment = run_environment_factory(
+        created_by_group=group,
+        created_by_user=user)
+    context = context_with_authenticated_request(
+        user=user,
+        group=group,
+        api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+        api_key_run_environment=run_environment)
+
+
+    request_body = make_task_execution_request_body(
+        uuid_send_type = SEND_ID_NONE,
+        task_send_type = SEND_ID_CORRECT,
+        user = user,
+        api_key_run_environment = run_environment,
+        group_factory = group_factory,
+        run_environment_factory = run_environment_factory,
+        task_factory = task_factory,
+        task_execution_factory = task_execution_factory
+    )
+
+    task_request_fragment = request_body['task']
+    task_request_fragment['execution_method_type'] = 'RANDO_METHOD'
+    task_request_fragment['execution_method_capability_details'] = {
+      'a': 2
+    }
+    task_request_fragment['infrastructure_type'] = 'NOTAWESOME'
+    task_request_fragment['infrastructure_settings'] = {
+        'c': ['x', 'y']
+    }
+
+    request_body['execution_method_type'] = 'RANDO_METHOD'
+    task_request_fragment['execution_method_details'] = {
+        'b': 3
+    }
+    request_body['infrastructure_type'] = 'NOTAWESOME'
+    request_body['infrastructure_settings'] = {
+        'c': ['x', 'z']
+    }
+
+    ser = TaskExecutionSerializer(data=request_body.copy(), context=context)
+    ser.is_valid(raise_exception=True)
+    task_execution = ser.save()
+
+    validate_saved_task_execution(body_task_execution=request_body,
+        model_task_execution=task_execution, context=context)
+
+    reserialized_data = TaskExecutionSerializer(task_execution,
+            context=context).data
+    validate_serialized_task_execution(reserialized_data, task_execution)
