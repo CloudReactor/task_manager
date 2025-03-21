@@ -20,6 +20,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 env = environ.Env()
 
+env.read_env(os.path.join(BASE_DIR, '.env'))
+
 IN_PYTEST = env.bool('IN_PYTEST', default=False)
 
 # print(f"{IN_PYTEST=}")
