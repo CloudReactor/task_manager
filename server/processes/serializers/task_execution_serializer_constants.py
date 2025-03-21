@@ -1,0 +1,23 @@
+TASK_EXECUTION_CONFIGURATION_FIELDS = [
+      'infrastructure_type', 'infrastructure_settings',
+      'process_command',
+      'allocated_cpu_units', 'allocated_memory_mb',
+      'prevent_offline_execution',
+      'process_timeout_seconds',
+      'process_max_retries', 'process_retry_delay_seconds',
+      'process_termination_grace_period_seconds',
+      'api_retry_delay_seconds', 'api_resume_delay_seconds',
+      'api_error_timeout_seconds',
+      'api_task_execution_creation_error_timeout_seconds',
+      'api_task_execution_creation_conflict_timeout_seconds',
+      'api_task_execution_creation_conflict_retry_delay_seconds',
+      'api_final_update_timeout_seconds', 'api_request_timeout_seconds',
+      'status_update_interval_seconds', 'status_update_port',
+      'status_update_message_max_bytes',
+      'num_log_lines_sent_on_failure', 'num_log_lines_sent_on_timeout',
+      'num_log_lines_sent_on_success',
+      'max_log_line_length',
+      'merge_stdout_and_stderr_logs', 'ignore_stdout', 'ignore_stderr',
+      'managed_probability', 'failure_report_probability', 'timeout_report_probability',
+      'other_metadata'
+]

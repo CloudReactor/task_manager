@@ -467,11 +467,45 @@ export interface AwsCodeBuildExecutionMethodSettings extends AwsCodeBuildExecuti
     debug_session: Optional[AwsCodeBuildDebugSession] = None */
 }
 
-
-export interface Task extends EntityReferenceWithDates, Executable {
-  alert_methods: EntityReference[];
+export interface TaskExecutionConfiguration {
   allocated_cpu_units: number | null;
   allocated_memory_mb: number | null;
+  infrastructure_settings: object | null;
+  infrastructure_type: string;
+  other_metadata: any;
+  prevent_offline_execution: boolean | null;
+  process_command: string | null;
+  process_timeout_seconds: number | null;
+  process_max_retries: number | null;
+  process_retry_delay_seconds: number | null;
+  process_termination_grace_period_seconds: number | null;
+
+  api_retry_delay_seconds: number | null;
+  api_resume_delay_seconds: number | null;
+  api_error_timeout_seconds: number | null;
+  api_task_execution_creation_error_timeout_seconds: number | null;
+  api_task_execution_creation_conflict_timeout_seconds: number | null;
+  api_task_execution_creation_conflict_retry_delay_seconds: number | null;
+  api_final_update_timeout_seconds: number | null;
+  api_request_timeout_seconds: number | null;
+  status_update_interval_seconds: number | null;
+  status_update_port: number | null;
+  status_update_message_max_bytes: number | null;
+  num_log_lines_sent_on_failure: number | null;
+  num_log_lines_sent_on_timeout: number | null;
+  num_log_lines_sent_on_success: number | null;
+  max_log_line_length: number | null;
+  merge_stdout_and_stderr_logs: boolean | null;
+  ignore_stdout: boolean | null;
+  ignore_stderr: boolean | null;
+  managed_probability: number | null;
+  failure_report_probability: number | null;
+  timeout_report_probability: number | null;
+}
+
+
+export interface Task extends EntityReferenceWithDates, Executable, TaskExecutionConfiguration {
+  alert_methods: EntityReference[];
   capabilities: string[];
   created_by_group: GroupReference;
   created_by_user?: string;
@@ -479,8 +513,6 @@ export interface Task extends EntityReferenceWithDates, Executable {
   execution_method_capability_details: object | null;
   execution_method_type: string;
   heartbeat_interval_seconds: number;
-  infrastructure_settings: object | null;
-  infrastructure_type: string;
   is_service: boolean;
   latest_task_execution: any;
   links: ExternalLink[];
@@ -492,7 +524,6 @@ export interface Task extends EntityReferenceWithDates, Executable {
   max_manual_start_delay_before_abandonment_seconds: number | null;
   max_manual_start_delay_before_alert_seconds: number | null;
   min_service_instance_count: number | null;
-  other_metadata: any;
   passive: boolean;
   project_url: string;
   run_environment: EntityReference;
@@ -506,6 +537,14 @@ export interface Task extends EntityReferenceWithDates, Executable {
 
 export class TaskImpl extends EntityReferenceWithDatesImpl
 implements Task {
+  api_retry_delay_seconds = null;
+  api_resume_delay_seconds = null;
+  api_error_timeout_seconds = null;
+  api_task_execution_creation_error_timeout_seconds = null;
+  api_task_execution_creation_conflict_timeout_seconds = null;
+  api_task_execution_creation_conflict_retry_delay_seconds = null;
+  api_final_update_timeout_seconds = null;
+  api_request_timeout_seconds = null;
   alert_methods = [];
   allocated_cpu_units = null;
   allocated_memory_mb = null;
@@ -547,6 +586,12 @@ implements Task {
   postponed_failure_before_success_seconds = null;
   postponed_missing_execution_before_start_seconds = null;
   postponed_timeout_before_success_seconds = null;
+  prevent_offline_execution = null;
+  process_command = null;
+  process_timeout_seconds = null;
+  process_max_retries = null;
+  process_retry_delay_seconds = null;
+  process_termination_grace_period_seconds = null;
   project_url = '';
   required_success_count_to_clear_failure = null;
   required_success_count_to_clear_timeout = null;
@@ -558,8 +603,19 @@ implements Task {
   service_instance_count = 0;
   service_provider_type = null;
   service_settings = null;
-
-
+  status_update_interval_seconds = null;
+  status_update_port = null;
+  status_update_message_max_bytes = null;
+  num_log_lines_sent_on_failure = null;
+  num_log_lines_sent_on_timeout = null;
+  num_log_lines_sent_on_success = null;
+  max_log_line_length = null;
+  merge_stdout_and_stderr_logs = null;
+  ignore_stdout = null;
+  ignore_stderr = null;
+  managed_probability = null;
+  failure_report_probability = null;
+  timeout_report_probability = null;
   was_auto_created = false;
 
   canManuallyStart(): boolean {
@@ -575,7 +631,7 @@ export interface DeployInfo {
   task_execution: NamelessEntityReference | null;
 }
 
-export interface TaskExecution {
+export interface TaskExecution extends TaskExecutionConfiguration{
   api_base_url: string,
   api_error_timeout_seconds: number | null;
   api_request_timeout_seconds: number | null;
@@ -585,8 +641,6 @@ export interface TaskExecution {
   api_task_execution_creation_conflict_retry_delay_seconds: number | null;
   api_task_execution_creation_error_timeout_seconds: number | null;
   api_final_update_timeout_seconds: number | null;
-  allocated_cpu_units: number | null;
-  allocated_memory_mb: number | null;
   build: BuildInfo | null;
   commit_url: string;
   created_at: Date;
@@ -632,8 +686,6 @@ export interface TaskExecution {
   finished_at: Date | null;
   heartbeat_interval_seconds: number | null;
   hostname: string | null;
-  infrastructure_type: string | null;
-  infrastructure_settings: object | null;
   infrastructure_website_url: string;
   is_service: boolean | null;
   killed_by: string,
@@ -651,14 +703,8 @@ export interface TaskExecution {
   mean_memory_mb: number | null;
   other_instance_metadata: any;
   other_runtime_metadata: any;
-  prevent_offline_execution: boolean | null;
-  process_command: string | null,
-  process_max_retries: number | null;
   task: EntityReference;
   task_max_concurrency: number | null;
-  process_retry_delay_seconds: number | null;
-  process_termination_grace_period_seconds: number | null;
-  process_timeout_seconds: number | null;
   task_version_signature: string | null;
   task_version_number: number | null;
   task_version_text: string | null;
@@ -667,9 +713,6 @@ export interface TaskExecution {
   started_at: Date;
   started_by: string;
   status: string;
-  status_update_interval_seconds: number | null,
-  status_update_message_max_bytes: number | null,
-  status_update_port: number | null,
   stop_reason: string | null;
   success_count: number;
   timed_out_attempts: number;

@@ -25,7 +25,7 @@ from .execution import Execution
 from .task import Task
 from .event import Event
 from .alert_send_status import AlertSendStatus
-from .infrastructure_configuration import InfrastructureConfiguration
+from .task_execution_configuration import TaskExecutionConfiguration
 from .schedulable import Schedulable
 from .aws_tagged_entity import AwsTaggedEntity
 
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, Execution):
+class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
     @enum.unique
     class Status(enum.IntEnum):
         RUNNING = 0
@@ -121,9 +121,6 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, Execution):
             db_column='process_version_text')
     heartbeat_interval_seconds = models.IntegerField(null=True, blank=True)
     hostname = models.CharField(max_length=1000, null=True, blank=True)
-    environment_variables_overrides = models.JSONField(null=True, blank=True)
-    allocated_cpu_units = models.IntegerField(null=True, blank=True)
-    allocated_memory_mb = models.IntegerField(null=True, blank=True)
 
     last_app_heartbeat_at = models.DateTimeField(null=True, blank=True)
     exit_code = models.IntegerField(null=True, blank=True)
@@ -148,32 +145,16 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, Execution):
     # an execution.
     wrapper_log_level = models.CharField(max_length=20, null=True)
     deployment = models.CharField(max_length=200, null=True)
-    process_command = models.CharField(max_length=5000, null=True)
     is_service = models.BooleanField(null=True, blank=True)
     task_max_concurrency = models.IntegerField(null=True, blank=True,
             db_column='process_max_concurrency')
     max_conflicting_age_seconds = models.IntegerField(null=True, blank=True)
-    prevent_offline_execution = models.BooleanField(null=True, blank=True)
-    process_timeout_seconds = models.IntegerField(null=True, blank=True)
-    process_max_retries = models.IntegerField(null=True, blank=True)
-    process_retry_delay_seconds = models.PositiveIntegerField(null=True, blank=True)
-    process_termination_grace_period_seconds = models.IntegerField(null=True, blank=True)
 
     # Deprecated
     schedule = models.CharField(max_length=1000, null=True, blank=True)
 
     api_base_url = models.CharField(max_length=200, blank=True)
     api_key = models.CharField(max_length=40, blank=True)
-
-    api_retry_delay_seconds = models.PositiveIntegerField(null=True, blank=True)
-    api_resume_delay_seconds = models.PositiveIntegerField(null=True, blank=True)
-    api_error_timeout_seconds = models.IntegerField(null=True, blank=True)
-    api_task_execution_creation_error_timeout_seconds = models.IntegerField(null=True, blank=True)
-    api_task_execution_creation_conflict_timeout_seconds = models.IntegerField(null=True, blank=True)
-    api_task_execution_creation_conflict_retry_delay_seconds = models.PositiveIntegerField(null=True, blank=True)
-    api_final_update_timeout_seconds = models.IntegerField(null=True, blank=True)
-    api_request_timeout_seconds = models.IntegerField(null=True, blank=True,
-            db_column='api_timeout_seconds')
 
     # Deprecated for wrappers < 2.0
     api_max_retries = models.IntegerField(null=True, blank=True)
@@ -182,9 +163,6 @@ class TaskExecution(InfrastructureConfiguration, AwsTaggedEntity, Execution):
     # Deprecated for wrappers < 2.0
     api_max_retries_for_process_creation_conflict = models.IntegerField(null=True, blank=True)
 
-    status_update_interval_seconds = models.IntegerField(null=True, blank=True)
-    status_update_port = models.IntegerField(null=True, blank=True)
-    status_update_message_max_bytes = models.IntegerField(null=True, blank=True)
     embedded_mode = models.BooleanField(null=True, blank=True)
 
     execution_method_type = models.CharField(max_length=100, null=False,

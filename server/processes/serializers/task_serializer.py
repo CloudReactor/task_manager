@@ -56,6 +56,7 @@ from .embedded_id_validating_serializer_mixin import (
 from .serializer_helpers import SerializerHelpers
 from .group_setting_serializer_mixin import GroupSettingSerializerMixin
 from .task_execution_serializer import TaskExecutionSerializer
+from .task_execution_serializer_constants import TASK_EXECUTION_CONFIGURATION_FIELDS
 from .link_serializer import LinkSerializer
 
 logger = logging.getLogger(__name__)
@@ -115,18 +116,13 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'project_url', 'log_query', 'logs_url',
             'links',
             'run_environment',
-            'allocated_cpu_units',
-            'allocated_memory_mb',
             'execution_method_type',
             'execution_method_capability_details',
             'capabilities',
-            'infrastructure_type', 'infrastructure_settings',
             'is_scheduling_managed', 'scheduling_provider_type',
             'scheduling_settings',
             'is_service_managed', 'service_provider_type', 'service_settings',
             'default_input_value', 'input_value_schema', 'output_value_schema',
-            'managed_probability', 'failure_report_probability',
-            'timeout_report_probability',
 
             # Deprecated
             'alert_methods',
@@ -137,7 +133,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'created_by_user', 'created_by_group',
             'was_auto_created', 'passive', 'enabled',
             'created_at', 'updated_at',
-        ]
+        ] + TASK_EXECUTION_CONFIGURATION_FIELDS
 
         read_only_fields = [
             'url', 'uuid',

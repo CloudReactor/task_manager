@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 from urllib.parse import quote
 
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.signals import pre_save, pre_delete
 from django.dispatch import receiver
@@ -21,10 +21,10 @@ from ..execution_methods import (
 from ..exception import CommittableException, UnprocessableEntity
 
 from .aws_ecs_configuration import AwsEcsConfiguration
-from .infrastructure_configuration import InfrastructureConfiguration
 from .run_environment import RunEnvironment
 from .schedulable import Schedulable
 from .subscription import Subscription
+from .task_execution_configuration import TaskExecutionConfiguration
 
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
+class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
     """
     The specification for a runnable task (job), including details on how to
     run the task and how often the task is supposed to run.
@@ -63,10 +63,6 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     min_service_instance_count = models.PositiveIntegerField(
         null=True, blank=True)
 
-    # TODO: use when running - might need to pass to process wrapper for
-    # scheduled processes
-    environment_variables_overrides = models.JSONField(null=True, blank=True)
-
     project_url = models.CharField(max_length=1000, blank=True)
     log_query = models.CharField(max_length=1000, blank=True)
 
@@ -84,13 +80,6 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     input_value_schema = models.JSONField(null=True, blank=True)
     default_input_value = models.JSONField(null=True, blank=True)
     output_value_schema = models.JSONField(null=True, blank=True)
-
-    managed_probability =  models.FloatField(default=1.0,
-        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
-    failure_report_probability =  models.FloatField(default=1.0,
-        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
-    timeout_report_probability =  models.FloatField(default=1.0,
-        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
 
     aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_load_balancer_health_check_grace_period_seconds = \
@@ -122,9 +111,6 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     aws_ecs_service_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_updated_at = models.DateTimeField(null=True, blank=True)
 
-    infrastructure_type = models.CharField(max_length=100, blank=True)
-    infrastructure_settings = models.JSONField(null=True, blank=True)
-
     is_scheduling_managed = models.BooleanField(default=None, null=True)
     scheduling_provider_type = models.CharField(max_length=100, blank=True)
     scheduling_settings = models.JSONField(null=True, blank=True)
@@ -133,13 +119,9 @@ class Task(AwsEcsConfiguration, InfrastructureConfiguration, Schedulable):
     service_provider_type = models.CharField(max_length=100, blank=True)
     service_settings = models.JSONField(null=True, blank=True)
 
-    allocated_cpu_units = models.PositiveIntegerField(null=True, blank=True)
-    allocated_memory_mb = models.PositiveIntegerField(null=True, blank=True)
-
     # Deprecated
     alert_methods = models.ManyToManyField('AlertMethod', blank=True)
 
-    other_metadata = models.JSONField(null=True, blank=True)
     latest_task_execution = models.OneToOneField('TaskExecution',
         # Don't backreference, since TaskExecutions already point to Tasks
         related_name='+',

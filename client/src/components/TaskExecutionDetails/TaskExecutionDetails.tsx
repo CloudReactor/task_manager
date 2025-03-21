@@ -15,15 +15,17 @@ import {
   makeLink, makeLinks
 } from "../../utils/index";
 
-import React from 'react';
+import React, { Fragment } from 'react';
 
-import { Table } from 'react-bootstrap';
+import { Col, Row, Table } from 'react-bootstrap';
 import {
   EXECUTION_METHOD_TYPE_AWS_CODEBUILD,
   EXECUTION_METHOD_TYPE_AWS_ECS,
   EXECUTION_METHOD_TYPE_AWS_LAMBDA,
   INFRASTRUCTURE_TYPE_AWS
 } from '../../utils/constants';
+
+import styles from './TaskExecutionDetails.module.scss';
 
 interface Props {
   taskExecution: TaskExecution;
@@ -42,6 +44,23 @@ function pair(name: string, value: any) {
 
 function formatTime(x: Date | null) : string {
   return timeFormat(x, true);
+}
+
+function makeLogSection(te: TaskExecution, isStdout: boolean) {
+  const logLines = isStdout ? te.debug_log_tail : te.error_log_tail;
+  return (
+    <Row className="my-2">
+      <Col>
+        <h5 className="my-3">{isStdout ? 'Debug log' : 'Error log'}:</h5>
+        {
+          (logLines === null) ? <div>N/A</div> : (
+            <textarea className={styles.logBlock}
+            rows={10} readOnly={true} value={logLines} />
+          )
+        }
+      </Col>
+    </Row>
+  );
 }
 
 const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) => {
@@ -84,7 +103,6 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     pair('Prevent offline execution', formatBoolean(te.prevent_offline_execution)),
     pair('Max Task retries', formatNumber(te.process_max_retries)),
     pair('Termination grace period', formatDuration(te.process_termination_grace_period_seconds)),
-    pair('Schedule', te.schedule),
     pair('API error timeout', formatDuration(te.api_error_timeout_seconds)),
     pair('API retry delay', formatDuration(te.api_retry_delay_seconds)),
     pair('API resume delay', formatDuration(te.api_resume_delay_seconds)),
@@ -100,6 +118,13 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     pair('Status update port', te.status_update_port ?? 'N/A'),
     pair('Status message max bytes', formatNumber(te.status_update_message_max_bytes)),
     pair('Wrapper log level', te.wrapper_log_level),
+    pair('Log lines sent on failure', formatNumber(te.num_log_lines_sent_on_failure)),
+    pair('Log lines sent on timeout', formatNumber(te.num_log_lines_sent_on_timeout)),
+    pair('Log lines sent on success', formatNumber(te.num_log_lines_sent_on_success)),
+    pair('Max log line length',  formatNumber(te.max_log_line_length)),
+    pair('Merge stdout and stderr logs', formatBoolean(te.merge_stdout_and_stderr_logs)),
+    pair('Ignore stdout', formatBoolean(te.ignore_stdout)),
+    pair('Ignore stderr', formatBoolean(te.ignore_stderr)),
     pair('API base URL', te.api_base_url),
     pair('Build Task Execution', te.build?.task_execution ?
       makeLink(te.build.task_execution.uuid,
@@ -302,18 +327,22 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
   pair('PagerDuty event severity ', pe.pagerduty_event_severity), */
 
 	return (
-    <Table striped bordered responsive hover size="sm">
-      <tbody>
-        {rows.map(row => (
-          <tr key={row.name}>
-            <td style={{fontWeight: 'bold'}}>
-              {row.name}
-            </td>
-            <td align="left">{row.value}</td>
-          </tr>
-        ))}
-      </tbody>
-    </Table>
+    <Fragment>
+      <Table striped bordered responsive hover size="sm">
+        <tbody>
+          {rows.map(row => (
+            <tr key={row.name}>
+              <td style={{fontWeight: 'bold'}}>
+                {row.name}
+              </td>
+              <td align="left">{row.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+      { makeLogSection(te, true) }
+      { makeLogSection(te, false) }
+    </Fragment>
 	);
 }
 
