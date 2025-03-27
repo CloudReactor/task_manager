@@ -53,8 +53,6 @@ class ExecutionMethod:
         #'postponed_failure_before_success_seconds',
         #'postponed_missing_execution_before_start_seconds',
         #'postponed_timeout_before_success_seconds',
-        #'should_clear_failure_alerts_on_success',
-        #'should_clear_timeout_alerts_on_success',
         'project_url',
         #'log_query', 'logs_url',
         #'links',

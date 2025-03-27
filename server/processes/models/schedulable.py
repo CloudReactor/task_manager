@@ -51,10 +51,6 @@ class Schedulable(NamedWithUuidModel):
         blank=True)
     min_missing_execution_delay_seconds = models.PositiveIntegerField(null=True,
         blank=True)
-    
-    # Deprecated
-    should_clear_failure_alerts_on_success = models.BooleanField(default=False)
-    should_clear_timeout_alerts_on_success = models.BooleanField(default=False)
 
     notification_event_severity_on_success = models.PositiveIntegerField(
         null=True, blank=True, default=None)
