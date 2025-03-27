@@ -2,10 +2,10 @@
 # https://pythonspeed.com/articles/base-image-python-docker-images/
 
 # For AWS
-FROM public.ecr.aws/docker/library/python:3.12.6-slim-bookworm
+FROM public.ecr.aws/docker/library/python:3.12.9-slim-bookworm
 
 # For generic infrastructure provider
-# FROM python:3.12.6-slim-bookworm
+# FROM python:3.12.9-slim-bookworm
 
 LABEL maintainer="jeff@cloudreactor.io"
 
