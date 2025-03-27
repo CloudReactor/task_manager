@@ -91,7 +91,7 @@ services:
 
   api-schema:
     <<: *dev-base
-    command: spectacular --file schema/cloudreactor-openapi3.yml
+    command: spectacular --color --file schema/cloudreactor-openapi3.yml
     environment:
       - DJANGO_IN_SCHEMA_GENERATION=TRUE
 

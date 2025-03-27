@@ -469,7 +469,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         return super().update(instance, validated_data)
 
 
-    def get_build(self, obj: TaskExecution):
+    def get_build(self, obj: TaskExecution) -> Optional[dict[str, Any]]:
         try:
             build_task_execution = obj.build_task_execution
 
@@ -488,7 +488,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             }
 
 
-    def get_deploy(self, obj: TaskExecution):
+    def get_deploy(self, obj: TaskExecution) -> Optional[dict[str, Any]]:
         try:
             deployment_task_execution = obj.deployment_task_execution
 

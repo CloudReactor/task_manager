@@ -378,6 +378,191 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailNotificationProfile'
           description: ''
+  /notification_profiles/:
+    get:
+      operationId: notification_profiles_list
+      parameters:
+      - in: query
+        name: created_by_group__id
+        schema:
+          type: integer
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: name
+        schema:
+          type: string
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: run_environment__uuid
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - notification_profiles
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationProfileList'
+          description: ''
+    post:
+      operationId: notification_profiles_create
+      tags:
+      - notification_profiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationProfile'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationProfile'
+          description: ''
+  /notification_profiles/{uuid}/:
+    get:
+      operationId: notification_profiles_retrieve
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_profiles
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationProfile'
+          description: ''
+    put:
+      operationId: notification_profiles_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_profiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationProfile'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationProfile'
+          description: ''
+    patch:
+      operationId: notification_profiles_partial_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_profiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationProfile'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationProfile'
+          description: ''
+    delete:
+      operationId: notification_profiles_destroy
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_profiles
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /notification_profiles/{uuid}/clone/:
+    post:
+      operationId: notification_profiles_clone_create
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_profiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationProfile'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationProfile'
+          description: ''
   /pagerduty_profiles/:
     get:
       operationId: pagerduty_profiles_list
@@ -780,6 +965,7 @@ paths:
         name: task__uuid
         schema:
           type: string
+          format: uuid
       tags:
       - task_executions
       security:
@@ -903,9 +1089,9 @@ paths:
       operationId: tasks_list
       parameters:
       - in: query
-        name: description
+        name: enabled
         schema:
-          type: string
+          type: boolean
       - name: limit
         required: false
         in: query
@@ -937,6 +1123,16 @@ paths:
         schema:
           type: string
           format: uuid
+      - in: query
+        name: run_environment__uuid__in
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+        description: Multiple values may be separated by commas.
+        explode: false
+        style: form
       - name: search
         required: false
         in: query
@@ -1092,11 +1288,12 @@ paths:
       - in: query
         name: workflow__created_by_group__id
         schema:
-          type: string
+          type: integer
       - in: query
         name: workflow__uuid
         schema:
           type: string
+          format: uuid
       tags:
       - workflow_executions
       security:
@@ -1601,9 +1798,9 @@ paths:
       operationId: workflows_list
       parameters:
       - in: query
-        name: description
+        name: enabled
         schema:
-          type: string
+          type: boolean
       - name: limit
         required: false
         in: query
@@ -1630,6 +1827,17 @@ paths:
         name: run_environment__uuid
         schema:
           type: string
+          format: uuid
+      - in: query
+        name: run_environment__uuid__in
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+        description: Multiple values may be separated by commas.
+        explode: false
+        style: form
       - name: search
         required: false
         in: query
@@ -1848,179 +2056,6 @@ components:
           readOnly: true
       required:
       - name
-    AwsEcsExecutionMethod:
-      type: object
-      description: |-
-        AwsEcsExecutionMethods contain configuration for running Tasks in
-        AWS ECS.
-      properties:
-        type:
-          type: string
-          readOnly: true
-        task_definition_arn:
-          type: string
-          maxLength: 1000
-        task_definition_infrastructure_website_url:
-          type: string
-          readOnly: true
-        allocated_cpu_units:
-          type: integer
-        allocated_memory_mb:
-          type: integer
-        tags:
-          type: object
-          additionalProperties:
-            type: string
-            nullable: true
-          nullable: true
-        subnets:
-          type: array
-          items:
-            type: string
-            maxLength: 1000
-        subnet_infrastructure_website_urls:
-          type: array
-          items:
-            type: string
-            nullable: true
-          nullable: true
-          readOnly: true
-        security_groups:
-          type: array
-          items:
-            type: string
-            maxLength: 1000
-        security_group_infrastructure_website_urls:
-          type: array
-          items:
-            type: string
-            nullable: true
-          nullable: true
-          readOnly: true
-        assign_public_ip:
-          type: boolean
-        task_arn:
-          type: string
-          maxLength: 1000
-        launch_type:
-          allOf:
-          - $ref: '#/components/schemas/AwsEcsLaunchType'
-          default: FARGATE
-        cluster_arn:
-          type: string
-          maxLength: 1000
-        cluster_infrastructure_website_url:
-          type: string
-          readOnly: true
-        execution_role:
-          type: string
-          maxLength: 1000
-        execution_role_infrastructure_website_url:
-          type: string
-          readOnly: true
-        task_role:
-          type: string
-          maxLength: 1000
-        task_role_infrastructure_website_url:
-          type: string
-          readOnly: true
-        platform_version:
-          type: string
-          maxLength: 10
-    AwsEcsExecutionMethodCapability:
-      type: object
-      description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
-      properties:
-        task_definition_arn:
-          type: string
-          maxLength: 1000
-        task_definition_infrastructure_website_url:
-          type: string
-          readOnly: true
-        allocated_cpu_units:
-          type: integer
-        allocated_memory_mb:
-          type: integer
-        type:
-          type: string
-          readOnly: true
-        capabilities:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        tags:
-          type: object
-          additionalProperties:
-            type: string
-            nullable: true
-          nullable: true
-        default_subnets:
-          type: array
-          items:
-            type: string
-            maxLength: 1000
-          nullable: true
-        default_subnet_infrastructure_website_urls:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        default_launch_type:
-          allOf:
-          - $ref: '#/components/schemas/AwsEcsLaunchType'
-          default: FARGATE
-        supported_launch_types:
-          type: array
-          items:
-            allOf:
-            - $ref: '#/components/schemas/AwsEcsLaunchType'
-            default: FARGATE
-          nullable: true
-        default_cluster_arn:
-          type: string
-          maxLength: 1000
-        default_cluster_infrastructure_website_url:
-          type: string
-          readOnly: true
-        default_security_groups:
-          type: array
-          items:
-            type: string
-            maxLength: 1000
-          nullable: true
-        default_security_group_infrastructure_website_urls:
-          type: array
-          items:
-            type: string
-          readOnly: true
-        default_assign_public_ip:
-          type: boolean
-          nullable: true
-        default_execution_role:
-          type: string
-          maxLength: 1000
-        default_execution_role_infrastructure_website_url:
-          type: string
-          readOnly: true
-        default_task_role:
-          type: string
-          maxLength: 1000
-        default_task_role_infrastructure_website_url:
-          type: string
-          readOnly: true
-        default_platform_version:
-          type: string
-          maxLength: 10
-        main_container_name:
-          type: string
-          maxLength: 1000
-        service_options:
-          $ref: '#/components/schemas/AwsEcsServiceOptions'
     AwsEcsLaunchType:
       enum:
       - FARGATE
@@ -2057,11 +2092,6 @@ components:
             type: string
             maxLength: 1000
           nullable: true
-        default_subnet_infrastructure_website_urls:
-          type: array
-          items:
-            type: string
-          readOnly: true
         default_launch_type:
           allOf:
           - $ref: '#/components/schemas/AwsEcsLaunchType'
@@ -2076,107 +2106,24 @@ components:
         default_cluster_arn:
           type: string
           maxLength: 1000
-        default_cluster_infrastructure_website_url:
-          type: string
-          readOnly: true
         default_security_groups:
           type: array
           items:
             type: string
             maxLength: 1000
           nullable: true
-        default_security_group_infrastructure_website_urls:
-          type: array
-          items:
-            type: string
-          readOnly: true
         default_assign_public_ip:
           type: boolean
           nullable: true
         default_execution_role:
           type: string
           maxLength: 1000
-        default_execution_role_infrastructure_website_url:
-          type: string
-          readOnly: true
         default_task_role:
           type: string
           maxLength: 1000
-        default_task_role_infrastructure_website_url:
-          type: string
-          readOnly: true
         default_platform_version:
           type: string
           maxLength: 10
-    AwsEcsServiceLoadBalancerDetails:
-      type: object
-      description: |-
-        Configuration for a service AWS ECS Task that is behind an application load
-        balancer.
-      properties:
-        target_group_arn:
-          type: string
-          maxLength: 1000
-        container_name:
-          type: string
-          maxLength: 1000
-        container_port:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-      required:
-      - container_port
-      - target_group_arn
-    AwsEcsServiceOptions:
-      type: object
-      description: Options for running a Task as a service in AWS ECS.
-      properties:
-        load_balancers:
-          type: array
-          items:
-            $ref: '#/components/schemas/AwsEcsServiceLoadBalancerDetails'
-          readOnly: true
-        health_check_grace_period_seconds:
-          type: integer
-        force_new_deployment:
-          type: boolean
-        deploy_minimum_healthy_percent:
-          type: integer
-        deploy_maximum_percent:
-          type: integer
-        deploy_enable_circuit_breaker:
-          type: boolean
-        deploy_rollback_on_failure:
-          type: boolean
-        enable_ecs_managed_tags:
-          type: boolean
-        propagate_tags:
-          $ref: '#/components/schemas/PropagateTagsEnum'
-        tags:
-          type: object
-          additionalProperties:
-            type: string
-            nullable: true
-          nullable: true
-    CurrentServiceInfo:
-      type: object
-      properties:
-        type:
-          type: string
-          readOnly: true
-        service_arn:
-          type: string
-          readOnly: true
-          nullable: true
-        service_infrastructure_website_url:
-          type: string
-          nullable: true
-          readOnly: true
-        service_arn_updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
     EmailNotificationProfile:
       type: object
       description: An EmailProfile contains settings for emailing notifications.
@@ -2248,15 +2195,6 @@ components:
           maxLength: 10000
       required:
       - name
-    ExecutionMethodCapability:
-      oneOf:
-      - $ref: '#/components/schemas/AwsEcsExecutionMethodCapability'
-      - $ref: '#/components/schemas/UnknownExecutionMethodCapability'
-      discriminator:
-        propertyName: type
-        mapping:
-          AWS ECS: '#/components/schemas/AwsEcsExecutionMethodCapability'
-          Unknown: '#/components/schemas/UnknownExecutionMethodCapability'
     FailureBehaviorEnum:
       enum:
       - always_fail_workflow
@@ -2325,6 +2263,56 @@ components:
           readOnly: true
         name:
           type: string
+    NotificationProfile:
+      type: object
+      description: A serializer for NotificationProfile objects.
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        dashboard_url:
+          type: string
+          readOnly: true
+        enabled:
+          type: boolean
+        notification_delivery_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameAndUuid'
+        created_by_user:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          readOnly: true
+        created_by_group:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+        run_environment:
+          allOf:
+          - $ref: '#/components/schemas/NameAndUuid'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - name
     NotificationSeverity:
       enum:
       - critical
@@ -2400,6 +2388,9 @@ components:
       - name
     PaginatedAlertMethodList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2420,6 +2411,9 @@ components:
             $ref: '#/components/schemas/AlertMethod'
     PaginatedEmailNotificationProfileList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2438,8 +2432,34 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EmailNotificationProfile'
+    PaginatedNotificationProfileList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationProfile'
     PaginatedPagerDutyProfileList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2460,6 +2480,9 @@ components:
             $ref: '#/components/schemas/PagerDutyProfile'
     PaginatedRunEnvironmentList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2480,6 +2503,9 @@ components:
             $ref: '#/components/schemas/RunEnvironment'
     PaginatedTaskExecutionList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2500,6 +2526,9 @@ components:
             $ref: '#/components/schemas/TaskExecution'
     PaginatedTaskList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2520,6 +2549,9 @@ components:
             $ref: '#/components/schemas/Task'
     PaginatedWorkflowExecutionSummaryList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2540,6 +2572,9 @@ components:
             $ref: '#/components/schemas/WorkflowExecutionSummary'
     PaginatedWorkflowSummaryList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2560,6 +2595,9 @@ components:
             $ref: '#/components/schemas/WorkflowSummary'
     PaginatedWorkflowTaskInstanceList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2580,6 +2618,9 @@ components:
             $ref: '#/components/schemas/WorkflowTaskInstance'
     PaginatedWorkflowTransitionList:
       type: object
+      required:
+      - count
+      - results
       properties:
         count:
           type: integer
@@ -2730,6 +2771,54 @@ components:
         body_template:
           type: string
           maxLength: 10000
+    PatchedNotificationProfile:
+      type: object
+      description: A serializer for NotificationProfile objects.
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        dashboard_url:
+          type: string
+          readOnly: true
+        enabled:
+          type: boolean
+        notification_delivery_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameAndUuid'
+        created_by_user:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          readOnly: true
+        created_by_group:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+        run_environment:
+          allOf:
+          - $ref: '#/components/schemas/NameAndUuid'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedPagerDutyProfile:
       type: object
       description: |-
@@ -2837,23 +2926,17 @@ components:
           readOnly: true
         aws_account_id:
           type: string
-          maxLength: 200
+          nullable: true
+          readOnly: true
         aws_default_region:
           type: string
-          maxLength: 20
-        aws_assumed_role_external_id:
-          type: string
-          maxLength: 1000
-        aws_events_role_arn:
-          type: string
-          maxLength: 100
-        aws_workflow_starter_lambda_arn:
-          type: string
-          maxLength: 1000
-        aws_workflow_starter_access_key:
-          type: string
-          maxLength: 1000
+          nullable: true
+          readOnly: true
         default_alert_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameAndUuid'
+        notification_profiles:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
@@ -2888,10 +2971,6 @@ components:
           maxLength: 5000
         dashboard_url:
           type: string
-          readOnly: true
-        infrastructure_website_url:
-          type: string
-          nullable: true
           readOnly: true
         max_manual_start_delay_before_alert_seconds:
           type: integer
@@ -2973,6 +3052,31 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
+        notification_event_severity_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_execution:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_heartbeat:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_service_down:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         postponed_failure_before_success_seconds:
           type: integer
           maximum: 2147483647
@@ -2988,10 +3092,16 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
-        should_clear_failure_alerts_on_success:
-          type: boolean
-        should_clear_timeout_alerts_on_success:
-          type: boolean
+        required_success_count_to_clear_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        required_success_count_to_clear_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         project_url:
           type: string
           maxLength: 1000
@@ -3010,39 +3120,16 @@ components:
           allOf:
           - $ref: '#/components/schemas/NameAndUuid'
           nullable: true
-        allocated_cpu_units:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          nullable: true
-        allocated_memory_mb:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          nullable: true
-        execution_method_capability:
-          allOf:
-          - $ref: '#/components/schemas/ExecutionMethodCapability'
-          readOnly: true
         execution_method_type:
           type: string
           maxLength: 100
         execution_method_capability_details:
-          type: object
-          additionalProperties: {}
           nullable: true
         capabilities:
           type: array
           items:
             type: string
           readOnly: true
-        infrastructure_type:
-          type: string
-          maxLength: 100
-        infrastructure_settings:
-          type: object
-          additionalProperties: {}
-          nullable: true
         is_scheduling_managed:
           type: boolean
           nullable: true
@@ -3050,8 +3137,6 @@ components:
           type: string
           maxLength: 100
         scheduling_settings:
-          type: object
-          additionalProperties: {}
           nullable: true
         is_service_managed:
           type: boolean
@@ -3060,52 +3145,26 @@ components:
           type: string
           maxLength: 100
         service_settings:
-          type: object
-          additionalProperties: {}
           nullable: true
         default_input_value:
-          type: object
-          additionalProperties: {}
           nullable: true
         input_value_schema:
-          type: object
-          additionalProperties: {}
           nullable: true
         output_value_schema:
-          type: object
-          additionalProperties: {}
           nullable: true
-        managed_probability:
-          type: number
-          format: double
-          maximum: 1.0
-          minimum: 0.0
-        failure_report_probability:
-          type: number
-          format: double
-          maximum: 1.0
-          minimum: 0.0
-        timeout_report_probability:
-          type: number
-          format: double
-          maximum: 1.0
-          minimum: 0.0
         alert_methods:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
+        notification_profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameAndUuid'
         other_metadata:
-          type: object
-          additionalProperties: {}
           nullable: true
         latest_task_execution:
           allOf:
           - $ref: '#/components/schemas/TaskExecution'
-          readOnly: true
-          nullable: true
-        current_service_info:
-          allOf:
-          - $ref: '#/components/schemas/CurrentServiceInfo'
           readOnly: true
           nullable: true
         created_by_user:
@@ -3132,6 +3191,150 @@ components:
           type: string
           format: date-time
           readOnly: true
+        infrastructure_type:
+          type: string
+          maxLength: 100
+        infrastructure_settings:
+          nullable: true
+        process_command:
+          type: string
+          nullable: true
+          maxLength: 5000
+        allocated_cpu_units:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        allocated_memory_mb:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        prevent_offline_execution:
+          type: boolean
+          nullable: true
+        process_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        process_max_retries:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        process_retry_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        process_termination_grace_period_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_retry_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        api_resume_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        api_error_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_task_execution_creation_error_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_task_execution_creation_conflict_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_task_execution_creation_conflict_retry_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        api_final_update_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_request_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        status_update_interval_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        status_update_port:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        status_update_message_max_bytes:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        num_log_lines_sent_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        num_log_lines_sent_on_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        num_log_lines_sent_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        max_log_line_length:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        merge_stdout_and_stderr_logs:
+          type: boolean
+          nullable: true
+        ignore_stdout:
+          type: boolean
+          nullable: true
+        ignore_stderr:
+          type: boolean
+          nullable: true
+        managed_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        failure_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        timeout_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
     PatchedTaskExecution:
       type: object
       description: A Task Execution is an execution / run instance of a Task.
@@ -3147,15 +3350,9 @@ components:
         dashboard_url:
           type: string
           readOnly: true
-        infrastructure_website_url:
-          type: string
-          nullable: true
-          readOnly: true
         task:
           $ref: '#/components/schemas/NameAndUuid'
         auto_created_task_properties:
-          type: object
-          additionalProperties: {}
           nullable: true
         task_version_number:
           type: integer
@@ -3176,34 +3373,17 @@ components:
           nullable: true
           readOnly: true
         other_instance_metadata:
-          type: object
-          additionalProperties: {}
           nullable: true
         hostname:
           type: string
           nullable: true
           maxLength: 1000
         environment_variables_overrides:
-          type: object
-          additionalProperties: {}
           nullable: true
-        execution_method:
-          allOf:
-          - $ref: '#/components/schemas/AwsEcsExecutionMethod'
-          readOnly: true
         execution_method_type:
           type: string
           maxLength: 100
         execution_method_details:
-          type: object
-          additionalProperties: {}
-          nullable: true
-        infrastructure_type:
-          type: string
-          maxLength: 100
-        infrastructure_settings:
-          type: object
-          additionalProperties: {}
           nullable: true
         status:
           $ref: '#/components/schemas/TaskExecutionStatus'
@@ -3261,6 +3441,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        last_app_heartbeat_at:
+          type: string
+          format: date-time
+          nullable: true
         failed_attempts:
           type: integer
           maximum: 2147483647
@@ -3275,8 +3459,6 @@ components:
           minimum: -2147483648
           nullable: true
         error_details:
-          type: object
-          additionalProperties: {}
           nullable: true
         last_status_message:
           type: string
@@ -3307,8 +3489,6 @@ components:
           format: int64
           nullable: true
         other_runtime_metadata:
-          type: object
-          additionalProperties: {}
           nullable: true
         current_cpu_units:
           type: integer
@@ -3352,10 +3532,6 @@ components:
           type: string
           nullable: true
           maxLength: 200
-        process_command:
-          type: string
-          nullable: true
-          maxLength: 5000
         is_service:
           type: boolean
           nullable: true
@@ -3368,29 +3544,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-          nullable: true
-        prevent_offline_execution:
-          type: boolean
-          nullable: true
-        process_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-        process_termination_grace_period_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-        process_max_retries:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-        process_retry_delay_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
           nullable: true
         schedule:
           type: string
@@ -3409,7 +3562,77 @@ components:
         api_base_url:
           type: string
           maxLength: 200
-        api_request_timeout_seconds:
+        debug_log_tail:
+          type: string
+          nullable: true
+          maxLength: 5000000
+        error_log_tail:
+          type: string
+          nullable: true
+          maxLength: 5000000
+        embedded_mode:
+          type: boolean
+          nullable: true
+        input_value:
+          nullable: true
+        output_value:
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        build:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        deploy:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        infrastructure_type:
+          type: string
+          maxLength: 100
+        infrastructure_settings:
+          nullable: true
+        process_command:
+          type: string
+          nullable: true
+          maxLength: 5000
+        allocated_cpu_units:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        allocated_memory_mb:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        prevent_offline_execution:
+          type: boolean
+          nullable: true
+        process_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        process_max_retries:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        process_retry_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        process_termination_grace_period_seconds:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
@@ -3449,6 +3672,11 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           nullable: true
+        api_request_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
         status_update_interval_seconds:
           type: integer
           maximum: 2147483647
@@ -3464,33 +3692,55 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           nullable: true
-        debug_log_tail:
-          type: string
+        num_log_lines_sent_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
           nullable: true
-          maxLength: 5000000
-        error_log_tail:
-          type: string
+        num_log_lines_sent_on_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
           nullable: true
-          maxLength: 5000000
-        embedded_mode:
+        num_log_lines_sent_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        max_log_line_length:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        merge_stdout_and_stderr_logs:
           type: boolean
           nullable: true
-        input_value:
-          type: object
-          additionalProperties: {}
+        ignore_stdout:
+          type: boolean
           nullable: true
-        output_value:
-          type: object
-          additionalProperties: {}
+        ignore_stderr:
+          type: boolean
           nullable: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
+        managed_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        failure_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        timeout_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        other_metadata:
+          nullable: true
     PatchedWorkflow:
       type: object
       description: |-
@@ -3552,6 +3802,36 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
+        notification_event_severity_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_execution:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_heartbeat:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_service_down:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         postponed_failure_before_success_seconds:
           type: integer
           maximum: 2147483647
@@ -3567,15 +3847,21 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
+        required_success_count_to_clear_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        required_success_count_to_clear_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         scheduled_instance_count:
           type: integer
           maximum: 2147483647
           minimum: 0
           nullable: true
-        should_clear_failure_alerts_on_success:
-          type: boolean
-        should_clear_timeout_alerts_on_success:
-          type: boolean
         latest_workflow_execution:
           allOf:
           - $ref: '#/components/schemas/WorkflowExecutionSummary'
@@ -3605,6 +3891,10 @@ components:
           format: date-time
           readOnly: true
         alert_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameAndUuid'
+        notification_profiles:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
@@ -3692,14 +3982,12 @@ components:
         failed_attempts:
           type: integer
           maximum: 2147483647
-          minimum: -2147483648
+          minimum: 0
         timed_out_attempts:
           type: integer
           maximum: 2147483647
-          minimum: -2147483648
+          minimum: 0
         workflow_snapshot:
-          type: object
-          additionalProperties: {}
           readOnly: true
           nullable: true
         workflow_task_instance_executions:
@@ -3780,8 +4068,6 @@ components:
         allow_workflow_execution_after_timeout:
           type: boolean
         environment_variables_overrides:
-          type: object
-          additionalProperties: {}
           nullable: true
         allocated_cpu_units:
           type: integer
@@ -3793,7 +4079,7 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           nullable: true
-        use_task_alert_methods:
+        use_task_notification_profiles:
           type: boolean
         ui_color:
           type: string
@@ -3880,14 +4166,6 @@ components:
           type: string
           format: date-time
           readOnly: true
-    PropagateTagsEnum:
-      enum:
-      - TASK_DEFINITION
-      - SERVICE
-      type: string
-      description: |-
-        * `TASK_DEFINITION` - TASK_DEFINITION
-        * `SERVICE` - SERVICE
     RuleTypeEnum:
       enum:
       - always
@@ -3957,23 +4235,17 @@ components:
           readOnly: true
         aws_account_id:
           type: string
-          maxLength: 200
+          nullable: true
+          readOnly: true
         aws_default_region:
           type: string
-          maxLength: 20
-        aws_assumed_role_external_id:
-          type: string
-          maxLength: 1000
-        aws_events_role_arn:
-          type: string
-          maxLength: 100
-        aws_workflow_starter_lambda_arn:
-          type: string
-          maxLength: 1000
-        aws_workflow_starter_access_key:
-          type: string
-          maxLength: 1000
+          nullable: true
+          readOnly: true
         default_alert_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameAndUuid'
+        notification_profiles:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
@@ -4040,10 +4312,6 @@ components:
           maxLength: 5000
         dashboard_url:
           type: string
-          readOnly: true
-        infrastructure_website_url:
-          type: string
-          nullable: true
           readOnly: true
         max_manual_start_delay_before_alert_seconds:
           type: integer
@@ -4125,6 +4393,31 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
+        notification_event_severity_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_execution:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_heartbeat:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_service_down:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         postponed_failure_before_success_seconds:
           type: integer
           maximum: 2147483647
@@ -4140,10 +4433,16 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
-        should_clear_failure_alerts_on_success:
-          type: boolean
-        should_clear_timeout_alerts_on_success:
-          type: boolean
+        required_success_count_to_clear_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        required_success_count_to_clear_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         project_url:
           type: string
           maxLength: 1000
@@ -4162,39 +4461,16 @@ components:
           allOf:
           - $ref: '#/components/schemas/NameAndUuid'
           nullable: true
-        allocated_cpu_units:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          nullable: true
-        allocated_memory_mb:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          nullable: true
-        execution_method_capability:
-          allOf:
-          - $ref: '#/components/schemas/ExecutionMethodCapability'
-          readOnly: true
         execution_method_type:
           type: string
           maxLength: 100
         execution_method_capability_details:
-          type: object
-          additionalProperties: {}
           nullable: true
         capabilities:
           type: array
           items:
             type: string
           readOnly: true
-        infrastructure_type:
-          type: string
-          maxLength: 100
-        infrastructure_settings:
-          type: object
-          additionalProperties: {}
-          nullable: true
         is_scheduling_managed:
           type: boolean
           nullable: true
@@ -4202,8 +4478,6 @@ components:
           type: string
           maxLength: 100
         scheduling_settings:
-          type: object
-          additionalProperties: {}
           nullable: true
         is_service_managed:
           type: boolean
@@ -4212,52 +4486,26 @@ components:
           type: string
           maxLength: 100
         service_settings:
-          type: object
-          additionalProperties: {}
           nullable: true
         default_input_value:
-          type: object
-          additionalProperties: {}
           nullable: true
         input_value_schema:
-          type: object
-          additionalProperties: {}
           nullable: true
         output_value_schema:
-          type: object
-          additionalProperties: {}
           nullable: true
-        managed_probability:
-          type: number
-          format: double
-          maximum: 1.0
-          minimum: 0.0
-        failure_report_probability:
-          type: number
-          format: double
-          maximum: 1.0
-          minimum: 0.0
-        timeout_report_probability:
-          type: number
-          format: double
-          maximum: 1.0
-          minimum: 0.0
         alert_methods:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
+        notification_profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameAndUuid'
         other_metadata:
-          type: object
-          additionalProperties: {}
           nullable: true
         latest_task_execution:
           allOf:
           - $ref: '#/components/schemas/TaskExecution'
-          readOnly: true
-          nullable: true
-        current_service_info:
-          allOf:
-          - $ref: '#/components/schemas/CurrentServiceInfo'
           readOnly: true
           nullable: true
         created_by_user:
@@ -4284,6 +4532,150 @@ components:
           type: string
           format: date-time
           readOnly: true
+        infrastructure_type:
+          type: string
+          maxLength: 100
+        infrastructure_settings:
+          nullable: true
+        process_command:
+          type: string
+          nullable: true
+          maxLength: 5000
+        allocated_cpu_units:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        allocated_memory_mb:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        prevent_offline_execution:
+          type: boolean
+          nullable: true
+        process_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        process_max_retries:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        process_retry_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        process_termination_grace_period_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_retry_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        api_resume_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        api_error_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_task_execution_creation_error_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_task_execution_creation_conflict_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_task_execution_creation_conflict_retry_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        api_final_update_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        api_request_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        status_update_interval_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        status_update_port:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        status_update_message_max_bytes:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        num_log_lines_sent_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        num_log_lines_sent_on_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        num_log_lines_sent_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        max_log_line_length:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        merge_stdout_and_stderr_logs:
+          type: boolean
+          nullable: true
+        ignore_stdout:
+          type: boolean
+          nullable: true
+        ignore_stderr:
+          type: boolean
+          nullable: true
+        managed_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        failure_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        timeout_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
       required:
       - name
     TaskExecution:
@@ -4301,15 +4693,9 @@ components:
         dashboard_url:
           type: string
           readOnly: true
-        infrastructure_website_url:
-          type: string
-          nullable: true
-          readOnly: true
         task:
           $ref: '#/components/schemas/NameAndUuid'
         auto_created_task_properties:
-          type: object
-          additionalProperties: {}
           nullable: true
         task_version_number:
           type: integer
@@ -4330,34 +4716,17 @@ components:
           nullable: true
           readOnly: true
         other_instance_metadata:
-          type: object
-          additionalProperties: {}
           nullable: true
         hostname:
           type: string
           nullable: true
           maxLength: 1000
         environment_variables_overrides:
-          type: object
-          additionalProperties: {}
           nullable: true
-        execution_method:
-          allOf:
-          - $ref: '#/components/schemas/AwsEcsExecutionMethod'
-          readOnly: true
         execution_method_type:
           type: string
           maxLength: 100
         execution_method_details:
-          type: object
-          additionalProperties: {}
-          nullable: true
-        infrastructure_type:
-          type: string
-          maxLength: 100
-        infrastructure_settings:
-          type: object
-          additionalProperties: {}
           nullable: true
         status:
           $ref: '#/components/schemas/TaskExecutionStatus'
@@ -4415,6 +4784,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        last_app_heartbeat_at:
+          type: string
+          format: date-time
+          nullable: true
         failed_attempts:
           type: integer
           maximum: 2147483647
@@ -4429,8 +4802,6 @@ components:
           minimum: -2147483648
           nullable: true
         error_details:
-          type: object
-          additionalProperties: {}
           nullable: true
         last_status_message:
           type: string
@@ -4461,8 +4832,6 @@ components:
           format: int64
           nullable: true
         other_runtime_metadata:
-          type: object
-          additionalProperties: {}
           nullable: true
         current_cpu_units:
           type: integer
@@ -4506,10 +4875,6 @@ components:
           type: string
           nullable: true
           maxLength: 200
-        process_command:
-          type: string
-          nullable: true
-          maxLength: 5000
         is_service:
           type: boolean
           nullable: true
@@ -4522,29 +4887,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-          nullable: true
-        prevent_offline_execution:
-          type: boolean
-          nullable: true
-        process_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-        process_termination_grace_period_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-        process_max_retries:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-        process_retry_delay_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
           nullable: true
         schedule:
           type: string
@@ -4563,7 +4905,77 @@ components:
         api_base_url:
           type: string
           maxLength: 200
-        api_request_timeout_seconds:
+        debug_log_tail:
+          type: string
+          nullable: true
+          maxLength: 5000000
+        error_log_tail:
+          type: string
+          nullable: true
+          maxLength: 5000000
+        embedded_mode:
+          type: boolean
+          nullable: true
+        input_value:
+          nullable: true
+        output_value:
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        build:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        deploy:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        infrastructure_type:
+          type: string
+          maxLength: 100
+        infrastructure_settings:
+          nullable: true
+        process_command:
+          type: string
+          nullable: true
+          maxLength: 5000
+        allocated_cpu_units:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        allocated_memory_mb:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        prevent_offline_execution:
+          type: boolean
+          nullable: true
+        process_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        process_max_retries:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        process_retry_delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        process_termination_grace_period_seconds:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
@@ -4603,6 +5015,11 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           nullable: true
+        api_request_timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
         status_update_interval_seconds:
           type: integer
           maximum: 2147483647
@@ -4618,33 +5035,55 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           nullable: true
-        debug_log_tail:
-          type: string
+        num_log_lines_sent_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
           nullable: true
-          maxLength: 5000000
-        error_log_tail:
-          type: string
+        num_log_lines_sent_on_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
           nullable: true
-          maxLength: 5000000
-        embedded_mode:
+        num_log_lines_sent_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        max_log_line_length:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        merge_stdout_and_stderr_logs:
           type: boolean
           nullable: true
-        input_value:
-          type: object
-          additionalProperties: {}
+        ignore_stdout:
+          type: boolean
           nullable: true
-        output_value:
-          type: object
-          additionalProperties: {}
+        ignore_stderr:
+          type: boolean
           nullable: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
+        managed_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        failure_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        timeout_report_probability:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+          nullable: true
+        other_metadata:
+          nullable: true
       required:
       - status
     TaskExecutionStatus:
@@ -4699,22 +5138,6 @@ components:
         * `fail_workflow_if_unhandled` - Fail workflow if unhandled
         * `timeout_workflow_if_unhandled` - Timeout workflow if unhandled
         * `ignore` - Ignore
-    UnknownExecutionMethodCapability:
-      type: object
-      description: |-
-        A ModelSerializer that takes additional arguments for
-        "fields", "omit" and "expand" in order to
-        control which fields are displayed, and whether to replace simple
-        values with complex, nested serializations
-      properties:
-        type:
-          type: string
-          readOnly: true
-        capabilities:
-          type: array
-          items:
-            type: string
-          readOnly: true
     Workflow:
       type: object
       description: |-
@@ -4776,6 +5199,36 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
+        notification_event_severity_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_execution:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_heartbeat:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_service_down:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         postponed_failure_before_success_seconds:
           type: integer
           maximum: 2147483647
@@ -4791,15 +5244,21 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
+        required_success_count_to_clear_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        required_success_count_to_clear_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         scheduled_instance_count:
           type: integer
           maximum: 2147483647
           minimum: 0
           nullable: true
-        should_clear_failure_alerts_on_success:
-          type: boolean
-        should_clear_timeout_alerts_on_success:
-          type: boolean
         latest_workflow_execution:
           allOf:
           - $ref: '#/components/schemas/WorkflowExecutionSummary'
@@ -4829,6 +5288,10 @@ components:
           format: date-time
           readOnly: true
         alert_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameAndUuid'
+        notification_profiles:
           type: array
           items:
             $ref: '#/components/schemas/NameAndUuid'
@@ -4918,14 +5381,12 @@ components:
         failed_attempts:
           type: integer
           maximum: 2147483647
-          minimum: -2147483648
+          minimum: 0
         timed_out_attempts:
           type: integer
           maximum: 2147483647
-          minimum: -2147483648
+          minimum: 0
         workflow_snapshot:
-          type: object
-          additionalProperties: {}
           readOnly: true
           nullable: true
         workflow_task_instance_executions:
@@ -5041,11 +5502,11 @@ components:
         failed_attempts:
           type: integer
           maximum: 2147483647
-          minimum: -2147483648
+          minimum: 0
         timed_out_attempts:
           type: integer
           maximum: 2147483647
-          minimum: -2147483648
+          minimum: 0
         created_at:
           type: string
           format: date-time
@@ -5114,6 +5575,36 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
+        notification_event_severity_on_success:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_execution:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_missing_heartbeat:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_service_down:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        notification_event_severity_on_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         postponed_failure_before_success_seconds:
           type: integer
           maximum: 2147483647
@@ -5129,15 +5620,21 @@ components:
           maximum: 2147483647
           minimum: 0
           nullable: true
+        required_success_count_to_clear_failure:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        required_success_count_to_clear_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         scheduled_instance_count:
           type: integer
           maximum: 2147483647
           minimum: 0
           nullable: true
-        should_clear_failure_alerts_on_success:
-          type: boolean
-        should_clear_timeout_alerts_on_success:
-          type: boolean
         latest_workflow_execution:
           allOf:
           - $ref: '#/components/schemas/WorkflowExecutionSummary'
@@ -5228,8 +5725,6 @@ components:
         allow_workflow_execution_after_timeout:
           type: boolean
         environment_variables_overrides:
-          type: object
-          additionalProperties: {}
           nullable: true
         allocated_cpu_units:
           type: integer
@@ -5241,7 +5736,7 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           nullable: true
-        use_task_alert_methods:
+        use_task_notification_profiles:
           type: boolean
         ui_color:
           type: string
