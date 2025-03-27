@@ -49,13 +49,13 @@ function formatTime(x: Date | null) : string {
 function makeLogSection(te: TaskExecution, isStdout: boolean) {
   const logLines = isStdout ? te.debug_log_tail : te.error_log_tail;
   return (
-    <Row className="my-2">
+    <Row className={styles.logSection}>
       <Col>
         <h5 className="my-3">{isStdout ? 'Debug log' : 'Error log'}:</h5>
         {
           (logLines === null) ? <div>N/A</div> : (
-            <textarea className={styles.logBlock}
-            rows={10} readOnly={true} value={logLines} />
+            <textarea className={styles.logBlock} rows={10} readOnly={true}
+             value={logLines} />
           )
         }
       </Col>
