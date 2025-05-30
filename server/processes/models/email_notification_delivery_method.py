@@ -9,9 +9,11 @@ from django.core.mail import EmailMessage
 from django.contrib.postgres.fields import ArrayField
 
 from templated_email import get_templated_mail
+import yaml
 
 from ..common.notification import *
 from .event import Event
+from .task_execution import TaskExecution
 from .notification_delivery_method import NotificationDeliveryMethod
 from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
 from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
@@ -62,6 +64,12 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
         template_params['model_task_execution'] = event.task_execution
         template_params['event'] = event
 
+        template_params['formatted_execution_method_details'] = \
+            self.make_formatted_execution_method_details(task_execution=event.task_execution)
+
+        template_params['formatted_infrastructure_settings'] = \
+            self.make_formatted_infrastructure_settings(task_execution=event.task_execution)
+
         if event.details:
             template_params.update(event.details)
 
@@ -107,3 +115,29 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
                 default=self.DEFAULT_REPLY_TO_EMAIL_ADDRESS)]
 
         return email
+
+    def make_formatted_execution_method_details(self,
+            task_execution: TaskExecution) -> Optional[str]:
+        if not task_execution.execution_method_details:
+            return None
+
+        return yaml.safe_dump(
+            task_execution.execution_method_details,
+            indent=2,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False,
+        )
+
+    def make_formatted_infrastructure_settings(self,
+            task_execution: TaskExecution) -> Optional[str]:
+        if not task_execution.infrastructure_settings:
+            return None
+
+        return yaml.safe_dump(
+            task_execution.infrastructure_settings,
+            indent=2,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False,
+        )

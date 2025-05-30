@@ -23,6 +23,46 @@
 <table class="table table-sm table-striped table-bordered table-hover">
   <tbody>
     <tr>
+      <td style="font-weight: bold;">Event info</td>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Event ID</td>
+      <td align="left">{{ event.uuid | default:"N/A" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Event severity</td>
+      <td align="left">{{ severity | upper }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Event timestamp</td>
+      <td align="left">{{ event.event_at | date:"c" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Detected at</td>
+      <td align="left">{{ event.detected_at | date:"c" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Triggered at</td>
+      <td align="left">{{ event.triggered_at | date:"c" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Event Group</td>
+      <td align="left">{{ event.grouping_key | default:"N/A" }}</td>
+    </tr>
+
+    <tr>
+      <td style="font-weight: bold;">Task Execution info</td>
+      <td></td>
+    </tr>
+
+    <tr>
       <td style="font-weight: bold;">Started by</td>
       <td align="left">{{ task_execution.started_by | default:"N/A" }}</td>
     </tr>
@@ -150,40 +190,48 @@
       <td align="left">{{ task_execution.execution_method_type | default:'N/A' }}</td>
     </tr>
     <tr>
+      <td style="font-weight: bold;">Execution method details</td>
+      <td align="left">
+        {% if formatted_execution_method_details %}
+        <pre>{{ formatted_execution_method_details }}</pre>
+        {% else %}
+        N/A
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
       <td style="font-weight: bold;">Infrastructure</td>
       <td align="left">{{ task_execution.infrastructure_type | default:"N/A" }}</td>
     </tr>
 
     <tr>
-      <td style="font-weight: bold;">Event ID</td>
-      <td align="left">{{ event.uuid | default:"N/A" }}</td>
+      <td style="font-weight: bold;">Infrastructure settings</td>
+      <td align="left">
+        {% if formatted_infrastructure_settings %}
+          <pre>{{ formatted_infrastructure_settings }}</pre>
+        {% else %}
+          N/A
+        {% endif %}
+      </td>
     </tr>
-
-
+    {% if model_task_execution.build_task_execution %}
     <tr>
-      <td style="font-weight: bold;">Event severity</td>
-      <td align="left">{{ severity | upper }}</td>
+      <td style="font-weight: bold;">Built with</td>
+      <td>
+        <a href="{{ task_execution.build_task_execution.dashboard_url | default:"N/A" }}"
+        >{{ task_execution.build_task_execution.uuid }}</a>
+      </td>
     </tr>
-
+    {% endif %}
+    {% if model_task_execution.deployment_task_execution %}
     <tr>
-      <td style="font-weight: bold;">Event timestamp</td>
-      <td align="left">{{ event.event_at | date:"c" }}</td>
+      <td style="font-weight: bold;">Deployed with</td>
+      <td>
+        <a href="{{ task_execution.deployment_task_execution.dashboard_url | default:"N/A" }}"
+        >{{ task_execution.deployment_task_execution.uuid }}</a>
+      </td>
     </tr>
-
-    <tr>
-      <td style="font-weight: bold;">Detected at</td>
-      <td align="left">{{ event.detected_at | date:"c" }}</td>
-    </tr>
-
-    <tr>
-      <td style="font-weight: bold;">Triggered at</td>
-      <td align="left">{{ event.triggered_at | date:"c" }}</td>
-    </tr>
-
-    <tr>
-      <td style="font-weight: bold;">Event Group</td>
-      <td align="left">{{ event.grouping_key | default:"N/A" }}</td>
-    </tr>
+    {% endif %}
   </tbody>
 </table>
 
