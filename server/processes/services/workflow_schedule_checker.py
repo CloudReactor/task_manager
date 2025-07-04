@@ -5,7 +5,7 @@ from typing import cast
 
 from processes.models import *
 from processes.serializers.missing_scheduled_workflow_execution_serializer import \
-    MissingScheduledWorkflowExecutionSerializer
+    LegacyMissingScheduledWorkflowExecutionSerializer
 from .schedule_checker import ScheduleChecker
 
 SUMMARY_TEMPLATE = \
@@ -22,28 +22,28 @@ class WorkflowScheduleChecker(ScheduleChecker[Workflow]):
         return Workflow.objects
 
     def missing_scheduled_executions_of(self, schedulable: Workflow):
-        return MissingScheduledWorkflowExecution.objects.filter(
+        return LegacyMissingScheduledWorkflowExecution.objects.filter(
                 workflow=schedulable)
 
     def executions_of(self, schedulable: Workflow):
         return WorkflowExecution.objects.filter(workflow=schedulable)
 
     def make_missing_scheduled_execution(self, schedulable: Workflow,
-            expected_execution_at: datetime) -> MissingScheduledWorkflowExecution:
-        return MissingScheduledWorkflowExecution(workflow=schedulable,
+            expected_execution_at: datetime) -> LegacyMissingScheduledWorkflowExecution:
+        return LegacyMissingScheduledWorkflowExecution(workflow=schedulable,
                 schedule=schedulable.schedule,
                 expected_execution_at=expected_execution_at)
 
     def missing_scheduled_execution_to_details(self,
-            mse: MissingScheduledExecution, context) -> dict:
-        return MissingScheduledWorkflowExecutionSerializer(mse,
+            mse: LegacyMissingScheduledExecution, context) -> dict:
+        return LegacyMissingScheduledWorkflowExecutionSerializer(mse,
                 context=context).data
 
-    def make_missing_execution_alert(self, mse: MissingScheduledExecution,
-            alert_method: AlertMethod) -> MissingScheduledWorkflowExecutionAlert:
-        return MissingScheduledWorkflowExecutionAlert(
+    def make_missing_execution_alert(self, mse: LegacyMissingScheduledExecution,
+            alert_method: AlertMethod) -> LegacyMissingScheduledWorkflowExecutionAlert:
+        return LegacyMissingScheduledWorkflowExecutionAlert(
                 missing_scheduled_workflow_execution=cast(
-                        MissingScheduledWorkflowExecution, mse),
+                        LegacyMissingScheduledWorkflowExecution, mse),
                 alert_method=alert_method)
 
     def alert_summary_template(self) -> str:

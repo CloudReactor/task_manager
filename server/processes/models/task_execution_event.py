@@ -1,5 +1,6 @@
 from django.db import models
 
+from ..common.utils import strip_prefix_before_last_dot
 from .event import Event
 from .task import Task
 from .task_execution import TaskExecution
@@ -20,4 +21,5 @@ class TaskExecutionEvent(Event):
 
     def __str__(self) -> str:
         te_id = str(self.task_execution.uuid) if self.task_execution else '[REMOVED]'
-        return 'Task Execution ' + te_id + ' / ' + str(self.uuid)
+        return strip_prefix_before_last_dot(self.type) + ' TaskExec ' + te_id \
+                + ' / ' + str(self.uuid)

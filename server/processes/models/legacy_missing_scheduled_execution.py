@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 
 
-class MissingScheduledExecution(models.Model):
+class LegacyMissingScheduledExecution(models.Model):
     class Meta:
         abstract = True
 

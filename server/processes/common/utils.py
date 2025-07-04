@@ -7,6 +7,10 @@ import re
 logger = logging.getLogger(__name__)
 
 
+def val_to_str(x: Optional[Any], default: str = "-1") -> str:
+    return default if (x is None) else str(x)
+
+
 def generate_clone_name(name):
     p = re.compile(r"(.+) \(Copy (\d+)\)", re.IGNORECASE)
     m = p.match(name)
@@ -121,3 +125,21 @@ def lookup_bool(d: Mapping[str, Any], key: str) -> Optional[bool]:
 def to_camel(string: str) -> str:
     string_split = string.split("_")
     return string_split[0] + "".join(word.capitalize() for word in string_split[1:])
+
+
+def strip_prefix_before_last_dot(text):
+  """
+  Strips the prefix of a string up to and including the last '.' character.
+
+  Args:
+    text: The input string.
+
+  Returns:
+    The substring after the last '.', or the original string if no '.' is found.
+  """
+  parts = text.rsplit('.', 1)
+  if len(parts) > 1:
+    return parts[1]
+  else:
+    return parts[0] # No dot found, return the original string
+  

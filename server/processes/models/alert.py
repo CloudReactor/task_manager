@@ -6,6 +6,7 @@ from .alert_method import AlertMethod
 from .alert_send_status import AlertSendStatus
 
 
+# Deprecated in favor of Notification
 class Alert(models.Model):
     class Meta:
         abstract = True

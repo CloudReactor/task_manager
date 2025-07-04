@@ -11,8 +11,6 @@ from ..serializers import (
 )
 
 
-
-
 logger = logging.getLogger(__name__)
 
 

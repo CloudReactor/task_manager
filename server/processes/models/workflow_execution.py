@@ -519,15 +519,15 @@ class WorkflowExecution(Execution):
     def clear_missing_scheduled_execution_alerts(self, mswe) -> None:
         from .alert import Alert
         from .alert_send_status import AlertSendStatus
-        from .missing_scheduled_workflow_execution_alert import MissingScheduledWorkflowExecutionAlert
-        from processes.serializers import MissingScheduledWorkflowExecutionSerializer
+        from .legacy_missing_scheduled_workflow_execution_alert import LegacyMissingScheduledWorkflowExecutionAlert
+        from processes.serializers import LegacyMissingScheduledWorkflowExecutionSerializer
 
-        details = MissingScheduledWorkflowExecutionSerializer(mswe,
+        details = LegacyMissingScheduledWorkflowExecutionSerializer(mswe,
                                                               context=context_with_request()).data
 
         for am in self.workflow.alert_methods.filter(
                 enabled=True).exclude(error_severity_on_missing_execution='').all():
-            mha = MissingScheduledWorkflowExecutionAlert(missing_scheduled_workflow_execution=mswe,
+            mha = LegacyMissingScheduledWorkflowExecutionAlert(missing_scheduled_workflow_execution=mswe,
                                                          alert_method=am)
             mha.save()
 
@@ -625,8 +625,8 @@ def post_save_workflow_execution(sender: Type[WorkflowExecution], **kwargs) -> N
     workflow = instance.workflow
 
     if instance.workflow.schedule:
-        from processes.models import MissingScheduledWorkflowExecution
-        mswe = MissingScheduledWorkflowExecution.objects.filter(
+        from processes.models import LegacyMissingScheduledWorkflowExecution
+        mswe = LegacyMissingScheduledWorkflowExecution.objects.filter(
             workflow=workflow, schedule=workflow.schedule).order_by(
             '-expected_execution_at', '-id').first()
 

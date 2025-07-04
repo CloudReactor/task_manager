@@ -1,8 +1,8 @@
 from django.db import models
 
-from .missing_scheduled_execution import MissingScheduledExecution
+from .legacy_missing_scheduled_execution import LegacyMissingScheduledExecution
 
-class MissingScheduledWorkflowExecution(MissingScheduledExecution):
+class LegacyMissingScheduledWorkflowExecution(LegacyMissingScheduledExecution):
     workflow = models.ForeignKey('Workflow', on_delete=models.CASCADE)
 
     @property

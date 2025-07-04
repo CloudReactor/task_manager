@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from processes.common.request_helpers import context_with_request
 from processes.models import (
-        Alert, AlertSendStatus, AlertMethod, MissingScheduledExecution,
+        Alert, AlertSendStatus, AlertMethod, LegacyMissingScheduledExecution,
         Schedulable
 )
 
@@ -39,7 +39,7 @@ class ScheduleChecker(Generic[BoundSchedulable], metaclass=ABCMeta):
                 logger.exception(f"check_all() failed on {model_name} {schedulable.uuid}")
 
     def check_execution_on_time(self, schedulable: BoundSchedulable) \
-            -> Optional[MissingScheduledExecution]:
+            -> Optional[LegacyMissingScheduledExecution]:
         model_name = self.model_name()
         schedule = schedulable.schedule.strip()
 
@@ -47,7 +47,7 @@ class ScheduleChecker(Generic[BoundSchedulable], metaclass=ABCMeta):
             logger.warning(f"For schedulable entity {schedulable.uuid}, schedule '{schedule}' is blank, skipping")
             return None
 
-        mse: Optional[MissingScheduledExecution] = None
+        mse: Optional[LegacyMissingScheduledExecution] = None
 
         m = Schedulable.CRON_REGEX.match(schedule)
 
@@ -123,7 +123,7 @@ class ScheduleChecker(Generic[BoundSchedulable], metaclass=ABCMeta):
         return mse
 
     def check_executed_at(self, schedulable: BoundSchedulable,
-            expected_datetime: datetime) -> Optional[MissingScheduledExecution]:
+            expected_datetime: datetime) -> Optional[LegacyMissingScheduledExecution]:
         model_name = self.model_name()
         mse = self.missing_scheduled_executions_of(schedulable).filter(
             expected_execution_at=expected_datetime).first()
@@ -264,16 +264,16 @@ class ScheduleChecker(Generic[BoundSchedulable], metaclass=ABCMeta):
 
     @abstractmethod
     def make_missing_scheduled_execution(self, schedulable: BoundSchedulable,
-            expected_execution_at: datetime) -> MissingScheduledExecution:
+            expected_execution_at: datetime) -> LegacyMissingScheduledExecution:
         pass
 
     @abstractmethod
     def missing_scheduled_execution_to_details(self,
-            mse: MissingScheduledExecution, context) -> dict:
+            mse: LegacyMissingScheduledExecution, context) -> dict:
         pass
 
     @abstractmethod
-    def make_missing_execution_alert(self, mse: MissingScheduledExecution,
+    def make_missing_execution_alert(self, mse: LegacyMissingScheduledExecution,
             alert_method: AlertMethod) -> Alert:
         pass
 

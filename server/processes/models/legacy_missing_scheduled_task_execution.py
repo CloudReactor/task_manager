@@ -1,8 +1,8 @@
 from django.db import models
 
-from .missing_scheduled_execution import MissingScheduledExecution
+from .legacy_missing_scheduled_execution import LegacyMissingScheduledExecution
 
-class MissingScheduledTaskExecution(MissingScheduledExecution):
+class LegacyMissingScheduledTaskExecution(LegacyMissingScheduledExecution):
     task = models.ForeignKey('Task', on_delete=models.CASCADE,
             db_column='process_type_id')
 

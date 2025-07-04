@@ -18,7 +18,7 @@ from rest_framework.exceptions import ValidationError
 from ..common.aws import *
 from ..common.request_helpers import context_with_request
 from ..common.pagerduty import *
-from ..common.utils import coalesce
+from ..common.utils import coalesce, val_to_str
 from ..execution_methods import ExecutionMethod
 
 from .execution import Execution
@@ -352,25 +352,15 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
                 env['PROC_WRAPPER_API_RETRIES_FOR_PROCESS_CREATION_CONFLICT'] = \
                         str(self.api_max_retries_for_process_creation_conflict)
 
-            if self.status_update_port is not None:
-                env['PROC_WRAPPER_ENABLE_STATUS_UPDATE_LISTENER'] = \
-                        str(self.status_update_port >= 0).upper()
+            env['PROC_WRAPPER_STATUS_UPDATE_PORT'] = val_to_str(self.status_update_port)
 
-            if self.status_update_interval_seconds is not None:
-                env['PROC_WRAPPER_STATUS_UPDATE_INTERVAL_SECONDS'] = \
-                        str(self.status_update_interval_seconds)
+            env['PROC_WRAPPER_ENABLE_STATUS_UPDATE_LISTENER'] = \
+                      "TRUE" if self.status_update_port and self.status_update_port > 0 else "FALSE"
 
-            if self.status_update_port is not None:
-                env['PROC_WRAPPER_STATUS_UPDATE_PORT'] = \
-                        str(self.status_update_port)
-
-            if self.status_update_message_max_bytes is not None:
-                env['PROC_WRAPPER_STATUS_UPDATE_MESSAGE_MAX_BYTES'] = \
-                        str(self.status_update_message_max_bytes)
-
-            # Legacy: remove once wrappers < 2.0.0 are extinct
-            env['PROC_WRAPPER_PROCESS_EXECUTION_UUID'] = env['PROC_WRAPPER_TASK_EXECUTION_UUID']
-            env['PROC_WRAPPER_PROCESS_TYPE_NAME'] = env['PROC_WRAPPER_TASK_NAME']
+            env['PROC_WRAPPER_STATUS_UPDATE_INTERVAL_SECONDS'] = \
+                val_to_str(self.status_update_interval_seconds)
+            env['PROC_WRAPPER_STATUS_UPDATE_MESSAGE_MAX_BYTES'] = \
+                val_to_str(self.status_update_message_max_bytes)
 
             if self.is_service is not None:
                 env['PROC_WRAPPER_PROCESS_IS_SERVICE'] = str(self.is_service).upper()
@@ -532,15 +522,15 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 
     def clear_missing_scheduled_execution_alerts(self, mspe):
         from .alert import Alert
-        from .missing_scheduled_task_execution_alert import MissingScheduledTaskExecutionAlert
-        from processes.serializers import MissingScheduledTaskExecutionSerializer
+        from .legacy_missing_scheduled_task_execution_alert import LegacyMissingScheduledTaskExecutionAlert
+        from processes.serializers import LegacyMissingScheduledTaskExecutionSerializer
 
-        details = MissingScheduledTaskExecutionSerializer(mspe,
+        details = LegacyMissingScheduledTaskExecutionSerializer(mspe,
                 context=context_with_request()).data
 
         for am in self.task.alert_methods.filter(
                 enabled=True).exclude(error_severity_on_missing_execution='').all():
-            mha = MissingScheduledTaskExecutionAlert(
+            mha = LegacyMissingScheduledTaskExecutionAlert(
                     missing_scheduled_task_execution=mspe,
                     alert_method=am)
             mha.save()
@@ -672,10 +662,10 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
         task.save_without_sync(update_fields=['latest_task_execution', 'updated_at'])
 
     if task.schedule:
-        from .missing_scheduled_task_execution import MissingScheduledTaskExecution
+        from .legacy_missing_scheduled_task_execution import LegacyMissingScheduledTaskExecution
         # TODO: clear multiple?
         # FIXME: does schedule have to match?
-        mspe = MissingScheduledTaskExecution.objects.filter(
+        mspe = LegacyMissingScheduledTaskExecution.objects.filter(
             task=task, schedule=task.schedule).order_by(
             # use this instead of check below? ) resolved_at__isnull=True
             '-expected_execution_at', '-id').first()

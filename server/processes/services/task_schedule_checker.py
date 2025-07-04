@@ -19,30 +19,30 @@ class TaskScheduleChecker(ScheduleChecker[Task]):
         return Task.objects
 
     def missing_scheduled_executions_of(self, schedulable: Task):
-        return MissingScheduledTaskExecution.objects.filter(task=schedulable)
+        return LegacyMissingScheduledTaskExecution.objects.filter(task=schedulable)
 
     def executions_of(self, schedulable: Task):
         return TaskExecution.objects.filter(
                 task=cast(Task, schedulable))
 
     def make_missing_scheduled_execution(self, schedulable: Task,
-            expected_execution_at: datetime) -> MissingScheduledTaskExecution:
-        return MissingScheduledTaskExecution(task=schedulable,
+            expected_execution_at: datetime) -> LegacyMissingScheduledTaskExecution:
+        return LegacyMissingScheduledTaskExecution(task=schedulable,
             schedule=schedulable.schedule, expected_execution_at=expected_execution_at)
 
     def missing_scheduled_execution_to_details(self,
-            mse: MissingScheduledExecution, context) -> dict:
+            mse: LegacyMissingScheduledExecution, context) -> dict:
         from ..serializers.missing_scheduled_task_execution_serializer import (
-            MissingScheduledTaskExecutionSerializer
+            LegacyMissingScheduledTaskExecutionSerializer
         )
-        return MissingScheduledTaskExecutionSerializer(mse, context=context).data
+        return LegacyMissingScheduledTaskExecutionSerializer(mse, context=context).data
 
     def make_missing_execution_alert(self,
-            mse: MissingScheduledExecution,
-            alert_method: AlertMethod) -> MissingScheduledTaskExecutionAlert:
-        return MissingScheduledTaskExecutionAlert(
+            mse: LegacyMissingScheduledExecution,
+            alert_method: AlertMethod) -> LegacyMissingScheduledTaskExecutionAlert:
+        return LegacyMissingScheduledTaskExecutionAlert(
                 missing_scheduled_task_execution=cast(
-                        MissingScheduledTaskExecution, mse),
+                        LegacyMissingScheduledTaskExecution, mse),
                 alert_method=alert_method)
 
     def alert_summary_template(self) -> str:
