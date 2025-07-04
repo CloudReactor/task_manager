@@ -20,14 +20,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 env = environ.Env()
 
-env.read_env(os.path.join(BASE_DIR, '.env'))
-
 IN_PYTEST = env.bool('IN_PYTEST', default=False)
 
 # print(f"{IN_PYTEST=}")
 
 if IN_PYTEST:
     env.read_env(os.path.join(BASE_DIR, '.env.test'))
+else:
+    env.read_env(os.path.join(BASE_DIR, '.env'))
+
 
 IN_DOCKER = env.bool('DJANGO_IN_DOCKER', default=False)
 
