@@ -1,16 +1,18 @@
+from typing import Optional, TYPE_CHECKING
+
 from datetime import datetime, timedelta
 import enum
 import logging
-
-from typing import Optional
 
 from django.db import models
 from django.utils import timezone
 
 from .event import Event
-from .execution import Execution
-from .schedulable import Schedulable
-from .task_execution import TaskExecution
+
+
+if TYPE_CHECKING:
+    from .schedulable import Schedulable
+    from .execution import Execution
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +25,15 @@ class ExecutionStatusChangeEvent(Event):
     triggered_at = models.DateTimeField(null=True)
 
     def __init__(self, *args, **kwargs):
+        from .task_execution import TaskExecution
+
         super().__init__(*args, **kwargs)
 
         self.successful_status: enum.IntEnum = TaskExecution.Status.SUCCEEDED
         self.failed_status: enum.IntEnum = TaskExecution.Status.FAILED
         self.terminated_status: enum.IntEnum = TaskExecution.Status.TERMINATED_AFTER_TIME_OUT
 
-    def maybe_postpone(self, schedulable: Schedulable) -> bool:
+    def maybe_postpone(self, schedulable: 'Schedulable') -> bool:
         should_postpone = False
         if (self.status == self.failed_status) and \
                 ((schedulable.max_postponed_failure_count or 0) > 0) and \
@@ -111,7 +115,7 @@ class ExecutionStatusChangeEvent(Event):
 
         return False
 
-    def get_schedulable(self) -> Optional[Schedulable]:
+    def get_schedulable(self) -> Optional['Schedulable']:
         execution = self.get_execution()
 
         if execution is None:
@@ -119,5 +123,5 @@ class ExecutionStatusChangeEvent(Event):
 
         return execution.get_schedulable()
 
-    def get_execution(self) -> Optional[Execution]:
+    def get_execution(self) -> Optional['Execution']:
         return None

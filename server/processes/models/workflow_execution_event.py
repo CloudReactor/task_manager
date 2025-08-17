@@ -1,11 +1,9 @@
 from django.db import models
 
-from .event import Event
-from .workflow import Workflow
+from .workflow_event import WorkflowEvent
 from .workflow_execution import WorkflowExecution
 
-class WorkflowExecutionEvent(Event):
-    workflow = models.ForeignKey(Workflow, null=True, on_delete=models.CASCADE)
+class WorkflowExecutionEvent(WorkflowEvent):
     workflow_execution = models.ForeignKey(WorkflowExecution, null=True, on_delete=models.CASCADE)
 
     def __init__(self, *args, **kwargs):

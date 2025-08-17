@@ -46,114 +46,114 @@ def ensure_serialized_task_execution_valid(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  is_authenticated, group_access_level,
-  api_key_access_level, api_key_scope_type,
-  user_has_another_group, send_group_id_type, send_task_uuid_type,
-  status_code, expected_indices
+    is_authenticated, group_access_level,
+    api_key_access_level, api_key_scope_type,
+    user_has_another_group, send_group_id_type, send_task_uuid_type,
+    status_code, expected_indices
 """, [
-  # Admin with Admin API key, explicit group succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
-   False, SEND_ID_CORRECT, SEND_ID_NONE,
-   200, [0, 1]),
+    # Admin with Admin API key, explicit group succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+    False, SEND_ID_CORRECT, SEND_ID_NONE,
+    200, [0, 1]),
 
-  # Admin with Admin API key, no explicit group succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
-   False, SEND_ID_NONE, SEND_ID_NONE,
-   200, [0, 1]),
+    # Admin with Admin API key, no explicit group succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+    False, SEND_ID_NONE, SEND_ID_NONE,
+    200, [0, 1]),
 
-  # Observer with JWT token, explicit group succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
-   None, None,
-   False, SEND_ID_CORRECT, SEND_ID_NONE,
-   200, [0, 1]),
+    # Observer with JWT token, explicit group succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
+    None, None,
+    False, SEND_ID_CORRECT, SEND_ID_NONE,
+    200, [0, 1]),
 
-  # Observer in single group with JWT token, no explicit group succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
-   None, None,
-   False, SEND_ID_NONE, SEND_ID_NONE,
-   200, [0, 1]),
+    # Observer in single group with JWT token, no explicit group succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
+    None, None,
+    False, SEND_ID_NONE, SEND_ID_NONE,
+    200, [0, 1]),
 
-  # Admin in multiple groups with JWT token, no explicit group yields 400
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   None, None,
-   True, SEND_ID_NONE, SEND_ID_NONE,
-   400, None),
+    # Admin in multiple groups with JWT token, no explicit group yields 400
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    None, None,
+    True, SEND_ID_NONE, SEND_ID_NONE,
+    400, None),
 
-  # Developer in multiple groups with JWT token, explicit group yields 200
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-   None, None,
-   True, SEND_ID_CORRECT, SEND_ID_NONE,
-   200, [0, 1]),
+    # Developer in multiple groups with JWT token, explicit group yields 200
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+    None, None,
+    True, SEND_ID_CORRECT, SEND_ID_NONE,
+    200, [0, 1]),
 
-  # Support user in multiple groups with JWT token, explicit Task yields 200
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-   None, None,
-   True, SEND_ID_NONE, SEND_ID_CORRECT,
-   200, [0]),
+    # Support user in multiple groups with JWT token, explicit Task yields 200
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+    None, None,
+    True, SEND_ID_NONE, SEND_ID_CORRECT,
+    200, [0]),
 
-  # Admin with Observer API key, explicit group succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
-   False, SEND_ID_CORRECT, SEND_ID_NONE,
-   200, [0, 1]),
+    # Admin with Observer API key, explicit group succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
+    False, SEND_ID_CORRECT, SEND_ID_NONE,
+    200, [0, 1]),
 
-  # Admin with multiple groups with Observer API key succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
-   UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
-   True, SEND_ID_CORRECT, SEND_ID_NONE,
-   200, [0, 1]),
+    # Admin with multiple groups with Observer API key succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
+    UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
+    True, SEND_ID_CORRECT, SEND_ID_NONE,
+    200, [0, 1]),
 
-  # No API key with no explicit group in request yields 400
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
-   None, None,
-   True, SEND_ID_NONE, SEND_ID_NONE,
-   400, None),
+    # No API key with no explicit group in request yields 400
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
+    None, None,
+    True, SEND_ID_NONE, SEND_ID_NONE,
+    400, None),
 
-  # API key with no explicit group in request succeeds
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
-   UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
-   True, SEND_ID_NONE, SEND_ID_NONE,
-   200, [0, 1]),
+    # API key with no explicit group in request succeeds
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER,
+    UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
+    True, SEND_ID_NONE, SEND_ID_NONE,
+    200, [0, 1]),
 
-  # Admin with Admin API key, explicit wrong group yields 422
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
-   False, SEND_ID_WRONG, SEND_ID_NONE,
-   422, None),
+    # Admin with Admin API key, explicit wrong group yields 422
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+    False, SEND_ID_WRONG, SEND_ID_NONE,
+    422, None),
 
-  # Admin using JWT, explicit wrong group yields 422
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   None, None,
-   False, SEND_ID_WRONG, SEND_ID_NONE,
-   422, None),
+    # Admin using JWT, explicit wrong group yields 422
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    None, None,
+    False, SEND_ID_WRONG, SEND_ID_NONE,
+    422, None),
 
-  # Admin using Admin API key, explicit bad group ID yields 422
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
-   False, SEND_ID_NOT_FOUND, SEND_ID_NONE,
-   422, None),
+    # Admin using Admin API key, explicit bad group ID yields 422
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+    False, SEND_ID_NOT_FOUND, SEND_ID_NONE,
+    422, None),
 
-  # Admin using JWT, explicit bad group ID yields 422
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   None, None,
-   False, SEND_ID_NOT_FOUND, SEND_ID_NONE,
-   422, None),
+    # Admin using JWT, explicit bad group ID yields 422
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    None, None,
+    False, SEND_ID_NOT_FOUND, SEND_ID_NONE,
+    422, None),
 
-  # Admin with Admin API key scoped to correct Run Environment, explicit group finds the desired one
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, SCOPE_TYPE_CORRECT,
-   False, SEND_ID_CORRECT, SEND_ID_NONE,
-   200, [0]),
+    # Admin with Admin API key scoped to correct Run Environment, explicit group finds the desired one
+    (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, SCOPE_TYPE_CORRECT,
+    False, SEND_ID_CORRECT, SEND_ID_NONE,
+    200, [0]),
 
-  # No authentication yields 401
-  (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
-   None, None,
-   False, SEND_ID_CORRECT, SEND_ID_NONE,
-   401, None),
+    # No authentication yields 401
+    (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
+    None, None,
+    False, SEND_ID_CORRECT, SEND_ID_NONE,
+    401, None),
 
-  # TODO: check filtering, non-default ordering
+    # TODO: check filtering, non-default ordering
 ])
 @mock_aws
 def test_task_execution_list(

@@ -3,7 +3,7 @@ import logging
 from django.db import transaction
 from django.utils import timezone
 
-from processes.models import WorkflowExecution
+from ..models import WorkflowExecution
 
 logger = logging.getLogger(__name__)
 

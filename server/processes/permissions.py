@@ -10,10 +10,10 @@ from rest_framework.exceptions import APIException, NotFound, PermissionDenied
 from rest_framework.request import Request
 
 from .common.request_helpers import ensure_group_access_level
-from .models import UserGroupAccessLevel
+from .models.user_group_access_level import UserGroupAccessLevel
 
 if TYPE_CHECKING:
-    from .models import RunEnvironment
+    from .models.run_environment import RunEnvironment
 
 class IsCreatedByGroup(permissions.BasePermission):
     def has_object_permission(self, request: Request, view: View, obj: Any) -> bool:

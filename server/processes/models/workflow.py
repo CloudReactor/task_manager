@@ -1,4 +1,6 @@
-from typing import Optional, Type, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import Optional, Type, TYPE_CHECKING, cast, override
 
 from datetime import datetime
 import json
@@ -7,6 +9,7 @@ import uuid as python_uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Manager
 from django.db.models.signals import pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -26,11 +29,15 @@ from .user_group_access_level import UserGroupAccessLevel
 from .subscription import Subscription
 from .saas_token import SaasToken
 from .schedulable import Schedulable
+from .execution import Execution
 from .run_environment import RunEnvironment
 from .workflow_transition import WorkflowTransition
 
+
 if TYPE_CHECKING:
-    from .alert_method import AlertMethod
+    from .missing_scheduled_execution_event import MissingScheduledExecutionEvent
+    from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
+    from .workflow_execution import WorkflowExecution
 
 
 logger = logging.getLogger(__name__)
@@ -74,6 +81,12 @@ class Workflow(Schedulable):
             status=WorkflowExecution.Status.RUNNING
         )
 
+    @override
+    @property
+    def kind_label(self) -> str:
+        return 'Workflow'
+
+    @override
     def concurrency_at(self, dt: datetime) -> int:
         from .workflow_execution import WorkflowExecution
         # TODO: add index for this
@@ -85,6 +98,7 @@ class Workflow(Schedulable):
             )
         ).count()
 
+    @override
     def can_start_execution(self) -> bool:
         if self.max_concurrency and (self.max_concurrency > 0):
             existing_concurrency = self.running_executions_queryset().count()
@@ -95,6 +109,27 @@ class Workflow(Schedulable):
                 return False
 
         return True
+
+
+    @override
+    def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledWorkflowExecutionEvent]:
+        from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
+        return MissingScheduledWorkflowExecutionEvent.objects.filter(workflow=self)
+
+    @override
+    def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,
+        resolved_event: MissingScheduledExecutionEvent, execution: Execution) -> MissingScheduledWorkflowExecutionEvent:
+        resolving_event = MissingScheduledWorkflowExecutionEvent(
+            event_at=execution.started_at, detected_at=detected_at,
+            severity=resolved_event.severity,
+            resolved_event=resolved_event,
+            created_by_group=self.created_by_group,
+            workflow=self, workflow_execution=cast(WorkflowExecution, execution),
+            expected_execution_at=resolved_event.expected_execution_at,
+            schedule=self.schedule,
+        )
+        resolving_event.save()
+        return resolving_event
 
     def find_start_task_instances(self):
         non_root_task_instance_ids = list(
@@ -237,6 +272,7 @@ class Workflow(Schedulable):
         logger.info(f"Removed {num_in_progress_deleted=} in-progress Workflow Execution history items")
         return num_completed_deleted + num_in_progress_deleted
 
+    @override
     def setup_scheduled_execution(self, run_environment: RunEnvironment) -> None:
         from .workflow_execution import WorkflowExecution
 
@@ -343,6 +379,8 @@ class Workflow(Schedulable):
         self.aws_event_target_id = aws_event_target_id
         self.scheduling_run_environment = run_environment
 
+
+    @override
     def teardown_scheduled_execution(self, run_environment: Optional[RunEnvironment] = None) -> None:
         run_environment = run_environment or self.run_environment_for_scheduling(fallback_to_tasks=False)
 

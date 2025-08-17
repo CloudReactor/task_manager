@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast
+from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast, override
 
 import json
 import logging
@@ -126,6 +126,7 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
                     aws_lambda_settings)
 
 
+    @override
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
         task = self.task
 
@@ -150,6 +151,7 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         # TODO: handle scheduling
         return frozenset([self.ExecutionCapability.MANUAL_START])
 
+    @override
     def manually_start(self) -> None:
         task_execution = self.task_execution
 
@@ -217,6 +219,7 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         task_execution.execution_method_details = self.settings.dict()
         task_execution.save()
 
+    @override
     def enrich_task_settings(self) -> None:
         logger.info("AwsLambdaExecutionMethod: enrich_task_settings()")
 
@@ -233,6 +236,7 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
             self.task.execution_method_capability_details = aws_lambda_settings.dict()
 
 
+    @override
     def enrich_task_execution_settings(self) -> None:
         if self.task_execution is None:
             raise APIException("enrich_task_settings(): Missing Task Execution")

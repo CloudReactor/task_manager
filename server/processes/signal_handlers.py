@@ -12,10 +12,11 @@ from rest_framework.request import Request
 from djoser.signals import user_activated
 from djoser.views import UserViewSet as DjoserUserViewSet
 
-from .models import SaasToken, UserGroupAccessLevel
+from .models.saas_token import SaasToken
+from .models.user_group_access_level import UserGroupAccessLevel
+
 
 logger = logging.getLogger(__name__)
-
 logger.info("Loading signal handlers ...")
 
 

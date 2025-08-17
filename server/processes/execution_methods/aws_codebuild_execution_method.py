@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast
+from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast, override
 from collections import abc
 
 import logging
@@ -287,6 +287,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
             self.settings = AwsCodeBuildExecutionMethodSettings.parse_obj(
                     aws_codebuild_settings)
 
+    @override
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
         task = self.task
 
@@ -300,6 +301,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
         return frozenset([self.ExecutionCapability.MANUAL_START])
 
 
+    @override
     def manually_start(self) -> None:
         task_execution = self.task_execution
 
@@ -432,6 +434,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
         task_execution.infrastructure_settings = self.aws_settings.dict()
         task_execution.save()
 
+    @override
     def enrich_task_settings(self) -> None:
         if not self.task:
             raise RuntimeError("No Task found")
@@ -445,6 +448,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
             self.task.execution_method_capability_details = aws_codebuild_settings.dict()
 
 
+    @override
     def enrich_task_execution_settings(self) -> None:
         if self.task_execution is None:
             raise APIException("enrich_task_settings(): Missing Task Execution")

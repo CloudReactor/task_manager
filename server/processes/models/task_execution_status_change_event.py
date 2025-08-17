@@ -1,11 +1,10 @@
 import logging
 
-from typing import Optional
+from typing import Optional, override
 
-from .execution import Execution
-from .schedulable import Schedulable
-from .execution_status_change_event import ExecutionStatusChangeEvent
+from .task import Task
 from .task_execution import TaskExecution
+from .execution_status_change_event import ExecutionStatusChangeEvent
 from .task_execution_event import TaskExecutionEvent
 
 
@@ -39,7 +38,9 @@ class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEv
                 template=self.ERROR_SUMMARY_TEMPLATE,
                 task_execution=self.task_execution)
 
-    def get_schedulable(self) -> Optional[Schedulable]:
+
+    @override
+    def get_schedulable(self) -> Optional['Task']:
         if self.task:
             return self.task
 
@@ -48,5 +49,6 @@ class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEv
 
         return None
 
-    def get_execution(self) -> Optional[Execution]:
+    @override
+    def get_execution(self) -> Optional['TaskExecution']:
         return self.task_execution

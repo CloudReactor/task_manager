@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+from typing import Any, Optional, Mapping, NamedTuple, Tuple, TYPE_CHECKING, cast
+
 from collections import abc
 from datetime import datetime
-from typing import cast, Any, List, Optional, Mapping, NamedTuple, Tuple
+
 import uuid
 
 import pytest
@@ -57,6 +61,7 @@ from tests.factories import (
     NotificationFactory,
 )
 
+
 SEND_ID_NONE = 'none'
 SEND_ID_CORRECT = 'correct'
 SEND_ID_WRONG = 'wrong'
@@ -71,6 +76,7 @@ SCOPE_TYPE_CORRECT = 'correct'
 SCOPE_TYPE_OTHER = 'other'
 
 CHANGE_ALL = '*'
+
 
 register(GroupFactory)
 register(GroupInfoFactory)
@@ -97,6 +103,7 @@ register(AlertMethodFactory)
 register(PagerDutyProfileFactory)
 register(EmailNotificationProfileFactory)
 
+
 @pytest.fixture
 def api_client():
     return APIClient()
@@ -113,7 +120,7 @@ def make_saas_token_api_client(user: User, group: Group,
     return api_client
 
 def make_jwt_token_api_client(user: User, api_client: APIClient) -> APIClient:
-    header = cast(List[str], settings.SIMPLE_JWT['AUTH_HEADER_TYPES'])[0]
+    header = cast(list[str], settings.SIMPLE_JWT['AUTH_HEADER_TYPES'])[0]
     refresh = RefreshToken.for_user(user)
     api_client.credentials(HTTP_AUTHORIZATION=f'{header} {refresh.access_token}')
     return api_client

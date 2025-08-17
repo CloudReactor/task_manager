@@ -85,15 +85,13 @@ class EmailNotificationProfile(NamedWithUuidAndRunEnvironmentModel):
                 template_params=template_params,
                 template=subject_template or 'CloudReactor Notification',
                 task_execution=task_execution,
-                workflow_execution=workflow_execution,
-                is_resolution=is_resolution)
+                workflow_execution=workflow_execution)
 
             body = notification_generator.generate_text(
                 template_params=template_params,
                 template=body_template,
                 task_execution=task_execution,
-                workflow_execution=workflow_execution,
-                is_resolution=is_resolution)
+                workflow_execution=workflow_execution)
 
             email = EmailMessage(
                   subject=subject,

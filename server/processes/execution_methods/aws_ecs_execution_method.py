@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, Optional, Tuple, TYPE_CHECKING, cast
+from typing import Any, FrozenSet, Optional, Tuple, TYPE_CHECKING, cast, override
 
 from dataclasses import dataclass
 import logging
@@ -416,7 +416,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return deepmerge(*settings_to_merge)
 
-
+    @override
     def capabilities(self) -> FrozenSet[ExecutionMethod.ExecutionCapability]:
         task = self.task
 
@@ -496,7 +496,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return (False, False)
 
-
+    @override
     def setup_scheduled_execution(self, old_execution_method: Optional[ExecutionMethod]=None,
             force_creation: bool=False, teardown_result: Optional[Any]=None) -> None:
         task = self.task
@@ -613,7 +613,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         task.scheduling_settings = ss.dict()
 
-
+    @override
     def teardown_scheduled_execution(self) -> Tuple[Optional[dict[str, Any]], Optional[Any]]:
         task = self.task
 
@@ -866,6 +866,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return (False, False)
 
+    @override
     def setup_service(self, old_execution_method: Optional['ExecutionMethod']=None,
             force_creation: bool=False, teardown_result: Optional[Any]=None) -> None:
         task = self.task
@@ -1007,7 +1008,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         logger.info(f"setup_service() for Task {task.name} got service ARN {ss.service_arn} ...")
 
-
+    @override
     def teardown_service(self) -> Tuple[Optional[dict[str, Any]], Optional[Any]]:
         task = self.task
 
@@ -1075,6 +1076,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return (ssd, teardown_result)
 
+    @override
     def manually_start(self) -> None:
         task_execution = self.task_execution
 
@@ -1522,6 +1524,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return output_tags
 
+    @override
     def enrich_task_settings(self) -> None:
         if not self.task:
             raise RuntimeError("No Task found")
@@ -1541,6 +1544,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             self.task.service_settings = deepmerge(self.task.service_settings,
                     self.service_settings.dict())
 
+    @override
     def enrich_task_execution_settings(self) -> None:
         if self.task_execution is None:
             raise APIException("enrich_task_settings(): Missing Task Execution")

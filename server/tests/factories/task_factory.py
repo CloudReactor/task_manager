@@ -39,6 +39,7 @@ class TaskFactory(OwnedModelFactory):
         created_by_user=factory.SelfAttribute("..created_by_user"),
         created_by_group=factory.SelfAttribute("..created_by_group"))
 
+    enabled = True
     other_metadata = None
     latest_task_execution = None
     was_auto_created = False

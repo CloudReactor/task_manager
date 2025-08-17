@@ -10,6 +10,7 @@ from .named_with_uuid_model import NamedWithUuidModel
 from .named_with_uuid_and_run_environment_model import NamedWithUuidAndRunEnvironmentModel
 from .invitation import Invitation
 from .schedulable import Schedulable
+from .execution import Execution
 from .aws_tagged_entity import AwsTaggedEntity
 from .task import Task
 from .aws_ecs_service_load_balancer_details import AwsEcsServiceLoadBalancerDetails
@@ -32,8 +33,10 @@ from .execution_status_change_event import ExecutionStatusChangeEvent
 from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
 from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 from .missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent
+from .missing_scheduled_execution_event import MissingScheduledExecutionEvent
+from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
+from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
 from .notification import Notification
-
 # Legacy
 from .alert import Alert
 from .alert_method import AlertMethod

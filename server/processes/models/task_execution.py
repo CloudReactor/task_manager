@@ -1,10 +1,10 @@
-from typing import cast, Optional, Type, TYPE_CHECKING
+from typing import Optional, Type, TYPE_CHECKING, cast, override
 
 import enum
 import json
 import logging
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
@@ -170,15 +170,15 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
     execution_method_details = models.JSONField(null=True, blank=True)
 
     build_task_execution = models.ForeignKey(
-      'TaskExecution', on_delete=models.DO_NOTHING,
-      to_field='uuid', db_column='build_task_execution_uuid',
-      blank=True, null=True,  related_name='+', db_constraint=False
+        'TaskExecution', on_delete=models.DO_NOTHING,
+        to_field='uuid', db_column='build_task_execution_uuid',
+        blank=True, null=True,  related_name='+', db_constraint=False
     )
 
     deployment_task_execution = models.ForeignKey(
-      'TaskExecution', on_delete=models.DO_NOTHING,
-      to_field='uuid', db_column='deployment_task_execution_uuid',
-      blank=True, null=True,  related_name='+', db_constraint=False
+        'TaskExecution', on_delete=models.DO_NOTHING,
+        to_field='uuid', db_column='deployment_task_execution_uuid',
+        blank=True, null=True,  related_name='+', db_constraint=False
     )
 
     # Deprecated
@@ -203,9 +203,11 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
     def __str__(self) -> str:
         return self.task.name + ' / ' + str(self.uuid)
 
+    @override
     def get_schedulable(self) -> Optional[Schedulable]:
         return self.task
 
+    @override
     @property
     def dashboard_path(self) -> str:
         return 'task_executions'
@@ -223,6 +225,7 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
             return self.task.project_url.rstrip('/') + '/commit/' + self.task_version_signature
         return None
 
+    @override
     def manually_start(self) -> None:
         logger.info("TaskExecution.manually_start()")
 
@@ -510,60 +513,6 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 
         return status_change_event
 
-    def send_event_notifications(self, event: Event) -> int:
-
-        task = self.task
-
-        if task is None:
-            logger.warning("Skipping sending notifications since Task is missing")
-            return 0
-
-        return task.send_event_notifications(event=event)
-
-    def clear_missing_scheduled_execution_alerts(self, mspe):
-        from .alert import Alert
-        from .legacy_missing_scheduled_task_execution_alert import LegacyMissingScheduledTaskExecutionAlert
-        from processes.serializers import LegacyMissingScheduledTaskExecutionSerializer
-
-        details = LegacyMissingScheduledTaskExecutionSerializer(mspe,
-                context=context_with_request()).data
-
-        for am in self.task.alert_methods.filter(
-                enabled=True).exclude(error_severity_on_missing_execution='').all():
-            mha = LegacyMissingScheduledTaskExecutionAlert(
-                    missing_scheduled_task_execution=mspe,
-                    alert_method=am)
-            mha.save()
-
-            try:
-                # task is already in details
-                epoch_minutes = divmod(mspe.expected_execution_at.timestamp(), 60)[0]
-
-                # FIXME: wrong signature
-                result = am.send(details=details,
-                        summary_template=self.FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE,
-                        grouping_key=f"missing_scheduled_task-{self.task.uuid}-{epoch_minutes}",
-                        is_resolution=True)
-                mha.send_result = result
-                mha.send_status = AlertSendStatus.SUCCEEDED
-                mha.completed_at = timezone.now()
-            except Exception as ex:
-                logger.exception(
-                    f"Failed to clear alert for missing scheduled execution of Task {mspe.task.uuid}")
-                mha.send_result = ''
-                mha.send_status = AlertSendStatus.FAILED
-                mha.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
-
-            mha.save()
-
-    def send_resolved_missing_heartbeat_detection_notifications(self, hde: 'MissingHeartbeatDetectionEvent'):
-        for np in self.task.notification_profiles.filter(enabled=True).all():
-            try:
-                np.send(event=hde)
-            except Exception as ex:
-                te_id = str(hde.task_execution.uuid) if hde.task_execution else '[REMOVED]'
-                logger.exception(
-                    f"Failed to clear alert for missing heartbeat of Task Execution {te_id}")
 
     def clear_delayed_task_start_alerts(self, dpsde):
         from .alert import Alert
@@ -602,6 +551,8 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 @receiver(pre_save, sender=TaskExecution)
 def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
     instance = cast(TaskExecution, kwargs['instance'])
+
+    logger.info(f"Before Pre-Saved Task Execution {instance.uuid} settings, started_at = {instance.started_at}")
 
     if instance.pk is None:
         logger.info('Purging Task Execution history before saving new Execution ...')
@@ -645,12 +596,16 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
         logger.warning(f"Failed to enrich Task Execution {instance.uuid} settings",
                 exc_info=ex)
 
+    logger.info(f"After Pre-Saved Task Execution {instance.uuid} settings, started_at = {instance.started_at}")
+
 
 @receiver(post_save, sender=TaskExecution)
-def post_save_task_execution(sender: TaskExecution, **kwargs):
+def post_save_task_execution(sender: Type[TaskExecution], **kwargs):
     from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
     instance = cast(TaskExecution, kwargs['instance'])
+
+    logger.info(f"Before Post-Saved Task Execution {instance.uuid} settings, started_at = {instance.started_at}")
 
     in_progress = instance.is_in_progress()
     task = instance.task
@@ -661,30 +616,7 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
         logger.info(f"post_save_task_execution(): saving {task=} after setting latest execution")
         task.save_without_sync(update_fields=['latest_task_execution', 'updated_at'])
 
-    if task.schedule:
-        from .legacy_missing_scheduled_task_execution import LegacyMissingScheduledTaskExecution
-        # TODO: clear multiple?
-        # FIXME: does schedule have to match?
-        mspe = LegacyMissingScheduledTaskExecution.objects.filter(
-            task=task, schedule=task.schedule).order_by(
-            # use this instead of check below? ) resolved_at__isnull=True
-            '-expected_execution_at', '-id').first()
-
-        if mspe and (not mspe.resolved_at):
-            from processes.services.schedule_checker import MAX_SCHEDULED_LATENESS_SECONDS
-            utc_now = timezone.now()
-            lateness_seconds = (utc_now - mspe.expected_execution_at).total_seconds()
-            logger.info(f"Found last missing Scheduled Task Execution event {mspe.uuid}, lateness seconds = {lateness_seconds}")
-
-            if lateness_seconds < MAX_SCHEDULED_LATENESS_SECONDS:
-                logger.info(
-                    f"Task execution {instance.uuid} is {lateness_seconds} seconds after scheduled time of {mspe.expected_execution_at}, clearing alerts")
-                mspe.resolved_at = utc_now
-                mspe.save()
-                instance.clear_missing_scheduled_execution_alerts(mspe)
-            else:
-                logger.info(
-                    f"Task Execution {instance.uuid} is too far ({lateness_seconds} seconds) after scheduled time of {mspe.expected_execution_at}, not clearing alerts")
+    instance.resolve_missing_scheduled_execution_events()
 
     heartbeat_interval_seconds = task.heartbeat_interval_seconds
     max_heartbeat_lateness_before_alert_seconds = task.max_heartbeat_lateness_before_alert_seconds
@@ -710,15 +642,15 @@ def post_save_task_execution(sender: TaskExecution, **kwargs):
                     detected_at=utc_now,
                     severity=Event.SEVERITY_INFO,
                     grouping_key=last_heartbeat_detection_event.grouping_key,
-                    resolved_event = last_heartbeat_detection_event,
+                    resolved_event=last_heartbeat_detection_event,
                     task_execution=instance,
                     last_heartbeat_at=instance.last_heartbeat_at,
                     expected_heartbeat_at=last_heartbeat_detection_event.expected_heartbeat_at,
                     heartbeat_interval_seconds=last_heartbeat_detection_event.heartbeat_interval_seconds,
                 )
                 resolving_event.save()
-                instance.send_resolved_missing_heartbeat_detection_notifications(resolving_event)
 
+                instance.send_event_notifications(event=resolving_event)
 
     wtie = WorkflowTaskInstanceExecution.objects.filter(
         task_execution=instance).first()

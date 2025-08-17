@@ -44,7 +44,7 @@ class TaskExecutionConfiguration(InfrastructureConfiguration):
     ignore_stdout = models.BooleanField(null=True, blank=True)
     ignore_stderr = models.BooleanField(null=True, blank=True)
 
-    managed_probability =  models.FloatField(null=True, blank=True,
+    managed_probability = models.FloatField(null=True, blank=True,
         validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
     failure_report_probability =  models.FloatField(null=True, blank=True,
         validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])

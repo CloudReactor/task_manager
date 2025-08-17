@@ -87,8 +87,7 @@ class NotificationGenerator:
     def generate_text(
         self, template_params, template: Optional[str] = None,
         task_execution: Optional[TaskExecution] = None,
-        workflow_execution: Optional[WorkflowExecution] = None,
-        is_resolution: bool = False) -> str:
+        workflow_execution: Optional[WorkflowExecution] = None) -> str:
 
         if workflow_execution:
             template = template or DEFAULT_NOTIFICATION_WORKFLOW_EXECUTION_SUMMARY_TEMPLATE

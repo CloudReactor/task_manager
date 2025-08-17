@@ -68,8 +68,7 @@ class PagerDutyProfile(NamedWithUuidAndRunEnvironmentModel):
             template_params=template_params,
             template=summary_template,
             task_execution=task_execution,
-            workflow_execution=workflow_execution,
-            is_resolution=is_resolution)
+            workflow_execution=workflow_execution)
 
         event_class = event_class_template or self.default_event_class_template
 
@@ -78,8 +77,7 @@ class PagerDutyProfile(NamedWithUuidAndRunEnvironmentModel):
                 template_params=template_params,
                 template=event_class,
                 task_execution=task_execution,
-                workflow_execution=workflow_execution,
-                is_resolution=is_resolution)
+                workflow_execution=workflow_execution)
 
         event_group = event_group_template or self.default_event_group_template
 
@@ -88,8 +86,7 @@ class PagerDutyProfile(NamedWithUuidAndRunEnvironmentModel):
                 template_params=template_params,
                 template=event_group,
                 task_execution=task_execution,
-                workflow_execution=workflow_execution,
-                is_resolution=is_resolution)
+                workflow_execution=workflow_execution)
 
         event_action = 'resolve' if is_resolution else 'trigger'
 

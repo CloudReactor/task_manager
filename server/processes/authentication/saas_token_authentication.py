@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import PermissionDenied
 
-from processes.models import SaasToken
+from ..models.saas_token import SaasToken
 
 
 class SaasTokenAuthentication(TokenAuthentication):

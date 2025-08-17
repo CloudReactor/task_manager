@@ -7,8 +7,6 @@ from rest_framework.fields import empty
 
 from django.contrib.auth.models import Group
 
-from processes.models import UserGroupAccessLevel
-
 
 logger = logging.getLogger(__name__)
 

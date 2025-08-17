@@ -1,6 +1,9 @@
-import logging
+from __future__ import annotations
 
-from typing import Any, Optional, cast
+from typing import Any, Optional, TYPE_CHECKING, cast
+
+import logging
+import yaml
 
 from django.db import models
 from django.conf import settings
@@ -9,14 +12,17 @@ from django.core.mail import EmailMessage
 from django.contrib.postgres.fields import ArrayField
 
 from templated_email import get_templated_mail
-import yaml
 
 from ..common.notification import *
 from .event import Event
 from .task_execution import TaskExecution
 from .notification_delivery_method import NotificationDeliveryMethod
-from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
-from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
+
+
+if TYPE_CHECKING:
+    from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
+    from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +35,11 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
     email_bcc_addresses = ArrayField(models.EmailField(max_length=1000, blank=False), blank=True, null=True)
 
     def send(self, event: Event) -> Optional[dict[str, Any]]:
+        from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
+        from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
+
+        from ..services import NotificationGenerator
+
         if isinstance(event, TaskExecutionStatusChangeEvent):
             email = self.make_task_execution_status_change_email(cast(TaskExecutionStatusChangeEvent, event))
         elif isinstance(event, WorkflowExecutionStatusChangeEvent):

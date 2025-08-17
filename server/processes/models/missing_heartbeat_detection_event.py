@@ -24,7 +24,7 @@ Expected heartbeat at {{expected_heartbeat_at}} but last heartbeat was at {{last
     heartbeat_interval_seconds = models.IntegerField(null=True)
 
     class Meta:
-        ordering = ['detected_at']
+        ordering = ['event_at', 'detected_at']
 
     def __init__(self, *args, **kwargs):
         from ..services.notification_generator import NotificationGenerator
@@ -52,16 +52,12 @@ Expected heartbeat at {{expected_heartbeat_at}} but last heartbeat was at {{last
 
         template_params = {**template_params, **extra_params}
 
-        is_resolution = (self.resolved_event is not None)
-
         self.error_summary = notification_generator.generate_text(
                 template_params=template_params,
                 template=summary_template,
-                task_execution=self.task_execution,
-                is_resolution=is_resolution)
+                task_execution=self.task_execution)
 
         self.error_details_message = notification_generator.generate_text(
                 template_params=template_params,
                 template=details_template,
-                task_execution=self.task_execution,
-                is_resolution=is_resolution)
+                task_execution=self.task_execution)

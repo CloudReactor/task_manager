@@ -20,6 +20,8 @@ class TaskExecutionFactory(factory.django.DjangoModelFactory):
     stop_reason = None
     started_by = factory.SubFactory(UserFactory)
 
+    started_at = factory.LazyFunction(lambda: faker.date_time_this_year())
+
     # Note: started_at has auto_add_now which is always set to the current time
     # on creation!
 
@@ -29,4 +31,3 @@ class TaskExecutionFactory(factory.django.DjangoModelFactory):
     @factory.post_generation
     def sanitize_em(task_execution: TaskExecution, create: bool, extracted, **kwargs):
         populate_task_execution_em_and_infra(task_execution)
-

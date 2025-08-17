@@ -4,7 +4,9 @@ from django.utils import timezone
 
 from rest_framework.throttling import UserRateThrottle
 
-from ..models import GroupInfo, SaasToken, Subscription
+from ..models.group_info import GroupInfo
+from ..models.saas_token import SaasToken
+from ..models.subscription import Subscription
 
 class SubscriptionRateThrottle(UserRateThrottle):
     # Define a custom scope name to be referenced by DRF in settings.py

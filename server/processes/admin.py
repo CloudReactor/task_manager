@@ -4,7 +4,40 @@ from rest_framework.authtoken.models import TokenProxy
 
 from typedmodels.admin import TypedModelAdmin
 
-from .models import *
+from .models.user_group_access_level import UserGroupAccessLevel
+from .models.subscription_plan import SubscriptionPlan
+from .models.subscription import Subscription
+from .models.saas_token import SaasToken
+from .models.run_environment import RunEnvironment
+from .models.task import Task
+from .models.task_execution import TaskExecution
+from .models.workflow import Workflow
+from .models.workflow_task_instance import WorkflowTaskInstance
+from .models.workflow_execution import WorkflowExecution
+from .models.workflow_transition import WorkflowTransition
+from .models.workflow_task_instance_execution import WorkflowTaskInstanceExecution
+from .models.workflow_transition_evaluation import WorkflowTransitionEvaluation
+from .models.alert_method import AlertMethod
+from .models.pagerduty_profile import PagerDutyProfile
+from .models.email_notification_profile import EmailNotificationProfile
+from .models.delayed_process_start_detection_event import DelayedProcessStartDetectionEvent
+from .models.delayed_process_start_alert import DelayedProcessStartAlert
+from .models.legacy_insufficient_service_instances_event import LegacyInsufficientServiceInstancesEvent
+from .models.insufficient_service_instances_alert import InsufficientServiceInstancesAlert
+from .models.event import Event
+from .models.missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent
+from .models.task_execution_status_change_event import TaskExecutionStatusChangeEvent
+from .models.workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
+from .models.missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
+from .models.missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
+from .models.notification_profile import NotificationProfile
+from .models.email_notification_delivery_method import EmailNotificationDeliveryMethod
+from .models.pagerduty_notification_delivery_method import PagerDutyNotificationDeliveryMethod
+from .models.notification import Notification
+from .models.aws_ecs_service_load_balancer_details import AwsEcsServiceLoadBalancerDetails
+from .models.user_profile import UserProfile
+from .models.group_info import GroupInfo
+
 
 class UserGroupAccessLevelAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'user__email', 'group__name')
@@ -144,19 +177,18 @@ admin.site.register(RunEnvironment, RunEnvironmentAdmin)
 admin.site.register(AlertMethod, AlertMethodAdmin)
 admin.site.register(PagerDutyProfile, PagerDutyProfileAdmin)
 admin.site.register(EmailNotificationProfile, EmailNotificationProfileAdmin)
-admin.site.register(LegacyMissingScheduledTaskExecution)
-admin.site.register(LegacyMissingScheduledTaskExecutionAlert)
 admin.site.register(DelayedProcessStartDetectionEvent)
 admin.site.register(DelayedProcessStartAlert)
 admin.site.register(LegacyInsufficientServiceInstancesEvent)
 admin.site.register(InsufficientServiceInstancesAlert)
-admin.site.register(LegacyMissingScheduledWorkflowExecution)
-admin.site.register(LegacyMissingScheduledWorkflowExecutionAlert)
 
+# Modern
 admin.site.register(Event, EventAdmin)
 admin.site.register(MissingHeartbeatDetectionEvent, MissingHeartbeatDetectionEventAdmin)
 admin.site.register(TaskExecutionStatusChangeEvent, TaskExecutionStatusChangeEventAdmin)
 admin.site.register(WorkflowExecutionStatusChangeEvent, WorkflowExecutionStatusChangeEventAdmin)
+admin.site.register(MissingScheduledTaskExecutionEvent)
+admin.site.register(MissingScheduledWorkflowExecutionEvent)
 admin.site.register(NotificationProfile, NotificationProfileAdmin)
 admin.site.register(EmailNotificationDeliveryMethod, EmailNotificationDeliveryMethodAdmin)
 admin.site.register(PagerDutyNotificationDeliveryMethod, PagerDutyNotificationDeliveryMethodAdmin)

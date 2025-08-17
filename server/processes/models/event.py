@@ -1,5 +1,3 @@
-from typing import Type
-
 import logging
 import uuid
 
@@ -95,14 +93,13 @@ class Event(TypedModel):
         super().save(*args, **kwargs)
 
 
-
     @property
     def severity_label(self):
         return self.SEVERITY_TO_LABEL.get(self.severity, 'unknown')
 
     @property
     def is_resolution(self):
-        return self.resolved_at is not None
+        return self.resolved_event is not None
 
     def __repr__(self):
         return f"<{self.__class__.__name__}>, {self.error_summary}"

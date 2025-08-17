@@ -1,7 +1,6 @@
-from typing import Any, List, Optional, Tuple, cast
+from typing import Any, Optional
 
 from datetime import datetime, timedelta
-import uuid
 
 from django.utils import timezone
 

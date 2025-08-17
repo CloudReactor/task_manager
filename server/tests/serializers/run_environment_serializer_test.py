@@ -1,13 +1,5 @@
-from rest_framework.exceptions import APIException
-
-from processes.common.aws import extract_cluster_name
-from processes.common.request_helpers import context_with_request
-from processes.models import Task
-from processes.serializers import TaskSerializer
-
 import pytest
 
-from moto import mock_aws
 from conftest import *
 
 

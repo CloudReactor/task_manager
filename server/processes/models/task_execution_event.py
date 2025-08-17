@@ -1,13 +1,13 @@
+from typing import TYPE_CHECKING
+
 from django.db import models
 
 from ..common.utils import strip_prefix_before_last_dot
-from .event import Event
-from .task import Task
-from .task_execution import TaskExecution
+from .task_event import TaskEvent
 
-class TaskExecutionEvent(Event):
-    task_execution = models.ForeignKey(TaskExecution, null=True, on_delete=models.CASCADE)
-    task = models.ForeignKey(Task, null=True, on_delete=models.CASCADE)
+
+class TaskExecutionEvent(TaskEvent):
+    task_execution = models.ForeignKey('TaskExecution', null=True, on_delete=models.CASCADE)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

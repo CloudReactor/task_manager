@@ -1,6 +1,8 @@
-import logging
+from __future__ import annotations
 
 from typing import Any, Optional, cast
+
+import logging
 
 from django.db import models
 
@@ -9,8 +11,6 @@ import pdpyras
 from ..common.notification import *
 from .event import Event
 from .notification_delivery_method import NotificationDeliveryMethod
-from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
-from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,8 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
     def send(self, event: Event) -> Optional[dict[str, Any]]:
         from .task_execution import TaskExecution
         from .workflow_execution import WorkflowExecution
+        from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
+        from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 
         from ..services import NotificationGenerator
 
@@ -79,24 +81,21 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
                 template_params=template_params,
                 template=self.pagerduty_event_class_template,
                 task_execution=task_execution,
-                workflow_execution=workflow_execution,
-                is_resolution=False).strip()
+                workflow_execution=workflow_execution).strip()
 
         if self.pagerduty_event_component_template:
             payload['component'] = notification_generator.generate_text(
                 template_params=template_params,
                 template=self.pagerduty_event_component_template,
                 task_execution=task_execution,
-                workflow_execution=workflow_execution,
-                is_resolution=False).strip()
+                workflow_execution=workflow_execution).strip()
 
         if self.pagerduty_event_group_template:
             payload['group'] = notification_generator.generate_text(
                 template_params=template_params,
                 template=self.pagerduty_event_group_template,
                 task_execution=task_execution,
-                workflow_execution=workflow_execution,
-                is_resolution=False).strip()
+                workflow_execution=workflow_execution).strip()
 
         pd_severity = self.pagerduty_severity_from_event_severity(event.severity)
         dedup_key = events_session.trigger(summary=event.error_summary,

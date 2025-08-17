@@ -1,4 +1,4 @@
-from typing import Optional, Type, TYPE_CHECKING
+from typing import Optional, Type, TYPE_CHECKING, cast, override
 
 import enum
 import logging
@@ -105,6 +105,7 @@ class WorkflowExecution(Execution):
         """
         return self.status in WorkflowExecution.STATUSES_WITHOUT_MANUAL_INTERVENTION
 
+    @override
     def manually_start(self) -> None:
         from processes.serializers import WorkflowSerializer
 
@@ -516,39 +517,6 @@ class WorkflowExecution(Execution):
         WorkflowExecutionAlert.objects.filter(workflow_execution=self).update(
             for_latest_execution=False)
 
-    def clear_missing_scheduled_execution_alerts(self, mswe) -> None:
-        from .alert import Alert
-        from .alert_send_status import AlertSendStatus
-        from .legacy_missing_scheduled_workflow_execution_alert import LegacyMissingScheduledWorkflowExecutionAlert
-        from processes.serializers import LegacyMissingScheduledWorkflowExecutionSerializer
-
-        details = LegacyMissingScheduledWorkflowExecutionSerializer(mswe,
-                                                              context=context_with_request()).data
-
-        for am in self.workflow.alert_methods.filter(
-                enabled=True).exclude(error_severity_on_missing_execution='').all():
-            mha = LegacyMissingScheduledWorkflowExecutionAlert(missing_scheduled_workflow_execution=mswe,
-                                                         alert_method=am)
-            mha.save()
-
-            try:
-                # workflow is already in details
-                epoch_minutes = divmod(mswe.expected_execution_at.timestamp(), 60)[0]
-                result = am.send(details=details,
-                                 summary_template=self.FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE,
-                                 grouping_key=f"missing_scheduled_workflow-{self.workflow.uuid}-{epoch_minutes}",
-                                 is_resolution=True)
-                mha.send_result = result
-                mha.send_status = AlertSendStatus.SUCCEEDED
-                mha.completed_at = timezone.now()
-            except Exception as ex:
-                logger.exception(
-                    f"Failed to clear alert for missing scheduled execution of Workflow {mswe.workflow.uuid}")
-                mha.send_result = ''
-                mha.send_status = AlertSendStatus.FAILED
-                mha.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
-
-            mha.save()
 
     def handle_timeout(self) -> None:
         self.timed_out_attempts += 1
@@ -621,27 +589,5 @@ def pre_save_workflow_execution(sender: Type[WorkflowExecution], **kwargs) -> No
 
 @receiver(post_save, sender=WorkflowExecution)
 def post_save_workflow_execution(sender: Type[WorkflowExecution], **kwargs) -> None:
-    instance = kwargs['instance']
-    workflow = instance.workflow
-
-    if instance.workflow.schedule:
-        from processes.models import LegacyMissingScheduledWorkflowExecution
-        mswe = LegacyMissingScheduledWorkflowExecution.objects.filter(
-            workflow=workflow, schedule=workflow.schedule).order_by(
-            '-expected_execution_at', '-id').first()
-
-        if mswe and (not mswe.resolved_at):
-            from processes.services.schedule_checker import MAX_SCHEDULED_LATENESS_SECONDS
-            utc_now = timezone.now()
-            lateness_seconds = (utc_now - mswe.expected_execution_at).total_seconds()
-            logger.info(f"Found last missing scheduled workflow execution event {mswe.uuid}, lateness seconds = {lateness_seconds}")
-
-            if lateness_seconds < MAX_SCHEDULED_LATENESS_SECONDS:
-                logger.info(
-                    f"Workflow execution {instance.uuid} is {lateness_seconds} seconds after scheduled time of {mswe.expected_execution_at}, clearing alerts")
-                mswe.resolved_at = utc_now
-                mswe.save()
-                instance.clear_missing_scheduled_execution_alerts(mswe)
-            else:
-                logger.info(
-                    f"Workflow execution {instance.uuid} is too far ({lateness_seconds} seconds) after scheduled time of {mswe.expected_execution_at}, not clearing alerts")
+    instance = cast(WorkflowExecution, kwargs['instance'])
+    instance.resolve_missing_scheduled_execution_events()

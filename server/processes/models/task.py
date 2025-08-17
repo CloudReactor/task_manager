@@ -1,4 +1,6 @@
-from typing import Any, Optional, Type, cast, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import Any, Optional, Type, TYPE_CHECKING, cast, override
 
 from datetime import datetime
 import logging
@@ -6,6 +8,7 @@ from urllib.parse import quote
 
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Manager
 from django.db.models.signals import pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -23,12 +26,15 @@ from ..exception import CommittableException, UnprocessableEntity
 from .aws_ecs_configuration import AwsEcsConfiguration
 from .run_environment import RunEnvironment
 from .schedulable import Schedulable
+from .execution import Execution
 from .subscription import Subscription
 from .task_execution_configuration import TaskExecutionConfiguration
 
 
 if TYPE_CHECKING:
-    from .alert_method import AlertMethod
+    from .missing_scheduled_execution_event import MissingScheduledExecutionEvent
+    from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
+    from .task_execution import TaskExecution
 
 
 logger = logging.getLogger(__name__)
@@ -81,6 +87,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
     default_input_value = models.JSONField(null=True, blank=True)
     output_value_schema = models.JSONField(null=True, blank=True)
 
+    # Start Deprecated
     aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_load_balancer_health_check_grace_period_seconds = \
             models.IntegerField(null=True, blank=True)
@@ -109,6 +116,8 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
     aws_event_target_rule_name = models.CharField(max_length=1000, blank=True)
     aws_event_target_id = models.CharField(max_length=1000, blank=True)
     aws_ecs_service_arn = models.CharField(max_length=1000, blank=True)
+    # End deprecated
+
     aws_ecs_service_updated_at = models.DateTimeField(null=True, blank=True)
 
     is_scheduling_managed = models.BooleanField(default=None, null=True)
@@ -138,9 +147,38 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
 
         return self.run_environment.get_aws_region()
 
+    @override
+    @property
+    def kind_label(self) -> str:
+        return 'Task'
+
+    @override
     @property
     def dashboard_path(self) -> str:
         return 'tasks'
+
+    @override
+    def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledTaskExecutionEvent]:
+        from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
+
+        return MissingScheduledTaskExecutionEvent.objects.filter(task=self)
+
+    @override
+    def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,
+        resolved_event: MissingScheduledExecutionEvent, execution: Execution) -> MissingScheduledTaskExecutionEvent:
+        from .task_execution import TaskExecution
+        from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
+
+        resolving_event = MissingScheduledTaskExecutionEvent(
+            event_at=execution.started_at, detected_at=detected_at,
+            severity=resolved_event.severity, resolved_event=resolved_event,
+            created_by_group=self.created_by_group, task=self,
+            task_execution=cast(TaskExecution, execution),
+            expected_execution_at=resolved_event.expected_execution_at,
+            schedule=self.schedule,
+        )
+        resolving_event.save()
+        return resolving_event
 
     @property
     def is_service(self) -> bool:
@@ -154,6 +192,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         from .task_execution import TaskExecution
         return self.taskexecution_set.filter(status=TaskExecution.Status.RUNNING)
 
+    @override
     def concurrency_at(self, dt: datetime) -> int:
         from .task_execution import TaskExecution
 
@@ -171,6 +210,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
             )
         ).count()
 
+    @override
     def can_start_execution(self) -> bool:
         if self.max_concurrency and (self.max_concurrency > 0):
             existing_concurrency = self.running_executions_queryset().count()
