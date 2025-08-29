@@ -31,6 +31,7 @@ SCHEDULE_TYPE_RATE = 'R'
     (SCHEDULE_TYPE_CRON, False, 1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False),
     (SCHEDULE_TYPE_CRON, True,  0.9, Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False),
     (SCHEDULE_TYPE_CRON, True,  1.0, None,                 2 * 24 * 60, 60,   False),
+    (SCHEDULE_TYPE_CRON, False, 1.0, Event.SEVERITY_WARNING, 2 * 24 * 60, 60, False),
     (SCHEDULE_TYPE_CRON, True,  1.0, Event.SEVERITY_ERROR,          10, 60,   False),
     (SCHEDULE_TYPE_CRON, True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, None, True),
     (SCHEDULE_TYPE_RATE, True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   False),
@@ -87,53 +88,56 @@ def test_task_schedule_checker_missing_scheduled_executions(
     if last_execution_at is not None:
         task_execution_factory(task=task, started_at=last_execution_at)
 
-    checker = TaskScheduleChecker()
-    detection_at = timezone.now()
-    checker.check_all()
-
-    events = MissingScheduledTaskExecutionEvent.objects.filter(task=task)
     event: Event | None = None
+    previous_event: Event | None = None
 
-    if should_expect_event:
-        assert events.count() == 1
-        event = events.first()
+    checker = TaskScheduleChecker()
 
-        assert event.uuid is not None
-        assert event.created_by_group == task.created_by_group
-        detection_timediff_seconds = (event.detected_at - detection_at).total_seconds()
-        assert detection_timediff_seconds >= 0
-        assert detection_timediff_seconds < 60
-        assert event.severity == task.notification_event_severity_on_missing_execution
-        assert event.grouping_key == f"missing_scheduled_task-{task.uuid}-{event.expected_execution_at.timestamp() // 60}"
-        assert event.error_summary == f"Task '{task.name}' did not execute as scheduled at {event.expected_execution_at}"
-        assert event.resolved_at is None
-        assert event.resolved_event is None
+    for _ in range(2):
+        detection_at = timezone.now()
+        checker.check_all()
 
-        assert event.task == task
-        assert event.task_execution is None
-        assert event.schedule == task.schedule
-        assert event.expected_execution_at is not None
-        assert event.expected_execution_at == event.event_at
-        assert event.expected_execution_at.second == 0
-        assert event.expected_execution_at.microsecond == 0
+        events = MissingScheduledTaskExecutionEvent.objects.filter(task=task)
 
-        if schedule_type == SCHEDULE_TYPE_CRON:
-            assert event.expected_execution_at.minute == schedule_minute
-            assert event.expected_execution_at.hour == schedule_hour
+        if should_expect_event:
+            assert events.count() == 1
+            event = events.first()
+
+            if previous_event:
+                assert event.uuid == previous_event.uuid
+                assert event.detected_at == previous_event.detected_at
+            else:
+                detection_timediff_seconds = (event.detected_at - detection_at).total_seconds()
+                assert detection_timediff_seconds >= 0
+                assert detection_timediff_seconds < 60
+
+            previous_event = event
+
+            assert event.uuid is not None
+            assert event.created_by_group == task.created_by_group
+            assert event.severity == event_severity
+            assert event.severity == task.notification_event_severity_on_missing_execution
+            assert event.grouping_key == f"missing_scheduled_task-{task.uuid}-{event.expected_execution_at.timestamp() // 60}"
+            assert event.error_summary == f"Task '{task.name}' did not execute as scheduled at {event.expected_execution_at}"
+            assert event.resolved_at is None
+            assert event.resolved_event is None
+
+            assert event.task == task
+            assert event.task_execution is None
+            assert event.schedule == schedule
+            assert event.schedule == task.schedule
+            assert event.expected_execution_at is not None
+            assert event.expected_execution_at == event.event_at
+            assert event.expected_execution_at.second == 0
+            assert event.expected_execution_at.microsecond == 0
+
+            if schedule_type == SCHEDULE_TYPE_CRON:
+                assert event.expected_execution_at.minute == schedule_minute
+                assert event.expected_execution_at.hour == schedule_hour
+            else:
+                assert abs((event.expected_execution_at - utc_now).total_seconds()) < 60
         else:
-            assert abs((event.expected_execution_at - utc_now).total_seconds()) < 60
-    else:
-        assert events.count() == 0
-
-    # rechecking should not create new events
-    checker.check_all()
-    events = MissingScheduledTaskExecutionEvent.objects.filter(task=task)
-
-    if should_expect_event:
-        assert events.count() == 1
-        assert events.first().uuid == event.uuid
-    else:
-        assert events.count() == 0
+            assert events.count() == 0
 
 
     utc_now = timezone.now()
@@ -141,27 +145,36 @@ def test_task_schedule_checker_missing_scheduled_executions(
     # simulate task execution starting to resolve the event
     task_execution = task_execution_factory(task=task, started_at=utc_now)
 
-    events = MissingScheduledTaskExecutionEvent.objects.filter(task=task)
+    for _ in range(2):
+        events = MissingScheduledTaskExecutionEvent.objects.filter(task=task)
 
-    if should_expect_event:
-        assert events.count() == 2
+        if should_expect_event:
+            assert events.count() == 2
 
-        for new_event in events:
-            assert new_event.task == task
-            assert new_event.created_by_group == task.created_by_group
-            assert new_event.grouping_key == event.grouping_key
+            for new_event in events:
+                assert new_event.detected_at is not None
+                assert new_event.task == task
+                assert new_event.created_by_group == task.created_by_group
+                assert new_event.grouping_key == event.grouping_key
+                assert new_event.severity == event.severity
 
-            if new_event.uuid == event.uuid:
-                timediff_seconds = (new_event.resolved_at - utc_now).total_seconds()
-                assert new_event.task_execution is None
-            else:
-                timediff_seconds = (new_event.detected_at - utc_now).total_seconds()
+                if new_event.uuid == event.uuid:
+                    timediff_seconds = (new_event.resolved_at - utc_now).total_seconds()
+                    assert new_event.task_execution is None
 
-                assert new_event.resolved_at is None
-                assert new_event.resolved_event == event
-                assert new_event.task_execution == task_execution
+                    assert new_event.error_summary == event.error_summary
+                else:
+                    timediff_seconds = (new_event.detected_at - utc_now).total_seconds()
 
-            assert timediff_seconds >= 0
-            assert timediff_seconds < 60
-    else:
-        assert events.count() == 0
+                    assert new_event.detected_at >= event.detected_at
+                    assert new_event.resolved_at is None
+                    assert new_event.resolved_event == event
+                    assert new_event.error_summary == f"Task '{task.name}' has started after being late according to its schedule"
+                    assert new_event.task_execution == task_execution
+
+                assert timediff_seconds >= 0
+                assert timediff_seconds < 60
+        else:
+            assert events.count() == 0
+
+        checker.check_all()

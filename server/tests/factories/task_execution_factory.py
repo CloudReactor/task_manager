@@ -18,12 +18,9 @@ class TaskExecutionFactory(factory.django.DjangoModelFactory):
     status = TaskExecution.Status.RUNNING.value
     run_reason = 0
     stop_reason = None
+
+    # Note: started_at is set to the current time by default
     started_by = factory.SubFactory(UserFactory)
-
-    started_at = factory.LazyFunction(lambda: faker.date_time_this_year())
-
-    # Note: started_at has auto_add_now which is always set to the current time
-    # on creation!
 
     failed_attempts = 0
     timed_out_attempts = 0
