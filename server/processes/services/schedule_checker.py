@@ -17,9 +17,6 @@ from django.utils import timezone
 from ..models import MissingScheduledExecutionEvent, Schedulable, Execution
 
 MIN_DELAY_BETWEEN_EXPECTED_AND_ACTUAL_SECONDS = 300
-MAX_EARLY_STARTUP_SECONDS = 60
-MAX_STARTUP_SECONDS = 10 * 60
-MAX_SCHEDULED_LATENESS_SECONDS = 30 * 60
 
 logger = logging.getLogger(__name__)
 
@@ -126,47 +123,83 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
     def check_executed_at(self, schedulable: BoundSchedulable,
             expected_datetime: datetime) -> Optional[MissingScheduledExecutionEvent]:
         model_name = self.model_name()
-        mse = self.missing_scheduled_executions_of(schedulable).filter(
+
+        executions = schedulable.executions().filter(
+            started_at__gte=expected_datetime - timedelta(seconds=Schedulable.DEFAULT_MAX_EARLY_STARTUP_SECONDS),
+            started_at__lte=expected_datetime + timedelta(seconds=Schedulable.DEFAULT_MAX_SCHEDULED_LATENESS_SECONDS))
+
+        execution_count = executions.count()
+
+        required_instance_count = max(1, schedulable.scheduled_instance_count)
+
+        missing_execution_count = required_instance_count - execution_count
+
+        mse = schedulable.lookup_missing_scheduled_execution_events().filter(
             expected_execution_at=expected_datetime).first()
 
         if mse:
-            logger.info(
-                f"check_executed_at(): Found existing matching missing scheduled execution {mse.uuid}, not creating event")
-            return None
-
-        logger.info('check_executed_at(): No existing matching missing scheduled execution found')
-
-        pe = self.executions_of(schedulable).filter(
-            started_at__gte=expected_datetime - timedelta(seconds=MAX_EARLY_STARTUP_SECONDS),
-            started_at__lte=expected_datetime + timedelta(seconds=MAX_STARTUP_SECONDS)).first()
-
-        if pe:
-            logger.info(
-                f"check_execution_on_time(): Found execution of {model_name} {schedulable.uuid} within the expected time window")
-            return None
-
-        logger.info(
-            f"check_executed_at(): No execution of {model_name} {schedulable.uuid} found within the expected time window")
-
-        if schedulable.max_concurrency and \
-                (schedulable.max_concurrency > 0):
-            concurrency = schedulable.concurrency_at(expected_datetime)
-
-            if concurrency >= schedulable.max_concurrency:
+            if missing_execution_count == mse.missing_execution_count:
                 logger.info(
-                    f"check_executed_at(): {concurrency} concurrent executions of execution of {model_name} {schedulable.uuid} during the expected execution time prevented execution")
+                        f"check_executed_at(): Found existing matching missing scheduled execution event {mse.uuid} with the same missing execution count of {missing_execution_count}")
                 return None
+            else:
+                logger.info(
+                        f"check_executed_at(): Found existing matching missing scheduled execution event {mse.uuid}, updating execution count")
 
-        mse = self.make_missing_scheduled_execution_event(schedulable=schedulable,
-                expected_execution_at=expected_datetime)
-        mse.save()
-        return mse
+                mse.missing_execution_count = missing_execution_count
+
+                utc_now = timezone.now()
+
+                if missing_execution_count <= 0:
+                    logger.info("check_executed_at(): marking scheduled execution event as resolved since execution count is now sufficient")
+                    mse.resolved_at = utc_now
+
+                mse.save()
+
+                if missing_execution_count <= 0:
+                    last_execution = executions.order_by('-started_at').first()
+                    resolving_event = schedulable.make_resolved_missing_scheduled_execution_event(
+                            detected_at=utc_now,
+                            resolved_event=mse,
+                            execution=last_execution,
+                    )
+                    schedulable.send_event_notifications(event=resolving_event)
+        else:
+            logger.info(
+                f"check_executed_at(): No existing matching missing scheduled execution event found for expected execution at {expected_datetime}")
+
+            if missing_execution_count <= 0:
+                logger.info(
+                        f"check_executed_at(): No missing scheduled execution event needed for {model_name} {schedulable.uuid} since execution count is sufficient")
+                return None
+            else:
+                logger.info(
+                    f"check_executed_at(): Only {execution_count} executions of {model_name} {schedulable.uuid}, out of {required_instance_count}, found within the expected time window")
+
+                if schedulable.max_concurrency and \
+                        (schedulable.max_concurrency > 0):
+                    concurrency = schedulable.concurrency_at(expected_datetime)
+
+                    if concurrency >= schedulable.max_concurrency:
+                        logger.info(
+                            f"check_executed_at(): {concurrency} concurrent executions of execution of {model_name} {schedulable.uuid} during the expected execution time prevented execution")
+                        return None
+
+
+                logger.info(
+                    f"check_executed_at(): creating missing scheduled execution event for {model_name} {schedulable.uuid} since no execution found at expected time {expected_datetime}")
+
+                mse = self.make_missing_scheduled_execution_event(schedulable=schedulable,
+                    expected_execution_at=expected_datetime, missing_execution_count=missing_execution_count)
+                mse.save()
+
+                return mse
 
     def check_executed_after(self, schedulable: BoundSchedulable,
             early_datetime: datetime, relative_delta: relativedelta,
             utc_now: datetime):
         model_name = self.model_name()
-        mse = self.missing_scheduled_executions_of(schedulable).order_by('-expected_execution_at').first()
+        mse = schedulable.lookup_missing_scheduled_execution_events().order_by('-expected_execution_at').first()
 
         if mse:
             next_expected_execution_at = mse.expected_execution_at + relative_delta
@@ -178,13 +211,17 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
             logger.info(
                 f"check_executed_after(): No existing missing scheduled execution events for {model_name} {schedulable.uuid}")
 
-        pe = self.executions_of(schedulable).filter(
-            started_at__gte=early_datetime - timedelta(seconds=MAX_EARLY_STARTUP_SECONDS),
-            started_at__lte=utc_now).first()
+        execution_count = schedulable.executions().filter(
+            started_at__gte=early_datetime - timedelta(seconds=Schedulable.DEFAULT_MAX_EARLY_STARTUP_SECONDS),
+            started_at__lte=utc_now).count()
 
-        if pe:
+        required_instance_count = max(1, schedulable.scheduled_instance_count)
+
+        missing_execution_count = required_instance_count - execution_count
+
+        if missing_execution_count <= 0:
             logger.info(
-                f"check_executed_after(): Found execution of {model_name} {schedulable.uuid} at {pe.started_at}, which is after the expected time of {early_datetime}")
+                f"check_executed_after(): Found {execution_count} executions of {model_name} {schedulable.uuid} after the expected time of {early_datetime}")
             return None
 
         expected_datetime = utc_now.replace(second=0, microsecond=0)
@@ -194,7 +231,6 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
 
         if schedulable.max_concurrency and \
                 (schedulable.max_concurrency > 0):
-
             concurrency = schedulable.concurrency_at(early_datetime)
 
             if concurrency >= schedulable.max_concurrency:
@@ -203,7 +239,7 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
                 return None
 
         mse = self.make_missing_scheduled_execution_event(schedulable=schedulable,
-                expected_execution_at=expected_datetime)
+                expected_execution_at=expected_datetime, missing_execution_count=missing_execution_count)
         mse.save()
         return mse
 
@@ -233,14 +269,7 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
         raise NotImplementedError()
 
     @abstractmethod
-    def missing_scheduled_executions_of(self, schedulable: BoundSchedulable) -> MissingScheduledExecutionEvent:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def executions_of(self, schedulable: BoundSchedulable) -> Manager[Execution]:
-        raise NotImplementedError()
-
-    @abstractmethod
     def make_missing_scheduled_execution_event(self, schedulable: BoundSchedulable,
-            expected_execution_at: datetime) -> MissingScheduledExecutionEvent:
+            expected_execution_at: datetime, missing_execution_count: int) \
+            -> MissingScheduledExecutionEvent:
         raise NotImplementedError()

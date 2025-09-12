@@ -18,6 +18,7 @@ class MissingScheduledExecutionEvent(SchedulableInstanceEvent):
 
     expected_execution_at = models.DateTimeField(null=True)
     schedule = models.CharField(null=True, max_length=1000)
+    missing_execution_count = models.PositiveIntegerField(default=0, null=True)
 
 
     def __init__(self, *args, **kwargs):

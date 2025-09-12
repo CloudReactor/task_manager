@@ -616,6 +616,8 @@ def post_save_task_execution(sender: Type[TaskExecution], **kwargs):
         logger.info(f"post_save_task_execution(): saving {task=} after setting latest execution")
         task.save_without_sync(update_fields=['latest_task_execution', 'updated_at'])
 
+
+    # CHECKME: only do this when state changes to in_progress or started_at is set?
     instance.resolve_missing_scheduled_execution_events()
 
     heartbeat_interval_seconds = task.heartbeat_interval_seconds

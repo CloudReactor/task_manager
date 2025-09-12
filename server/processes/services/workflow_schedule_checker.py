@@ -22,17 +22,9 @@ class WorkflowScheduleChecker(ScheduleChecker[Workflow, WorkflowExecution]):
         return Workflow.objects
 
     @override
-    def missing_scheduled_executions_of(self, schedulable: Workflow) -> Manager[MissingScheduledWorkflowExecutionEvent]:
-        return MissingScheduledWorkflowExecutionEvent.objects.filter(
-                workflow=schedulable, resolved_at__isnull=True)
-
-    @override
-    def executions_of(self, schedulable: Workflow) -> Manager[WorkflowExecution]:
-        return WorkflowExecution.objects.filter(workflow=schedulable)
-
-    @override
     def make_missing_scheduled_execution_event(self, schedulable: Workflow,
-            expected_execution_at: datetime) -> MissingScheduledWorkflowExecutionEvent:
+            expected_execution_at: datetime, missing_execution_count: int) -> MissingScheduledWorkflowExecutionEvent:
         return MissingScheduledWorkflowExecutionEvent(workflow=schedulable,
                 schedule=schedulable.schedule,
-                expected_execution_at=expected_execution_at)
+                expected_execution_at=expected_execution_at,
+                missing_execution_count=missing_execution_count)

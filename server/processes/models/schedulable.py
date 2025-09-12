@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 class Schedulable(NamedWithUuidModel):
+    DEFAULT_MAX_EARLY_STARTUP_SECONDS = 60
+    DEFAULT_MAX_STARTUP_SECONDS = 10 * 60
+    DEFAULT_MAX_SCHEDULED_LATENESS_SECONDS = 30 * 60
+
     CRON_REGEX = re.compile(r"cron\s*\(([^)]+)\)")
     RATE_REGEX = re.compile(r"rate\s*\((\d+)\s+([A-Za-z]+)\)")
 
@@ -84,6 +88,9 @@ class Schedulable(NamedWithUuidModel):
 
     def can_start_execution(self) -> bool:
         return False
+
+    def executions(self) -> Manager[Execution]:
+        raise NotImplementedError()
 
     def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledExecutionEvent]:
         raise NotImplementedError()

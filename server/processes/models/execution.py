@@ -10,12 +10,10 @@ from django.db import models, transaction
 from django.utils import timezone
 
 from .uuid_model import UuidModel
-
+from .schedulable import Schedulable
 
 if TYPE_CHECKING:
-    from .schedulable import Schedulable
     from .event import Event
-
 
 
 logger = logging.getLogger(__name__)
@@ -83,8 +81,6 @@ class Execution(UuidModel):
             return 0
 
     def resolve_missing_scheduled_execution_events(self) -> None:
-        from ..services.schedule_checker import MAX_SCHEDULED_LATENESS_SECONDS
-
         schedulable = self.get_schedulable()
 
         if not schedulable:
@@ -96,27 +92,39 @@ class Execution(UuidModel):
             return
 
         for msee in schedulable.lookup_missing_scheduled_execution_events().filter(
-                resolved_event__isnull=True, expected_execution_at__isnull=False, resolved_at__isnull=True) \
+                resolved_event__isnull=True, expected_execution_at__isnull=False) \
                 .order_by('-event_at', '-expected_execution_at').iterator():
             utc_now = timezone.now()
             lateness_seconds = (utc_now - msee.expected_execution_at).total_seconds()
             logger.info(f"Found last missing scheduled {schedulable.kind_label} Execution event {msee.uuid}, lateness seconds = {lateness_seconds}")
 
-            if lateness_seconds < MAX_SCHEDULED_LATENESS_SECONDS:
+            if lateness_seconds < Schedulable.DEFAULT_MAX_SCHEDULED_LATENESS_SECONDS:
                 logger.info(
-                    f"{schedulable.kind_label} Execution {self.uuid} is {lateness_seconds} seconds after scheduled time of {msee.expected_execution_at}, creating resolving event ...")
+                    f"{schedulable.kind_label} Execution {self.uuid} is {lateness_seconds} seconds after scheduled time of {msee.expected_execution_at}")
 
                 with transaction.atomic():
-                    resolving_event = schedulable.make_resolved_missing_scheduled_execution_event(
-                            detected_at=utc_now,
-                            resolved_event=msee,
-                            execution=self,
-                    )
+                    msee.missing_execution_count -= 1
 
-                    msee.resolved_at = utc_now
-                    msee.save()
+                    if msee.missing_execution_count <= 0:
+                        logger.info(f"Resolving MissingScheduledExecutionEvent {msee.uuid} since missing_execution_count is 0 or less")
 
-                self.send_event_notifications(event=resolving_event)
+                        if msee.missing_execution_count < 0:
+                            logger.error(f"MissingScheduledExecutionEvent {msee.uuid} has negative missing_execution_count {msee.missing_execution_count}, setting to 0 and marking resolved")
+                            msee.missing_execution_count = 0
+
+                        msee.resolved_at = msee.resolved_at or utc_now
+                        msee.save()
+
+                        resolving_event = schedulable.make_resolved_missing_scheduled_execution_event(
+                                detected_at=utc_now,
+                                resolved_event=msee,
+                                execution=self,
+                        )
+
+                        self.send_event_notifications(event=resolving_event)
+                    else:
+                        logger.info(f"Decremented missing_execution_count of MissingScheduledExecutionEvent {msee.uuid} to {msee.missing_execution_count}")
+                        msee.save()
             else:
                 logger.info(
                     f"{schedulable.kind_label} Execution {self.uuid} is too far ({lateness_seconds} seconds) after scheduled time of {msee.expected_execution_at}, not resolving events")

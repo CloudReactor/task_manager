@@ -1,6 +1,7 @@
 from typing import Optional
 
 from datetime import datetime, timedelta
+import logging
 from django.utils import timezone
 
 from processes.models import (
@@ -19,33 +20,38 @@ from moto import mock_aws
 SCHEDULE_TYPE_CRON = 'C'
 SCHEDULE_TYPE_RATE = 'R'
 
+logger = logging.getLogger(__name__)
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-    schedule_type, enabled, managed_probability, event_severity,
+    schedule_type, enabled, instance_count, managed_probability, event_severity,
     schedule_updated_minutes_ago,
     last_execution_minutes_ago, should_expect_event
 """, [
-    (SCHEDULE_TYPE_CRON, True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   True),
-    (SCHEDULE_TYPE_CRON, True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, 16,   False),
-    (SCHEDULE_TYPE_CRON, False, 1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False),
-    (SCHEDULE_TYPE_CRON, True,  0.9, Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False),
-    (SCHEDULE_TYPE_CRON, True,  1.0, None,                 2 * 24 * 60, 60,   False),
-    (SCHEDULE_TYPE_CRON, False, 1.0, Event.SEVERITY_WARNING, 2 * 24 * 60, 60, False),
-    (SCHEDULE_TYPE_CRON, True,  1.0, Event.SEVERITY_ERROR,          10, 60,   False),
-    (SCHEDULE_TYPE_CRON, True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, None, True),
-    (SCHEDULE_TYPE_RATE, True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   False),
-    (SCHEDULE_TYPE_RATE, True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   True),
-    (SCHEDULE_TYPE_RATE, True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, None, True),
-    (SCHEDULE_TYPE_RATE, False, 1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   False),
-    (SCHEDULE_TYPE_RATE, True,  0.5, Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   False),
-    (SCHEDULE_TYPE_RATE, True,  1.0, Event.SEVERITY_ERROR,          20, 42,   False),
-    (None,               True,  1.0, Event.SEVERITY_ERROR, 2 * 24 * 60, None, False)
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   True),
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 16,   False),
+    (SCHEDULE_TYPE_CRON, False, 1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False),
+    (SCHEDULE_TYPE_CRON, True,  2, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True),
+    (SCHEDULE_TYPE_CRON, True,  3, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True),
+    (SCHEDULE_TYPE_CRON, True,  1, 0.9,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False),
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,                   None, 2 * 24 * 60, 60,   False),
+    (SCHEDULE_TYPE_CRON, False, 1, 1.0, Event.SEVERITY_WARNING, 2 * 24 * 60, 60,   False),
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR,          10, 60,   False),
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, True),
+    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   False),
+    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   True),
+    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, True),
+    (SCHEDULE_TYPE_RATE, False, 1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   False),
+    (SCHEDULE_TYPE_RATE, True,  2, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True),
+    (SCHEDULE_TYPE_RATE, True,  1, 0.5,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   False),
+    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR,          20, 42,   False),
+    (None,               True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, False)
 ])
 @mock_aws
 def test_task_schedule_checker_missing_scheduled_executions(
-        schedule_type: str, enabled: bool, managed_probability: float,
-        event_severity: int,
+        schedule_type: str, enabled: bool, instance_count: int,
+        managed_probability: float, event_severity: int,
         schedule_updated_minutes_ago: int,
         last_execution_minutes_ago: Optional[int],
         should_expect_event: bool, task_factory, task_execution_factory):
@@ -79,8 +85,8 @@ def test_task_schedule_checker_missing_scheduled_executions(
         schedule = 'rate(30 minutes)'
 
 
-    # TODO: modify scheduled_instance_count,
-    task = task_factory(enabled=enabled, schedule=schedule, scheduled_instance_count=1,
+    task = task_factory(enabled=enabled, schedule=schedule,
+            scheduled_instance_count=instance_count,
             is_scheduling_managed=False, managed_probability=managed_probability,
             notification_event_severity_on_missing_execution=event_severity,
             schedule_updated_at = utc_now - timedelta(minutes=schedule_updated_minutes_ago))
@@ -106,6 +112,7 @@ def test_task_schedule_checker_missing_scheduled_executions(
             if previous_event:
                 assert event.uuid == previous_event.uuid
                 assert event.detected_at == previous_event.detected_at
+                assert event.missing_execution_count == previous_event.missing_execution_count
             else:
                 detection_timediff_seconds = (event.detected_at - detection_at).total_seconds()
                 assert detection_timediff_seconds >= 0
@@ -130,6 +137,7 @@ def test_task_schedule_checker_missing_scheduled_executions(
             assert event.expected_execution_at == event.event_at
             assert event.expected_execution_at.second == 0
             assert event.expected_execution_at.microsecond == 0
+             assert event.missing_execution_count == instance_count
 
             if schedule_type == SCHEDULE_TYPE_CRON:
                 assert event.expected_execution_at.minute == schedule_minute
@@ -142,38 +150,51 @@ def test_task_schedule_checker_missing_scheduled_executions(
 
     utc_now = timezone.now()
 
+    logger.info("Creating task execution to maybe resolve event")
+
     # simulate task execution starting to resolve the event
     task_execution = task_execution_factory(task=task, started_at=utc_now)
 
-    for _ in range(2):
+    for i in range(2):
+        logger.info(f"Checking events after task execution created, iteration {i}")
+
         events = MissingScheduledTaskExecutionEvent.objects.filter(task=task)
 
         if should_expect_event:
-            assert events.count() == 2
+            if instance_count <= 2:
+                assert events.count() == 2
 
-            for new_event in events:
-                assert new_event.detected_at is not None
-                assert new_event.task == task
-                assert new_event.created_by_group == task.created_by_group
-                assert new_event.grouping_key == event.grouping_key
-                assert new_event.severity == event.severity
+                for new_event in events:
+                    assert new_event.detected_at is not None
+                    assert new_event.task == task
+                    assert new_event.created_by_group == task.created_by_group
+                    assert new_event.grouping_key == event.grouping_key
+                    assert new_event.severity == event.severity
 
-                if new_event.uuid == event.uuid:
-                    timediff_seconds = (new_event.resolved_at - utc_now).total_seconds()
-                    assert new_event.task_execution is None
+                    if new_event.uuid == event.uuid:
+                        timediff_seconds = (new_event.resolved_at - utc_now).total_seconds()
+                        assert new_event.task_execution is None
 
-                    assert new_event.error_summary == event.error_summary
-                else:
-                    timediff_seconds = (new_event.detected_at - utc_now).total_seconds()
+                        assert new_event.error_summary == event.error_summary
+                    else:
+                        timediff_seconds = (new_event.detected_at - utc_now).total_seconds()
 
-                    assert new_event.detected_at >= event.detected_at
-                    assert new_event.resolved_at is None
-                    assert new_event.resolved_event == event
-                    assert new_event.error_summary == f"Task '{task.name}' has started after being late according to its schedule"
-                    assert new_event.task_execution == task_execution
+                        assert new_event.detected_at >= event.detected_at
+                        assert new_event.resolved_at is None
+                        assert new_event.resolved_event == event
+                        assert new_event.error_summary == f"Task '{task.name}' has started after being late according to its schedule"
+                        assert new_event.task_execution == task_execution
 
-                assert timediff_seconds >= 0
-                assert timediff_seconds < 60
+                    assert timediff_seconds >= 0
+                    assert timediff_seconds < 60
+            else:
+                # Event should not be resolved until all expected instances have started
+                assert events.count() == 1
+                new_event = events.first()
+                assert new_event.uuid == event.uuid
+                assert new_event.resolved_at is None
+                assert new_event.task_execution is None
+
         else:
             assert events.count() == 0
 
