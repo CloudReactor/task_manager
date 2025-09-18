@@ -27,33 +27,33 @@ logger = logging.getLogger(__name__)
 @pytest.mark.parametrize("""
     schedule_type, enabled, instance_count, managed_probability, event_severity,
     schedule_updated_minutes_ago,
-    last_execution_minutes_ago, should_expect_event
+    last_execution_minutes_ago, should_expect_event, last_execution_counts
 """, [
-    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   True),
-    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 16,   False),
-    (SCHEDULE_TYPE_CRON, False, 1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False),
-    (SCHEDULE_TYPE_CRON, True,  2, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True),
-    (SCHEDULE_TYPE_CRON, True,  3, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True),
-    (SCHEDULE_TYPE_CRON, True,  1, 0.9,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False),
-    (SCHEDULE_TYPE_CRON, True,  1, 1.0,                   None, 2 * 24 * 60, 60,   False),
-    (SCHEDULE_TYPE_CRON, False, 1, 1.0, Event.SEVERITY_WARNING, 2 * 24 * 60, 60,   False),
-    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR,          10, 60,   False),
-    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, True),
-    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   False),
-    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   True),
-    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, True),
-    (SCHEDULE_TYPE_RATE, False, 1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   False),
-    (SCHEDULE_TYPE_RATE, True,  2, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True),
-    (SCHEDULE_TYPE_RATE, True,  1, 0.5,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   False),
-    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR,          20, 42,   False),
-    (None,               True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, False)
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   True,  False),
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 16,   False, True),
+    (SCHEDULE_TYPE_CRON, False, 1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False, False),
+    (SCHEDULE_TYPE_CRON, True,  2, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True,  True),
+    (SCHEDULE_TYPE_CRON, True,  3, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True, True),
+    (SCHEDULE_TYPE_CRON, True,  1, 0.9,   Event.SEVERITY_ERROR, 2 * 24 * 60, 60,   False, True),
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,                   None, 2 * 24 * 60, 60,   False, True),
+    (SCHEDULE_TYPE_CRON, False, 1, 1.0, Event.SEVERITY_WARNING, 2 * 24 * 60, 60,   False, True),
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR,          10, 60,   False, True),
+    (SCHEDULE_TYPE_CRON, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, True,  False),
+    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   False, True),
+    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   True,  False),
+    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, True,  False),
+    (SCHEDULE_TYPE_RATE, False, 1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   False, False),
+    (SCHEDULE_TYPE_RATE, True,  2, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, 10,   True,  True),
+    (SCHEDULE_TYPE_RATE, True,  1, 0.5,   Event.SEVERITY_ERROR, 2 * 24 * 60, 42,   False, True),
+    (SCHEDULE_TYPE_RATE, True,  1, 1.0,   Event.SEVERITY_ERROR,          20, 42,   False, True),
+    (None,               True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, False, False)
 ])
 @mock_aws
 def test_task_schedule_checker_missing_scheduled_executions(
         schedule_type: str, enabled: bool, instance_count: int,
         managed_probability: float, event_severity: int,
         schedule_updated_minutes_ago: int,
-        last_execution_minutes_ago: Optional[int],
+        last_execution_minutes_ago: Optional[int], last_execution_counts: bool,
         should_expect_event: bool, task_factory, task_execution_factory):
     utc_now = timezone.now()
 
@@ -137,7 +137,13 @@ def test_task_schedule_checker_missing_scheduled_executions(
             assert event.expected_execution_at == event.event_at
             assert event.expected_execution_at.second == 0
             assert event.expected_execution_at.microsecond == 0
-             assert event.missing_execution_count == instance_count
+
+            expected_missing_count = instance_count
+
+            if last_execution_at and last_execution_counts:
+                expected_missing_count -= 1
+
+            assert event.missing_execution_count == expected_missing_count
 
             if schedule_type == SCHEDULE_TYPE_CRON:
                 assert event.expected_execution_at.minute == schedule_minute
@@ -154,6 +160,8 @@ def test_task_schedule_checker_missing_scheduled_executions(
 
     # simulate task execution starting to resolve the event
     task_execution = task_execution_factory(task=task, started_at=utc_now)
+
+    logger.info(f"Created task execution {task_execution.uuid} started at {task_execution.started_at}")
 
     for i in range(2):
         logger.info(f"Checking events after task execution created, iteration {i}")
