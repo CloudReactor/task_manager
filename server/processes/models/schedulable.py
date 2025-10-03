@@ -22,7 +22,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+SCHEDULE_TYPE_CRON = 'C'
+SCHEDULE_TYPE_RATE = 'R'
+
+
 class Schedulable(NamedWithUuidModel):
+
     DEFAULT_MAX_EARLY_STARTUP_SECONDS = 60
     DEFAULT_MAX_STARTUP_SECONDS = 10 * 60
     DEFAULT_MAX_SCHEDULED_LATENESS_SECONDS = 30 * 60
@@ -92,8 +97,30 @@ class Schedulable(NamedWithUuidModel):
     def executions(self) -> Manager[Execution]:
         raise NotImplementedError()
 
-    def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledExecutionEvent]:
+    @property
+    def schedule_type(self) -> str | None:
+        if self.schedule:
+            if self.CRON_REGEX.match(self.schedule):
+                return SCHEDULE_TYPE_CRON
+            elif self.RATE_REGEX.match(self.schedule):
+                return SCHEDULE_TYPE_RATE
+
+        return None
+
+    def lookup_all_missing_scheduled_execution_events(self) -> Manager[MissingScheduledExecutionEvent]:
         raise NotImplementedError()
+
+    def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledExecutionEvent]:
+        manager = self.lookup_all_missing_scheduled_execution_events()
+
+        schedule_type = self.schedule_type
+        if not schedule_type:
+            return manager.none()
+
+        return manager.filter(
+                schedule=self.schedule, expected_execution_at__isnull=False, resolved_at__isnull=True,
+                resolved_event__isnull=True)
+
 
     def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,
         resolved_event: MissingScheduledExecutionEvent, execution: Execution) -> MissingScheduledExecutionEvent:

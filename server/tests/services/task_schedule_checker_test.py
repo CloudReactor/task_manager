@@ -7,18 +7,18 @@ from django.utils import timezone
 from processes.models import (
     Event,
     TaskExecution,
+    Schedulable,
     MissingScheduledTaskExecutionEvent
 )
 
 from processes.services.task_schedule_checker import TaskScheduleChecker
 
+from processes.models.schedulable import SCHEDULE_TYPE_CRON, SCHEDULE_TYPE_RATE
+
 import pytest
 
 from moto import mock_aws
 
-
-SCHEDULE_TYPE_CRON = 'C'
-SCHEDULE_TYPE_RATE = 'R'
 
 logger = logging.getLogger(__name__)
 

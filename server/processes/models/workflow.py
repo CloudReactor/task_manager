@@ -116,10 +116,9 @@ class Workflow(Schedulable):
         return WorkflowExecution.objects.filter(workflow=self)
 
     @override
-    def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledWorkflowExecutionEvent]:
+    def lookup_all_missing_scheduled_execution_events(self) -> Manager[MissingScheduledWorkflowExecutionEvent]:
         from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
-        return MissingScheduledWorkflowExecutionEvent.objects.filter(workflow=self,
-                resolved_at__isnull=True, resolved_event__isnull=True)
+        return MissingScheduledWorkflowExecutionEvent.objects.filter(workflow=self)
 
     @override
     def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,

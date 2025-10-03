@@ -94,8 +94,7 @@ class Execution(UuidModel):
             logger.debug("resolve_missing_scheduled_execution_events(): not started or scheduled")
             return
 
-        for msee in schedulable.lookup_missing_scheduled_execution_events().filter(
-                resolved_event__isnull=True, expected_execution_at__isnull=False) \
+        for msee in schedulable.lookup_missing_scheduled_execution_events().filter() \
                 .order_by('-event_at', '-expected_execution_at').iterator():
             lateness_seconds = (self.started_at - msee.expected_execution_at).total_seconds()
             logger.info(f"Found last missing scheduled {schedulable.kind_label} Execution event {msee.uuid}, expected execution at {msee.expected_execution_at}, lateness seconds = {lateness_seconds}")
@@ -106,20 +105,17 @@ class Execution(UuidModel):
 
                 with transaction.atomic():
                     utc_now = timezone.now()
-                    started_at_from = msee.expected_execution_at
+                    early_delta = timedelta(seconds=Schedulable.DEFAULT_MAX_EARLY_STARTUP_SECONDS)
                     started_at_to = utc_now
 
-                    m = Schedulable.RATE_REGEX.match(msee.schedule)
+                    rate_relative_delta = ScheduleChecker.parse_rate_schedule(schedulable.schedule)
 
-                    if m:
-                        n = int(m.group(1))
-                        time_unit = m.group(2).lower().rstrip('s')
-                        relative_delta = ScheduleChecker.make_relative_delta(n, time_unit)
-                        started_at_from -= relative_delta
+                    if rate_relative_delta:
+                        early_delta = rate_relative_delta
                     else:
-                        started_at_from -= timedelta(seconds=Schedulable.DEFAULT_MAX_EARLY_STARTUP_SECONDS)
                         started_at_to = msee.expected_execution_at + timedelta(seconds=Schedulable.DEFAULT_MAX_SCHEDULED_LATENESS_SECONDS)
 
+                    started_at_from = msee.expected_execution_at - early_delta
                     logger.info(f"Looking for executions of {schedulable.kind_label} {schedulable.uuid} started between {started_at_from} and {started_at_to}")
 
                     execution_count = schedulable.executions().filter(
