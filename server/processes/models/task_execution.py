@@ -4,7 +4,7 @@ import enum
 import json
 import logging
 
-from django.db import models, transaction
+from django.db import models
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
@@ -34,7 +34,6 @@ if TYPE_CHECKING:
     from .task_execution_status_change_event import (
         TaskExecutionStatusChangeEvent
     )
-    from .missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent
 
 
 logger = logging.getLogger(__name__)

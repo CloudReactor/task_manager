@@ -28,7 +28,8 @@ class WorkflowExecutionStatusSerializer(serializers.BaseSerializer):
 
 
 @extend_schema_field(serializers.ChoiceField(choices=[
-        reason.name for reason in list(WorkflowExecution.RunReason)]),
+        reason.name for reason in list(WorkflowExecution.RunReason)],
+        required=False),
         component_name='WorkflowExecutionRunReason')
 class WorkflowExecutionRunReasonSerializer(serializers.BaseSerializer):
     def to_representation(self, instance):
@@ -40,13 +41,19 @@ class WorkflowExecutionRunReasonSerializer(serializers.BaseSerializer):
 
 @extend_schema_field(serializers.ChoiceField(choices=[
         reason.name for reason in list(WorkflowExecution.StopReason)],
-        allow_blank=True),
+        required=False, allow_blank=True),
         component_name='WorkflowExecutionStopReason')
 class WorkflowExecutionStopReasonSerializer(serializers.BaseSerializer):
     def to_representation(self, instance):
+        if not instance:
+            return None
+
         return WorkflowExecution.StopReason(instance).name
 
     def to_internal_value(self, data):
+        if not data:
+            return None
+
         return WorkflowExecution.StopReason[data.upper()].value
 
 
@@ -75,9 +82,9 @@ class WorkflowExecutionSummarySerializer(SerializerHelpers,
         view_name='workflow_executions-detail',
         lookup_field='uuid'
     )
-    status = WorkflowExecutionStatusSerializer()
-    run_reason = WorkflowExecutionRunReasonSerializer(required=False)
-    stop_reason = WorkflowExecutionStopReasonSerializer(required=False)
+    status = WorkflowExecutionStatusSerializer(required=False)
+    run_reason = WorkflowExecutionRunReasonSerializer(required=False, allow_null=True)
+    stop_reason = WorkflowExecutionStopReasonSerializer(required=False, allow_null=True)
 
 
 class WorkflowExecutionSerializer(EmbeddedWorkflowSerializer):
@@ -138,6 +145,12 @@ class WorkflowExecutionSerializer(EmbeddedWorkflowSerializer):
     workflow_transition_evaluations = WorkflowTransitionEvaluationSerializer(many=True, read_only=True)
 
     def to_internal_value(self, data):
+        if 'status' not in data:
+            if self.instance:
+                data['status'] = WorkflowExecution.Status(self.instance.status).name
+            else:
+                data['status'] = WorkflowExecution.Status.MANUALLY_STARTED.name
+
         validated = super().to_internal_value(data)
         validated['started_by'] = self.get_request_user()
         return validated

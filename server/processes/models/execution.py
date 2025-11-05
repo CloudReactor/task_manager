@@ -11,6 +11,7 @@ from django.db import models, transaction
 from django.utils import timezone
 
 from .uuid_model import UuidModel
+from .execution_probabilities import ExecutionProbabilities
 from .schedulable import Schedulable
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Execution(UuidModel):
+class Execution(UuidModel, ExecutionProbabilities):
     class Meta:
         abstract = True
 
@@ -105,17 +106,13 @@ class Execution(UuidModel):
 
                 with transaction.atomic():
                     utc_now = timezone.now()
-                    early_delta = timedelta(seconds=Schedulable.DEFAULT_MAX_EARLY_STARTUP_SECONDS)
-                    started_at_to = utc_now
+                    time_range = ScheduleChecker.execution_time_range(schedulable, utc_now)
+                    if not time_range:
+                        logger.warning("Could not determine execution time range, skipping")
+                        continue
 
-                    rate_relative_delta = ScheduleChecker.parse_rate_schedule(schedulable.schedule)
+                    _expected_time_range, started_at_from, started_at_to = time_range
 
-                    if rate_relative_delta:
-                        early_delta = rate_relative_delta
-                    else:
-                        started_at_to = msee.expected_execution_at + timedelta(seconds=Schedulable.DEFAULT_MAX_SCHEDULED_LATENESS_SECONDS)
-
-                    started_at_from = msee.expected_execution_at - early_delta
                     logger.info(f"Looking for executions of {schedulable.kind_label} {schedulable.uuid} started between {started_at_from} and {started_at_to}")
 
                     execution_count = schedulable.executions().filter(

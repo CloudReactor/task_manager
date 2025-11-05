@@ -252,11 +252,14 @@ def test_workflow_execution_list(
                     is_list=True)
 
 
-def common_setup(is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        uuid_send_type: str,
+def common_setup(
         user, group_factory, run_environment_factory,
-        workflow_factory, workflow_execution_factory, api_client) \
+        workflow_factory, workflow_execution_factory, api_client,
+        is_authenticated: bool = True,
+        group_access_level: Optional[int] = UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+        api_key_access_level: Optional[int] = UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+        api_key_scope_type: str = SCOPE_TYPE_CORRECT,
+        uuid_send_type: str = SEND_ID_NONE) \
         -> Tuple[WorkflowExecution, Optional[RunEnvironment], APIClient, str]:
     group = user.groups.first()
 
@@ -311,9 +314,7 @@ def make_request_body(uuid_send_type: Optional[str],
         workflow_execution: WorkflowExecution,
         group_factory, run_environment_factory, workflow_factory,
         workflow_execution_factory) -> dict[str, Any]:
-    request_data: dict[str, Any] = {
-      'status': 'RUNNING'
-    }
+    request_data: dict[str, Any] = {}
 
     if uuid_send_type == SEND_ID_NOT_FOUND:
         request_data['uuid'] = str(uuid.uuid4())
@@ -657,6 +658,82 @@ def test_workflow_execution_create_access_control(
         assert new_count == old_count
         check_validation_error(response, validation_error_attribute, error_code)
 
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+    managed_probability, reason, status_code
+""", [
+
+  (1.0, WorkflowExecution.RunReason.SCHEDULED_START.name, 201),
+  (1.0 - 1E-12, WorkflowExecution.RunReason.SCHEDULED_START.name, 201),
+  (1E-12, WorkflowExecution.RunReason.SCHEDULED_START.name, 204),
+  (1E-12, None, 201),
+  (1E-12, WorkflowExecution.RunReason.EXPLICIT_START.name, 201),
+])
+@mock_aws
+def test_workflow_execution_scheduled_execution(
+        managed_probability: Optional[float], reason: Optional[str],
+        status_code: int,
+        user_factory, group_factory, run_environment_factory,
+        workflow_factory, workflow_execution_factory,
+        api_client) -> None:
+    """
+    This only tests access control to the CREATE endpoint, not the actual changes.
+    """
+
+    user = user_factory()
+
+    workflow_execution, api_key_run_environment, client, url = common_setup(
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            workflow_factory=workflow_factory,
+            workflow_execution_factory=workflow_execution_factory,
+            api_client=api_client)
+
+    workflow = workflow_execution.workflow
+    workflow.managed_probability = managed_probability
+    workflow.save()
+
+    request_data = make_request_body(uuid_send_type=SEND_ID_NONE,
+            workflow_send_type=SEND_ID_CORRECT,
+            user=user,
+            group_factory=group_factory,
+            api_key_run_environment=api_key_run_environment,
+            workflow_execution=workflow_execution,
+            run_environment_factory=run_environment_factory,
+            workflow_factory=workflow_factory,
+            workflow_execution_factory=workflow_execution_factory)
+
+    if reason:
+        request_data['run_reason'] = reason
+
+    old_count = WorkflowExecution.objects.count()
+
+    response = client.post(url, data=request_data)
+
+    assert response.status_code == status_code
+
+    new_count = WorkflowExecution.objects.count()
+
+    if status_code == 201:
+        assert new_count == old_count + 1
+
+        response_workflow_execution = cast(dict[str, Any], response.data)
+        workflow_execution_uuid = response_workflow_execution['uuid']
+        created_am = WorkflowExecution.objects.get(uuid=workflow_execution_uuid)
+
+        ensure_serialized_workflow_execution_valid(
+                response_workflow_execution=response_workflow_execution,
+                workflow_execution=created_am, user=user,
+                group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+                api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+                api_key_run_environment=api_key_run_environment)
+    else:
+        assert new_count == old_count
+
+
 @pytest.mark.django_db
 @mock_aws
 def test_workflow_execution_create_history_purging(
@@ -667,17 +744,15 @@ def test_workflow_execution_create_history_purging(
     group = user.groups.first()
 
     workflow_execution, api_key_run_environment, client, url = common_setup(
-            is_authenticated=True,
-            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
-            api_key_scope_type=SCOPE_TYPE_CORRECT,
-            uuid_send_type=SEND_ID_NONE,
             user=user,
             group_factory=group_factory,
             run_environment_factory=run_environment_factory,
             workflow_factory=workflow_factory,
             workflow_execution_factory=workflow_execution_factory,
-            api_client=api_client)
+            api_client=api_client,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
+    )
 
     request_data = make_request_body(uuid_send_type=SEND_ID_NONE,
             workflow_send_type=SEND_ID_CORRECT,

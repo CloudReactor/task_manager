@@ -2,7 +2,7 @@ from typing import override
 from datetime import datetime
 import logging
 
-from django.db.models import Manager, Q
+from django.db.models import Manager
 
 from ..models import *
 
@@ -19,8 +19,7 @@ class TaskScheduleChecker(ScheduleChecker[Task, TaskExecution]):
 
     @override
     def manager(self) -> Manager[Task]:
-        return Task.objects.filter(Q(managed_probability__gte=1.0) |
-                Q(managed_probability__isnull=True))
+        return Task.objects
 
     @override
     def make_missing_scheduled_execution_event(self, schedulable: Task,

@@ -6,10 +6,10 @@ from django.utils import timezone
 
 from processes.models import (
     Event,
-    MissingScheduledTaskExecutionEvent
+    MissingScheduledWorkflowExecutionEvent
 )
 
-from processes.services.task_schedule_checker import TaskScheduleChecker
+from processes.services.workflow_schedule_checker import WorkflowScheduleChecker
 
 from processes.models.schedulable import SCHEDULE_TYPE_CRON, SCHEDULE_TYPE_RATE
 
@@ -47,12 +47,13 @@ logger = logging.getLogger(__name__)
     (None,               True,  1, 1.0,   Event.SEVERITY_ERROR, 2 * 24 * 60, None, False, False)
 ])
 @mock_aws
-def test_task_schedule_checker_missing_scheduled_executions(
+def test_workflow_schedule_checker_missing_scheduled_executions(
         schedule_type: str, enabled: bool, instance_count: int,
         managed_probability: float, event_severity: int,
         schedule_updated_minutes_ago: int,
         last_execution_minutes_ago: Optional[int], last_execution_counts: bool,
-        should_expect_event: bool, task_factory, task_execution_factory):
+        should_expect_event: bool, workflow_factory, workflow_execution_factory,
+        run_environment_factory):
     utc_now = timezone.now()
 
     now_minute = utc_now.minute
@@ -82,25 +83,30 @@ def test_task_schedule_checker_missing_scheduled_executions(
     elif schedule_type == SCHEDULE_TYPE_RATE:
         schedule = 'rate(30 minutes)'
 
-    task = task_factory(enabled=enabled, schedule=schedule,
+    run_environment=run_environment_factory()
+
+    workflow = workflow_factory(enabled=enabled, schedule=schedule,
+            run_environment=run_environment,
             scheduled_instance_count=instance_count,
-            is_scheduling_managed=False, managed_probability=managed_probability,
-            notification_event_severity_on_missing_execution=event_severity,
-            schedule_updated_at = utc_now - timedelta(minutes=schedule_updated_minutes_ago))
+            managed_probability=managed_probability,
+            notification_event_severity_on_missing_execution=event_severity)
+
+    workflow.schedule_updated_at = utc_now - timedelta(minutes=schedule_updated_minutes_ago)
+    workflow.save()
 
     if last_execution_at is not None:
-        task_execution_factory(task=task, started_at=last_execution_at)
+        workflow_execution_factory(workflow=workflow, started_at=last_execution_at)
 
     event: Event | None = None
     previous_event: Event | None = None
 
-    checker = TaskScheduleChecker()
+    checker = WorkflowScheduleChecker()
 
     for _ in range(2):
         detection_at = timezone.now()
         checker.check_all()
 
-        events = MissingScheduledTaskExecutionEvent.objects.filter(task=task)
+        events = MissingScheduledWorkflowExecutionEvent.objects.filter(workflow=workflow)
 
         if should_expect_event:
             assert events.count() == 1
@@ -118,18 +124,18 @@ def test_task_schedule_checker_missing_scheduled_executions(
             previous_event = event
 
             assert event.uuid is not None
-            assert event.created_by_group == task.created_by_group
+            assert event.created_by_group == workflow.created_by_group
             assert event.severity == event_severity
-            assert event.severity == task.notification_event_severity_on_missing_execution
-            assert event.grouping_key == f"missing_scheduled_task-{task.uuid}-{event.expected_execution_at.timestamp() // 60}"
-            assert event.error_summary == f"Task '{task.name}' did not execute as scheduled at {event.expected_execution_at}"
+            assert event.severity == workflow.notification_event_severity_on_missing_execution
+            assert event.grouping_key == f"missing_scheduled_workflow-{workflow.uuid}-{event.expected_execution_at.timestamp() // 60}"
+            assert event.error_summary == f"Workflow '{workflow.name}' did not execute as scheduled at {event.expected_execution_at}"
             assert event.resolved_at is None
             assert event.resolved_event is None
 
-            assert event.task == task
-            assert event.task_execution is None
+            assert event.workflow == workflow
+            assert event.workflow_execution is None
             assert event.schedule == schedule
-            assert event.schedule == task.schedule
+            assert event.schedule == workflow.schedule
             assert event.expected_execution_at is not None
             assert event.expected_execution_at == event.event_at
 
@@ -156,17 +162,17 @@ def test_task_schedule_checker_missing_scheduled_executions(
 
     utc_now = timezone.now()
 
-    logger.info("Creating task execution to maybe resolve event")
+    logger.info("Creating workflow execution to maybe resolve event")
 
-    # simulate task execution starting to resolve the event
-    task_execution = task_execution_factory(task=task, started_at=utc_now)
+    # simulate workflow execution starting to resolve the event
+    workflow_execution = workflow_execution_factory(workflow=workflow, started_at=utc_now)
 
-    logger.info(f"Created task execution {task_execution.uuid} started at {task_execution.started_at}")
+    logger.info(f"Created workflow execution {workflow_execution.uuid} started at {workflow_execution.started_at}")
 
     for i in range(2):
-        logger.info(f"Checking events after task execution created, iteration {i}")
+        logger.info(f"Checking events after workflow execution created, iteration {i}")
 
-        events = MissingScheduledTaskExecutionEvent.objects.filter(task=task)
+        events = MissingScheduledWorkflowExecutionEvent.objects.filter(workflow=workflow)
 
         if should_expect_event:
             if instance_count <= 2:
@@ -174,14 +180,14 @@ def test_task_schedule_checker_missing_scheduled_executions(
 
                 for new_event in events:
                     assert new_event.detected_at is not None
-                    assert new_event.task == task
-                    assert new_event.created_by_group == task.created_by_group
+                    assert new_event.workflow == workflow
+                    assert new_event.created_by_group == workflow.created_by_group
                     assert new_event.grouping_key == event.grouping_key
                     assert new_event.severity == event.severity
 
                     if new_event.uuid == event.uuid:
                         timediff_seconds = (new_event.resolved_at - utc_now).total_seconds()
-                        assert new_event.task_execution is None
+                        assert new_event.workflow_execution is None
 
                         assert new_event.error_summary == event.error_summary
                     else:
@@ -190,8 +196,8 @@ def test_task_schedule_checker_missing_scheduled_executions(
                         assert new_event.detected_at >= event.detected_at
                         assert new_event.resolved_at is None
                         assert new_event.resolved_event == event
-                        assert new_event.error_summary == f"Task '{task.name}' has started after being late according to its schedule"
-                        assert new_event.task_execution == task_execution
+                        assert new_event.error_summary == f"Workflow '{workflow.name}' has started after being late according to its schedule"
+                        assert new_event.workflow_execution == workflow_execution
 
                     assert timediff_seconds >= 0
                     assert timediff_seconds < 60
@@ -201,7 +207,7 @@ def test_task_schedule_checker_missing_scheduled_executions(
                 new_event = events.first()
                 assert new_event.uuid == event.uuid
                 assert new_event.resolved_at is None
-                assert new_event.task_execution is None
+                assert new_event.workflow_execution is None
 
         else:
             assert events.count() == 0

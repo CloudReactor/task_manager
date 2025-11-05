@@ -11,7 +11,7 @@ from crontab import CronTab
 from dateutil.relativedelta import *
 
 from django.db import transaction
-from django.db.models import Manager
+from django.db.models import Manager, Q
 from django.utils import timezone
 
 from ..models import MissingScheduledExecutionEvent, Schedulable, Execution
@@ -31,7 +31,9 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
     def check_all(self) -> None:
         model_name = self.model_name()
         for schedulable in self.manager().filter(enabled=True,
-                notification_event_severity_on_missing_execution__isnull=False).exclude(schedule='').all():
+                notification_event_severity_on_missing_execution__isnull=False).filter(
+                    Q(managed_probability__gte=1.0) |
+                    Q(managed_probability__isnull=True)).exclude(schedule='').all():
             logger.info(f"Found {model_name} {schedulable.uuid} with schedule {schedulable.schedule}")
             try:
                 self.check_execution_on_time(schedulable)
@@ -63,8 +65,11 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
 
         return mse
 
-    def execution_time_range(self, schedulable: BoundSchedulable, utc_now: datetime) -> tuple[datetime, datetime] | None:
-        model_name = self.model_name()
+
+    @staticmethod
+    def execution_time_range(schedulable: BoundSchedulable, utc_now: datetime) \
+            -> Optional[tuple[datetime, datetime, datetime]]:
+        model_name = schedulable.kind_label
         schedule = schedulable.schedule
 
         expected_datetime = utc_now
@@ -102,12 +107,11 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
             expected_datetime = utc_now - timedelta(seconds=previous_execution_seconds_ago)
             from_datetime = expected_datetime - timedelta(seconds=Schedulable.DEFAULT_MAX_EARLY_STARTUP_SECONDS)
             to_datetime = expected_datetime + timedelta(seconds=Schedulable.DEFAULT_MAX_SCHEDULED_LATENESS_SECONDS)
-            expected_datetime = (expected_datetime + timedelta(microseconds=500000)).replace(microsecond=0)
 
             logger.info(
                 f"execution_time_range(): Previous execution was supposed to start {previous_execution_seconds_ago / 60} minutes ago at {expected_datetime}")
         else:
-            rate_relative_delta = self.parse_rate_schedule(schedule)
+            rate_relative_delta = ScheduleChecker.parse_rate_schedule(schedule)
 
             if rate_relative_delta:
                 if schedule_updated_at + rate_relative_delta > utc_now:
@@ -115,16 +119,17 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
                         f"execution_time_range(): Next execution after schedule update ({schedule_updated_at}) is in the future, skipping")
                     return None
 
-                expected_datetime = utc_now.replace(second=0, microsecond=0)
                 from_datetime = utc_now - rate_relative_delta - timedelta(seconds=Schedulable.DEFAULT_MAX_EARLY_STARTUP_SECONDS)
-                to_datetime = utc_now
             else:
                 raise Exception(f"Schedule '{schedule}' is not a cron or rate expression")
+
 
         if expected_datetime < schedulable.schedule_updated_at:
             logger.info(
                 f"execution_time_range(): Previous execution expected to start at {from_datetime} but that is before the schedule was last updated at {schedulable.schedule_updated_at}")
             return None
+
+        expected_datetime = (expected_datetime + timedelta(microseconds=500000)).replace(microsecond=0)
 
         return (expected_datetime, from_datetime, to_datetime)
 

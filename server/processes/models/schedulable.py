@@ -10,6 +10,7 @@ from django.db.models import Manager
 from django.utils import timezone
 
 from .event import Event
+from .execution_probabilities import ExecutionProbabilities
 from .named_with_uuid_model import NamedWithUuidModel
 from .run_environment import RunEnvironment
 from .notification_profile import NotificationProfile
@@ -26,7 +27,7 @@ SCHEDULE_TYPE_CRON = 'C'
 SCHEDULE_TYPE_RATE = 'R'
 
 
-class Schedulable(NamedWithUuidModel):
+class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
 
     DEFAULT_MAX_EARLY_STARTUP_SECONDS = 60
     DEFAULT_MAX_STARTUP_SECONDS = 10 * 60

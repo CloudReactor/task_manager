@@ -1,7 +1,5 @@
 from django.db import models
 
-from django.core.validators import MaxValueValidator, MinValueValidator
-
 from .infrastructure_configuration import InfrastructureConfiguration
 
 class TaskExecutionConfiguration(InfrastructureConfiguration):
@@ -43,12 +41,5 @@ class TaskExecutionConfiguration(InfrastructureConfiguration):
     merge_stdout_and_stderr_logs = models.BooleanField(null=True, blank=True)
     ignore_stdout = models.BooleanField(null=True, blank=True)
     ignore_stderr = models.BooleanField(null=True, blank=True)
-
-    managed_probability = models.FloatField(null=True, blank=True,
-        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
-    failure_report_probability =  models.FloatField(null=True, blank=True,
-        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
-    timeout_report_probability =  models.FloatField(null=True, blank=True,
-        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)])
 
     other_metadata = models.JSONField(null=True, blank=True)
