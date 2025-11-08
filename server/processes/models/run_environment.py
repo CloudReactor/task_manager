@@ -1,4 +1,4 @@
-from typing import Optional, Type, TYPE_CHECKING
+from typing import Optional, Type, TYPE_CHECKING, override
 
 import logging
 
@@ -10,7 +10,8 @@ from ..exception.unprocessable_entity import UnprocessableEntity
 from ..execution_methods import (
     AwsSettings,
     AwsEcsExecutionMethodSettings,
-    AwsLambdaExecutionMethodSettings
+    AwsLambdaExecutionMethodSettings,
+    InfrastructureSettings,
 )
 from .named_with_uuid_model import NamedWithUuidModel
 
@@ -54,11 +55,8 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
     # Deprecated, use InfrastructureSettings.can_manage_infrastructure()
     def can_control_aws_ecs(self) -> bool:
-        if not self.aws_settings:
-            return False
-
-        aws_settings = AwsSettings.parse_obj(self.aws_settings)
-        return aws_settings.can_manage_infrastructure()
+        aws_settings = self.parsed_aws_settings()
+        return aws_settings and aws_settings.can_manage_infrastructure()
 
     # Deprecated, use AwsSettings.region
     def get_aws_region(self) -> Optional[str]:
@@ -69,24 +67,32 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
     # Deprecated, use AwsSettings.make_boto3_client()
     def make_boto3_client(self, service_name: str):
-        if not self.aws_settings:
+        aws_settings = self.parsed_aws_settings()
+
+        if not aws_settings:
             raise RuntimeError("make_boto3_client(): no AWS settings found")
 
-        aws_settings = AwsSettings.parse_obj(self.aws_settings)
         return aws_settings.make_boto3_client(service_name=service_name,
                 session_uuid=str(self.uuid))
 
-    def can_schedule_workflow(self) -> bool:
-        if not self.aws_settings:
-            return False
+    @override
+    def parsed_infrastructure_settings(self) -> InfrastructureSettings | None:
+        return super().parsed_infrastructure_settings() or self.parsed_aws_settings()
 
-        aws_settings = AwsSettings.parse_obj(self.aws_settings)
-        return aws_settings.can_schedule_workflow()
+    def parsed_aws_settings(self) -> AwsSettings | None:
+        if not self.aws_settings:
+            return None
+
+        return AwsSettings.parse_obj(self.aws_settings)
+
+
+    def can_schedule_workflow(self) -> bool:
+        aws_settings = self.parsed_aws_settings()
+        return aws_settings and aws_settings.can_schedule_workflow()
 
     def enrich_settings(self) -> None:
-        aws_settings: Optional[AwsSettings] = None
-        if self.aws_settings:
-            aws_settings = AwsSettings.parse_obj(self.aws_settings)
+        aws_settings = self.parsed_aws_settings()
+        if aws_settings:
             aws_settings.update_derived_attrs()
             self.aws_settings = aws_settings.dict()
 

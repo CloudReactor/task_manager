@@ -4,7 +4,7 @@ import enum
 import json
 import logging
 
-from django.db import models, transaction
+from django.db import models
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
@@ -34,7 +34,6 @@ if TYPE_CHECKING:
     from .task_execution_status_change_event import (
         TaskExecutionStatusChangeEvent
     )
-    from .missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent
 
 
 logger = logging.getLogger(__name__)
@@ -616,6 +615,8 @@ def post_save_task_execution(sender: Type[TaskExecution], **kwargs):
         logger.info(f"post_save_task_execution(): saving {task=} after setting latest execution")
         task.save_without_sync(update_fields=['latest_task_execution', 'updated_at'])
 
+
+    # CHECKME: only do this when state changes to in_progress or started_at is set?
     instance.resolve_missing_scheduled_execution_events()
 
     heartbeat_interval_seconds = task.heartbeat_interval_seconds

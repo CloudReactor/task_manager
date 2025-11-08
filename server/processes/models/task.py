@@ -158,9 +158,13 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         return 'tasks'
 
     @override
-    def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledTaskExecutionEvent]:
-        from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
+    def executions(self) -> Manager[TaskExecution]:
+        from .task_execution import TaskExecution
+        return TaskExecution.objects.filter(task=self)
 
+    @override
+    def lookup_all_missing_scheduled_execution_events(self) -> Manager[MissingScheduledTaskExecutionEvent]:
+        from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
         return MissingScheduledTaskExecutionEvent.objects.filter(task=self)
 
     @override

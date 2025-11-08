@@ -1215,8 +1215,11 @@ def validate_serialized_workflow_execution_summary(
     assert body_workflow_execution['status'] == WorkflowExecution.Status(
             model_workflow_execution.status).name
 
-    assert body_workflow_execution['run_reason'] == WorkflowExecution.RunReason(
-            model_workflow_execution.run_reason).name
+    if body_workflow_execution['run_reason'] is None:
+        assert model_workflow_execution.run_reason == WorkflowExecution.RunReason.EXPLICIT_START
+    else:
+        assert body_workflow_execution['run_reason'] == WorkflowExecution.RunReason(
+                model_workflow_execution.run_reason).name
 
     if model_workflow_execution.stop_reason is None:
         assert body_workflow_execution['stop_reason'] is None

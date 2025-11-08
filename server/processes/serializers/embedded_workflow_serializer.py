@@ -57,4 +57,15 @@ class EmbeddedWorkflowSerializer(EmbeddedIdValidatingSerializerMixin,
                 'workflow': [ErrorDetail('Does not match existing', code='invalid')]
             })
 
+        workflow = validated_workflow or instance.workflow
+
+        if validated_data.get('managed_probability') is None:
+            validated_data['managed_probability'] = workflow.managed_probability
+
+        if validated_data.get('failure_report_probability') is None:
+            validated_data['failure_report_probability'] = workflow.failure_report_probability
+
+        if validated_data.get('timeout_report_probability') is None:
+            validated_data['timeout_report_probability'] = workflow.timeout_report_probability
+
         return super().update(instance, validated_data)

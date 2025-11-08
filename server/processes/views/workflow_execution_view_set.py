@@ -2,6 +2,8 @@ from typing import cast, Any, Optional
 
 import logging
 
+import random
+
 from django.db import transaction
 from django.db.models.query import QuerySet
 from django.views import View
@@ -165,7 +167,14 @@ class WorkflowExecutionViewSet(AtomicCreateModelMixin,
 
         validated_data = serializer.validated_data
 
-        logger.info(f"validated data = {validated_data}")
+        logger.info(f"{validated_data=}")
+
+        requested_status = validated_data.get('status')
+
+        if (requested_status is not None) and (requested_status != WorkflowExecution.Status.MANUALLY_STARTED):
+            raise serializers.ValidationError({
+                'status': [ErrorDetail('Can only create WorkflowExecution with status MANUALLY_STARTED', code='invalid')]
+            })
 
         requested_workflow = validated_data.get('workflow')
 
@@ -174,9 +183,21 @@ class WorkflowExecutionViewSet(AtomicCreateModelMixin,
                 'workflow': [ErrorDetail('Workflow is required', code='missing')]
             })
 
+
         ensure_group_access_level(group=requested_workflow.created_by_group,
                 min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
                 run_environment=requested_workflow.run_environment)
+
+        p = requested_workflow.managed_probability
+
+        if (p is not None) and (p < 1.0) and \
+                (validated_data.get('run_reason') == WorkflowExecution.RunReason.SCHEDULED_START):
+            r = random.random()
+            if r > p:
+                logger.info(f"Skipping creation of WorkflowExecution for Workflow "
+                            f"{requested_workflow.uuid} due to managed_probability "
+                            f"{p} (random={r})")
+                return Response(status=status.HTTP_204_NO_CONTENT)
 
         if not requested_workflow.can_start_execution():
             return Response(status=status.HTTP_409_CONFLICT)

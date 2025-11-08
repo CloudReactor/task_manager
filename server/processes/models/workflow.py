@@ -8,6 +8,7 @@ import logging
 import uuid as python_uuid
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Manager
 from django.db.models.signals import pre_save, pre_delete
@@ -24,6 +25,7 @@ from botocore.exceptions import ClientError
 from ..common.utils import generate_clone_name
 from ..common.aws import handle_aws_multiple_failure_response
 from ..exception import UnprocessableEntity
+from ..execution_methods.aws_settings import AwsSettings, INFRASTRUCTURE_TYPE_AWS
 
 from .user_group_access_level import UserGroupAccessLevel
 from .subscription import Subscription
@@ -110,15 +112,22 @@ class Workflow(Schedulable):
 
         return True
 
+    @override
+    def executions(self) -> Manager[WorkflowExecution]:
+        from .workflow_execution import WorkflowExecution
+        return WorkflowExecution.objects.filter(workflow=self)
 
     @override
-    def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledWorkflowExecutionEvent]:
+    def lookup_all_missing_scheduled_execution_events(self) -> Manager[MissingScheduledWorkflowExecutionEvent]:
         from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
         return MissingScheduledWorkflowExecutionEvent.objects.filter(workflow=self)
 
     @override
     def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,
         resolved_event: MissingScheduledExecutionEvent, execution: Execution) -> MissingScheduledWorkflowExecutionEvent:
+        from .workflow_execution import WorkflowExecution
+        from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
+
         resolving_event = MissingScheduledWorkflowExecutionEvent(
             event_at=execution.started_at, detected_at=detected_at,
             severity=resolved_event.severity,
@@ -287,11 +296,24 @@ class Workflow(Schedulable):
 
         state = 'ENABLED' if self.enabled else 'DISABLED'
 
-        execution_role_arn = run_environment.aws_ecs_default_execution_role
-        aws_workflow_starter_lambda_arn = run_environment.aws_workflow_starter_lambda_arn
+        aws_settings = run_environment.parsed_aws_settings()
 
-        if not execution_role_arn or not aws_workflow_starter_lambda_arn:
-            raise Exception('Missing execution_role_arn or aws_workflow_starter_lambda_arn required to schedule workflows')
+        if not aws_settings:
+            if run_environment.infrastructure_type != INFRASTRUCTURE_TYPE_AWS:
+                raise Exception("setup_scheduled_execution(): AWS infrastructure required to schedule workflows")
+
+            aws_settings = cast(AwsSettings, run_environment.parsed_infrastructure_settings())
+
+        if not aws_settings:
+            raise Exception("setup_scheduled_execution(): No AWS settings found in Run Environment")
+
+        execution_role_arn = aws_settings.execution_role_arn
+        aws_workflow_starter_lambda_arn = aws_settings.workflow_starter_lambda_arn
+        aws_workflow_starter_access_key = aws_settings.workflow_starter_access_key
+
+        if not execution_role_arn or (not aws_workflow_starter_lambda_arn) or \
+                (not aws_workflow_starter_access_key):
+            raise Exception('execution_role_arn, aws_workflow_starter_lambda_arn, aws_workflow_starter_access_key required to schedule Workflows')
 
         logger.info(f"Using execution role arn = '{execution_role_arn}'")
 
@@ -313,6 +335,8 @@ class Workflow(Schedulable):
             # ],
             # EventBusName='string'
 
+
+        # TODO: move these somewhere more generic
         self.aws_scheduled_execution_rule_name = aws_scheduled_execution_rule_name
         self.aws_scheduled_event_rule_arn = response['RuleArn']
 
@@ -330,20 +354,34 @@ class Workflow(Schedulable):
             'workflow': {
                 'uuid': str(self.uuid)
             },
-            'status': WorkflowExecution.Status.MANUALLY_STARTED.name
+            'status': WorkflowExecution.Status.MANUALLY_STARTED.name,
+            'run_reason': WorkflowExecution.RunReason.SCHEDULED_START.name,
         }
 
         request = get_request()
-        user = request.user
+
+        user: User | None = None
+
+        if request:
+            user = request.user
+
+        if not user:
+            user = self.created_by_user or run_environment.created_by_user
+
         # TODO: use less privilege
-        if request.auth and hasattr(request.auth, 'key'):
+        if request and request.auth and hasattr(request.auth, 'key'):
             token = request.auth.key
         else:
-            # Can't use get_or_create() because there could be duplicates
-            saas_token = SaasToken.objects.filter(user=user,
-                    group=self.created_by_group).first()
+            token_qs = SaasToken.objects.filter(group=self.created_by_group,
+                    access_level__gte=UserGroupAccessLevel.ACCESS_LEVEL_TASK)
 
-            if not saas_token or (saas_token.access_level < UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER):
+            if user:
+                token_qs = token_qs.filter(user=user)
+
+            # Can't use get_or_create() because there could be duplicates
+            saas_token = token_qs.first()
+
+            if not saas_token:
                 saas_token = SaasToken(name='Workflow Trigger',
                         description='Used to trigger Workflows',
                         user=user, group=self.created_by_group,
@@ -448,7 +486,8 @@ class Workflow(Schedulable):
                 self.run_environment.can_schedule_workflow():
             return self.run_environment
 
-        if fallback_to_tasks:
+        # workflow_task_instances() can't be called unless the Workflow is saved
+        if fallback_to_tasks and self.pk:
             logger.info('Looking for a Run Environment suitable for scheduling in Tasks ...')
 
             for wti in self.workflow_task_instances.all():
