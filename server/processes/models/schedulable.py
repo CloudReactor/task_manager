@@ -128,6 +128,8 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
         raise NotImplementedError()
 
     def send_event_notifications(self, event: Event) -> int:
+        logger.info(f"Sending notifications for {self.kind_label} {self.name} ({self.uuid}) with event {event.uuid} ...")
+
         #run_env: Optional[RunEnvironment] = None
 
         #if hasattr(self, 'run_environment'):
@@ -154,5 +156,8 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
                 count += 1
             except Exception as ex:
                 logger.exception(f"Can't send using Notification Method {np.uuid} / {np.name} for {self.kind_label} Execution UUID {self.uuid}")
+
+
+        logger.info(f"Sent {count} notifications for {self.kind_label} {self.name} ({self.uuid}) with event {event.uuid}")
 
         return count
