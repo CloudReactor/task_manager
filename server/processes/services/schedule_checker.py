@@ -90,9 +90,8 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
                 logger.exception(f"Can't parse cron expression '{cron_expr}'")
                 raise ex
 
-            # TODO: feed in utc_now
             negative_previous_execution_seconds_ago = entry.previous(
-                    default_utc=True)
+                    now=utc_now)
 
             if negative_previous_execution_seconds_ago is None:
                 logger.info('execution_time_range(): No expected previous execution, returning')
