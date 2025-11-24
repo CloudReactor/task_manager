@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from django.db import models
 
 from .task_execution_event import TaskExecutionEvent
@@ -20,7 +18,7 @@ Expected heartbeat at {{expected_heartbeat_at}} but last heartbeat was at {{last
 """Execution {{task_execution.uuid}} of the Task '{{task.name}}' has sent a late heartbeat at {{last_heartbeat_at}} after being marked as missing a heartbeat."""
 
     last_heartbeat_at = models.DateTimeField(null=True)
-    expected_heartbeat_at = models.DateTimeField(default=datetime.now, null=True)
+    expected_heartbeat_at = models.DateTimeField(null=True)
     heartbeat_interval_seconds = models.IntegerField(null=True)
 
     class Meta:
