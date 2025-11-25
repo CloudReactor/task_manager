@@ -134,8 +134,8 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
 
 
     def check_executions(self, schedulable: BoundSchedulable, expected_datetime: datetime,
-            from_datetime: datetime,
-            to_datetime: datetime, utc_now: datetime) -> Optional[MissingScheduledExecutionEvent]:
+            from_datetime: datetime, to_datetime: datetime, utc_now: datetime) -> \
+            MissingScheduledExecutionEvent | None:
 
         model_name = self.model_name()
         executions = schedulable.executions().filter(started_at__gte=from_datetime,
@@ -147,9 +147,11 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
         event_manager = schedulable.lookup_missing_scheduled_execution_events()
 
         if schedulable.schedule_type == SCHEDULE_TYPE_CRON:
-            event_manager = event_manager.filter(expected_execution_at=expected_datetime)
-        elif schedulable.schedule_type == SCHEDULE_TYPE_RATE:
-            event_manager = event_manager.order_by('-expected_execution_at')
+            event_manager = event_manager.filter(expected_execution_at=expected_datetime).order_by(
+                    '-event_at')
+        else:
+            event_manager = event_manager.filter(expected_execution_at__gte=from_datetime).order_by(
+                    '-expected_execution_at', '-event_at')
 
         mse = event_manager.first()
 
