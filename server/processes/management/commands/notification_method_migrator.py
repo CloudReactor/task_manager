@@ -19,11 +19,29 @@ class Command(BaseCommand):
         #parser.add_argument('poll_ids', nargs='+', type=int)
         pass
 
+    def find_notification_profile_for_alert_method(self, am: AlertMethod) -> NotificationProfile | None:
+        np = NotificationProfile.objects.filter(uuid=str(am.uuid)).first()
+
+        if np:
+            logger.info(f"Found notification profile {np.uuid} / {np.name} by UUID for alert method {am.uuid}")
+        else:
+            logger.info(f"Looking up notification profile by name {am.name} for alert method {am.uuid}")
+            np = NotificationProfile.objects.filter(name=np.name, created_by_group=am.created_by_group).first()
+
+            if np:
+                logger.info(f"Found notification profile {np.uuid} / {np.name} by name for alert method {am.uuid}")
+            else:
+                logger.warning(f"Could not find notification profile for alert method {am.uuid} / {am.name}")
+
+        return np
+
+
     def handle(self, *args, **options):
         logger.info("Starting notification method migrator ...")
 
         np_count = 0
         task_count = 0
+        workflow_count = 0
         run_env_count = 0
         with StatusUpdater(incremental_count_mode=True) as status_updater:
             for am in AlertMethod.objects.all():
@@ -133,20 +151,31 @@ class Command(BaseCommand):
             for task in Task.objects.all():
                 touched = False
                 for am in task.alert_methods.all():
-                    np = NotificationProfile.objects.filter(uuid=str(am.uuid)).first()
-
-                    if np:
-                        task.notification_profiles.add(np)
-                        task_count += 1
-                        touched = True
+                      np = self.find_notification_profile_for_alert_method(am)
+                      if np:
+                          task.notification_profiles.add(np)
+                          task_count += 1
+                          touched = True
 
                 if touched:
                     task.save()
 
+            for workflow in Workflow.objects.all():
+                touched = False
+                for am in workflow.alert_methods.all():
+                      np = self.find_notification_profile_for_alert_method(am)
+                      if np:
+                          workflow.notification_profiles.add(np)
+                          workflow_count += 1
+                          touched = True
+
+                if touched:
+                    workflow.save()
+
             for run_env in RunEnvironment.objects.all():
                 touched = False
                 for am in run_env.default_alert_methods.all():
-                    np = NotificationProfile.objects.filter(uuid=str(am.uuid)).first()
+                    np = self.find_notification_profile_for_alert_method(am)
 
                     if np:
                         run_env.notification_profiles.add(np)
@@ -156,7 +185,7 @@ class Command(BaseCommand):
                 if touched:
                     run_env.save()
 
-        msg = f"Finished notification method migrator with {task_count=} {run_env_count=}."
+        msg = f"Finished notification method migrator with {task_count=} {workflow_count=} {run_env_count=}."
         logger.info(msg)
         status_updater.send_update(last_status_message=msg,
-                success_count=(task_count + run_env_count))
+                success_count=(task_count + workflow_count + run_env_count))

@@ -128,7 +128,7 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
         raise NotImplementedError()
 
     def send_event_notifications(self, event: Event) -> int:
-        logger.info(f"Sending notifications for {self.kind_label} {self.name} ({self.uuid}) with event {event.uuid} ...")
+        logger.info(f"Sending events for {self.kind_label} {self.name} ({self.uuid}) with event {event.uuid} ...")
 
         #run_env: Optional[RunEnvironment] = None
 
@@ -139,8 +139,9 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
 
         notification_profiles = self.notification_profiles.filter(enabled=True)
 
-        # TODO: have a way to specify no notification methods, not falling back to run_env
+        # TODO: have a way to specify no Notification Profiles, not falling back to run_env
         if run_env and (not notification_profiles.exists()):
+            logger.info(f"No Notification Profiles on {self.kind_label} {self.uuid}, checking Run Environment {run_env.uuid} ...")
             notification_profiles = run_env.notification_profiles.filter(enabled=True)
 
         count = 0
@@ -148,16 +149,16 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
         for np in notification_profiles.all():
             # TODO: do these async, retry
             try:
-                logger.info(f"Sending notifications for {self.kind_label} {self.uuid} using notification profile {np.uuid} ...")
+                logger.info(f"Sending event for {self.kind_label} {self.uuid} using Notification Profile {np.uuid} ...")
 
                 np.send(event=event)
 
-                logger.info(f"Done sending notifications for {self.kind_label} {self.uuid} using notification profile {np.uuid}")
+                logger.info(f"Done sending event for {self.kind_label} {self.uuid} using Notification Profile {np.uuid}")
                 count += 1
-            except Exception as ex:
-                logger.exception(f"Can't send using Notification Method {np.uuid} / {np.name} for {self.kind_label} Execution UUID {self.uuid}")
+            except Exception:
+                logger.exception(f"Can't send using Notification Profle {np.uuid} / {np.name} for {self.kind_label} Execution UUID {self.uuid}")
 
 
-        logger.info(f"Sent {count} notifications for {self.kind_label} {self.name} ({self.uuid}) with event {event.uuid}")
+        logger.info(f"Sent event {event.uuid} to {count} notifications for {self.kind_label} {self.name} ({self.uuid}) with event")
 
         return count
