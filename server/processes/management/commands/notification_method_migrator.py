@@ -26,7 +26,7 @@ class Command(BaseCommand):
             logger.info(f"Found notification profile {np.uuid} / {np.name} by UUID for alert method {am.uuid}")
         else:
             logger.info(f"Looking up notification profile by name {am.name} for alert method {am.uuid}")
-            np = NotificationProfile.objects.filter(name=np.name, created_by_group=am.created_by_group).first()
+            np = NotificationProfile.objects.filter(name=am.name, created_by_group=am.created_by_group).first()
 
             if np:
                 logger.info(f"Found notification profile {np.uuid} / {np.name} by name for alert method {am.uuid}")
