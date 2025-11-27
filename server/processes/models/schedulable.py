@@ -156,9 +156,9 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
                 logger.info(f"Done sending event for {self.kind_label} {self.uuid} using Notification Profile {np.uuid}")
                 count += 1
             except Exception:
-                logger.exception(f"Can't send using Notification Profle {np.uuid} / {np.name} for {self.kind_label} Execution UUID {self.uuid}")
+                logger.exception(f"Can't send using Notification Profile {np.uuid} / {np.name} for {self.kind_label} Execution UUID {self.uuid}")
 
 
-        logger.info(f"Sent event {event.uuid} to {count} notifications for {self.kind_label} {self.name} ({self.uuid}) with event")
+        logger.info(f"Sent event {event.uuid} to {count} Notification Profiles for {self.kind_label} {self.name} ({self.uuid}) with event")
 
         return count
