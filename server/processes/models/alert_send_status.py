@@ -6,3 +6,4 @@ class AlertSendStatus(enum.IntEnum):
     SUCCEEDED = 1
     FAILED = 2
     TIMEOUT = 3
+    RATE_LIMITED = 4

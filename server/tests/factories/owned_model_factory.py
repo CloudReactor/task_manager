@@ -17,7 +17,6 @@ class OwnedModelFactory(factory.django.DjangoModelFactory):
         if group not in user.groups.all():
             user.groups.add(group)
 
-        if not UserGroupAccessLevel.objects.filter(user=user,
-                group=group).exists():
+        if not UserGroupAccessLevel.objects.filter(user=user, group=group).exists():
             UserGroupAccessLevel(user=user, group=group,
                     access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER).save()

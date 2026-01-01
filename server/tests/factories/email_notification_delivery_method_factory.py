@@ -3,13 +3,13 @@ from processes.models import EmailNotificationDeliveryMethod
 import factory
 from faker import Factory as FakerFactory
 
-from .owned_model_factory import OwnedModelFactory
+from .notification_delivery_method_factory import NotificationDeliveryMethodFactory
 from .run_environment_factory import RunEnvironmentFactory
 
 faker = FakerFactory.create()
 
 
-class EmailNotificationDeliveryMethodFactory(OwnedModelFactory):
+class EmailNotificationDeliveryMethodFactory(NotificationDeliveryMethodFactory):
     class Meta:
         model = EmailNotificationDeliveryMethod
 

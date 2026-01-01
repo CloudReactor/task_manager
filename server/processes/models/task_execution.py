@@ -55,6 +55,12 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         ABORTED = 10
 
     @enum.unique
+    class RunReason(enum.IntEnum):
+        EXPLICIT_START = 0
+        SCHEDULED_START = 1
+        EXPLICIT_RETRY = 2
+
+    @enum.unique
     class StopReason(enum.IntEnum):
         MANUAL = 0
         MAX_EXECUTION_TIME_EXCEEDED = 1

@@ -16,7 +16,7 @@ class TaskExecutionFactory(factory.django.DjangoModelFactory):
 
     task = factory.SubFactory(TaskFactory)
     status = TaskExecution.Status.RUNNING.value
-    run_reason = 0
+    run_reason = TaskExecution.RunReason.EXPLICIT_START.value
     stop_reason = None
 
     # Note: started_at is set to the current time by default

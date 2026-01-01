@@ -1,5 +1,3 @@
-from typing import Type, TYPE_CHECKING
-
 import logging
 import uuid
 
@@ -12,16 +10,13 @@ from .event import Event
 from .alert_send_status import AlertSendStatus
 from .subscription import Subscription
 
-if TYPE_CHECKING:
-    from .notification_profile import NotificationProfile
-    from .notification_delivery_method import NotificationDeliveryMethod
-
 
 logger = logging.getLogger(__name__)
 
 
 class Notification(models.Model):
     MAX_SEND_RESULT_LENGTH = 50000
+    MAX_EXCEPTION_MESSAGE_LENGTH = 50000
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
@@ -31,6 +26,14 @@ class Notification(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     send_status = models.IntegerField(null=True, blank=True, default=AlertSendStatus.SENDING)
     send_result = models.JSONField(blank=True, null=True)
+
+    exception_type = models.CharField(max_length=255, null=True, blank=True)
+    exception_message = models.CharField(max_length=MAX_EXCEPTION_MESSAGE_LENGTH, null=True, blank=True)
+
+    rate_limit_max_requests_per_period = models.PositiveIntegerField(null=True, blank=True)
+    rate_limit_request_period_seconds = models.PositiveIntegerField(null=True, blank=True)
+    rate_limit_max_severity = models.PositiveIntegerField(null=True, blank=True)
+    rate_limit_tier_index = models.PositiveIntegerField(null=True, blank=True)
 
     # null=True until we can populate this field for existing notifications
     created_by_group = models.ForeignKey(Group, on_delete=models.CASCADE,

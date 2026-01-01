@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 from django.db import models
 
 from ..execution_methods.aws_settings import AwsSettings, INFRASTRUCTURE_TYPE_AWS

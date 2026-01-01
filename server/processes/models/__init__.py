@@ -22,6 +22,7 @@ from .workflow_execution import WorkflowExecution
 from .workflow_transition import WorkflowTransition
 from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 from .workflow_transition_evaluation import WorkflowTransitionEvaluation
+from .notification_delivery_method import NotificationDeliveryMethod
 from .pagerduty_profile import PagerDutyProfile
 from .pagerduty_notification_delivery_method import PagerDutyNotificationDeliveryMethod
 from .email_notification_profile import EmailNotificationProfile

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, TYPE_CHECKING, cast
+from typing import Any, TYPE_CHECKING, cast
 
 import logging
 import yaml
@@ -34,11 +34,9 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
     email_cc_addresses = ArrayField(models.EmailField(max_length=1000, blank=False), blank=True, null=True)
     email_bcc_addresses = ArrayField(models.EmailField(max_length=1000, blank=False), blank=True, null=True)
 
-    def send(self, event: Event) -> Optional[dict[str, Any]]:
+    def send(self, event: Event) -> dict[str, Any] | None:
         from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
         from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
-
-        from ..services import NotificationGenerator
 
         if isinstance(event, TaskExecutionStatusChangeEvent):
             email = self.make_task_execution_status_change_email(cast(TaskExecutionStatusChangeEvent, event))
@@ -128,7 +126,7 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
         return email
 
     def make_formatted_execution_method_details(self,
-            task_execution: TaskExecution) -> Optional[str]:
+            task_execution: TaskExecution) -> str | None:
         if not task_execution.execution_method_details:
             return None
 
@@ -141,7 +139,7 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
         )
 
     def make_formatted_infrastructure_settings(self,
-            task_execution: TaskExecution) -> Optional[str]:
+            task_execution: TaskExecution) -> str | None:
         if not task_execution.infrastructure_settings:
             return None
 

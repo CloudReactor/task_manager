@@ -96,6 +96,7 @@ register(WorkflowTaskInstanceExecutionFactory)
 
 register(BasicEventFactory)
 register(NotificationProfileFactory)
+register(EmailNotificationDeliveryMethodFactory)
 register(NotificationFactory)
 
 # Legacy

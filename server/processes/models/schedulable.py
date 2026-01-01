@@ -147,7 +147,6 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
         count = 0
 
         for np in notification_profiles.all():
-            # TODO: do these async, retry
             try:
                 logger.info(f"Sending event for {self.kind_label} {self.uuid} using Notification Profile {np.uuid} ...")
 

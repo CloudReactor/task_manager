@@ -1,3 +1,5 @@
 from .committable_exception import CommittableException
 from .unprocessable_entity import UnprocessableEntity
 from .friendly_exception_handler import friendly_exception_handler
+from .notification_rate_limit_exceeded_exception import \
+    NotificationRateLimitExceededException
