@@ -2,6 +2,7 @@ import logging
 import uuid
 
 from django.db import models
+from django.utils import timezone
 
 from django.contrib.auth.models import Group
 
@@ -22,7 +23,7 @@ class Notification(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     notification_profile = models.ForeignKey('NotificationProfile', on_delete=models.CASCADE)
     notification_delivery_method = models.ForeignKey('NotificationDeliveryMethod', on_delete=models.CASCADE)
-    attempted_at = models.DateTimeField(auto_now_add=True)
+    attempted_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     send_status = models.IntegerField(null=True, blank=True, default=AlertSendStatus.SENDING)
     send_result = models.JSONField(blank=True, null=True)

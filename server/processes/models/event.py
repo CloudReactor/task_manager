@@ -2,6 +2,7 @@ import logging
 import uuid
 
 from django.db import models
+from django.utils import timezone
 
 from django.contrib.auth.models import Group
 
@@ -39,8 +40,8 @@ class Event(TypedModel):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    event_at = models.DateTimeField(auto_now_add=True)
-    detected_at = models.DateTimeField(auto_now_add=True)
+    event_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
+    detected_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     severity = models.PositiveIntegerField(default=SEVERITY_ERROR)
     error_summary = models.CharField(max_length=MAX_ERROR_SUMMARY_LENGTH, blank=True)
     error_details_message = models.CharField(max_length=MAX_ERROR_DETAILS_MESSAGE_LENGTH, blank=True)
