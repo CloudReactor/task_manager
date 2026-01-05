@@ -62,17 +62,24 @@ class NotificationDeliveryMethodSerializer(GroupSettingSerializerMixin,
         Dynamically delegate to the appropriate child serializer based on instance type.
         This ensures list views use the correct serializer per object.
         """
+        # Check if we should skip delegation (to avoid infinite recursion)
+        if self.context.get(SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION):
+            return super().to_representation(instance)
+
         # Import here to avoid circular import issues
         from .email_notification_delivery_method_serializer import EmailNotificationDeliveryMethodSerializer
         from .pagerduty_notification_delivery_method_serializer import PagerDutyNotificationDeliveryMethodSerializer
         from ..models import EmailNotificationDeliveryMethod, PagerDutyNotificationDeliveryMethod
 
         # Check instance type and delegate to appropriate serializer
+        # Pass flag in context to prevent infinite recursion
+        child_context = {**self.context, SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION: True}
+
         if isinstance(instance, EmailNotificationDeliveryMethod):
-            serializer = EmailNotificationDeliveryMethodSerializer(instance, context=self.context)
+            serializer = EmailNotificationDeliveryMethodSerializer(instance, context=child_context)
             return serializer.data
         elif isinstance(instance, PagerDutyNotificationDeliveryMethod):
-            serializer = PagerDutyNotificationDeliveryMethodSerializer(instance, context=self.context)
+            serializer = PagerDutyNotificationDeliveryMethodSerializer(instance, context=child_context)
             return serializer.data
 
         # Default: use parent's to_representation for base NotificationDeliveryMethod

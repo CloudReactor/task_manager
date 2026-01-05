@@ -11,9 +11,22 @@ from conftest import *
 
 @pytest.mark.django_db
 def test_serializer_has_correct_fields(pager_duty_notification_delivery_method_factory):
-    """Test that PagerDutyNotificationDeliveryMethodSerializer has the expected fields."""
+    """Test that PagerDutyNotificationDeliveryMethodSerializer has the expected fields and values."""
     pdm = cast(PagerDutyNotificationDeliveryMethod,
-               pager_duty_notification_delivery_method_factory())
+               pager_duty_notification_delivery_method_factory(
+                   name='Test PagerDuty Method',
+                   description='Test description for PagerDuty',
+                   pagerduty_api_key='test_key_123',
+                   pagerduty_event_class_template='Class: {{ task }}',
+                   pagerduty_event_component_template='Component: {{ exec }}',
+                   pagerduty_event_group_template='Group: {{ env }}',
+                   max_requests_per_period_0=10,
+                   request_period_seconds_0=60,
+                   max_severity_0=400,
+                   max_requests_per_period_1=5,
+                   request_period_seconds_1=120,
+                   max_severity_1=500,
+               ))
 
     context = context_with_request()
     serializer = PagerDutyNotificationDeliveryMethodSerializer(pdm, context=context)
@@ -21,20 +34,49 @@ def test_serializer_has_correct_fields(pager_duty_notification_delivery_method_f
     # Verify the serializer has the expected fields
     fields = serializer.fields.keys()
 
-    # Verify basic fields are present
-    assert 'name' in fields
-    assert 'description' in fields
-    assert 'uuid' in fields
-    assert 'run_environment' in fields
+    # Get the serialized data
+    data = serializer.data
 
-    # Verify PagerDuty-specific fields are present
-    assert 'pagerduty_api_key' in fields
-    assert 'pagerduty_event_class_template' in fields
-    assert 'pagerduty_event_component_template' in fields
-    assert 'pagerduty_event_group_template' in fields
+    # Verify field values in the serialized output match expected values
+    assert data['name'] == 'Test PagerDuty Method'
+    assert data['description'] == 'Test description for PagerDuty'
+    assert data['uuid'] == str(pdm.uuid)
+    assert data['pagerduty_api_key'] == 'test_key_123'
+    assert data['pagerduty_event_class_template'] == 'Class: {{ task }}'
+    assert data['pagerduty_event_component_template'] == 'Component: {{ exec }}'
+    assert data['pagerduty_event_group_template'] == 'Group: {{ env }}'
 
-    # Verify rate_limit_tiers field is present
-    assert 'rate_limit_tiers' in fields
+    # Verify rate_limit_tiers is present and serialized correctly
+    assert 'rate_limit_tiers' in data
+    rate_limit_tiers = data['rate_limit_tiers']
+    assert isinstance(rate_limit_tiers, list)
+    assert len(rate_limit_tiers) == 8  # MAX_RATE_LIMIT_TIERS
+
+    # Verify first tier with data
+    tier_0 = rate_limit_tiers[0]
+    assert tier_0['max_requests_per_period'] == 10
+    assert tier_0['request_period_seconds'] == 60
+    assert tier_0['max_severity'] == 'warning'
+    assert tier_0['request_period_started_at'] is None
+    assert tier_0['request_count_in_period'] is None
+
+    # Verify second tier with data
+    tier_1 = rate_limit_tiers[1]
+    assert tier_1['max_requests_per_period'] == 5
+    assert tier_1['request_period_seconds'] == 120
+    assert tier_1['max_severity'] == 'error'
+    assert tier_1['request_period_started_at'] is None
+    assert tier_1['request_count_in_period'] is None
+
+    # Verify remaining tiers are None
+    for i in range(2, 8):
+        tier = rate_limit_tiers[i]
+        assert tier['max_requests_per_period'] is None
+        assert tier['request_period_seconds'] is None
+        assert tier['max_severity'] is None
+        assert tier['request_period_started_at'] is None
+        assert tier['request_count_in_period'] is None
+
 
 
 @pytest.mark.django_db
