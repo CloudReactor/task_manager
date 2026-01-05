@@ -31,16 +31,33 @@ def test_serializer_has_correct_fields(pager_duty_notification_delivery_method_f
     context = context_with_request()
     serializer = PagerDutyNotificationDeliveryMethodSerializer(pdm, context=context)
 
-    # Verify the serializer has the expected fields
-    fields = serializer.fields.keys()
-
     # Get the serialized data
     data = serializer.data
 
     # Verify field values in the serialized output match expected values
+    assert data['uuid'] == str(pdm.uuid)
     assert data['name'] == 'Test PagerDuty Method'
     assert data['description'] == 'Test description for PagerDuty'
-    assert data['uuid'] == str(pdm.uuid)
+
+    # Verify created_by_group is serialized correctly
+    assert 'created_by_group' in data
+    created_by_group = data['created_by_group']
+    assert created_by_group is not None
+    assert 'id' in created_by_group
+    assert created_by_group['id'] == pdm.created_by_group.id
+    assert 'name' in created_by_group
+    assert created_by_group['name'] == pdm.created_by_group.name
+
+    # Verify run_environment is serialized correctly
+    assert 'run_environment' in data
+    run_environment = data['run_environment']
+    assert run_environment is not None
+    assert 'uuid' in run_environment
+    assert run_environment['uuid'] == str(pdm.run_environment.uuid)
+    assert 'name' in run_environment
+    assert run_environment['name'] == pdm.run_environment.name
+    assert 'url' in run_environment
+
     assert data['pagerduty_api_key'] == 'test_key_123'
     assert data['pagerduty_event_class_template'] == 'Class: {{ task }}'
     assert data['pagerduty_event_component_template'] == 'Component: {{ exec }}'
@@ -76,7 +93,6 @@ def test_serializer_has_correct_fields(pager_duty_notification_delivery_method_f
         assert tier['max_severity'] is None
         assert tier['request_period_started_at'] is None
         assert tier['request_count_in_period'] is None
-
 
 
 @pytest.mark.django_db

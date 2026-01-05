@@ -8,6 +8,7 @@ from ..models import Event
 from ..common.utils import model_class_to_type_string
 from .name_and_uuid_serializer import NameAndUuidSerializer
 from .group_serializer import GroupSerializer
+from .serializer_helpers import SerializerHelpers
 from django.utils.text import camel_case_to_spaces
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ class EventSeveritySerializer(serializers.BaseSerializer):
         raise serializers.ValidationError('Invalid severity')
 
 
-class EventSerializer(serializers.HyperlinkedModelSerializer):
+class EventSerializer(serializers.HyperlinkedModelSerializer, SerializerHelpers):
     """
     Serializer for `Event` model.
 
@@ -91,6 +92,10 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
         Dynamically delegate to the appropriate child serializer based on instance type.
         This ensures list views use the correct serializer per object.
         """
+        # Check if we should skip delegation (to avoid infinite recursion)
+        if self.context.get(SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION):
+            return super().to_representation(instance)
+
         # Import here to avoid circular import issues
         from .execution_status_change_event_serializer import ExecutionStatusChangeEventSerializer
         from .task_execution_status_change_event_serializer import TaskExecutionStatusChangeEventSerializer
@@ -102,15 +107,18 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
         )
 
         # Check instance type and delegate to appropriate serializer
+        # Pass flag in context to prevent infinite recursion
+        child_context = {**self.context, SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION: True}
+
         # Check most specific types first
         if isinstance(instance, TaskExecutionStatusChangeEvent):
-            serializer = TaskExecutionStatusChangeEventSerializer(instance, context=self.context)
+            serializer = TaskExecutionStatusChangeEventSerializer(instance, context=child_context)
             return serializer.data
         elif isinstance(instance, WorkflowExecutionStatusChangeEvent):
-            serializer = WorkflowExecutionStatusChangeEventSerializer(instance, context=self.context)
+            serializer = WorkflowExecutionStatusChangeEventSerializer(instance, context=child_context)
             return serializer.data
         elif isinstance(instance, ExecutionStatusChangeEvent):
-            serializer = ExecutionStatusChangeEventSerializer(instance, context=self.context)
+            serializer = ExecutionStatusChangeEventSerializer(instance, context=child_context)
             return serializer.data
 
         # Default: use parent's to_representation for base Event
