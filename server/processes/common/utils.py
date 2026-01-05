@@ -3,8 +3,17 @@ from collections import abc
 import logging
 import re
 
+from django.utils.text import camel_case_to_spaces
 
 logger = logging.getLogger(__name__)
+
+
+def model_class_to_type_string(model_class) -> str:
+    """
+    Convert a model class name to snake_case type string.
+    Example: EmailNotificationDeliveryMethod -> 'email_notification_delivery_method'
+    """
+    return camel_case_to_spaces(model_class.__name__).replace(' ', '_').lower()
 
 
 def val_to_str(x: Optional[Any], default: str = "-1") -> str:
@@ -142,4 +151,3 @@ def strip_prefix_before_last_dot(text):
     return parts[1]
   else:
     return parts[0] # No dot found, return the original string
-  

@@ -27,7 +27,7 @@ from .pagerduty_profile import PagerDutyProfile
 from .pagerduty_notification_delivery_method import PagerDutyNotificationDeliveryMethod
 from .email_notification_profile import EmailNotificationProfile
 from .email_notification_delivery_method import EmailNotificationDeliveryMethod
-from .alert_send_status import AlertSendStatus
+from .notification_send_status import NotificationSendStatus
 from .notification_profile import NotificationProfile
 from .event import Event, BasicEvent
 from .execution_status_change_event import ExecutionStatusChangeEvent

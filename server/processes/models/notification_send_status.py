@@ -1,7 +1,7 @@
 import enum
 
 @enum.unique
-class AlertSendStatus(enum.IntEnum):
+class NotificationSendStatus(enum.IntEnum):
     SENDING = 0
     SUCCEEDED = 1
     FAILED = 2

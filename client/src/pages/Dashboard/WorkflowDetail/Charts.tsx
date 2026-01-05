@@ -106,7 +106,7 @@ const Charts = (props: Props & AbortSignalProps) => {
   const navigate = useNavigate();
 
   if (weSummaries) {
-    const filteredData = weSummaries.filter((item: {status: string, finished_at: Date}) => {
+    const filteredData = weSummaries.filter((item: {status: string, finished_at: Date | null}) => {
       return item.finished_at;
     });
 

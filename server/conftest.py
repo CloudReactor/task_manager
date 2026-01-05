@@ -58,6 +58,7 @@ from tests.factories import (
     BasicEventFactory,
     NotificationProfileFactory,
     EmailNotificationDeliveryMethodFactory,
+    PagerDutyNotificationDeliveryMethodFactory,
     NotificationFactory,
 )
 
@@ -97,6 +98,7 @@ register(WorkflowTaskInstanceExecutionFactory)
 register(BasicEventFactory)
 register(NotificationProfileFactory)
 register(EmailNotificationDeliveryMethodFactory)
+register(PagerDutyNotificationDeliveryMethodFactory)
 register(NotificationFactory)
 
 # Legacy

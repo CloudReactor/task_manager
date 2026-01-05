@@ -23,11 +23,11 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
 
     @staticmethod
     def pagerduty_severity_from_event_severity(severity: int) -> str:
-        if severity >= Event.SEVERITY_CRITICAL:
+        if severity >= Event.Severity.CRITICAL:
             return 'critical'
-        elif severity >= Event.SEVERITY_ERROR:
+        elif severity >= Event.Severity.ERROR:
             return 'error'
-        elif severity >= Event.SEVERITY_WARNING:
+        elif severity >= Event.Severity.WARNING:
             return 'warning'
         else:
             return 'info'

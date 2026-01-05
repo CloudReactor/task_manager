@@ -236,13 +236,13 @@ class TaskExecutionChecker:
                         summary_template=self.DELAYED_TASK_START_EVENT_SUMMARY_TEMPLATE,
                         grouping_key=f"delayed_task_start-{te.uuid}")
                 dpsa.send_result = result or ''
-                dpsa.send_status = AlertSendStatus.SUCCEEDED
+                dpsa.send_status = NotificationSendStatus.SUCCEEDED
                 dpsa.completed_at = timezone.now()
             except Exception as ex:
                 logger.exception(
                     f"Failed to send alert for missing heartbeat of Task Execution {dpsde.task_execution.uuid}")
                 dpsa.send_result = ''
-                dpsa.send_status = AlertSendStatus.FAILED
+                dpsa.send_status = NotificationSendStatus.FAILED
                 dpsa.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
 
             dpsa.save()

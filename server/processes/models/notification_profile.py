@@ -8,7 +8,7 @@ from django.utils import timezone
 from ..exception.notification_rate_limit_exceeded_exception import \
     NotificationRateLimitExceededException
 
-from .alert_send_status import AlertSendStatus
+from .notification_send_status import NotificationSendStatus
 from .named_with_uuid_and_run_environment_model import NamedWithUuidAndRunEnvironmentModel
 from .event import Event
 from .notification import Notification
@@ -39,7 +39,7 @@ class NotificationProfile(NamedWithUuidAndRunEnvironmentModel):
         for ndm in self.notification_delivery_methods.all():
             notification = Notification(event=event, notification_profile=self,
                     notification_delivery_method=ndm,
-                    send_status=AlertSendStatus.SENDING)
+                    send_status=NotificationSendStatus.SENDING)
             notification.save()
 
             # TODO: Queue this, implement retry
@@ -54,11 +54,11 @@ class NotificationProfile(NamedWithUuidAndRunEnvironmentModel):
                     send_result = { 'success': True, 'warning': 'send result too long' }
 
                 notification.send_result = send_result
-                notification.send_status = AlertSendStatus.SUCCEEDED
+                notification.send_status = NotificationSendStatus.SUCCEEDED
                 notification.completed_at = timezone.now()
             except NotificationRateLimitExceededException as nrkee:
                 logger.info(f"Notification rate limit exceeded for delivery method {ndm.uuid} for event {event.uuid}")
-                notification.send_status = AlertSendStatus.RATE_LIMITED
+                notification.send_status = NotificationSendStatus.RATE_LIMITED
 
                 tier_index = nrkee.rate_limit_tier_index
                 notification.rate_limit_max_requests_per_period = getattr(ndm,
@@ -69,7 +69,7 @@ class NotificationProfile(NamedWithUuidAndRunEnvironmentModel):
                 notification.rate_limit_tier_index = tier_index
             except Exception as e:
                 logger.exception(f"Exception occurred sending notification using delivery method {ndm.uuid}")
-                notification.send_status = AlertSendStatus.FAILED
+                notification.send_status = NotificationSendStatus.FAILED
 
                 notification.exception_type = type(e).__name__
                 notification.exception_message = textwrap.shorten(str(e),

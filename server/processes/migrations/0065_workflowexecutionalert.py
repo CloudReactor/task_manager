@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import processes.models.alert_send_status
+import processes.models.notification_send_status
 
 
 class Migration(migrations.Migration):
@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('attempted_at', models.DateTimeField(auto_now_add=True)),
                 ('completed_at', models.DateTimeField(blank=True, null=True)),
-                ('send_status', models.IntegerField(blank=True, default=processes.models.alert_send_status.AlertSendStatus(0), null=True)),
+                ('send_status', models.IntegerField(blank=True, default=processes.models.notification_send_status.NotificationSendStatus(0), null=True)),
                 ('send_result', models.CharField(blank=True, max_length=50000)),
                 ('error_message', models.CharField(blank=True, max_length=50000)),
                 ('for_latest_execution', models.BooleanField(default=True)),

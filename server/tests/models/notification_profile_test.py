@@ -38,7 +38,7 @@ def test_send_success(basic_event, group, monkeypatch):
     notification = notifications.first()
     assert notification.event == basic_event
     assert notification.notification_delivery_method == ndm
-    assert notification.send_status == AlertSendStatus.SUCCEEDED
+    assert notification.send_status == NotificationSendStatus.SUCCEEDED
     assert notification.send_result == send_result
     assert notification.attempted_at is not None
     assert notification.completed_at is not None
@@ -57,7 +57,7 @@ def test_send_rate_limited(basic_event, group, monkeypatch):
           max_requests_per_period_2=5,
           request_period_seconds_2=60 * 60,
           request_count_in_period_2=5,
-          max_severity_2=Event.SEVERITY_WARNING,
+          max_severity_2=Event.Severity.WARNING,
           request_period_started_at_2=timezone.now() - timezone.timedelta(minutes=45)
     )
 
@@ -80,12 +80,12 @@ def test_send_rate_limited(basic_event, group, monkeypatch):
     notification = notifications.first()
     assert notification.event == basic_event
     assert notification.notification_delivery_method == ndm
-    assert notification.send_status == AlertSendStatus.RATE_LIMITED
+    assert notification.send_status == NotificationSendStatus.RATE_LIMITED
     assert notification.send_result is None
     assert notification.rate_limit_tier_index == 2
     assert notification.rate_limit_max_requests_per_period == 5
     assert notification.rate_limit_request_period_seconds == 60 * 60
-    assert notification.rate_limit_max_severity == Event.SEVERITY_WARNING
+    assert notification.rate_limit_max_severity == Event.Severity.WARNING
     assert notification.attempted_at is not None
     assert notification.completed_at is None
 
@@ -120,7 +120,7 @@ def test_send_failure(basic_event, group, monkeypatch):
     notification = notifications.first()
     assert notification.event == basic_event
     assert notification.notification_delivery_method == ndm
-    assert notification.send_status == AlertSendStatus.FAILED
+    assert notification.send_status == NotificationSendStatus.FAILED
     assert notification.send_result is None
     assert notification.attempted_at is not None
     assert notification.completed_at is None

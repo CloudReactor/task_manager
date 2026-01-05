@@ -40,6 +40,15 @@ router.register(r'pagerduty_profiles',
 router.register(r'notification_profiles', views.NotificationProfileViewSet,
                 basename='notification_profiles')
 
+router.register(r'notification_delivery_methods', views.NotificationDeliveryMethodViewSet,
+                basename='notification_delivery_methods')
+
+router.register(r'notifications', views.NotificationViewSet,
+                basename='notifications')
+
+router.register(r'events', views.EventViewSet,
+                basename='events')
+
 # Deprecated
 router.register(r'process_types', views.TaskViewSet,
                 basename='process_types')

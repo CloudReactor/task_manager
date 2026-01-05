@@ -172,7 +172,7 @@ class ServiceConcurrencyChecker:
                                  grouping_key=f"insufficient_service_instances-{event.task.uuid}",
                                  is_resolution=is_resolution)
                 alert.send_result = result
-                alert.send_status = AlertSendStatus.SUCCEEDED
+                alert.send_status = NotificationSendStatus.SUCCEEDED
                 alert.completed_at = timezone.now()
             except Exception as ex:
                 if is_resolution:
@@ -182,7 +182,7 @@ class ServiceConcurrencyChecker:
                     logger.exception(
                         f"Failed to trigger alert for insufficient service instances of Task {event.task.uuid}")
                 alert.send_result = ''
-                alert.send_status = AlertSendStatus.FAILED
+                alert.send_status = NotificationSendStatus.FAILED
                 alert.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
 
             alert.save()

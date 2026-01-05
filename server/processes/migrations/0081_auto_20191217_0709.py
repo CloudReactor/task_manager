@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import processes.models.alert_send_status
+import processes.models.notification_send_status
 import uuid
 
 
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 ('uuid', models.UUIDField(default=uuid.uuid4, editable=False, unique=True)),
                 ('attempted_at', models.DateTimeField(auto_now_add=True)),
                 ('completed_at', models.DateTimeField(blank=True, null=True)),
-                ('send_status', models.IntegerField(blank=True, default=processes.models.alert_send_status.AlertSendStatus(0), null=True)),
+                ('send_status', models.IntegerField(blank=True, default=processes.models.notification_send_status.NotificationSendStatus(0), null=True)),
                 ('send_result', models.CharField(blank=True, max_length=50000)),
                 ('error_message', models.CharField(blank=True, max_length=50000)),
                 ('alert_method', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='processes.AlertMethod')),

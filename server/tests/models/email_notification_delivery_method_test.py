@@ -85,12 +85,12 @@ TEST_RATE_LIMIT_PERIODS_SECONDS = 5
 @pytest.mark.parametrize("""
     rate_limit_severity, send_count, event_severity, pause_seconds, num_allowed
 """, [
-    (None, 4, Event.SEVERITY_WARNING, 0, 2),
-    (Event.SEVERITY_ERROR, 4, Event.SEVERITY_ERROR, 0, 2),
-    (Event.SEVERITY_WARNING, 4, Event.SEVERITY_ERROR, 0, 4),
-    (Event.SEVERITY_ERROR, 4, Event.SEVERITY_WARNING, 0, 2),
-    (None, 4, Event.SEVERITY_ERROR, TEST_RATE_LIMIT_PERIODS_SECONDS + 1, 2),
-    (None, 4, Event.SEVERITY_ERROR, 1, 2),
+    (None, 4, Event.Severity.WARNING, 0, 2),
+    (Event.Severity.ERROR, 4, Event.Severity.ERROR, 0, 2),
+    (Event.Severity.WARNING, 4, Event.Severity.ERROR, 0, 4),
+    (Event.Severity.ERROR, 4, Event.Severity.WARNING, 0, 2),
+    (None, 4, Event.Severity.ERROR, TEST_RATE_LIMIT_PERIODS_SECONDS + 1, 2),
+    (None, 4, Event.Severity.ERROR, 1, 2),
 ])
 def test_rate_limiting(rate_limit_severity: int | None,
         send_count: int, event_severity: int | None, pause_seconds: int,
