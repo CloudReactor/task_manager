@@ -82,6 +82,9 @@ const NavBar = (p: Props) => {
     }, {
       path: path.NOTIFICATION_METHODS,
       text: 'Notification Methods',
+    }, {
+      path: path.NOTIFICATION_DELIVERY_METHODS,
+      text: 'Notification Delivery Methods',
     }
   ];
 

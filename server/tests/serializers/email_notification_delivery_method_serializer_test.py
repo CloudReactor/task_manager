@@ -38,6 +38,9 @@ def test_serializer_has_correct_fields(email_notification_delivery_method_factor
     assert data['name'] == 'Test Email Method'
     assert data['description'] == 'Test description for Email'
 
+    # Verify delivery_method_type returns simplified type
+    assert data['delivery_method_type'] == 'email'
+
     # Verify created_by_group is serialized correctly
     assert 'created_by_group' in data
     created_by_group = data['created_by_group']

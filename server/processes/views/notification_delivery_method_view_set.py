@@ -38,10 +38,11 @@ class NotificationDeliveryMethodViewSet(AtomicModelViewSet, BaseViewSet):
     search_fields = ('uuid', 'name', 'description',)
     ordering_fields = ('uuid', 'name', 'run_environment__name',)
 
-    # Compute type string to serializer mapping once at class definition time
+    # Map simplified type strings to serializer classes
+    # These match the values returned by get_delivery_method_type()
     _type_to_serializer = {
-        model_class_to_type_string(EmailNotificationDeliveryMethod): EmailNotificationDeliveryMethodSerializer,
-        model_class_to_type_string(PagerDutyNotificationDeliveryMethod): PagerDutyNotificationDeliveryMethodSerializer,
+        'email': EmailNotificationDeliveryMethodSerializer,
+        'pager_duty': PagerDutyNotificationDeliveryMethodSerializer,
     }
 
     @override

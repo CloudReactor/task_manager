@@ -179,8 +179,11 @@ export interface RateLimitTier {
 export interface NotificationDeliveryMethod extends TrackedEntityReference, Described {
   run_environment: EntityReference | null;
   rate_limit_tiers: RateLimitTier[];
+  enabled?: boolean;
+  delivery_method_type?: string; // 'email' or 'pagerduty'
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace NotificationDeliveryMethod {
   export const MAX_RATE_LIMIT_TIERS = 8;
 }

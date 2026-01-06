@@ -53,8 +53,14 @@ class NotificationDeliveryMethodSerializer(GroupSettingSerializerMixin,
         ]
 
     def get_delivery_method_type(self, obj: NotificationDeliveryMethod) -> str:
-        # Return the concrete Python subclass name converted to snake_case
-        return model_class_to_type_string(obj.__class__)
+        # Return a simplified type name without the "NotificationDeliveryMethod" suffix
+        type_string = model_class_to_type_string(obj.__class__)
+        # Remove "_notification_delivery_method" suffix
+        # e.g., "email_notification_delivery_method" -> "email"
+        # e.g., "pager_duty_notification_delivery_method" -> "pager_duty"
+        if type_string.endswith('_notification_delivery_method'):
+            return type_string[:-len('_notification_delivery_method')]
+        return type_string
 
     @override
     def to_representation(self, instance):

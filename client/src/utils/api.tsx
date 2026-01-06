@@ -14,6 +14,7 @@ import {
 
 import {
   NotificationMethod,
+  NotificationDeliveryMethod,
   ApiKey,
   Task,
   TaskImpl,
@@ -568,6 +569,56 @@ export async function cloneNotificationMethod(uuid: string, attributes?: any,
 export async function deleteNotificationMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
   return await makeAuthenticatedClient().delete(
     'api/v1/alert_methods/' + uuid + '/', {
+      signal: abortSignal
+    });
+}
+
+// NotificationDeliveryMethod API functions
+export async function fetchNotificationDeliveryMethods(
+  opts?: PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<NotificationDeliveryMethod>> {
+  opts = opts ?? {};
+
+  const {
+    abortSignal
+  } = opts;
+
+  const params = makePageFetchWithGroupAndScopedRunEnvironmentParams(opts);
+  const response = await makeAuthenticatedClient().get(
+    'api/v1/notification_delivery_methods/', {
+      signal: abortSignal,
+      params
+    });
+
+  return response.data as ResultsPage<NotificationDeliveryMethod>;
+}
+
+export async function fetchNotificationDeliveryMethod(uuid: string, abortSignal?: AbortSignal) {
+  const response = await makeAuthenticatedClient().get(
+    `api/v1/notification_delivery_methods/${uuid}/`, {
+      signal: abortSignal
+    });
+  return response.data as NotificationDeliveryMethod;
+}
+
+export async function saveNotificationDeliveryMethod(uuid: string, values: any,
+    abortSignal?: AbortSignal): Promise<NotificationDeliveryMethod> {
+  const client = makeAuthenticatedClient();
+
+  const response = await ((!uuid || (uuid === 'new')) ? client.post(
+    'api/v1/notification_delivery_methods/', values, {
+      signal: abortSignal
+    }
+  ) : client.patch(`api/v1/notification_delivery_methods/${uuid}/`, values, {
+      signal: abortSignal
+    })
+  );
+
+  return response.data;
+}
+
+export async function deleteNotificationDeliveryMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
+  return await makeAuthenticatedClient().delete(
+    'api/v1/notification_delivery_methods/' + uuid + '/', {
       signal: abortSignal
     });
 }

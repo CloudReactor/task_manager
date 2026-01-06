@@ -39,6 +39,9 @@ def test_serializer_has_correct_fields(pager_duty_notification_delivery_method_f
     assert data['name'] == 'Test PagerDuty Method'
     assert data['description'] == 'Test description for PagerDuty'
 
+    # Verify delivery_method_type returns simplified type
+    assert data['delivery_method_type'] == 'pager_duty'
+
     # Verify created_by_group is serialized correctly
     assert 'created_by_group' in data
     created_by_group = data['created_by_group']
