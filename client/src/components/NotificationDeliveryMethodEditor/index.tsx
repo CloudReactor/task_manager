@@ -256,7 +256,7 @@ const NotificationDeliveryMethodEditor = ({
                 <Col sm={4} md={3}>
                   <Form.Group controlId="delivery_method_type">
                     <Form.Label>Delivery Method Type *</Form.Label>
-                    {!!notificationDeliveryMethod ? (
+                    { notificationDeliveryMethod ? (
                       <div
                         className="form-control"
                         style={{
