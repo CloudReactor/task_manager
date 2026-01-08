@@ -14,6 +14,7 @@ import os
 from datetime import timedelta
 
 import environ
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,10 +23,9 @@ env = environ.Env()
 
 IN_PYTEST = env.bool('IN_PYTEST', default=False)
 
-# print(f"{IN_PYTEST=}")
-
 if IN_PYTEST:
-    env.read_env(os.path.join(BASE_DIR, '.env.test'))
+    # Force load .env.test with override to supersede VS Code's .env loading
+    load_dotenv(os.path.join(BASE_DIR, '.env.test'), override=True)
 else:
     env.read_env(os.path.join(BASE_DIR, '.env'))
 
