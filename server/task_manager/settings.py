@@ -14,21 +14,18 @@ import os
 from datetime import timedelta
 
 import environ
-from dotenv import load_dotenv
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 env = environ.Env()
 
+env.read_env(os.path.join(BASE_DIR, '.env'), parse_comments=True)
+
 IN_PYTEST = env.bool('IN_PYTEST', default=False)
 
 if IN_PYTEST:
-    # Force load .env.test with override to supersede VS Code's .env loading
-    load_dotenv(os.path.join(BASE_DIR, '.env.test'), override=True)
-else:
-    env.read_env(os.path.join(BASE_DIR, '.env'))
-
+    env.read_env(os.path.join(BASE_DIR, '.env.test'), parse_comments=True, overwrite=True)
 
 IN_DOCKER = env.bool('DJANGO_IN_DOCKER', default=False)
 
