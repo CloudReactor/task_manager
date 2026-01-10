@@ -20,7 +20,5 @@ class SubscriptionFactory(factory.django.DjangoModelFactory):
     group = factory.SubFactory(GroupFactory)
     subscription_plan = factory.SubFactory(SubscriptionPlanFactory)
     active = True
-    created_at = timezone.now()
-    updated_at = timezone.now()
     start_at = timezone.now() - timedelta(days=30)
     end_at = None

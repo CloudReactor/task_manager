@@ -13,3 +13,4 @@ class NotificationProfileFactory(OwnedModelFactory):
     name = factory.Sequence(lambda n: f'notification_profile_{n}')
 
     enabled = True
+
