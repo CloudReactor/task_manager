@@ -23,3 +23,4 @@ class TaskExecutionFactory(ExecutionFactory):
     @factory.post_generation
     def sanitize_em(task_execution: TaskExecution, create: bool, extracted, **kwargs):
         populate_task_execution_em_and_infra(task_execution)
+        task_execution.save()
