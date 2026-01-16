@@ -120,6 +120,31 @@ const NavBar = (p: Props) => {
         </Dropdown.Toggle>
 
         <Dropdown.Menu>
+          <Dropdown.Header>
+            Notification Settings
+          </Dropdown.Header>
+
+          {notificationLinks.map((item, i) => {
+            const {
+              path,
+              text
+            } = item;
+
+            return (
+              <Fragment key={`nav-dropdown-notification-${i}`}>
+                <Dropdown.Item as={Link} to={path}>
+                  {text}
+                </Dropdown.Item>
+              </Fragment>
+            );
+          })}
+
+          <Dropdown.Divider />
+
+          <Dropdown.Header>
+            Groups
+          </Dropdown.Header>
+
           {
             currentUser.groups.map(group => (
               <Dropdown.Item key={group.id} onClick={() => switchGroup(group.id) }>
@@ -151,27 +176,6 @@ const NavBar = (p: Props) => {
           </Dropdown.Header>
 
           {accountLinks.map((item, i) => {
-            const {
-              path,
-              text
-            } = item;
-
-            return (
-              <Fragment key={`nav-dropdown-${i}`}>
-                <Dropdown.Item as={Link} to={path}>
-                  {text}
-                </Dropdown.Item>
-              </Fragment>
-            );
-          })}
-
-          <Dropdown.Divider />
-
-          <Dropdown.Header>
-            Notification Settings
-          </Dropdown.Header>
-
-          {notificationLinks.map((item, i) => {
             const {
               path,
               text
