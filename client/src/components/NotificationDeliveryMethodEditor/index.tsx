@@ -149,6 +149,15 @@ const NotificationDeliveryMethodEditor = ({
             // Convert UI type to backend type
             v.delivery_method_type = uiToBackendType(v.delivery_method_type);
 
+            // Remove read-only fields
+            delete v.url;
+            delete v.uuid;
+            delete v.dashboard_url;
+            delete v.created_by_user;
+            delete v.created_by_group;
+            delete v.created_at;
+            delete v.updated_at;
+
             if (onSaveStarted) {
               onSaveStarted(values);
             }
@@ -241,13 +250,16 @@ const NotificationDeliveryMethodEditor = ({
               <Row className="pb-3">
                 <Col sm={6}>
                   <Form.Group controlId="enabled">
-                    <Form.Check
-                      type="checkbox"
-                      name="enabled"
-                      label="Enabled"
-                      checked={values.enabled}
-                      onChange={handleChange}
-                    />
+                    <Field name="enabled">
+                      {({ field }: any) => (
+                        <Form.Check
+                          {...field}
+                          type="checkbox"
+                          checked={field.value}
+                          label="Enabled"
+                        />
+                      )}
+                    </Field>
                   </Form.Group>
                 </Col>
               </Row>

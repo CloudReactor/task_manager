@@ -125,6 +125,11 @@ class SaasTokenViewSet(AtomicCreateModelMixin,
                 # Don't allow a user to see tokens with more access than the user
                 access_level__lte=access_level,
             )
+            
+            # Filter by current user unless scope=group is passed
+            scope = request.query_params.get('scope')
+            if scope != 'group':
+                qs = qs.filter(user=request_user)
         else:
             # Other actions will cause SaasTokenPermission to check if the user has
             # access to the retrieved SaasToken.

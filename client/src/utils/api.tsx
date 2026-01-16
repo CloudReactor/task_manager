@@ -67,6 +67,7 @@ export const DEFAULT_PAGE_FETCH_OPTIONS: PageFetchOptions = {
 
 export interface PageFetchWithGroupIdOptions extends PageFetchOptions {
   groupId?: number | null;
+  scope?: string;
 }
 
 export interface PageFetchWithGroupIdAndRunEnvironmentOptions
@@ -292,13 +293,18 @@ export async function fetchApiKeys(opts? : PageFetchWithGroupIdOptions):
   opts = opts ?? {};
 
   const {
-    abortSignal
+    abortSignal,
+    scope
   } = opts;
 
   const params = makePageFetchWithGroupParams(opts);
 
   params.group__id = params.created_by_group__id;
   delete params.created_by_group__id;
+
+  if (scope) {
+    params.scope = scope;
+  }
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/api_keys/', {

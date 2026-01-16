@@ -60,6 +60,12 @@ const NotificationDeliveryMethodList = makeEntityList<NotificationDeliveryMethod
                     }
                     {' '}
                     <Badge variant="info">{methodType}</Badge>
+                    {' '}
+                    {method.enabled !== false ? (
+                      <Badge variant="success">Enabled</Badge>
+                    ) : (
+                      <Badge variant="secondary">Disabled</Badge>
+                    )}
                     </Card.Title>
                     <Card.Text>
                       {

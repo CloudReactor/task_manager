@@ -62,7 +62,7 @@ const NavBar = (p: Props) => {
   if (accessLevel >= ACCESS_LEVEL_DEVELOPER) {
     accountLinks.push({
       path: path.API_KEYS,
-      text: 'API Keys',
+      text: 'My API Keys',
     });
   }
 
@@ -138,6 +138,17 @@ const NavBar = (p: Props) => {
               </Fragment>
             );
           })}
+
+          <Dropdown.Divider />
+
+          <Dropdown.Item 
+            as={Link} 
+            to={`${path.API_KEYS}?scope=group`}
+            disabled={accessLevel < ACCESS_LEVEL_DEVELOPER}
+            style={accessLevel < ACCESS_LEVEL_DEVELOPER ? { color: '#6c757d', cursor: 'not-allowed' } : {}}
+          >
+            API Keys
+          </Dropdown.Item>
 
           <Dropdown.Divider />
 
