@@ -61,7 +61,7 @@ const NotificationProfileList = makeEntityList<NotificationProfile>({
                           <Link to={path.RUN_ENVIRONMENTS + '/' + profile.run_environment.uuid}>
                             { profile.run_environment.name }
                           </Link>
-                        ) : <span>(Unscoped)</span>
+                        ) : <Badge variant="secondary">Unscoped</Badge>
                       }
                       <br/>
                       {profile.notification_delivery_methods.length > 0 ? (
