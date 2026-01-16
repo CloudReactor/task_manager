@@ -50,8 +50,8 @@ const NotificationDeliveryMethodList = makeEntityList<NotificationDeliveryMethod
 
             return (
               <Col key={method.uuid} sm={12} md={6} lg={4} className="mb-3">
-                <Card className="custom_bg_hover h-100">
-                  <Card.Body>
+                <Card className="custom_bg_hover h-100 d-flex flex-column">
+                  <Card.Body className="flex-grow-1">
                     <Card.Title>
                     {
                       <Link to={path.NOTIFICATION_DELIVERY_METHODS + '/' + method.uuid}>
@@ -67,14 +67,8 @@ const NotificationDeliveryMethodList = makeEntityList<NotificationDeliveryMethod
                           <Link to={path.RUN_ENVIRONMENTS + '/' + method.run_environment.uuid}>
                             { method.run_environment.name }
                           </Link>
-                        ) : <span>(Unscoped)</span>
+                        ) : <Badge variant="secondary">Unscoped</Badge>
                       }
-                      {method.description && (
-                        <>
-                          <br/><br/>
-                          {method.description}
-                        </>
-                      )}
                     </Card.Text>
                   </Card.Body>
                   <Card.Footer>

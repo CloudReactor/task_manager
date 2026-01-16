@@ -175,7 +175,7 @@ const WorkflowEditor: React.FC<React.PropsWithChildren<Props>> = (props) => {
                     formikProps={formikProps}
                     />
                 </Tab>
-                <Tab eventKey="notification_methods" title="Notification Methods"
+                <Tab eventKey="notification_methods" title="Notification Methods (legacy)"
                  className={styles.tabContainer}>
                   <WorkflowNotificationMethodsTab formikProps={formikProps} />
                 </Tab>

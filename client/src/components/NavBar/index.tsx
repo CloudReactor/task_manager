@@ -74,18 +74,21 @@ const NavBar = (p: Props) => {
 
   const notificationLinks = [
     {
-      path: path.EMAIL_NOTIFICATION_PROFILES,
-      text: 'Email Notification Profiles',
-    }, {
-      path: path.PAGERDUTY_PROFILES,
-      text: 'PagerDuty Profiles',
-    }, {
-      path: path.NOTIFICATION_METHODS,
-      text: 'Notification Methods',
+      path: path.NOTIFICATION_PROFILES,
+      text: 'Notification Profiles',
     }, {
       path: path.NOTIFICATION_DELIVERY_METHODS,
       text: 'Notification Delivery Methods',
-    }
+    }, {
+      path: path.NOTIFICATION_METHODS,
+      text: 'Notification Methods (legacy)',
+    }, {
+      path: path.EMAIL_NOTIFICATION_PROFILES,
+      text: 'Email Notification Profiles (legacy)',
+    }, {
+      path: path.PAGERDUTY_PROFILES,
+      text: 'PagerDuty Profiles (legacy)',
+    },
   ];
 
   return (

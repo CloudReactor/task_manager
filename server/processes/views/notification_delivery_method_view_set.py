@@ -19,6 +19,7 @@ from ..serializers import (
 
 from .base_view_set import BaseViewSet
 from .atomic_viewsets import AtomicModelViewSet
+from .cloning_mixin import CloningMixin
 
 
 class NotificationDeliveryMethodFilter(filters.FilterSet):
@@ -31,7 +32,7 @@ class NotificationDeliveryMethodFilter(filters.FilterSet):
         fields = ['name', 'created_by_group__id', 'run_environment__uuid']
 
 
-class NotificationDeliveryMethodViewSet(AtomicModelViewSet, BaseViewSet):
+class NotificationDeliveryMethodViewSet(AtomicModelViewSet, CloningMixin, BaseViewSet):
     model_class = NotificationDeliveryMethod
     serializer_class = NotificationDeliveryMethodSerializer
     filterset_class = NotificationDeliveryMethodFilter

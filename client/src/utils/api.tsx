@@ -15,6 +15,7 @@ import {
 import {
   NotificationMethod,
   NotificationDeliveryMethod,
+  NotificationProfile,
   ApiKey,
   Task,
   TaskImpl,
@@ -573,6 +574,10 @@ export async function deleteNotificationMethod(uuid: string, abortSignal?: Abort
     });
 }
 
+
+
+
+
 // NotificationDeliveryMethod API functions
 export async function fetchNotificationDeliveryMethods(
   opts?: PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<NotificationDeliveryMethod>> {
@@ -616,9 +621,77 @@ export async function saveNotificationDeliveryMethod(uuid: string, values: any,
   return response.data;
 }
 
+export async function cloneNotificationDeliveryMethod(uuid: string, attributes?: any,
+    abortSignal?: AbortSignal): Promise<NotificationDeliveryMethod> {
+  const response = await makeAuthenticatedClient().post(
+    'api/v1/notification_delivery_methods/' + uuid + '/clone/', attributes || {}, {
+        signal: abortSignal
+    });
+  return response.data as NotificationDeliveryMethod;
+}
+
 export async function deleteNotificationDeliveryMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
   return await makeAuthenticatedClient().delete(
     'api/v1/notification_delivery_methods/' + uuid + '/', {
+      signal: abortSignal
+    });
+}
+
+// NotificationProfile API functions
+export async function fetchNotificationProfiles(
+  opts?: PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<NotificationProfile>> {
+  opts = opts ?? {};
+
+  const {
+    abortSignal
+  } = opts;
+
+  const params = makePageFetchWithGroupAndScopedRunEnvironmentParams(opts);
+  const response = await makeAuthenticatedClient().get(
+    'api/v1/notification_profiles/', {
+      signal: abortSignal,
+      params
+    });
+
+  return response.data as ResultsPage<NotificationProfile>;
+}
+
+export async function fetchNotificationProfile(uuid: string, abortSignal?: AbortSignal) {
+  const response = await makeAuthenticatedClient().get(
+    `api/v1/notification_profiles/${uuid}/`, {
+      signal: abortSignal
+    });
+  return response.data as NotificationProfile;
+}
+
+export async function saveNotificationProfile(uuid: string, values: any,
+    abortSignal?: AbortSignal): Promise<NotificationProfile> {
+  const client = makeAuthenticatedClient();
+
+  const response = await ((!uuid || (uuid === 'new')) ? client.post(
+    'api/v1/notification_profiles/', values, {
+      signal: abortSignal
+    }
+  ) : client.patch(`api/v1/notification_profiles/${uuid}/`, values, {
+      signal: abortSignal
+    })
+  );
+
+  return response.data;
+}
+
+export async function cloneNotificationProfile(uuid: string, attributes?: any,
+    abortSignal?: AbortSignal): Promise<NotificationProfile> {
+  const response = await makeAuthenticatedClient().post(
+    'api/v1/notification_profiles/' + uuid + '/clone/', attributes || {}, {
+        signal: abortSignal
+    });
+  return response.data as NotificationProfile;
+}
+
+export async function deleteNotificationProfile(uuid: string, abortSignal?: AbortSignal): Promise<void> {
+  return await makeAuthenticatedClient().delete(
+    'api/v1/notification_profiles/' + uuid + '/', {
       signal: abortSignal
     });
 }
@@ -652,7 +725,8 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     params['latest_task_execution__status'] = opts.statuses.join(',');
   }
 
-  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,alert_methods,links';
+  // TODO: remove alert_methods
+  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,alert_methods,notification_profiles,links';
 
   if (opts.otherParams) {
     Object.assign(params, opts.otherParams);

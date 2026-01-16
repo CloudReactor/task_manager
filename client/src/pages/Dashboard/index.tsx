@@ -103,6 +103,14 @@ const NotificationDeliveryMethodDetail = lazy(() =>
   import('./NotificationDeliveryMethodDetail')
 );
 
+const NotificationProfileList = lazy(() =>
+  import('./NotificationProfile')
+);
+
+const NotificationProfileDetail = lazy(() =>
+  import('./NotificationProfileDetail')
+);
+
 type Props = Record<string, never>;
 
 const Dashboard = (p: Props) => {
@@ -143,6 +151,8 @@ const Dashboard = (p: Props) => {
             <Route path={path.NOTIFICATION_METHOD} element={ <NotificationMethodDetail /> } />
             <Route path={path.NOTIFICATION_DELIVERY_METHODS} element={ <NotificationDeliveryMethodList /> } />
             <Route path={path.NOTIFICATION_DELIVERY_METHOD} element={ <NotificationDeliveryMethodDetail /> } />
+            <Route path={path.NOTIFICATION_PROFILES} element={ <NotificationProfileList /> } />
+            <Route path={path.NOTIFICATION_PROFILE} element={ <NotificationProfileDetail /> } />
             {
               hasDeveloperAccess && (
                 <Route path={path.API_KEYS}

@@ -266,6 +266,14 @@ export function makeEmptyNotificationProfile(): NotificationProfile {
   });
 }
 
+export class NotificationProfileImpl extends TrackedEntityReferenceImpl
+implements NotificationProfile {
+  description = '';
+  enabled = true;
+  notification_delivery_methods = [];
+  run_environment = null;
+}
+
 
 export interface AwsLoggingOptions {
   create_group?: string | null;

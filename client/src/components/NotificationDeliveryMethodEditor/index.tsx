@@ -14,7 +14,7 @@ import {
 
 import * as Yup from 'yup';
 
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
 
 import './NotificationDeliveryMethodEditor.css';
 
@@ -106,15 +106,16 @@ const NotificationDeliveryMethodEditor = ({
   const emailMethod = method as EmailNotificationDeliveryMethod;
   const pagerdutyMethod = method as PagerDutyNotificationDeliveryMethod;
 
-  const initialValues = Object.assign({}, method, {
+  // Memoize initialValues to prevent unnecessary re-renders
+  const initialValues = useMemo(() => Object.assign({}, method, {
     runEnvironmentUuid: method.run_environment?.uuid,
-    delivery_method_type: selectedType, // Use selectedType state instead of methodType
+    delivery_method_type: methodType, // Use methodType from prop, not selectedType state
     enabled: method.enabled !== false, // default to true
     email_to_addresses: emailMethod.email_to_addresses || [],
     email_cc_addresses: emailMethod.email_cc_addresses || [],
     email_bcc_addresses: emailMethod.email_bcc_addresses || [],
     pagerduty_api_key: pagerdutyMethod.pagerduty_api_key || ''
-  }) as any;
+  }) as any, [notificationDeliveryMethod]);
 
   const getCurrentValidationSchema = () => {
     if (selectedType === 'email') {
@@ -129,7 +130,7 @@ const NotificationDeliveryMethodEditor = ({
     <Container fluid={true}>
       <Formik
         initialValues={initialValues}
-        enableReinitialize={true}
+        enableReinitialize={!!notificationDeliveryMethod}
         validationSchema={getCurrentValidationSchema()}
         onSubmit={async (values, actions) => {
           try {

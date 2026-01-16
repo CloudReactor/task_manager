@@ -4,6 +4,7 @@ import {
 
 import {
   fetchNotificationDeliveryMethod,
+  cloneNotificationDeliveryMethod,
   deleteNotificationDeliveryMethod
 } from '../../../utils/api';
 
@@ -27,10 +28,7 @@ const NotificationDeliveryMethodDetail = makeEntityDetailComponent<NotificationD
   }, {
     entityName: 'Notification Delivery Method',
     fetchEntity: fetchNotificationDeliveryMethod,
-    cloneEntity: async (uuid: string, values: any, abortSignal: AbortSignal) => {
-      // Cloning not implemented yet - just throw error for now
-      throw new Error('Cloning notification delivery methods is not supported yet');
-    },
+    cloneEntity: cloneNotificationDeliveryMethod,
     deleteEntity: deleteNotificationDeliveryMethod,
     makeDeletionConfirmationNode: (entity) => (
       <p>

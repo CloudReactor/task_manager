@@ -15,12 +15,17 @@ export const RUN_ENVIRONMENTS = '/run_environments';
 export const RUN_ENVIRONMENT = '/run_environments/:uuid';
 export const GROUPS = '/groups';
 export const GROUP = '/groups/:id';
-export const PAGERDUTY_PROFILES = '/pagerduty_profiles';
-export const PAGERDUTY_PROFILE = '/pagerduty_profiles/:uuid'
-export const EMAIL_NOTIFICATION_PROFILES = '/email_notification_profiles';
-export const EMAIL_NOTIFICATION_PROFILE = '/email_notification_profiles/:uuid';
-export const NOTIFICATION_METHODS = '/notification_methods'
-export const NOTIFICATION_METHOD = '/notification_methods/:uuid'
+
+// Legacy routes
+export const NOTIFICATION_METHODS = '/legacy_notification_methods';
+export const NOTIFICATION_METHOD = '/legacy_notification_methods/:uuid';
+export const PAGERDUTY_PROFILES = '/legacy_pagerduty_profiles';
+export const PAGERDUTY_PROFILE = '/legacy_pagerduty_profiles/:uuid'
+export const EMAIL_NOTIFICATION_PROFILES = '/legacy_email_notification_profiles';
+export const EMAIL_NOTIFICATION_PROFILE = '/legacy_email_notification_profiles/:uuid';
+
+export const NOTIFICATION_PROFILES = '/notification_profiles'
+export const NOTIFICATION_PROFILE = '/notification_profiles/:uuid'
 export const NOTIFICATION_DELIVERY_METHODS = '/notification_delivery_methods'
 export const NOTIFICATION_DELIVERY_METHOD = '/notification_delivery_methods/:uuid'
 export const API_KEYS = '/api_keys'
