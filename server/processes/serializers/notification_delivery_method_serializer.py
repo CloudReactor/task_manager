@@ -42,7 +42,7 @@ class NotificationDeliveryMethodSerializer(GroupSettingSerializerMixin,
     class Meta:
         model = NotificationDeliveryMethod
         fields = [
-            'url', 'uuid', 'name', 'description', 'dashboard_url',
+            'url', 'uuid', 'name', 'description', 'dashboard_url', 'enabled',
             'run_environment', 'delivery_method_type', 'rate_limit_tiers',
             'created_by_user', 'created_by_group', 'created_at', 'updated_at'
         ]

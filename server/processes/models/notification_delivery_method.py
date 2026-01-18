@@ -4,7 +4,6 @@ import logging
 
 from typing import Any
 
-from datetime import datetime
 from abc import abstractmethod
 
 from django.db import models
@@ -23,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 class NotificationDeliveryMethod(TypedModel, NamedWithUuidAndRunEnvironmentModel):
     MAX_RATE_LIMIT_TIERS = 8
+
+    enabled = models.BooleanField(default=True)
 
     max_requests_per_period_0 = models.PositiveIntegerField(null=True, blank=True, default=5)
     request_period_seconds_0 = models.PositiveIntegerField(null=True, blank=True, default=60)
@@ -74,6 +75,10 @@ class NotificationDeliveryMethod(TypedModel, NamedWithUuidAndRunEnvironmentModel
 
 
     def send_if_not_rate_limited(self, event: Event) -> dict[str, Any] | None:
+        if self.enabled is False:
+            logger.info(f"Skipping Notification Delivery Method {self.uuid} / {self.name} because it is disabled")
+            return None
+
         tier_index = self.rate_limited_tier_index(event)
 
         if tier_index is not None:

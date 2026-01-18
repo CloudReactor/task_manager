@@ -37,10 +37,16 @@ class NotificationProfile(NamedWithUuidAndRunEnvironmentModel):
             return
 
         for ndm in self.notification_delivery_methods.all():
+            initial_send_status = NotificationSendStatus.SENDING if ndm.enabled else NotificationSendStatus.SKIPPED
+
             notification = Notification(event=event, notification_profile=self,
                     notification_delivery_method=ndm,
-                    send_status=NotificationSendStatus.SENDING)
+                    send_status=initial_send_status)
             notification.save()
+
+            if not ndm.enabled:
+                logger.info(f"Skipping Notification Delivery Method {ndm.uuid} / {ndm.name} because it is disabled")
+                continue
 
             # TODO: Queue this, implement retry
             try:

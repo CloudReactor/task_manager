@@ -7,3 +7,5 @@ class NotificationSendStatus(enum.IntEnum):
     FAILED = 2
     TIMEOUT = 3
     RATE_LIMITED = 4
+    SKIPPED = 5
+
