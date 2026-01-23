@@ -100,10 +100,12 @@ class EventSerializer(serializers.HyperlinkedModelSerializer, SerializerHelpers)
         from .execution_status_change_event_serializer import ExecutionStatusChangeEventSerializer
         from .task_execution_status_change_event_serializer import TaskExecutionStatusChangeEventSerializer
         from .workflow_execution_status_change_event_serializer import WorkflowExecutionStatusChangeEventSerializer
+        from .insufficient_service_task_executions_event_serializer import InsufficientServiceTaskExecutionsEventSerializer
         from ..models import (
             ExecutionStatusChangeEvent,
             TaskExecutionStatusChangeEvent,
-            WorkflowExecutionStatusChangeEvent
+            WorkflowExecutionStatusChangeEvent,
+            InsufficientServiceTaskExecutionsEvent
         )
 
         # Check instance type and delegate to appropriate serializer
@@ -119,6 +121,9 @@ class EventSerializer(serializers.HyperlinkedModelSerializer, SerializerHelpers)
             return serializer.data
         elif isinstance(instance, ExecutionStatusChangeEvent):
             serializer = ExecutionStatusChangeEventSerializer(instance, context=child_context)
+            return serializer.data
+        elif isinstance(instance, InsufficientServiceTaskExecutionsEvent):
+            serializer = InsufficientServiceTaskExecutionsEventSerializer(instance, context=child_context)
             return serializer.data
 
         # Default: use parent's to_representation for base Event

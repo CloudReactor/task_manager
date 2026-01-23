@@ -23,9 +23,8 @@ from .workflow_transition import WorkflowTransition
 from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 from .workflow_transition_evaluation import WorkflowTransitionEvaluation
 from .notification_delivery_method import NotificationDeliveryMethod
-from .pagerduty_profile import PagerDutyProfile
+from .notification import Notification
 from .pagerduty_notification_delivery_method import PagerDutyNotificationDeliveryMethod
-from .email_notification_profile import EmailNotificationProfile
 from .email_notification_delivery_method import EmailNotificationDeliveryMethod
 from .notification_send_status import NotificationSendStatus
 from .notification_profile import NotificationProfile
@@ -37,7 +36,8 @@ from .missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent
 from .missing_scheduled_execution_event import MissingScheduledExecutionEvent
 from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
 from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
-from .notification import Notification
+from .insufficient_service_task_executions_event import InsufficientServiceTaskExecutionsEvent
+
 # Legacy
 from .alert import Alert
 from .alert_method import AlertMethod
@@ -52,3 +52,5 @@ from .delayed_process_start_alert import DelayedProcessStartAlert
 from .legacy_insufficient_service_instances_event import LegacyInsufficientServiceInstancesEvent
 from .insufficient_service_instances_alert import InsufficientServiceInstancesAlert
 from .delayed_process_start_detection_event import DelayedProcessStartDetectionEvent
+from .email_notification_profile import EmailNotificationProfile
+from .pagerduty_profile import PagerDutyProfile

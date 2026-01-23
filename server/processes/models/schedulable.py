@@ -83,6 +83,10 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
         null=True, blank=True, default=Event.Severity.WARNING)
     notification_event_severity_on_service_down = models.PositiveIntegerField(
         null=True, blank=True, default=Event.Severity.ERROR)
+    notification_event_severity_on_insufficient_instances = models.PositiveIntegerField(
+        null=True, blank=True, default=Event.Severity.WARNING)
+    notification_event_severity_on_sufficient_instances_restored = models.PositiveIntegerField(
+        null=True, blank=True, default=Event.Severity.INFO)
 
 
     @property
