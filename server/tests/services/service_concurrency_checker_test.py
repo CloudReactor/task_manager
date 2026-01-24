@@ -5,12 +5,14 @@ import logging
 from django.utils import timezone
 
 from processes.models import (
+    Event,
     InsufficientServiceTaskExecutionsEvent
 )
 
 from processes.services.service_concurrency_checker import (
     ServiceConcurrencyChecker,
-    LOOKBACK_DURATION_SECONDS
+    LOOKBACK_DURATION_SECONDS,
+    DEFAULT_MAX_STARTUP_DURATION_SECONDS
 )
 
 import pytest
@@ -24,72 +26,78 @@ logger = logging.getLogger(__name__)
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
     enabled,
-    min_instance_count,
-    running_instances,
+    updated_at_seconds_ago,                         
+    min_instance_count,    
+    running_instance_count,
     expected_event
 """, [
     # Sufficient instances
-    (True, 2, 2, False),
-    (True, 2, 3, False),
+    (True, 60 * 60, 2, 2, False),
+    (True, 60 * 60, 2, 3, False),
     
     # Insufficient instances
-    (True, 2, 1, True),
-    (True, 3, 2, True),
-    (True, 1, 0, True),
+    (True, 60 * 60, 2, 1, True),
+    (True, 60 * 60, 3, 2, True),
+    (True, 60 * 60, 1, 0, True),
     
     # Disabled service
-    (False, 2, 1, False),
+    (False, 60 * 60, 2, 1, False),
+
+    # Recently updated service, not enough time passed
+    (True, DEFAULT_MAX_STARTUP_DURATION_SECONDS - 10, 2, 1, False),
+
+    # Recently updated service, enough time passed
+    (True, DEFAULT_MAX_STARTUP_DURATION_SECONDS + 10, 2, 1, True),
     
     # No min instance count set
-    (True, 0, 0, False),
-    (True, None, 0, False),
+    (True, 60 * 60, 0, 0, False),
+    (True, 60 * 60, None, 0, False),
 ])
 @mock_aws
 def test_service_concurrency_checker_basic(
         enabled: bool,
+        updated_at_seconds_ago: int,
         min_instance_count: int | None,
-        running_instances: int,
+        running_instance_count: int,
         expected_event: bool,
         task_factory,
         task_execution_factory):
     """Test basic concurrency checking with various instance counts."""
     utc_now = timezone.now()
-    start_time = utc_now - timedelta(minutes=10)
     
+    service_updated_at = utc_now - timedelta(seconds=updated_at_seconds_ago)
+
     # Create a service task
     service = task_factory(
         enabled=enabled,
-        min_service_instance_count=min_instance_count
+        min_service_instance_count=min_instance_count,
+        max_manual_start_delay_before_alert_seconds=DEFAULT_MAX_STARTUP_DURATION_SECONDS,
+        aws_ecs_service_updated_at=service_updated_at,
+        notification_event_severity_on_insufficient_instances=Event.Severity.INFO
     )
-
-    before = utc_now - timedelta(hours=1)
-    service.created_at = before
-    service.updated_at = before
-    service.save()
     
+    # Create executions at a reasonable time in the past to avoid timing issues
+    # The lookback window is 5 minutes, so creating them 6 minute ago is safe
+    start_time = utc_now - timedelta(minutes=6)
+
     # Create running task executions
-    for i in range(running_instances):
+    for i in range(running_instance_count):
         task_execution_factory(
             task=service,
-            started_at=start_time,
-            finished_at=None,
-            marked_done_at=None,
-            kill_started_at=None
+            started_at=start_time
         )
+        
+    ServiceConcurrencyChecker().check_all()
     
-    checker = ServiceConcurrencyChecker()
-    checker.check_all()
-    
-    events = InsufficientServiceTaskExecutionsEvent.objects.filter(
-        task=service,
-        resolved_at__isnull=True
-    )
+    events = InsufficientServiceTaskExecutionsEvent.objects.filter(task=service)
     
     if expected_event:
         assert events.count() == 1
         event = events.first()
         assert event is not None
-        assert event.detected_concurrency == running_instances
+        assert event.task.uuid == service.uuid
+        assert event.severity == service.notification_event_severity_on_insufficient_instances
+        assert event.detected_concurrency == running_instance_count
         assert event.required_concurrency == min_instance_count
         assert event.interval_start_at is not None
         assert event.interval_end_at is not None
@@ -109,21 +117,14 @@ def test_service_concurrency_checker_with_finished_executions(
     
     service = task_factory(
         enabled=True,
-        min_service_instance_count=2
+        min_service_instance_count=2,
+        aws_ecs_service_updated_at=utc_now - timedelta(hours=1)
     )
     
-    before = utc_now - timedelta(hours=1)
-    service.created_at = before
-    service.updated_at = before
-    service.save()
-
     # Create 1 running execution
     task_execution_factory(
         task=service,
-        started_at=start_time,
-        finished_at=None,
-        marked_done_at=None,
-        kill_started_at=None
+        started_at=start_time
     )
     
     # Create 2 finished executions (should not count)
@@ -131,13 +132,10 @@ def test_service_concurrency_checker_with_finished_executions(
         task_execution_factory(
             task=service,
             started_at=start_time - timedelta(minutes=5),
-            finished_at=start_time - timedelta(minutes=2),
-            marked_done_at=None,
-            kill_started_at=None
+            finished_at=start_time - timedelta(minutes=2)
         )
     
-    checker = ServiceConcurrencyChecker()
-    checker.check_all()
+    ServiceConcurrencyChecker().check_all()
     
     events = InsufficientServiceTaskExecutionsEvent.objects.filter(
         task=service,
@@ -146,8 +144,10 @@ def test_service_concurrency_checker_with_finished_executions(
     
     assert events.count() == 1
     event = events.first()
+    assert event.task.uuid == service.uuid
     assert event.detected_concurrency == 1
     assert event.required_concurrency == 2
+    assert event.resolved_at is None
 
 
 @pytest.mark.django_db
@@ -161,22 +161,15 @@ def test_service_concurrency_checker_duplicate_event_prevention(
     
     service = task_factory(
         enabled=True,
-        min_service_instance_count=2
+        min_service_instance_count=2,
+        aws_ecs_service_updated_at = utc_now - timedelta(hours=1),
+        notification_event_severity_on_insufficient_instances=Event.Severity.WARNING
     )
-    
-
-    before = utc_now - timedelta(hours=1)
-    service.created_at = before
-    service.updated_at = before
-    service.save()
-        
+            
     # Create 1 running execution (insufficient)
     task_execution_factory(
         task=service,
-        started_at=start_time,
-        finished_at=None,
-        marked_done_at=None,
-        kill_started_at=None
+        started_at=start_time
     )
     
     checker = ServiceConcurrencyChecker()
@@ -186,6 +179,11 @@ def test_service_concurrency_checker_duplicate_event_prevention(
     events = InsufficientServiceTaskExecutionsEvent.objects.filter(task=service)
     assert events.count() == 1
     first_event = events.first()
+    assert first_event.task.uuid == service.uuid
+    assert first_event.severity == service.notification_event_severity_on_insufficient_instances
+    assert first_event.detected_concurrency == 1
+    assert first_event.required_concurrency == 2    
+    assert first_event.resolved_at is None
     
     # Second check - should not create duplicate
     checker.check_service(service)
@@ -193,7 +191,9 @@ def test_service_concurrency_checker_duplicate_event_prevention(
     assert events.count() == 1
     second_event = events.first()
     assert first_event.uuid == second_event.uuid
-
+    assert second_event.severity == service.notification_event_severity_on_insufficient_instances
+    assert second_event.task.uuid == service.uuid
+    assert second_event.resolved_at is None
 
 @pytest.mark.django_db
 @mock_aws
@@ -206,21 +206,15 @@ def test_service_concurrency_checker_event_resolution(
     
     service = task_factory(
         enabled=True,
-        min_service_instance_count=2
+        min_service_instance_count=2,
+        aws_ecs_service_updated_at = utc_now - timedelta(hours=1),
+        notification_event_severity_on_sufficient_instances_restored=Event.Severity.DEBUG
     )
-
-    before = utc_now - timedelta(hours=1)
-    service.created_at = before
-    service.updated_at = before
-    service.save()
 
     # Create 1 running execution (insufficient)
     te1 = task_execution_factory(
         task=service,
-        started_at=start_time,
-        finished_at=None,
-        marked_done_at=None,
-        kill_started_at=None
+        started_at=start_time
     )
     
     checker = ServiceConcurrencyChecker()
@@ -233,15 +227,14 @@ def test_service_concurrency_checker_event_resolution(
     )
     assert events.count() == 1
     original_event = events.first()
+    assert original_event.task.uuid == service.uuid
+    assert original_event.resolved_at is None
     
     # Add another execution to bring concurrency to sufficient level
     # Use the same start time as te1 to ensure concurrency is sufficient across the entire lookback window
     te2 = task_execution_factory(
         task=service,
-        started_at=start_time,
-        finished_at=None,
-        marked_done_at=None,
-        kill_started_at=None
+        started_at=start_time
     )
     
     # Second check - should resolve the event
@@ -257,6 +250,8 @@ def test_service_concurrency_checker_event_resolution(
     
     resolving_event = all_events.filter(resolved_event=original_event).first()
     assert resolving_event is not None
+    assert resolving_event.task.uuid == service.uuid
+    assert resolving_event.severity == service.notification_event_severity_on_sufficient_instances_restored
     assert resolving_event.detected_concurrency == 2
     assert resolving_event.required_concurrency == 2
     assert resolving_event.resolved_at is not None
@@ -274,24 +269,17 @@ def test_service_concurrency_checker_lookback_window(
     service = task_factory(
         enabled=True,
         min_service_instance_count=1,
+        aws_ecs_service_updated_at = utc_now - timedelta(hours=1)
     )
-
-    before = utc_now - timedelta(hours=1)
-    service.created_at = before
-    service.updated_at = before
-    service.save()
 
     # Create an execution that finished before the lookback window
     task_execution_factory(
         task=service,
         started_at=lookback_start - timedelta(minutes=10),
-        finished_at=lookback_start - timedelta(minutes=5),
-        marked_done_at=None,
-        kill_started_at=None
+        finished_at=lookback_start - timedelta(minutes=5)
     )
     
-    checker = ServiceConcurrencyChecker()
-    checker.check_service(service)
+    ServiceConcurrencyChecker().check_service(service)
     
     # Should detect insufficient concurrency since old execution doesn't count
     events = InsufficientServiceTaskExecutionsEvent.objects.filter(
@@ -300,7 +288,10 @@ def test_service_concurrency_checker_lookback_window(
     )
     assert events.count() == 1
     event = events.first()
+    assert event.task.uuid == service.uuid    
     assert event.detected_concurrency == 0
+    assert event.required_concurrency == 1
+    assert event.resolved_at is None
 
 
 @pytest.mark.django_db
@@ -315,12 +306,12 @@ def test_service_concurrency_checker_startup_delay(
     service = task_factory(
         enabled=True,
         min_service_instance_count=2,
-        max_manual_start_delay_before_alert_seconds=300,
-        created_at=utc_now - timedelta(seconds=60)  # Created 1 minute ago
+        max_manual_start_delay_before_alert_seconds=300,        
     )
+    service.created_at = utc_now - timedelta(seconds=60)
+    service.save()
     
-    checker = ServiceConcurrencyChecker()
-    checker.check_all()
+    ServiceConcurrencyChecker().check_all()
     
     # Should not create an event because service is still within startup delay
     events = InsufficientServiceTaskExecutionsEvent.objects.filter(task=service)
@@ -335,49 +326,44 @@ def test_service_concurrency_checker_check_all(
     """Test check_all method processes all enabled services."""
     utc_now = timezone.now()
     start_time = utc_now - timedelta(minutes=10)
+    before = utc_now - timedelta(hours=1)
     
     # Create multiple services
     service1 = task_factory(
         enabled=True,
-        min_service_instance_count=2
+        min_service_instance_count=2,
+        aws_ecs_service_updated_at = before
     )
 
     service2 = task_factory(
         enabled=True,
-        min_service_instance_count=1
+        min_service_instance_count=1,
+        aws_ecs_service_updated_at = before
     )
     
     # Service 3 is disabled, should be ignored
     service3 = task_factory(
         enabled=False,
-        min_service_instance_count=2
+        min_service_instance_count=2,
+        aws_ecs_service_updated_at = before
     )
     
     # Service 4 has no min_service_instance_count, should be ignored
     service4 = task_factory(
         enabled=True,
-        min_service_instance_count=None
+        min_service_instance_count=None,
+        aws_ecs_service_updated_at = before
     )
-
-    for service in [service1, service2, service3, service4]:
-        before = utc_now - timedelta(hours=1)
-        service.created_at = before
-        service.updated_at = before
-        service.save()
 
     # Add insufficient executions for service1 (1 running, needs 2)
     task_execution_factory(
         task=service1,
-        started_at=start_time,
-        finished_at=None,
-        marked_done_at=None,
-        kill_started_at=None
+        started_at=start_time
     )
     
     # Service2 has no executions (0 running, needs 1)
     
-    checker = ServiceConcurrencyChecker()
-    checker.check_all()
+    ServiceConcurrencyChecker().check_all()
     
     # Check service1 has event
     events1 = InsufficientServiceTaskExecutionsEvent.objects.filter(
@@ -416,14 +402,12 @@ def test_service_concurrency_checker_interval_timestamps(task_factory):
     )
     
     before = utc_now - timedelta(hours=1)
-    service.created_at = before
-    service.updated_at = before
+    service.aws_ecs_service_updated_at = before
     service.save()
 
     # Don't create any executions - insufficient concurrency
     
-    checker = ServiceConcurrencyChecker()
-    checker.check_all()
+    ServiceConcurrencyChecker().check_all()
     
     events = InsufficientServiceTaskExecutionsEvent.objects.filter(task=service)
     assert events.count() == 1

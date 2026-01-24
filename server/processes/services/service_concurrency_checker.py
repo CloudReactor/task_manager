@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 import logging
 
 from django.db import transaction
@@ -11,7 +11,7 @@ from ..common.notification import *
 from ..models import *
 
 LOOKBACK_DURATION_SECONDS = 5 * 60
-DEFAULT_MAX_STARTUP_DURATION_SECONDS = 120
+DEFAULT_MAX_STARTUP_DURATION_SECONDS = 5 * 60
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class ServiceConcurrencyChecker:
             end_timestamp = utc_timestamp
             is_end_closed = True
 
-            done_at = te.finished_at or te.marked_done_at or te.kill_started_at
+            done_at = te.finished_at or te.marked_done_at or te.kill_started_at or te.kill_finished_at
             if done_at:
                 end_timestamp = min(done_at.timestamp(), end_timestamp)
                 is_end_closed = False
@@ -124,8 +124,8 @@ class ServiceConcurrencyChecker:
                 current_event = InsufficientServiceTaskExecutionsEvent(
                     severity=service.notification_event_severity_on_insufficient_instances,
                     task=service,
-                    interval_start_at=datetime.fromtimestamp(min_concurrency_found_interval.lower, tz=timezone.utc).replace(microsecond=0),
-                    interval_end_at=datetime.fromtimestamp(min_concurrency_found_interval.upper, tz=timezone.utc).replace(microsecond=0),
+                    interval_start_at=datetime.fromtimestamp(min_concurrency_found_interval.lower, tz=dt_timezone.utc).replace(microsecond=0),
+                    interval_end_at=datetime.fromtimestamp(min_concurrency_found_interval.upper, tz=dt_timezone.utc).replace(microsecond=0),
                     detected_concurrency=min_concurrency_found,
                     required_concurrency=service.min_service_instance_count,
                     resolved_at=None
