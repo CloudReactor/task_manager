@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from datetime import timedelta
 import enum
 import logging
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.db import models, transaction
 from django.utils import timezone
 
@@ -16,6 +15,7 @@ from .schedulable import Schedulable
 
 if TYPE_CHECKING:
     from .event import Event
+    from .run_environment import RunEnvironment
 
 
 logger = logging.getLogger(__name__)
@@ -68,8 +68,28 @@ class Execution(UuidModel, ExecutionProbabilities):
     other_instance_metadata = models.JSONField(null=True, blank=True)
     other_runtime_metadata = models.JSONField(null=True, blank=True)
 
-    def get_schedulable(self) -> Optional[Schedulable]:
+    def get_schedulable(self) -> Schedulable | None:
         raise NotImplementedError()
+
+    @property
+    def run_environment(self) -> RunEnvironment | None:
+        schedulable = self.get_schedulable()
+        if schedulable:
+            return schedulable.run_environment
+        
+        return None
+    
+    @property
+    def created_by_group(self) -> Group | None:
+        schedulable = self.get_schedulable()
+        if schedulable:
+            if schedulable.created_by_group:
+                return schedulable.created_by_group
+            elif schedulable.run_environment:
+                return schedulable.run_environment.created_by_group
+
+        return None
+
 
     def send_event_notifications(self, event: Event) -> int:
         # TODO: use Execution specific notification profiles

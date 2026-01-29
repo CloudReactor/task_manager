@@ -12,7 +12,6 @@ from rest_framework import serializers
 
 from processes.exception import UnprocessableEntity
 from processes.models import (
-
     RunEnvironment
 )
 
@@ -110,7 +109,7 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
             })
 
         ensure_group_access_level(group=group,
-                min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+                min_access_level=self.required_access_level_for_mutation(),
                 run_environment=run_environment,
                 request=self.context.get('request'))
 
@@ -118,3 +117,6 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
         validated['run_environment'] = run_environment
 
         return validated
+
+    def required_access_level_for_mutation(self):
+        return UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER

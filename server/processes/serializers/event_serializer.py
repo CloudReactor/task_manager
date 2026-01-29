@@ -1,15 +1,20 @@
 import logging
 from typing import override
 
+from django.utils.text import camel_case_to_spaces
+
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
-from ..models import Event
+from ..models import Event, UserGroupAccessLevel
 from ..common.utils import model_class_to_type_string
+
+from .embedded_id_validating_serializer_mixin import EmbeddedIdValidatingSerializerMixin
 from .name_and_uuid_serializer import NameAndUuidSerializer
 from .group_serializer import GroupSerializer
+from .group_setting_serializer_mixin import GroupSettingSerializerMixin
 from .serializer_helpers import SerializerHelpers
-from django.utils.text import camel_case_to_spaces
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +61,8 @@ class EventSeveritySerializer(serializers.BaseSerializer):
         raise serializers.ValidationError('Invalid severity')
 
 
-class EventSerializer(serializers.HyperlinkedModelSerializer, SerializerHelpers):
+class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerializerMixin,
+    SerializerHelpers, serializers.HyperlinkedModelSerializer):
     """
     Serializer for `Event` model.
 
@@ -76,11 +82,17 @@ class EventSerializer(serializers.HyperlinkedModelSerializer, SerializerHelpers)
     class Meta:
         model = Event
         fields = [
-            'url', 'uuid', 'event_at', 'detected_at',
+            'url', 'uuid', 'created_by_group', 'created_by_user',
+            'run_environment',    
+            'event_at', 'detected_at',
             'severity', 'event_type',
             'error_summary', 'error_details_message',
             'source', 'details', 'grouping_key',
-            'resolved_at', 'resolved_event', 'created_by_group',
+            'resolved_at', 'resolved_event', 
+        ]
+        read_only_fields = [
+            'url', 'uuid', 'created_by_user', 'created_at', 'updated_at', 
+            'event_type',
         ]
 
     def get_event_type(self, obj: Event) -> str:
@@ -97,14 +109,18 @@ class EventSerializer(serializers.HyperlinkedModelSerializer, SerializerHelpers)
             return super().to_representation(instance)
 
         # Import here to avoid circular import issues
+        from .basic_event_serializer import BasicEventSerializer
         from .execution_status_change_event_serializer import ExecutionStatusChangeEventSerializer
         from .task_execution_status_change_event_serializer import TaskExecutionStatusChangeEventSerializer
         from .workflow_execution_status_change_event_serializer import WorkflowExecutionStatusChangeEventSerializer
+        from .missing_heartbeat_detection_event_serializer import MissingHeartbeatDetectionEventSerializer
         from .insufficient_service_task_executions_event_serializer import InsufficientServiceTaskExecutionsEventSerializer
         from ..models import (
+            BasicEvent,
             ExecutionStatusChangeEvent,
             TaskExecutionStatusChangeEvent,
             WorkflowExecutionStatusChangeEvent,
+            MissingHeartbeatDetectionEvent,
             InsufficientServiceTaskExecutionsEvent
         )
 
@@ -113,11 +129,17 @@ class EventSerializer(serializers.HyperlinkedModelSerializer, SerializerHelpers)
         child_context = {**self.context, SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION: True}
 
         # Check most specific types first
-        if isinstance(instance, TaskExecutionStatusChangeEvent):
+        if isinstance(instance, BasicEvent):
+            serializer = BasicEventSerializer(instance, context=child_context)
+            return serializer.data
+        elif isinstance(instance, TaskExecutionStatusChangeEvent):
             serializer = TaskExecutionStatusChangeEventSerializer(instance, context=child_context)
             return serializer.data
         elif isinstance(instance, WorkflowExecutionStatusChangeEvent):
             serializer = WorkflowExecutionStatusChangeEventSerializer(instance, context=child_context)
+            return serializer.data
+        elif isinstance(instance, MissingHeartbeatDetectionEvent):
+            serializer = MissingHeartbeatDetectionEventSerializer(instance, context=child_context)
             return serializer.data
         elif isinstance(instance, ExecutionStatusChangeEvent):
             serializer = ExecutionStatusChangeEventSerializer(instance, context=child_context)
@@ -128,3 +150,7 @@ class EventSerializer(serializers.HyperlinkedModelSerializer, SerializerHelpers)
 
         # Default: use parent's to_representation for base Event
         return super().to_representation(instance)
+
+    def required_access_level_for_mutation(self):
+        return UserGroupAccessLevel.ACCESS_LEVEL_TASK
+    
