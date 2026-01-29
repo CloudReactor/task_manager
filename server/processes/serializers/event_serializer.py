@@ -98,6 +98,46 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
     def get_event_type(self, obj: Event) -> str:
         return model_class_to_type_string(obj.__class__)
 
+    # Class-level mapping of model types to serializers (most specific first)
+    _type_to_serializer_cache = None
+
+    @classmethod
+    def _get_type_to_serializer_map(cls):
+        """Lazy-load the type-to-serializer mapping to avoid circular imports."""
+        if cls._type_to_serializer_cache is None:
+            # Import here to avoid circular import issues
+            from .basic_event_serializer import BasicEventSerializer
+            from .execution_status_change_event_serializer import ExecutionStatusChangeEventSerializer
+            from .task_execution_status_change_event_serializer import TaskExecutionStatusChangeEventSerializer
+            from .workflow_execution_status_change_event_serializer import WorkflowExecutionStatusChangeEventSerializer
+            from .missing_heartbeat_detection_event_serializer import MissingHeartbeatDetectionEventSerializer
+            from .missing_scheduled_task_execution_event_serializer import MissingScheduledTaskExecutionEventSerializer
+            from .missing_scheduled_workflow_execution_event_serializer import MissingScheduledWorkflowExecutionEventSerializer
+            from .insufficient_service_task_executions_event_serializer import InsufficientServiceTaskExecutionsEventSerializer
+            from ..models import (
+                BasicEvent,
+                ExecutionStatusChangeEvent,
+                TaskExecutionStatusChangeEvent,
+                WorkflowExecutionStatusChangeEvent,
+                MissingHeartbeatDetectionEvent,
+                MissingScheduledTaskExecutionEvent,
+                MissingScheduledWorkflowExecutionEvent,
+                InsufficientServiceTaskExecutionsEvent
+            )
+
+            # Order matters: most specific types first
+            cls._type_to_serializer_cache = {
+                TaskExecutionStatusChangeEvent: TaskExecutionStatusChangeEventSerializer,
+                WorkflowExecutionStatusChangeEvent: WorkflowExecutionStatusChangeEventSerializer,
+                MissingHeartbeatDetectionEvent: MissingHeartbeatDetectionEventSerializer,
+                MissingScheduledTaskExecutionEvent: MissingScheduledTaskExecutionEventSerializer,
+                MissingScheduledWorkflowExecutionEvent: MissingScheduledWorkflowExecutionEventSerializer,
+                InsufficientServiceTaskExecutionsEvent: InsufficientServiceTaskExecutionsEventSerializer,
+                BasicEvent: BasicEventSerializer,
+                ExecutionStatusChangeEvent: ExecutionStatusChangeEventSerializer,
+            }
+        return cls._type_to_serializer_cache
+
     @override
     def to_representation(self, instance):
         """
@@ -108,44 +148,16 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
         if self.context.get(SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION):
             return super().to_representation(instance)
 
-        # Import here to avoid circular import issues
-        from .basic_event_serializer import BasicEventSerializer
-        from .execution_status_change_event_serializer import ExecutionStatusChangeEventSerializer
-        from .task_execution_status_change_event_serializer import TaskExecutionStatusChangeEventSerializer
-        from .workflow_execution_status_change_event_serializer import WorkflowExecutionStatusChangeEventSerializer
-        from .missing_heartbeat_detection_event_serializer import MissingHeartbeatDetectionEventSerializer
-        from .insufficient_service_task_executions_event_serializer import InsufficientServiceTaskExecutionsEventSerializer
-        from ..models import (
-            BasicEvent,
-            ExecutionStatusChangeEvent,
-            TaskExecutionStatusChangeEvent,
-            WorkflowExecutionStatusChangeEvent,
-            MissingHeartbeatDetectionEvent,
-            InsufficientServiceTaskExecutionsEvent
-        )
+        # Get the type-to-serializer mapping
+        type_map = self._get_type_to_serializer_map()
 
-        # Check instance type and delegate to appropriate serializer
-        # Pass flag in context to prevent infinite recursion
-        child_context = {**self.context, SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION: True}
-
-        # Check most specific types first
-        if isinstance(instance, BasicEvent):
-            serializer = BasicEventSerializer(instance, context=child_context)
-            return serializer.data
-        elif isinstance(instance, TaskExecutionStatusChangeEvent):
-            serializer = TaskExecutionStatusChangeEventSerializer(instance, context=child_context)
-            return serializer.data
-        elif isinstance(instance, WorkflowExecutionStatusChangeEvent):
-            serializer = WorkflowExecutionStatusChangeEventSerializer(instance, context=child_context)
-            return serializer.data
-        elif isinstance(instance, MissingHeartbeatDetectionEvent):
-            serializer = MissingHeartbeatDetectionEventSerializer(instance, context=child_context)
-            return serializer.data
-        elif isinstance(instance, ExecutionStatusChangeEvent):
-            serializer = ExecutionStatusChangeEventSerializer(instance, context=child_context)
-            return serializer.data
-        elif isinstance(instance, InsufficientServiceTaskExecutionsEvent):
-            serializer = InsufficientServiceTaskExecutionsEventSerializer(instance, context=child_context)
+        # Direct lookup using the instance's class
+        serializer_class = type_map.get(type(instance))
+        
+        if serializer_class:
+            # Pass flag in context to prevent infinite recursion
+            child_context = {**self.context, SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION: True}
+            serializer = serializer_class(instance, context=child_context)
             return serializer.data
 
         # Default: use parent's to_representation for base Event

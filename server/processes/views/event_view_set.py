@@ -17,17 +17,10 @@ from ..permissions import IsCreatedByGroup
 from ..common.utils import model_class_to_type_string
 
 from ..models import (
-    BasicEvent,
     Event,
-    InsufficientServiceTaskExecutionsEvent,
-    MissingHeartbeatDetectionEvent,
-    MissingScheduledTaskExecutionEvent,
-    MissingScheduledWorkflowExecutionEvent,
     RunEnvironment,
-    TaskExecutionStatusChangeEvent,
-    WorkflowExecutionStatusChangeEvent
 )
-from ..serializers import *
+from ..serializers import EventSerializer
 
 from .base_view_set import BaseViewSet
 from .atomic_viewsets import AtomicModelViewSet
@@ -63,17 +56,21 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
     ordering_fields = ('event_at', 'detected_at', 'severity',)
     ordering = '-event_at'  # Default ordering by event timestamp, newest first
 
-    # Compute type string to serializer mapping once at class definition time
-    _type_to_serializer = {
-        model_class_to_type_string(BasicEvent): BasicEventSerializer,
-        model_class_to_type_string(TaskExecutionStatusChangeEvent): TaskExecutionStatusChangeEventSerializer,
-        model_class_to_type_string(WorkflowExecutionStatusChangeEvent): WorkflowExecutionStatusChangeEventSerializer,
-        model_class_to_type_string(MissingHeartbeatDetectionEvent): MissingHeartbeatDetectionEventSerializer,
-        model_class_to_type_string(MissingScheduledTaskExecutionEvent): MissingScheduledTaskExecutionEventSerializer,
-        model_class_to_type_string(MissingScheduledWorkflowExecutionEvent): MissingScheduledWorkflowExecutionEventSerializer,
-        model_class_to_type_string(InsufficientServiceTaskExecutionsEvent): InsufficientServiceTaskExecutionsEventSerializer,
-    }
+    # Cache for type string to serializer mapping
+    _type_string_to_serializer_cache = None
 
+    @classmethod
+    def _get_type_string_to_serializer_map(cls):
+        """Build mapping from event_type strings to serializer classes using EventSerializer's mapping."""
+        if cls._type_string_to_serializer_cache is None:
+            type_map = EventSerializer._get_type_to_serializer_map()
+            
+            # Convert to type_string-to-serializer mapping
+            cls._type_string_to_serializer_cache = {
+                model_class_to_type_string(model_class): serializer_class
+                for model_class, serializer_class in type_map.items()
+            }
+        return cls._type_string_to_serializer_cache
 
     # CHECKME: is this needed?
     @override
@@ -92,28 +89,19 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
         # For create actions, check request data for event_type
         if self.action == 'create' and self.request:
             event_type = self.request.data.get('event_type')
-            if event_type in self._type_to_serializer:
-                return self._type_to_serializer[event_type]
+            type_string_map = self._get_type_string_to_serializer_map()
+            if event_type in type_string_map:
+                return type_string_map[event_type]
 
         # For update/retrieve actions, check the instance type
         if self.action in ('retrieve', 'update', 'partial_update'):
             try:
                 obj = self.get_object()
-                # Check most specific types first
-                if isinstance(obj, BasicEvent):
-                    return BasicEventSerializer
-                elif isinstance(obj, TaskExecutionStatusChangeEvent):
-                    return TaskExecutionStatusChangeEventSerializer
-                elif isinstance(obj, WorkflowExecutionStatusChangeEvent):
-                    return WorkflowExecutionStatusChangeEventSerializer
-                elif isinstance(obj, MissingHeartbeatDetectionEvent):
-                    return MissingHeartbeatDetectionEventSerializer
-                elif isinstance(obj, MissingScheduledTaskExecutionEvent):
-                    return MissingScheduledTaskExecutionEventSerializer
-                elif isinstance(obj, MissingScheduledWorkflowExecutionEvent):
-                    return MissingScheduledWorkflowExecutionEventSerializer
-                elif isinstance(obj, InsufficientServiceTaskExecutionsEvent):
-                    return InsufficientServiceTaskExecutionsEventSerializer
+                # Use EventSerializer's type-to-serializer mapping
+                type_map = EventSerializer._get_type_to_serializer_map()
+                serializer_class = type_map.get(type(obj))
+                if serializer_class:
+                    return serializer_class
             except Exception:
                 # Object doesn't exist or permission denied
                 pass
