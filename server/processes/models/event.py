@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import logging
 import uuid
 
@@ -10,6 +14,9 @@ from typedmodels.models import TypedModel
 from enum import IntEnum, unique
 
 from .subscription import Subscription
+
+if TYPE_CHECKING:
+    from .run_environment import RunEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +53,12 @@ class Event(TypedModel):
     resolved_at = models.DateTimeField(null=True)
     resolved_event = models.OneToOneField('self', on_delete=models.DO_NOTHING, null=True, blank=True)
 
-    # null=True until we can populate this field for existing notifications
+    # null=True until we can populate this field for existing events
     created_by_group = models.ForeignKey(Group, on_delete=models.CASCADE,
             null=True, editable=True)
+
+    run_environment = models.ForeignKey('RunEnvironment',
+        related_name='+', on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         indexes = [
