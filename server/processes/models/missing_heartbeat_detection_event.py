@@ -39,7 +39,7 @@ Expected heartbeat at {{expected_heartbeat_at}} but last heartbeat was at {{last
         notification_generator = NotificationGenerator()
 
         template_params = notification_generator.make_template_params(
-                task_execution=self,
+                task_execution=self.task_execution,
                 severity=self.severity_label)
 
         extra_params = {
