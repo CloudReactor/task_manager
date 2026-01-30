@@ -75,6 +75,9 @@ const EventList = (props: AbortSignalProps) => {
       currentPage
     } = transformSearchParams(searchParams, true);
 
+    const minSeverity = searchParams.get('min_severity') || undefined;
+    const maxSeverity = searchParams.get('max_severity') || undefined;
+
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation superceded');
     }
@@ -100,6 +103,8 @@ const EventList = (props: AbortSignalProps) => {
         q: q ?? undefined,
         sortBy: finalOrdering,
         runEnvironmentUuids: selectedRunEnvironmentUuids,
+        minSeverity,
+        maxSeverity,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
         abortSignal: updatedLoadEventsAbortController.signal
@@ -149,6 +154,14 @@ const EventList = (props: AbortSignalProps) => {
       'run_environment__uuid');
   }, [location]);
 
+  const handleMinSeverityChanged = useCallback((severity: string) => {
+    updateSearchParams(searchParams, setSearchParams, severity || undefined, 'min_severity');
+  }, [location]);
+
+  const handleMaxSeverityChanged = useCallback((severity: string) => {
+    updateSearchParams(searchParams, setSearchParams, severity || undefined, 'max_severity');
+  }, [location]);
+
   const cleanupLoading = () => {
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation canceled after component unmounted');
@@ -183,17 +196,24 @@ const EventList = (props: AbortSignalProps) => {
     currentPage
   } = transformSearchParams(searchParams, true);
 
+  const minSeverity = searchParams.get('min_severity') || undefined;
+  const maxSeverity = searchParams.get('max_severity') || undefined;
+
   const finalSortBy = (sortBy ?? 'event_at');
   const finalDescending = descending ?? true;
 
   const eventTableProps = {
     handleSelectedRunEnvironmentUuidsChanged,
     handleQueryChanged,
+    handleMinSeverityChanged,
+    handleMaxSeverityChanged,
     loadEvents,
     handleSortChanged,
     handlePageChanged,
     handleSelectItemsPerPage,
     q,
+    minSeverity,
+    maxSeverity,
     sortBy: finalSortBy,
     descending: finalDescending,
     currentPage,

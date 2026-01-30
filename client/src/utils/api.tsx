@@ -1030,6 +1030,8 @@ export async function deleteEmailNotificationProfile(uuid: string, abortSignal?:
 // Event API functions
 export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
   severities?: string[];
+  minSeverity?: string | number;
+  maxSeverity?: string | number;
   taskUuid?: string;
   workflowUuid?: string;
 }
@@ -1045,6 +1047,14 @@ export async function fetchEvents(opts?: EventPageFetchOptions): Promise<Results
 
   if (opts.severities && opts.severities.length > 0) {
     params['severity'] = opts.severities.join(',');
+  }
+
+  if (opts.minSeverity !== undefined && opts.minSeverity !== null) {
+    params['min_severity'] = opts.minSeverity;
+  }
+
+  if (opts.maxSeverity !== undefined && opts.maxSeverity !== null) {
+    params['max_severity'] = opts.maxSeverity;
   }
 
   if (opts.taskUuid) {

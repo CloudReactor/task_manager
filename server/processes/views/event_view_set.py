@@ -41,30 +41,83 @@ class EventFilter(filters.FilterSet):
     created_by_group__id = NumberFilter()
 
     severity = CharFilter(method='filter_severity')
+    min_severity = CharFilter(method='filter_min_severity')
+    max_severity = CharFilter(method='filter_max_severity')
 
-    def filter_severity(self, queryset, name, value):
+    def _parse_severity_value(self, value):
         """
-        Filter severity by label (e.g., 'error', 'warning') or numeric value.
-        Accepts severity labels like 'error', 'warning', 'info', etc. (case-insensitive)
-        or numeric values.
+        Parse a severity value which can be either a label or numeric value.
+        Returns the numeric severity value or None if invalid.
         """
-        if not value:
-            return queryset
-        
         # Try to parse as integer first
         try:
-            severity_int = int(value)
-            return queryset.filter(severity=severity_int)
+            return int(value)
         except ValueError:
             pass
         
         # Try to parse as severity label
         try:
             severity_enum = Event.Severity[value.upper()]
-            return queryset.filter(severity=severity_enum.value)
+            return severity_enum.value
         except KeyError:
-            # Invalid severity label, return empty queryset
-            logger.warning(f"Invalid severity filter value: {value}")
+            logger.warning(f"Invalid severity value: {value}")
+            return None
+
+    def filter_severity(self, queryset, name, value):
+        """
+        Filter severity by label (e.g., 'error', 'warning') or numeric value.
+        Accepts comma-separated list of severity labels/values or single value.
+        """
+        if not value:
+            return queryset
+        
+        # Check if it's a comma-separated list
+        if ',' in value:
+            values = [v.strip() for v in value.split(',')]
+            severity_ints = []
+            for v in values:
+                severity_int = self._parse_severity_value(v)
+                if severity_int is not None:
+                    severity_ints.append(severity_int)
+            
+            if severity_ints:
+                return queryset.filter(severity__in=severity_ints)
+            else:
+                return queryset.none()
+        else:
+            # Single value
+            severity_int = self._parse_severity_value(value)
+            if severity_int is not None:
+                return queryset.filter(severity=severity_int)
+            else:
+                return queryset.none()
+
+    def filter_min_severity(self, queryset, name, value):
+        """
+        Filter events with severity greater than or equal to the specified value.
+        Accepts severity label or numeric value.
+        """
+        if not value:
+            return queryset
+        
+        severity_int = self._parse_severity_value(value)
+        if severity_int is not None:
+            return queryset.filter(severity__gte=severity_int)
+        else:
+            return queryset.none()
+
+    def filter_max_severity(self, queryset, name, value):
+        """
+        Filter events with severity less than or equal to the specified value.
+        Accepts severity label or numeric value.
+        """
+        if not value:
+            return queryset
+        
+        severity_int = self._parse_severity_value(value)
+        if severity_int is not None:
+            return queryset.filter(severity__lte=severity_int)
+        else:
             return queryset.none()
 
     class Meta:

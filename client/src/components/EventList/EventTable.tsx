@@ -10,6 +10,8 @@ import {
   Table
 } from 'react-bootstrap'
 
+import { MenuItem, Select } from '@mui/material';
+
 import RunEnvironmentSelector from "../common/RunEnvironmentSelector/RunEnvironmentSelector";
 import EventTableHeader from "./EventTableHeader";
 import EventTableBody from "./EventTableBody";
@@ -27,9 +29,13 @@ interface Props {
   showFilters?: boolean;
   showRunEnvironmentColumn?: boolean;
   showTaskWorkflowColumn?: boolean;
+  minSeverity?: string;
+  maxSeverity?: string;
   handleSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
   handleSelectedRunEnvironmentUuidsChanged?: (uuids?: string[]) => void;
   handleQueryChanged?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleMinSeverityChanged?: (severity: string) => void;
+  handleMaxSeverityChanged?: (severity: string) => void;
   loadEvents: (
     ordering?: string,
     toggleDirection?: boolean
@@ -49,21 +55,53 @@ const EventTable = (props: Props) => {
     runEnvironments = [],
     selectedRunEnvironmentUuids,
     handleSelectedRunEnvironmentUuidsChanged,
-    handleQueryChanged
+    handleQueryChanged,
+    minSeverity,
+    maxSeverity,
+    handleMinSeverityChanged,
+    handleMaxSeverityChanged
   } = props;
+
+  const severityOptions = [
+    { value: '', label: 'Any' },
+    { value: 'CRITICAL', label: 'Critical', numericValue: 600 },
+    { value: 'ERROR', label: 'Error', numericValue: 500 },
+    { value: 'WARNING', label: 'Warning', numericValue: 400 },
+    { value: 'INFO', label: 'Info', numericValue: 300 },
+    { value: 'DEBUG', label: 'Debug', numericValue: 200 },
+    { value: 'TRACE', label: 'Trace', numericValue: 100 },
+  ];
+
+  // Filter max severity options based on selected min severity
+  const maxSeverityOptions = minSeverity && minSeverity !== '' 
+    ? (() => {
+        const minOption = severityOptions.find(opt => opt.value === minSeverity);
+        if (minOption && minOption.numericValue !== undefined) {
+          return [
+            { value: '', label: 'Any' },
+            ...severityOptions.filter(opt => 
+              opt.numericValue !== undefined && opt.numericValue >= minOption.numericValue
+            )
+          ];
+        }
+        return severityOptions;
+      })()
+    : severityOptions;
 
   return (
     <Fragment>
       {showFilters && (
         <div>
-          <Form inline>
+          <Form inline className="mb-2">
             {runEnvironments.length > 0 && handleSelectedRunEnvironmentUuidsChanged && (
-              <Form.Group>
-                <Form.Label className="mr-3">Run Environment:</Form.Label>
-                <RunEnvironmentSelector
-                  runEnvironments={runEnvironments}
-                  selectedRunEnvironmentUuids={selectedRunEnvironmentUuids}
-                  handleSelectedRunEnvironmentUuidsChanged={handleSelectedRunEnvironmentUuidsChanged} />
+              <Form.Group className="mr-3">
+                <Form.Label className="mr-2" style={{ width: '135px', display: 'inline-block', textAlign: 'right' }}>Run Environment:</Form.Label>
+                <div style={{ width: '250px', display: 'inline-block' }}>
+                  <RunEnvironmentSelector
+                    runEnvironments={runEnvironments}
+                    selectedRunEnvironmentUuids={selectedRunEnvironmentUuids}
+                    handleSelectedRunEnvironmentUuidsChanged={handleSelectedRunEnvironmentUuidsChanged} />
+                </div>
               </Form.Group>
             )}
             {handleQueryChanged && (
@@ -77,6 +115,40 @@ const EventTable = (props: Props) => {
               </Form.Group>
             )}
           </Form>
+          {(handleMinSeverityChanged || handleMaxSeverityChanged) && (
+            <Form inline className="mb-2">
+              {handleMinSeverityChanged && (
+                <Form.Group className="mr-3">
+                  <Form.Label className="mr-2" style={{ width: '135px', display: 'inline-block', textAlign: 'right' }}>Min Severity:</Form.Label>
+                  <Select
+                    value={minSeverity || ''}
+                    onChange={(e) => handleMinSeverityChanged(e.target.value as string)}
+                    style={{ width: '233px', minHeight: '38px' }}
+                    displayEmpty
+                  >
+                    {severityOptions.map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </Form.Group>
+              )}
+              {handleMaxSeverityChanged && (
+                <Form.Group className="mr-3">
+                  <Form.Label className="mr-2" style={{ width: '135px', display: 'inline-block', textAlign: 'right' }}>Max Severity:</Form.Label>
+                  <Select
+                    value={maxSeverity || ''}
+                    onChange={(e) => handleMaxSeverityChanged(e.target.value as string)}
+                    style={{ width: '233px', minHeight: '38px' }}
+                    displayEmpty
+                  >
+                    {maxSeverityOptions.map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </Form.Group>
+              )}
+            </Form>
+          )}
         </div>
       )}
 
