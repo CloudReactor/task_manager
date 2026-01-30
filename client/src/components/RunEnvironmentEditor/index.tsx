@@ -29,6 +29,7 @@ import * as Yup from 'yup';
 import React, { useContext, Fragment } from 'react';
 
 import {
+  Alert,
   Col,
   Row,
   FormGroup,
@@ -43,12 +44,12 @@ import {
   accessLevelForCurrentGroup
 } from '../../context/GlobalContext';
 
-import { Button } from '@mui/material/';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 
 import FormikErrorsSummary from '../common/FormikErrorsSummary';
+import CustomButton from '../common/Button/CustomButton';
 
 import NotificationMethodSelector from '../common/NotificationMethodSelector';
 
@@ -230,9 +231,9 @@ const RunEnvironmentEditor = ({
           settings: Yup.object().shape({
             account_id: Yup.string().matches(AWS_ACCOUNT_ID_REGEXP,
               'AWS Account ID must be 12 digits').nullable(),
-            region: Yup.string().oneOf(AWS_REGIONS),
+            region: Yup.string().oneOf(AWS_REGIONS).nullable(),
             events_role_arn: Yup.string().max(1000).matches(AWS_ROLE_ARN_REGEXP,
-              'CloudReactor Role name or ARN is invalid'),
+              'CloudReactor Role name or ARN is invalid').nullable(),
             assumed_role_external_id: Yup.string().max(1000).nullable(),
             workflow_starter_lambda_arn: Yup.string().max(1000).matches(AWS_LAMBDA_ARN_REGEXP,
               'Workflow Starter Lambda name or ARN is invalid').nullable(),
@@ -246,7 +247,7 @@ const RunEnvironmentEditor = ({
                 'Security Group must not be blank').matches(
                 AWS_SECURITY_GROUP_REGEXP,
                 'Security Group is invalid, must start with "sg-", followed by 8 or 17 lower-case hexadecimal digits')),
-              assign_public_ip: Yup.boolean().default(false)
+              assign_public_ip: Yup.boolean().default(false).nullable(),
             }).nullable(),
             logging: Yup.object().shape({
               driver: Yup.string().nullable(),
@@ -268,15 +269,15 @@ const RunEnvironmentEditor = ({
         '__default__': Yup.object().shape({
           settings: Yup.object().shape({
             'launch_type': Yup.string().oneOf(AWS_ECS_ALL_SUPPORTED_LAUNCH_TYPES)
-              .default(AWS_ECS_LAUNCH_TYPE_FARGATE),
-            'supported_launch_types': Yup.array(Yup.string().oneOf(AWS_ECS_ALL_SUPPORTED_LAUNCH_TYPES)),
+              .default(AWS_ECS_LAUNCH_TYPE_FARGATE).nullable(),
+            'supported_launch_types': Yup.array(Yup.string().oneOf(AWS_ECS_ALL_SUPPORTED_LAUNCH_TYPES)).nullable(),
             'cluster_arn': Yup.string().matches(AWS_ECS_CLUSTER_ARN_REGEXP,
               'AWS ECS Cluster ARN is invalid, must be in the format "arn:aws:ecs:us-east-1:012345678901:cluster/example"').nullable(),
             'execution_role_arn': Yup.string().matches(AWS_ROLE_ARN_REGEXP,
               'Task Execution Role name or ARN is invalid').nullable(),
             'task_role_arn': Yup.string().matches(AWS_ROLE_ARN_REGEXP,
               'Default Task Role name or ARN is invalid').nullable(),
-            'platform_version': Yup.string()
+            'platform_version': Yup.string().nullable()
           }).nullable()
         }).nullable()
       }).nullable()
@@ -349,6 +350,12 @@ const RunEnvironmentEditor = ({
                 debugMode && (
                   <Row className="pb-3">
                     <Col>
+                      <Alert variant="warning">
+                        <Alert.Heading>Debug Info</Alert.Heading>
+                        <p><strong>isValid:</strong> {isValid ? 'true' : 'false'}</p>
+                        <p><strong>Errors:</strong></p>
+                        <pre>{JSON.stringify(errors, null, 2)}</pre>
+                      </Alert>
                       <FormikErrorsSummary errors={errors} touched={touched}
                         values={values}/>
                     </Col>
@@ -363,7 +370,7 @@ const RunEnvironmentEditor = ({
                 <SettingsForm items={AWS_INFRASTRUCTURE_ITEMS}
                  onChange={handleChange} onBlur={handleBlur} />
 
-                <div className={styles.formSection}>
+                <div>
                   <div className={styles.sectionTitle}>
                     AWS Networking
                   </div>
@@ -397,14 +404,13 @@ const RunEnvironmentEditor = ({
                                 </Fragment>
                               ))
                             }
-                            <Button
+                            <CustomButton
                               variant="outlined"
                               size="small"
-                              onClick={() => arrayHelpers.push('')}
-                              className={styles.button}>
-                              <AddBoxIcon style={leftIcon} />
-                              Add Subnet
-                            </Button>
+                              onActionRequested={() => arrayHelpers.push('')}
+                              label="Add Subnet"
+                              faIconName="plus"
+                            />
                           </Fragment>
                         )}
                       />
@@ -442,15 +448,13 @@ const RunEnvironmentEditor = ({
                                 </Fragment>
                               ))
                             }
-                            <Button
+                            <CustomButton
                               variant="outlined"
                               size="small"
-                              onClick={() => arrayHelpers.push('')}
-                              className={styles.button}
-                            >
-                              <AddBoxIcon style={leftIcon} />
-                              Add Security Group
-                            </Button>
+                              onActionRequested={() => arrayHelpers.push('')}
+                              label="Add Security Group"
+                              faIconName="plus"
+                            />
                           </Fragment>
                         )}
                       />
@@ -458,9 +462,9 @@ const RunEnvironmentEditor = ({
                   </FormGroup>
                   <SettingsForm items={AWS_EXTRA_ITEMS}
                    onChange={handleChange} onBlur={handleBlur} />
-                  <SettingsForm items={AWS_ECS_EXECUTION_METHOD_ITEMS}
-                   onChange={handleChange} onBlur={handleBlur} />
                 </div>
+                <SettingsForm items={AWS_ECS_EXECUTION_METHOD_ITEMS}
+                 onChange={handleChange} onBlur={handleBlur} />
               </Fragment>
 
               {
@@ -497,14 +501,15 @@ const RunEnvironmentEditor = ({
                 )
               }
 
-              <Row className="pt-3 pb-3">
-                <Col>
-                  <Button variant="outlined" size="large" type="submit"
-                    disabled={!isValid || isSubmitting || (Object.keys(errors).length > 0)}>
-                    Save
-                  </Button>
-                </Col>
-              </Row>
+              <CustomButton className={styles.saveButton}
+                onActionRequested={ (action, cbData) => handleSubmit() }
+                color="primary"
+                type="button"
+                disabled={!isValid || isSubmitting || (Object.keys(errors).length > 0)}
+                label="Save changes"
+                inProgress={isSubmitting}
+                faIconName="save"
+              />
             </fieldset>
           </Form>)
         );
