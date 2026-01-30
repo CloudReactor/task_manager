@@ -123,6 +123,8 @@ class ServiceConcurrencyChecker:
                 # set microseconds to 0 so that formatted date in alert doesn't have fractional seconds
                 current_event = InsufficientServiceTaskExecutionsEvent(
                     severity=service.notification_event_severity_on_insufficient_instances,
+                    created_by_group=service.created_by_group,
+                    run_environment=service.run_environment,
                     task=service,
                     interval_start_at=datetime.fromtimestamp(min_concurrency_found_interval.lower, tz=dt_timezone.utc).replace(microsecond=0),
                     interval_end_at=datetime.fromtimestamp(min_concurrency_found_interval.upper, tz=dt_timezone.utc).replace(microsecond=0),
@@ -147,7 +149,9 @@ class ServiceConcurrencyChecker:
                 event.save()
 
                 resolving_event = InsufficientServiceTaskExecutionsEvent(
-                    severity=service.notification_event_severity_on_sufficient_instances_restored,
+                    severity=service.notification_event_severity_on_sufficient_instances_restored,                    
+                    created_by_group=service.created_by_group,
+                    run_environment=service.run_environment,
                     task=service,
                     interval_start_at=event.interval_start_at,
                     interval_end_at=event.interval_end_at,

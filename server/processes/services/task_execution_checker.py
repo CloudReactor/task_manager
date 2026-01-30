@@ -192,6 +192,8 @@ class TaskExecutionChecker:
                     mhde = MissingHeartbeatDetectionEvent(
                         severity=task.notification_event_severity_on_missing_heartbeat,
                         grouping_key=f"missing_heartbeat-{te.uuid}",
+                        created_by_group=task.created_by_group,
+                        run_environment=task.run_environment,
                         task_execution=te,
                         resolved_at=None,
                         resolved_event=None,
