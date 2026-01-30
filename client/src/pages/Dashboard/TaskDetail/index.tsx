@@ -436,7 +436,7 @@ const TaskDetail = ({
                           (taskExecutionsPage.count > 0) && (
                             <TablePagination
                               component="div"
-                              labelRowsPerPage="Showing "
+                              labelRowsPerPage={"Showing\u00A0"}
                               count={taskExecutionsPage.count}
                               rowsPerPage={rowsPerPage}
                               page={adjustedCurrentPage}

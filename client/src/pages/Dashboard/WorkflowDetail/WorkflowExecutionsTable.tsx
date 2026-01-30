@@ -330,7 +330,7 @@ const WorkflowExecutionsTable = ({
             <div className="d-flex justify-content-between align-items-center">
               <TablePagination
                 component="div"
-                labelRowsPerPage="Showing "
+                labelRowsPerPage={"Showing\u00A0"}
                 count={workflowExecutionsPage.count}
                 rowsPerPage={rowsPerPage}
                 page={currentPage}

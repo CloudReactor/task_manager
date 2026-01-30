@@ -82,7 +82,7 @@ const TaskTable = (props: Props) => (
       </div>
       <TablePagination
         component="div"
-        labelRowsPerPage="Showing "
+        labelRowsPerPage={"Showing\u00A0"}
         count={props.taskPage.count}
         rowsPerPage={props.rowsPerPage}
         page={props.currentPage}
