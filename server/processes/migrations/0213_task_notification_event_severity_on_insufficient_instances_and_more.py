@@ -14,21 +14,21 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='task',
             name='notification_event_severity_on_insufficient_instances',
-            field=models.PositiveIntegerField(blank=True, default=processes.models.event.Event.Severity['WARNING'], null=True),
+            field=models.PositiveIntegerField(blank=True, default=400, null=True),
         ),
         migrations.AddField(
             model_name='task',
             name='notification_event_severity_on_sufficient_instances_restored',
-            field=models.PositiveIntegerField(blank=True, default=processes.models.event.Event.Severity['INFO'], null=True),
+            field=models.PositiveIntegerField(blank=True, default=300, null=True),
         ),
         migrations.AddField(
             model_name='workflow',
             name='notification_event_severity_on_insufficient_instances',
-            field=models.PositiveIntegerField(blank=True, default=processes.models.event.Event.Severity['WARNING'], null=True),
+            field=models.PositiveIntegerField(blank=True, default=400, null=True),
         ),
         migrations.AddField(
             model_name='workflow',
             name='notification_event_severity_on_sufficient_instances_restored',
-            field=models.PositiveIntegerField(blank=True, default=processes.models.event.Event.Severity['INFO'], null=True),
+            field=models.PositiveIntegerField(blank=True, default=300, null=True),
         ),
     ]
