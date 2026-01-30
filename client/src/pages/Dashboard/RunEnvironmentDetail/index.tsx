@@ -8,24 +8,58 @@ import {
   deleteRunEnvironment
 } from '../../../utils/api';
 
-import React from 'react';
+import React, { Fragment, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { makeEntityDetailComponent, EntityDetailInnerProps } from '../../../components/common/EntityDetailHoc'
 
-import RunEnvironmentEditor from '../../../components/RunEnvironmentEditor';
+import RunEnvironmentSettingsTab from './RunEnvironmentSettingsTab';
+import RunEnvironmentEventsTab from './RunEnvironmentEventsTab';
+import Tabs from '../../../components/common/Tabs';
 
 interface Props {
 }
 
 const RunEnvironmentDetail = makeEntityDetailComponent<RunEnvironment, Props>(
   (props: EntityDetailInnerProps<RunEnvironment>) => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tab = searchParams.get('tab')?.toLowerCase() || 'settings';
+    const [selectedTab, setSelectedTab] = useState(tab);
+
+    const handleTabChange = (newTab: string) => {
+      const lowerTab = newTab.toLowerCase();
+      setSelectedTab(lowerTab);
+      setSearchParams({ tab: lowerTab });
+    };
+
+    const navItems = ['Settings', 'Events'];
+
+    if (!props.entity) {
+      return null;
+    }
+
     return (
-      <RunEnvironmentEditor runEnvironment={props.entity ?? undefined}
-        onSaveStarted={props.onSaveStarted}
-        onSaveSuccess={props.onSaveSuccess}
-        onSaveError={props.onSaveError} 
-        debugMode={true}
-        />
+      <Fragment>
+        <Tabs selectedTab={selectedTab} navItems={navItems} onTabChange={handleTabChange} />
+        <div>
+          {(() => {
+            switch (selectedTab) {
+              case 'events':
+                return <RunEnvironmentEventsTab runEnvironment={props.entity} />;
+              case 'settings':
+              default:
+                return (
+                  <RunEnvironmentSettingsTab 
+                    runEnvironment={props.entity}
+                    onSaveStarted={props.onSaveStarted}
+                    onSaveSuccess={props.onSaveSuccess}
+                    onSaveError={props.onSaveError}
+                  />
+                );
+            }
+          })()}
+        </div>
+      </Fragment>
     );
   }, {
     entityName: 'Run Environment',
