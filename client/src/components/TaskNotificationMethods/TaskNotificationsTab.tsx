@@ -5,7 +5,7 @@ import React, { Fragment, useState } from 'react';
 
 import * as Yup from 'yup';
 
-import { Task, NotificationMethod } from "../../types/domain_types";
+import { Task, NotificationMethod, NotificationProfile } from "../../types/domain_types";
 
 import {
   Form, FormCheck, FormControl, FormGroup, FormLabel, FormText,
@@ -19,6 +19,7 @@ import {
 } from 'formik';
 
 import NotificationMethodSelector from '../common/NotificationMethodSelector';
+import NotificationProfileSelector from '../common/NotificationProfileSelector';
 import CustomButton from '../common/Button/CustomButton';
 import styles from './TaskNotificationsTab.module.scss';
 import NotificationEventSeveritySelector from '../common/NotificationEventSeveritySelector/NotificationEventSeveritySelector';
@@ -83,7 +84,8 @@ const TaskNotificationsTab = ({
             'max_postponed_timeout_count',
             'postponed_timeout_before_success_seconds',
             'required_success_count_to_clear_timeout',
-            'alert_methods'));
+            'alert_methods',
+            'notification_profiles'));
         }}
       >
         {({ values, setFieldValue, errors, handleChange, handleSubmit, isSubmitting }) => {
@@ -491,6 +493,36 @@ const TaskNotificationsTab = ({
                       </Row>
                     </FormGroup>
 
+                  </fieldset>
+
+
+                  <fieldset>
+                    <legend>Notification Profiles</legend>
+                    <Row>
+                      <Col>
+                        <FormGroup>
+                          <FieldArray name="notification_profiles" render={arrayHelpers => {
+                            return (
+                              <NotificationProfileSelector
+                                key={values.uuid || 'new'}
+                                entityTypeLabel="Task"
+                                runEnvironmentUuid={task.run_environment?.uuid}
+                                selectedNotificationProfileUuids={values.notification_profiles.map(np => np.uuid)}
+                                onSelectedNotificationProfilesChanged={(notificationProfiles: NotificationProfile[]) => {
+                                  let removed: (NotificationProfile | undefined);
+                                  do {
+                                    removed = arrayHelpers.remove(0);
+                                  } while (removed);
+                                  notificationProfiles.forEach(np => {
+                                    arrayHelpers.push({uuid: np.uuid});
+                                  });
+                                }}
+                              />
+                            );
+                          }} />
+                        </FormGroup>
+                      </Col>
+                    </Row>
                   </fieldset>
 
 

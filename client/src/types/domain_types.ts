@@ -449,6 +449,7 @@ export interface Executable extends TrackedEntityReference, Described {
   notification_event_severity_on_missing_execution: number | null;
   notification_event_severity_on_missing_heartbeat: number | null;
   notification_event_severity_on_service_down: number | null;
+  notification_profiles: EntityReference[];
   postponed_failure_before_success_seconds: number | null;
   postponed_missing_execution_before_start_seconds: number | null;
   postponed_timeout_before_success_seconds: number | null;
@@ -687,6 +688,7 @@ implements Task {
   notification_event_severity_on_missing_execution = null;
   notification_event_severity_on_missing_heartbeat = null;
   notification_event_severity_on_service_down = null;
+  notification_profiles = [];
   passive = false;
   postponed_failure_before_success_seconds = null;
   postponed_missing_execution_before_start_seconds = null;
