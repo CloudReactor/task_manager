@@ -430,6 +430,7 @@ export function makeNewRunEnvironment(): RunEnvironment {
       }
     },
     default_alert_methods: [],
+    notification_profiles: [],
     tags: null,
   });
 }

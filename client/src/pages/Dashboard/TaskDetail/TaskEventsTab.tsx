@@ -20,11 +20,13 @@ import { transformSearchParams, updateSearchParams } from '../../../utils/url_se
 import Loading from '../../../components/Loading';
 import EventTable from '../../../components/EventList/EventTable';
 
-interface Props extends AbortSignalProps {
+interface Props {
   task: Task;
 }
 
-const TaskEventsTab = (props: Props) => {
+type InnerProps = Props & AbortSignalProps;
+
+const TaskEventsTab = (props: InnerProps) => {
   const {
     task,
     abortSignal
