@@ -69,7 +69,10 @@ class EventFilter(filters.FilterSet):
 
     class Meta:
         model = Event
-        fields = ['created_by_group__id', 'severity']
+        fields = {
+            'created_by_group__id': ['exact'],
+            'run_environment__uuid': ['exact', 'in'],
+        }
 
 
 class EventViewSet(AtomicModelViewSet, BaseViewSet):
