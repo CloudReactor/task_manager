@@ -167,7 +167,7 @@ class Workflow(Schedulable):
         workflow.aws_event_target_rule_name = ''
         workflow.aws_event_target_id = ''
         workflow.schedule = ''
-        workflow.schedule_updated_at = None
+        workflow.schedule_updated_at = timezone.now()
         workflow.save()
 
         # Deprecated
