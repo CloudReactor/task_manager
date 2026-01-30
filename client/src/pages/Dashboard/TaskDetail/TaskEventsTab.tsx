@@ -57,6 +57,9 @@ const TaskEventsTab = (props: InnerProps) => {
       currentPage
     } = transformSearchParams(searchParams, true);
 
+    const minSeverity = searchParams.get('min_severity') ?? undefined;
+    const maxSeverity = searchParams.get('max_severity') ?? undefined;
+
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation superceded');
     }
@@ -81,6 +84,8 @@ const TaskEventsTab = (props: InnerProps) => {
         groupId: currentGroup?.id,
         taskUuid: task.uuid,
         sortBy: finalOrdering,
+        minSeverity,
+        maxSeverity,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
         abortSignal: updatedLoadEventsAbortController.signal
@@ -122,6 +127,14 @@ const TaskEventsTab = (props: InnerProps) => {
     }
   };
 
+  const handleMinSeverityChanged = (severity: string) => {
+    updateSearchParams(searchParams, setSearchParams, severity, 'min_severity');
+  };
+
+  const handleMaxSeverityChanged = (severity: string) => {
+    updateSearchParams(searchParams, setSearchParams, severity, 'max_severity');
+  };
+
   useEffect(() => {
     mounted.current = true;
 
@@ -154,7 +167,11 @@ const TaskEventsTab = (props: InnerProps) => {
     handleSortChanged,
     handlePageChanged,
     handleSelectItemsPerPage,
-    showFilters: false,
+    showFilters: true,
+    minSeverity: searchParams.get('min_severity') ?? undefined,
+    maxSeverity: searchParams.get('max_severity') ?? undefined,
+    handleMinSeverityChanged,
+    handleMaxSeverityChanged,
     showRunEnvironmentColumn: false,
     showTaskWorkflowColumn: false,
     sortBy: finalSortBy,
