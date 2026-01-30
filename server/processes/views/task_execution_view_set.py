@@ -1,4 +1,4 @@
-from typing import cast, Any, Optional
+from typing import cast, Any, override
 
 import logging
 
@@ -35,23 +35,27 @@ logger = logging.getLogger(__name__)
 
 
 class TaskExecutionPermission(IsCreatedByGroup):
-    def group_for_object(self, obj: Any) -> Optional[Group]:
+    @override
+    def group_for_object(self, obj: Any) -> Group | None:
         task_execution = cast(TaskExecution, obj)
         return task_execution.task.created_by_group
 
-    def run_environment_for_object(self, obj: Any) -> Optional[RunEnvironment]:
+    @override
+    def run_environment_for_object(self, obj: Any) -> RunEnvironment | None:
         task_execution = cast(TaskExecution, obj)
         return task_execution.task.run_environment
 
+    @override
     def required_access_level(self, request: Request, view: View, obj: Any) \
-            -> Optional[int]:
+            -> int | None:
         if request.method == 'DELETE':
             return UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
 
         return super().required_access_level(request=request, view=view, obj=obj)
 
+    @override
     def required_access_level_for_mutation(self, request: Request, view: View,
-            obj: Any) -> Optional[int]:
+            obj: Any) -> int | None:
         return UserGroupAccessLevel.ACCESS_LEVEL_TASK
 
 
@@ -102,6 +106,7 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
                        'created_at', 'updated_at',)
     ordering = 'started_at'
 
+    @override
     def get_queryset(self):
         return super().get_queryset().alias(duration=
                     F('finished_at') - F('started_at')).select_related(
@@ -111,19 +116,23 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
             'workflowtaskinstanceexecution__workflow_execution',
             'workflowtaskinstanceexecution__workflow_task_instance')
 
+    @override
     def filter_queryset_by_group(self, qs: QuerySet, group: Group) -> QuerySet:
         return qs.filter(task__created_by_group=group)
 
+    @override
     def filter_queryset_by_run_environment(self, qs: QuerySet,
             run_environment: RunEnvironment) -> QuerySet:
         return qs.filter(task__run_environment=run_environment)
 
+    @override
     def get_queryset_for_all_groups(self) -> QuerySet:
         return self.model_class.objects.filter(
             task__created_by_group__in=self.request.user.groups.all()
         ).order_by(self.ordering)
 
-    def extract_group(self, request_group: Optional[Group]) -> Optional[Group]:
+    @override
+    def extract_group(self, request_group: Group | None) -> Group | None:
         task_uuid = self.request.GET.get('task__uuid')
 
         if task_uuid:
@@ -139,6 +148,7 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
             required=(request_group is None),
             parameter_name='task__created_by_group__id')
 
+    @override
     @transaction.atomic
     def create(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
@@ -170,6 +180,7 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
         return Response(data=serializer.data, status=status.HTTP_201_CREATED,
                 headers=headers)
 
+    @override
     def update(self, request: Request, *args, **kwargs) -> Response:
         # Change the HTTP status code to 409 Conflict if the requested
         # Task Execution status does not match the response Task Execution status.

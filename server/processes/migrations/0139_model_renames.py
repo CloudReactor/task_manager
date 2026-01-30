@@ -3,7 +3,7 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-import processes.models.alert_send_status
+import processes.models.notification_send_status
 import uuid
 
 

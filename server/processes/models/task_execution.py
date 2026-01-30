@@ -24,7 +24,7 @@ from ..execution_methods import ExecutionMethod
 from .execution import Execution
 from .task import Task
 from .event import Event
-from .alert_send_status import AlertSendStatus
+from .notification_send_status import NotificationSendStatus
 from .task_execution_configuration import TaskExecutionConfiguration
 from .schedulable import Schedulable
 from .aws_tagged_entity import AwsTaggedEntity
@@ -481,7 +481,7 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
             logger.info(f"Skipping status change event creation since Task {task.uuid} should not create status change event")
             return None
 
-        severity: Optional[int] = TaskExecutionStatusChangeEvent.SEVERITY_ERROR
+        severity: Optional[int] = Event.Severity.ERROR
 
         if self.status == TaskExecution.Status.SUCCEEDED:
             severity = task.notification_event_severity_on_success
@@ -492,7 +492,7 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 
         # TODO: default to Run Environment's severities, override with TaskExecution severities
 
-        if (severity is None) or (severity == TaskExecutionStatusChangeEvent.SEVERITY_NONE):
+        if (severity is None) or (severity == Event.Severity.NONE):
             logger.info(f"Skipping notifications since Task {task.uuid} has no severity set for status {self.status}")
             return None
 
@@ -542,13 +542,13 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
                                  grouping_key=f"delayed_task_start-{self.uuid}",
                                  is_resolution=True)
                 dpsa.send_result = result or ''
-                dpsa.send_status = AlertSendStatus.SUCCEEDED
+                dpsa.send_status = NotificationSendStatus.SUCCEEDED
                 dpsa.completed_at = timezone.now()
             except Exception as ex:
                 logger.exception(
                     f"Failed to clear alert for delayed start of Task Execution {dpsde.task_execution.uuid}")
                 dpsa.send_result = ''
-                dpsa.send_status = AlertSendStatus.FAILED
+                dpsa.send_status = NotificationSendStatus.FAILED
                 dpsa.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
 
             dpsa.save()
@@ -647,7 +647,7 @@ def post_save_task_execution(sender: Type[TaskExecution], **kwargs):
                 resolving_event = MissingHeartbeatDetectionEvent(
                     event_at=utc_now,
                     detected_at=utc_now,
-                    severity=Event.SEVERITY_INFO,
+                    severity=Event.Severity.INFO,
                     grouping_key=last_heartbeat_detection_event.grouping_key,
                     resolved_event=last_heartbeat_detection_event,
                     task_execution=instance,

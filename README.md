@@ -9,7 +9,8 @@ API Server and Web Front-end for CloudReactor. Deployed to dash.cloudreactor.io
 ## Requirements
 
 * Docker (with Compose built-in)
-* Python 3.11+ if running outside of Docker
+* Python 3.12+ if running outside of Docker
+* [uv](https://github.com/astral-sh/uv)
 * Node JS v16.19.1
 * Postgres 13.4+
 
@@ -107,22 +108,12 @@ Using Docker,
 
 Natively, in the `server` directory:
 
-    pytest
+    uv sync --all-extras
+    uv run pytest
 
 ## Updating server dependencies
 
-For the main web app, update `server/requirements.in`.
-
-    docker compose build web
-
-will automatically compute the updated dependencies.
-
-To update the development requirements, edit `server/dev-requirements.in`, then
-in the `server` directory, run:
-
-    ./copy_requirements.sh
-
-This will update `server/requirements.txt` and `server/dev-requirements.txt`, then install them.
+uv lock
 
 ## License
 

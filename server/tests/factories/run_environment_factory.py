@@ -59,3 +59,5 @@ class RunEnvironmentFactory(OwnedModelFactory):
 
         if not run_environment.default_aws_ecs_configuration:
             populate_run_environment_aws_ecs_configuration(run_environment)
+
+        run_environment.save()

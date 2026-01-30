@@ -495,7 +495,7 @@ const TaskNotificationsTab = ({
 
 
                   <fieldset>
-                    <legend>Notification Methods</legend>
+                    <legend>Notification Methods (legacy)</legend>
                     <Row>
                       <Col>
                         <FormGroup>

@@ -62,7 +62,7 @@ const NavBar = (p: Props) => {
   if (accessLevel >= ACCESS_LEVEL_DEVELOPER) {
     accountLinks.push({
       path: path.API_KEYS,
-      text: 'API Keys',
+      text: 'My API Keys',
     });
   }
 
@@ -74,15 +74,21 @@ const NavBar = (p: Props) => {
 
   const notificationLinks = [
     {
-      path: path.EMAIL_NOTIFICATION_PROFILES,
-      text: 'Email Notification Profiles',
+      path: path.NOTIFICATION_PROFILES,
+      text: 'Notification Profiles',
     }, {
-      path: path.PAGERDUTY_PROFILES,
-      text: 'PagerDuty Profiles',
+      path: path.NOTIFICATION_DELIVERY_METHODS,
+      text: 'Notification Delivery Methods',
     }, {
       path: path.NOTIFICATION_METHODS,
-      text: 'Notification Methods',
-    }
+      text: 'Notification Methods (legacy)',
+    }, {
+      path: path.EMAIL_NOTIFICATION_PROFILES,
+      text: 'Email Notification Profiles (legacy)',
+    }, {
+      path: path.PAGERDUTY_PROFILES,
+      text: 'PagerDuty Profiles (legacy)',
+    },
   ];
 
   return (
@@ -105,6 +111,10 @@ const NavBar = (p: Props) => {
           <Link to={path.RUN_ENVIRONMENTS} className="nav-link">
               Run Environments
           </Link>
+
+          <Link to={path.EVENTS} className="nav-link">
+              Events
+          </Link>
         </Nav>
       </Navbar.Collapse>
 
@@ -114,6 +124,42 @@ const NavBar = (p: Props) => {
         </Dropdown.Toggle>
 
         <Dropdown.Menu>
+          <Dropdown.Header>
+            Notification Settings
+          </Dropdown.Header>
+
+          {notificationLinks.map((item, i) => {
+            const {
+              path,
+              text
+            } = item;
+
+            return (
+              <Fragment key={`nav-dropdown-notification-${i}`}>
+                <Dropdown.Item as={Link} to={path}>
+                  {text}
+                </Dropdown.Item>
+              </Fragment>
+            );
+          })}
+
+          <Dropdown.Divider />
+
+          <Dropdown.Item 
+            as={Link} 
+            to={`${path.API_KEYS}?scope=group`}
+            disabled={accessLevel < ACCESS_LEVEL_DEVELOPER}
+            style={accessLevel < ACCESS_LEVEL_DEVELOPER ? { color: '#6c757d', cursor: 'not-allowed' } : {}}
+          >
+            API Keys
+          </Dropdown.Item>
+
+          <Dropdown.Divider />
+
+          <Dropdown.Header>
+            Groups
+          </Dropdown.Header>
+
           {
             currentUser.groups.map(group => (
               <Dropdown.Item key={group.id} onClick={() => switchGroup(group.id) }>
@@ -145,27 +191,6 @@ const NavBar = (p: Props) => {
           </Dropdown.Header>
 
           {accountLinks.map((item, i) => {
-            const {
-              path,
-              text
-            } = item;
-
-            return (
-              <Fragment key={`nav-dropdown-${i}`}>
-                <Dropdown.Item as={Link} to={path}>
-                  {text}
-                </Dropdown.Item>
-              </Fragment>
-            );
-          })}
-
-          <Dropdown.Divider />
-
-          <Dropdown.Header>
-            Notification Settings
-          </Dropdown.Header>
-
-          {notificationLinks.map((item, i) => {
             const {
               path,
               text

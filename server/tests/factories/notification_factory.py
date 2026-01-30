@@ -1,4 +1,4 @@
-from processes.models import Notification, AlertSendStatus
+from processes.models import Notification, NotificationSendStatus
 
 import factory
 from pytest_factoryboy import register
@@ -22,4 +22,4 @@ class NotificationFactory(factory.django.DjangoModelFactory):
 
     created_by_group = factory.SubFactory(GroupFactory)
 
-    send_status = AlertSendStatus.SENDING
+    send_status = NotificationSendStatus.SENDING

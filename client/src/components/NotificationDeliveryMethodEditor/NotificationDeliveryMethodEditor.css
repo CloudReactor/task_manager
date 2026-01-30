@@ -1,0 +1,9 @@
+select.form-control.disabled-select,
+select.form-control.disabled-select:disabled {
+  background-color: #f0f0f0 !important;
+  color: #495057 !important;
+  cursor: not-allowed !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}

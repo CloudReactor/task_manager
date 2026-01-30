@@ -8,24 +8,24 @@ from django.contrib.auth.models import Group
 
 from .event import Event
 
-from .alert_send_status import AlertSendStatus
+from .notification_send_status import NotificationSendStatus
 from .subscription import Subscription
+from .uuid_model import UuidModel
 
 
 logger = logging.getLogger(__name__)
 
 
-class Notification(models.Model):
+class Notification(UuidModel):
     MAX_SEND_RESULT_LENGTH = 50000
     MAX_EXCEPTION_MESSAGE_LENGTH = 50000
 
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     notification_profile = models.ForeignKey('NotificationProfile', on_delete=models.CASCADE)
     notification_delivery_method = models.ForeignKey('NotificationDeliveryMethod', on_delete=models.CASCADE)
     attempted_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    send_status = models.IntegerField(null=True, blank=True, default=AlertSendStatus.SENDING)
+    send_status = models.IntegerField(null=True, blank=True, default=NotificationSendStatus.SENDING)
     send_result = models.JSONField(blank=True, null=True)
 
     exception_type = models.CharField(max_length=255, null=True, blank=True)

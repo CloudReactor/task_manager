@@ -118,6 +118,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
     aws_ecs_service_arn = models.CharField(max_length=1000, blank=True)
     # End deprecated
 
+    # TODO: rename to service_updated_at for other infrastructures
     aws_ecs_service_updated_at = models.DateTimeField(null=True, blank=True)
 
     is_scheduling_managed = models.BooleanField(default=None, null=True)

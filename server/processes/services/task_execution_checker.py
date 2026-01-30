@@ -192,6 +192,8 @@ class TaskExecutionChecker:
                     mhde = MissingHeartbeatDetectionEvent(
                         severity=task.notification_event_severity_on_missing_heartbeat,
                         grouping_key=f"missing_heartbeat-{te.uuid}",
+                        created_by_group=task.created_by_group,
+                        run_environment=task.run_environment,
                         task_execution=te,
                         resolved_at=None,
                         resolved_event=None,
@@ -236,13 +238,13 @@ class TaskExecutionChecker:
                         summary_template=self.DELAYED_TASK_START_EVENT_SUMMARY_TEMPLATE,
                         grouping_key=f"delayed_task_start-{te.uuid}")
                 dpsa.send_result = result or ''
-                dpsa.send_status = AlertSendStatus.SUCCEEDED
+                dpsa.send_status = NotificationSendStatus.SUCCEEDED
                 dpsa.completed_at = timezone.now()
             except Exception as ex:
                 logger.exception(
                     f"Failed to send alert for missing heartbeat of Task Execution {dpsde.task_execution.uuid}")
                 dpsa.send_result = ''
-                dpsa.send_status = AlertSendStatus.FAILED
+                dpsa.send_status = NotificationSendStatus.FAILED
                 dpsa.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
 
             dpsa.save()

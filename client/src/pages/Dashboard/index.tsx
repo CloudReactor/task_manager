@@ -51,6 +51,10 @@ const RunEnvironmentDetail = lazy(() =>
   import('./RunEnvironmentDetail')
 );
 
+const EventList = lazy(() =>
+  import('./EventList')
+);
+
 const GroupList = lazy(() =>
   import('./Group')
 );
@@ -95,6 +99,22 @@ const NotificationMethodDetail = lazy(() =>
   import('./NotificationMethodDetail')
 );
 
+const NotificationDeliveryMethodList = lazy(() =>
+  import('./NotificationDeliveryMethod')
+);
+
+const NotificationDeliveryMethodDetail = lazy(() =>
+  import('./NotificationDeliveryMethodDetail')
+);
+
+const NotificationProfileList = lazy(() =>
+  import('./NotificationProfile')
+);
+
+const NotificationProfileDetail = lazy(() =>
+  import('./NotificationProfileDetail')
+);
+
 type Props = Record<string, never>;
 
 const Dashboard = (p: Props) => {
@@ -125,6 +145,7 @@ const Dashboard = (p: Props) => {
             <Route path={path.TASK_EXECUTION} element={ <TaskExecutionDetail /> } />
             <Route path={path.RUN_ENVIRONMENTS} element={ <RunEnvironmentList /> } />
             <Route path={path.RUN_ENVIRONMENT} element={ <RunEnvironmentDetail /> } />
+            <Route path={path.EVENTS} element={ <EventList /> } />
             <Route path={path.GROUPS} element={ <GroupList /> } />
             <Route path={path.GROUP} element={ <GroupEditor /> } />
             <Route path={path.EMAIL_NOTIFICATION_PROFILES} element={ <EmailNotificationProfileList /> } />
@@ -133,6 +154,10 @@ const Dashboard = (p: Props) => {
             <Route path={path.PAGERDUTY_PROFILE} element={ <PagerDutyProfileDetail /> } />
             <Route path={path.NOTIFICATION_METHODS} element={ <NotificationMethodList /> } />
             <Route path={path.NOTIFICATION_METHOD} element={ <NotificationMethodDetail /> } />
+            <Route path={path.NOTIFICATION_DELIVERY_METHODS} element={ <NotificationDeliveryMethodList /> } />
+            <Route path={path.NOTIFICATION_DELIVERY_METHOD} element={ <NotificationDeliveryMethodDetail /> } />
+            <Route path={path.NOTIFICATION_PROFILES} element={ <NotificationProfileList /> } />
+            <Route path={path.NOTIFICATION_PROFILE} element={ <NotificationProfileDetail /> } />
             {
               hasDeveloperAccess && (
                 <Route path={path.API_KEYS}

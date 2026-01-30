@@ -2,10 +2,10 @@
 # https://pythonspeed.com/articles/base-image-python-docker-images/
 
 # For AWS
-FROM public.ecr.aws/docker/library/python:3.12.9-slim-bookworm
+FROM public.ecr.aws/docker/library/python:3.12.12-slim-bookworm
 
 # For generic infrastructure provider
-# FROM python:3.12.9-slim-bookworm
+# FROM python:3.12.12-slim-bookworm
 
 LABEL maintainer="jeff@cloudreactor.io"
 
@@ -20,10 +20,6 @@ RUN apt-get update \
   -y --no-install-recommends \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Run as non-root user for better security
-RUN groupadd appuser && useradd -g appuser --create-home appuser
-USER appuser
-
 # Output directly to the terminal to prevent logs from being lost
 # https://stackoverflow.com/questions/59812009/what-is-the-use-of-pythonunbuffered-in-docker-file
 ENV PYTHONUNBUFFERED 1
@@ -35,49 +31,46 @@ ENV PYTHONDONTWRITEBYTECODE 1
 # https://docs.python.org/3/library/faulthandler.html
 ENV PYTHONFAULTHANDLER 1
 
-# So that pip-compile is available in path
-ENV PATH="/home/appuser/.local/bin:${PATH}"
+# Enable bytecode compilation for faster startup
+ENV UV_COMPILE_BYTECODE=1
+# Prevent uv from creating a virtual environment (install to system python)
+ENV UV_SYSTEM_PYTHON=1
 
-ENV INSTALL_PATH /home/appuser/src
-RUN mkdir $INSTALL_PATH
-WORKDIR $INSTALL_PATH
-ENV DJANGO_IN_DOCKER TRUE
-ENV DJANGO_STATIC_ROOT $INSTALL_PATH/static
-ENV CRA_ROOT $INSTALL_PATH/client/build
-ENV WHITENOISE_ROOT $INSTALL_PATH/root
-RUN mkdir -p $DJANGO_STATIC_ROOT
-RUN mkdir -p $CRA_ROOT
-RUN mkdir -p $WHITENOISE_ROOT
+# Install uv for package management
+RUN pip install --no-cache-dir --disable-pip-version-check uv==0.5.11
 
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+# Install Python dependencies as root before switching to non-root user
+# Using export->install instead of sync for better Docker layer caching
+COPY server/pyproject.toml server/uv.lock /tmp/
+RUN cd /tmp && \
+    uv export --no-dev --frozen -o requirements.txt && \
+    uv pip install --no-cache -r requirements.txt && \
+    rm -rf /tmp/*
 
-RUN pip install pip==24.2
-RUN pip install --no-input --no-cache-dir pip-tools==7.4.1 requests==2.32.3
+# Run as non-root user for better security
+RUN groupadd appuser && useradd -g appuser --create-home appuser
+USER appuser
 
-WORKDIR /tmp
-COPY server/requirements.in .
+ENV DJANGO_IN_DOCKER=TRUE \
+    INSTALL_PATH=/home/appuser/src
+ENV DJANGO_STATIC_ROOT=$INSTALL_PATH/static \
+    CRA_ROOT=$INSTALL_PATH/client/build \
+    WHITENOISE_ROOT=$INSTALL_PATH/root
 
-RUN pip-compile --allow-unsafe --generate-hashes \
-  requirements.in --output-file requirements.txt
-
-# install dependencies
-RUN pip-sync requirements.txt
+RUN mkdir -p $INSTALL_PATH $DJANGO_STATIC_ROOT $CRA_ROOT $WHITENOISE_ROOT
 
 ARG asset_path=./client/build
 
 COPY ${asset_path}/index.html $CRA_ROOT
-COPY ${asset_path}/*.ico $WHITENOISE_ROOT/
-COPY ${asset_path}/*.js* $WHITENOISE_ROOT/
+COPY ${asset_path}/*.ico ${asset_path}/*.js* $WHITENOISE_ROOT/
 COPY ${asset_path}/images $WHITENOISE_ROOT/images
 
 WORKDIR $INSTALL_PATH
 
-COPY ./server/manage.py .
-COPY ./server/migrate_and_runserver.sh .
-COPY ./server/migrate_and_load_dynamic_fixtures.sh .
-COPY ./server/task_manager task_manager
-COPY ./server/spectacular spectacular
-COPY ./server/processes processes
+COPY --chown=appuser:appuser ./server/manage.py ./server/migrate_and_runserver.sh ./server/migrate_and_load_dynamic_fixtures.sh ./
+COPY --chown=appuser:appuser ./server/task_manager task_manager
+COPY --chown=appuser:appuser ./server/spectacular spectacular
+COPY --chown=appuser:appuser ./server/processes processes
 
 COPY ${asset_path}/assets $CRA_ROOT/static
 

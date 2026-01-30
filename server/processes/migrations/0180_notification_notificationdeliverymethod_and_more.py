@@ -3,7 +3,7 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-import processes.models.alert_send_status
+import processes.models.notification_send_status
 import uuid
 
 
@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                     "send_status",
                     models.IntegerField(
                         blank=True,
-                        default=processes.models.alert_send_status.AlertSendStatus[
+                        default=processes.models.notification_send_status.NotificationSendStatus[
                             "SENDING"
                         ],
                         null=True,

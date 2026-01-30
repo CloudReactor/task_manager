@@ -1,10 +1,13 @@
 import logging
+from typing import Any
 
 from django_filters import CharFilter
 from django_filters import rest_framework as filters
 from django_filters.filters import NumberFilter
 
 from drf_spectacular.utils import extend_schema
+
+from rest_framework.request import Request
 
 from ..models import NotificationProfile
 from ..serializers import NotificationProfileSerializer
@@ -46,3 +49,15 @@ class NotificationProfileViewSet(AtomicModelViewSet, CloningMixin, BaseViewSet):
     filterset_class = NotificationProfileFilter
     search_fields = ('uuid', 'name', 'description',)
     ordering_fields = ('uuid', 'name', 'run_environment__name',)
+
+    def make_clone(self, request: Request, entity: Any) -> Any:
+        # Save the ManyToMany relationships before cloning
+        notification_delivery_methods = list(entity.notification_delivery_methods.all())
+        
+        # Clone the entity using the parent implementation
+        cloned_entity = super().make_clone(request=request, entity=entity)
+        
+        # Restore the ManyToMany relationships
+        cloned_entity.notification_delivery_methods.set(notification_delivery_methods)
+        
+        return cloned_entity

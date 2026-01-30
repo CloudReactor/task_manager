@@ -12,20 +12,12 @@ paths:
     get:
       operationId: alert_methods_list
       parameters:
-      - in: query
-        name: created_by_group__id
-        schema:
-          type: integer
       - name: limit
         required: false
         in: query
         description: Number of results to return per page.
         schema:
           type: integer
-      - in: query
-        name: name
-        schema:
-          type: string
       - name: offset
         required: false
         in: query
@@ -36,10 +28,6 @@ paths:
         required: false
         in: query
         description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - in: query
-        name: run_environment__uuid
         schema:
           type: string
       - name: search
@@ -197,20 +185,12 @@ paths:
     get:
       operationId: email_notification_profiles_list
       parameters:
-      - in: query
-        name: created_by_group__id
-        schema:
-          type: integer
       - name: limit
         required: false
         in: query
         description: Number of results to return per page.
         schema:
           type: integer
-      - in: query
-        name: name
-        schema:
-          type: string
       - name: offset
         required: false
         in: query
@@ -221,10 +201,6 @@ paths:
         required: false
         in: query
         description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - in: query
-        name: run_environment__uuid
         schema:
           type: string
       - name: search
@@ -378,24 +354,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailNotificationProfile'
           description: ''
-  /notification_profiles/:
+  /events/:
     get:
-      operationId: notification_profiles_list
+      operationId: events_list
       parameters:
-      - in: query
-        name: created_by_group__id
-        schema:
-          type: integer
       - name: limit
         required: false
         in: query
         description: Number of results to return per page.
         schema:
           type: integer
-      - in: query
-        name: name
-        schema:
-          type: string
       - name: offset
         required: false
         in: query
@@ -408,8 +376,300 @@ paths:
         description: Which field to use when ordering the results.
         schema:
           type: string
-      - in: query
-        name: run_environment__uuid
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - events
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEventList'
+          description: ''
+    post:
+      operationId: events_create
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+  /events/{uuid}/:
+    get:
+      operationId: events_retrieve
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+    put:
+      operationId: events_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+    patch:
+      operationId: events_partial_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEvent'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+    delete:
+      operationId: events_destroy
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /notification_delivery_methods/:
+    get:
+      operationId: notification_delivery_methods_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - notification_delivery_methods
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationDeliveryMethodList'
+          description: ''
+    post:
+      operationId: notification_delivery_methods_create
+      tags:
+      - notification_delivery_methods
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationDeliveryMethod'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationDeliveryMethod'
+          description: ''
+  /notification_delivery_methods/{uuid}/:
+    get:
+      operationId: notification_delivery_methods_retrieve
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_delivery_methods
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationDeliveryMethod'
+          description: ''
+    put:
+      operationId: notification_delivery_methods_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_delivery_methods
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationDeliveryMethod'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationDeliveryMethod'
+          description: ''
+    patch:
+      operationId: notification_delivery_methods_partial_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_delivery_methods
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationDeliveryMethod'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationDeliveryMethod'
+          description: ''
+    delete:
+      operationId: notification_delivery_methods_destroy
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notification_delivery_methods
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /notification_profiles/:
+    get:
+      operationId: notification_profiles_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
         schema:
           type: string
       - name: search
@@ -563,24 +823,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationProfile'
           description: ''
-  /pagerduty_profiles/:
+  /notifications/:
     get:
-      operationId: pagerduty_profiles_list
+      operationId: notifications_list
       parameters:
-      - in: query
-        name: created_by_group__id
-        schema:
-          type: integer
       - name: limit
         required: false
         in: query
         description: Number of results to return per page.
         schema:
           type: integer
-      - in: query
-        name: name
-        schema:
-          type: string
       - name: offset
         required: false
         in: query
@@ -593,8 +845,148 @@ paths:
         description: Which field to use when ordering the results.
         schema:
           type: string
-      - in: query
-        name: run_environment__uuid
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - notifications
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+    post:
+      operationId: notifications_create
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /notifications/{uuid}/:
+    get:
+      operationId: notifications_retrieve
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+    put:
+      operationId: notifications_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+    patch:
+      operationId: notifications_partial_update
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotification'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+    delete:
+      operationId: notifications_destroy
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /pagerduty_profiles/:
+    get:
+      operationId: pagerduty_profiles_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
         schema:
           type: string
       - name: search
@@ -752,20 +1144,12 @@ paths:
     get:
       operationId: run_environments_list
       parameters:
-      - in: query
-        name: created_by_group__id
-        schema:
-          type: integer
       - name: limit
         required: false
         in: query
         description: Number of results to return per page.
         schema:
           type: integer
-      - in: query
-        name: name
-        schema:
-          type: string
       - name: offset
         required: false
         in: query
@@ -957,15 +1341,6 @@ paths:
         description: A search term.
         schema:
           type: string
-      - in: query
-        name: task__created_by_group__id
-        schema:
-          type: integer
-      - in: query
-        name: task__uuid
-        schema:
-          type: string
-          format: uuid
       tags:
       - task_executions
       security:
@@ -1088,20 +1463,12 @@ paths:
     get:
       operationId: tasks_list
       parameters:
-      - in: query
-        name: enabled
-        schema:
-          type: boolean
       - name: limit
         required: false
         in: query
         description: Number of results to return per page.
         schema:
           type: integer
-      - in: query
-        name: name
-        schema:
-          type: string
       - name: offset
         required: false
         in: query
@@ -1114,25 +1481,6 @@ paths:
         description: Which field to use when ordering the results.
         schema:
           type: string
-      - in: query
-        name: passive
-        schema:
-          type: boolean
-      - in: query
-        name: run_environment__uuid
-        schema:
-          type: string
-          format: uuid
-      - in: query
-        name: run_environment__uuid__in
-        schema:
-          type: array
-          items:
-            type: string
-            format: uuid
-        description: Multiple values may be separated by commas.
-        explode: false
-        style: form
       - name: search
         required: false
         in: query
@@ -1285,15 +1633,6 @@ paths:
         description: A search term.
         schema:
           type: string
-      - in: query
-        name: workflow__created_by_group__id
-        schema:
-          type: integer
-      - in: query
-        name: workflow__uuid
-        schema:
-          type: string
-          format: uuid
       tags:
       - workflow_executions
       security:
@@ -1470,20 +1809,12 @@ paths:
     get:
       operationId: workflow_task_instances_list
       parameters:
-      - in: query
-        name: description
-        schema:
-          type: string
       - name: limit
         required: false
         in: query
         description: Number of results to return per page.
         schema:
           type: integer
-      - in: query
-        name: name
-        schema:
-          type: string
       - name: offset
         required: false
         in: query
@@ -1502,29 +1833,6 @@ paths:
         description: A search term.
         schema:
           type: string
-      - in: query
-        name: task__name
-        schema:
-          type: string
-      - in: query
-        name: task__uuid
-        schema:
-          type: string
-          format: uuid
-      - in: query
-        name: workflow__created_by_group__id
-        schema:
-          type: integer
-      - in: query
-        name: workflow__run_environment__uuid
-        schema:
-          type: string
-          format: uuid
-      - in: query
-        name: workflow__uuid
-        schema:
-          type: string
-          format: uuid
       tags:
       - workflow_task_instances
       security:
@@ -1647,10 +1955,6 @@ paths:
     get:
       operationId: workflow_transitions_list
       parameters:
-      - in: query
-        name: description
-        schema:
-          type: string
       - name: limit
         required: false
         in: query
@@ -1797,20 +2101,12 @@ paths:
     get:
       operationId: workflows_list
       parameters:
-      - in: query
-        name: enabled
-        schema:
-          type: boolean
       - name: limit
         required: false
         in: query
         description: Number of results to return per page.
         schema:
           type: integer
-      - in: query
-        name: name
-        schema:
-          type: string
       - name: offset
         required: false
         in: query
@@ -1823,21 +2119,6 @@ paths:
         description: Which field to use when ordering the results.
         schema:
           type: string
-      - in: query
-        name: run_environment__uuid
-        schema:
-          type: string
-          format: uuid
-      - in: query
-        name: run_environment__uuid__in
-        schema:
-          type: array
-          items:
-            type: string
-            format: uuid
-        description: Multiple values may be separated by commas.
-        explode: false
-        style: form
       - name: search
         required: false
         in: query
@@ -2195,6 +2476,80 @@ components:
           maxLength: 10000
       required:
       - name
+    Event:
+      type: object
+      description: |-
+        Serializer for `Event` model.
+
+        - `severity` is the stored integer value.
+        - `severity_label` is a string label derived from the enum (lowercase),
+          or `null` when the severity is `NONE`.
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        event_at:
+          type: string
+          format: date-time
+          nullable: true
+        detected_at:
+          type: string
+          format: date-time
+          nullable: true
+        severity:
+          $ref: '#/components/schemas/EventSeverity'
+        event_type:
+          type: string
+          readOnly: true
+        error_summary:
+          type: string
+          maxLength: 200
+        error_details_message:
+          type: string
+          maxLength: 50000
+        source:
+          type: string
+          maxLength: 1000
+        details:
+          nullable: true
+        grouping_key:
+          type: string
+          maxLength: 5000
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        resolved_event:
+          $ref: '#/components/schemas/NameAndUuid'
+        created_by_group:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+      required:
+      - severity
+    EventSeverity:
+      enum:
+      - critical
+      - error
+      - warning
+      - info
+      - debug
+      - trace
+      - none
+      type: string
+      description: |-
+        * `critical` - critical
+        * `error` - error
+        * `warning` - warning
+        * `info` - info
+        * `debug` - debug
+        * `trace` - trace
+        * `none` - none
     FailureBehaviorEnum:
       enum:
       - always_fail_workflow
@@ -2263,6 +2618,134 @@ components:
           readOnly: true
         name:
           type: string
+    Notification:
+      type: object
+      description: |-
+        Serializer for Notification model.
+        Tracks notification delivery attempts with status, results, and rate limiting info.
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        event:
+          $ref: '#/components/schemas/NameAndUuid'
+        notification_profile:
+          $ref: '#/components/schemas/NameAndUuid'
+        notification_delivery_method:
+          $ref: '#/components/schemas/NameAndUuid'
+        attempted_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        send_status:
+          allOf:
+          - $ref: '#/components/schemas/NotificationSendStatus'
+          nullable: true
+        send_result:
+          nullable: true
+        exception_type:
+          type: string
+          nullable: true
+          maxLength: 255
+        exception_message:
+          type: string
+          nullable: true
+          maxLength: 50000
+        rate_limit_max_requests_per_period:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        rate_limit_request_period_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        rate_limit_max_severity:
+          allOf:
+          - $ref: '#/components/schemas/EventSeverity'
+          nullable: true
+        rate_limit_tier_index:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        created_by_group:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        dashboard_url:
+          type: string
+          readOnly: true
+    NotificationDeliveryMethod:
+      type: object
+      description: |-
+        Serializer for NotificationDeliveryMethod that exposes rate limit tiers
+        as an array under the `rate_limit_tiers` property.
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        dashboard_url:
+          type: string
+          readOnly: true
+        run_environment:
+          type: string
+          format: uri
+          nullable: true
+        delivery_method_type:
+          type: string
+          readOnly: true
+        rate_limit_tiers:
+          type: string
+          readOnly: true
+        created_by_user:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        created_by_group:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - name
     NotificationProfile:
       type: object
       description: A serializer for NotificationProfile objects.
@@ -2313,6 +2796,20 @@ components:
           readOnly: true
       required:
       - name
+    NotificationSendStatus:
+      enum:
+      - SENDING
+      - SUCCEEDED
+      - FAILED
+      - TIMEOUT
+      - RATE_LIMITED
+      type: string
+      description: |-
+        * `SENDING` - SENDING
+        * `SUCCEEDED` - SUCCEEDED
+        * `FAILED` - FAILED
+        * `TIMEOUT` - TIMEOUT
+        * `RATE_LIMITED` - RATE_LIMITED
     NotificationSeverity:
       enum:
       - critical
@@ -2432,6 +2929,75 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EmailNotificationProfile'
+    PaginatedEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+    PaginatedNotificationDeliveryMethodList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationDeliveryMethod'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
     PaginatedNotificationProfileList:
       type: object
       required:
@@ -2771,6 +3337,186 @@ components:
         body_template:
           type: string
           maxLength: 10000
+    PatchedEvent:
+      type: object
+      description: |-
+        Serializer for `Event` model.
+
+        - `severity` is the stored integer value.
+        - `severity_label` is a string label derived from the enum (lowercase),
+          or `null` when the severity is `NONE`.
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        event_at:
+          type: string
+          format: date-time
+          nullable: true
+        detected_at:
+          type: string
+          format: date-time
+          nullable: true
+        severity:
+          $ref: '#/components/schemas/EventSeverity'
+        event_type:
+          type: string
+          readOnly: true
+        error_summary:
+          type: string
+          maxLength: 200
+        error_details_message:
+          type: string
+          maxLength: 50000
+        source:
+          type: string
+          maxLength: 1000
+        details:
+          nullable: true
+        grouping_key:
+          type: string
+          maxLength: 5000
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        resolved_event:
+          $ref: '#/components/schemas/NameAndUuid'
+        created_by_group:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+    PatchedNotification:
+      type: object
+      description: |-
+        Serializer for Notification model.
+        Tracks notification delivery attempts with status, results, and rate limiting info.
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        event:
+          $ref: '#/components/schemas/NameAndUuid'
+        notification_profile:
+          $ref: '#/components/schemas/NameAndUuid'
+        notification_delivery_method:
+          $ref: '#/components/schemas/NameAndUuid'
+        attempted_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        send_status:
+          allOf:
+          - $ref: '#/components/schemas/NotificationSendStatus'
+          nullable: true
+        send_result:
+          nullable: true
+        exception_type:
+          type: string
+          nullable: true
+          maxLength: 255
+        exception_message:
+          type: string
+          nullable: true
+          maxLength: 50000
+        rate_limit_max_requests_per_period:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        rate_limit_request_period_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        rate_limit_max_severity:
+          allOf:
+          - $ref: '#/components/schemas/EventSeverity'
+          nullable: true
+        rate_limit_tier_index:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        created_by_group:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        dashboard_url:
+          type: string
+          readOnly: true
+    PatchedNotificationDeliveryMethod:
+      type: object
+      description: |-
+        Serializer for NotificationDeliveryMethod that exposes rate limit tiers
+        as an array under the `rate_limit_tiers` property.
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        dashboard_url:
+          type: string
+          readOnly: true
+        run_environment:
+          type: string
+          format: uri
+          nullable: true
+        delivery_method_type:
+          type: string
+          readOnly: true
+        rate_limit_tiers:
+          type: string
+          readOnly: true
+        created_by_user:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        created_by_group:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedNotificationProfile:
       type: object
       description: A serializer for NotificationProfile objects.
@@ -3395,7 +4141,6 @@ components:
         started_at:
           type: string
           format: date-time
-          readOnly: true
         finished_at:
           type: string
           format: date-time
@@ -3933,7 +4678,6 @@ components:
         started_at:
           type: string
           format: date-time
-          readOnly: true
         started_by:
           type: string
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
@@ -4738,7 +5482,6 @@ components:
         started_at:
           type: string
           format: date-time
-          readOnly: true
         finished_at:
           type: string
           format: date-time
@@ -5332,7 +6075,6 @@ components:
         started_at:
           type: string
           format: date-time
-          readOnly: true
         started_by:
           type: string
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
@@ -5467,11 +6209,12 @@ components:
         status:
           $ref: '#/components/schemas/WorkflowExecutionStatus'
         run_reason:
-          $ref: '#/components/schemas/WorkflowExecutionRunReason'
+          allOf:
+          - $ref: '#/components/schemas/WorkflowExecutionRunReason'
+          nullable: true
         started_at:
           type: string
           format: date-time
-          readOnly: true
         finished_at:
           type: string
           format: date-time
@@ -5481,7 +6224,9 @@ components:
           format: date-time
           nullable: true
         stop_reason:
-          $ref: '#/components/schemas/WorkflowExecutionStopReason'
+          allOf:
+          - $ref: '#/components/schemas/WorkflowExecutionStopReason'
+          nullable: true
         marked_done_at:
           type: string
           format: date-time
@@ -5515,8 +6260,6 @@ components:
           type: string
           format: date-time
           readOnly: true
-      required:
-      - status
     WorkflowSummary:
       type: object
       description: Selected properties of Workflows.

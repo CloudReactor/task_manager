@@ -4,13 +4,14 @@ from processes.models.convert_legacy_em_and_infra import populate_task_execution
 import factory
 from faker import Factory as FakerFactory
 
+from .execution_factory import ExecutionFactory
 from .task_factory import TaskFactory
 from .user_factory import UserFactory
 
 faker = FakerFactory.create()
 
 
-class TaskExecutionFactory(factory.django.DjangoModelFactory):
+class TaskExecutionFactory(ExecutionFactory):
     class Meta:
         model = TaskExecution
 
@@ -19,12 +20,7 @@ class TaskExecutionFactory(factory.django.DjangoModelFactory):
     run_reason = TaskExecution.RunReason.EXPLICIT_START.value
     stop_reason = None
 
-    # Note: started_at is set to the current time by default
-    started_by = factory.SubFactory(UserFactory)
-
-    failed_attempts = 0
-    timed_out_attempts = 0
-
     @factory.post_generation
     def sanitize_em(task_execution: TaskExecution, create: bool, extracted, **kwargs):
         populate_task_execution_em_and_infra(task_execution)
+        task_execution.save()

@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 class SerializerHelpers(serializers.BaseSerializer):
+    # Context key to prevent infinite recursion in polymorphic serializers
+    SKIP_POLYMORPHIC_DELEGATION = '_skip_polymorphic_delegation'
+
     def get_request_user(self) -> Optional[User]:
         request = self.context['request']
         return request.user

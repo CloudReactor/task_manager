@@ -13,7 +13,7 @@ import {
 
 import React, { useContext, useEffect, useState } from "react";
 
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 
 import { Alert, Form, Row, Col } from 'react-bootstrap';
 
@@ -70,6 +70,8 @@ const ApiKeyList = ({
       currentPage
     } = transformSearchParams(searchParams);
 
+    const scope = searchParams.get('scope');
+
     // user can't sort API keys, so just set here
     const sortBy = 'key';
     const descending = false;
@@ -84,6 +86,7 @@ const ApiKeyList = ({
         descending,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
+        scope: scope ?? undefined,
         abortSignal
       });
 
@@ -181,6 +184,11 @@ const ApiKeyList = ({
     currentPage
   } = transformSearchParams(searchParams);
 
+  const scope = searchParams.get('scope');
+  const breadcrumbTitle = scope === 'group' 
+    ? `${currentGroup?.name || 'Group'}'s API Keys`
+    : 'My API Keys';
+
   return (
     <div className={styles.container}>
       {
@@ -193,7 +201,7 @@ const ApiKeyList = ({
       <Row>
         <Col>
           <BreadcrumbBar
-            firstLevel="API Keys"
+            firstLevel={breadcrumbTitle}
             secondLevel={null}
           />
         </Col>
@@ -204,6 +212,7 @@ const ApiKeyList = ({
           <Form.Control type="search" as={DebounceInput}
             className={classNames({
               'p-2': true,
+              'mb-4': true,
               [styles.searchInput]: true
             })}
             onChange={handleQueryChanged}
@@ -221,6 +230,7 @@ const ApiKeyList = ({
             apiKeyPage={page}
             handlePageChanged={handlePageChanged}
             handleDeletionRequest={handleDeletionRequest}
+            scope={searchParams.get('scope') ?? undefined}
           />
         )
       }
@@ -233,7 +243,7 @@ const ApiKeyList = ({
                 action="create"
                 className="mt-3"
                 faIconName="plus-square"
-                label="Add new API Key ..."
+                label="Add a new API Key ..."
                 onActionRequested={handleAddApiKey}
                 variant="outlined"
                 size="small"
@@ -242,6 +252,20 @@ const ApiKeyList = ({
           </Row>
         )
       }
+
+      <Row className="mt-4">
+        <Col>
+          {scope === 'group' ? (
+            <Link to="/api_keys">
+              View my API Keys only
+            </Link>
+          ) : (
+            <Link to="/api_keys?scope=group">
+              View all API Keys in {currentGroup?.name || 'group'}
+            </Link>
+          )}
+        </Col>
+      </Row>
     </div>
   );
 }

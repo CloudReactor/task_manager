@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import logging
 import uuid
 
@@ -7,31 +11,29 @@ from django.utils import timezone
 from django.contrib.auth.models import Group
 
 from typedmodels.models import TypedModel
+from enum import IntEnum, unique
 
 from .subscription import Subscription
+
+if TYPE_CHECKING:
+    from .run_environment import RunEnvironment
 
 logger = logging.getLogger(__name__)
 
 
 class Event(TypedModel):
-    SEVERITY_CRITICAL = 600
-    SEVERITY_ERROR = 500
-    SEVERITY_WARNING = 400
-    SEVERITY_INFO = 300
-    SEVERITY_DEBUG = 200
-    SEVERITY_TRACE = 100
-    SEVERITY_NONE = 0
+    @unique
+    class Severity(IntEnum):
+        CRITICAL = 600
+        ERROR = 500
+        WARNING = 400
+        INFO = 300
+        DEBUG = 200
+        TRACE = 100
+        NONE = 0
 
-    # TODO: maybe use frozendict
-    SEVERITY_TO_LABEL = {
-        SEVERITY_CRITICAL: 'critical',
-        SEVERITY_ERROR: 'error',
-        SEVERITY_WARNING: 'warning',
-        SEVERITY_INFO: 'info',
-        SEVERITY_DEBUG: 'debug',
-        SEVERITY_TRACE: 'trace',
-        SEVERITY_NONE: 'none',
-    }
+    # NOTE: severity labels are derived from the enum names where needed.
+    # The special `NONE` value is handled by `severity_label`.
 
     MAX_ERROR_SUMMARY_LENGTH = 200
     MAX_ERROR_DETAILS_MESSAGE_LENGTH = 50000
@@ -42,7 +44,7 @@ class Event(TypedModel):
 
     event_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     detected_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
-    severity = models.PositiveIntegerField(default=SEVERITY_ERROR)
+    severity = models.PositiveIntegerField(default=Severity.ERROR)
     error_summary = models.CharField(max_length=MAX_ERROR_SUMMARY_LENGTH, blank=True)
     error_details_message = models.CharField(max_length=MAX_ERROR_DETAILS_MESSAGE_LENGTH, blank=True)
     source = models.CharField(max_length=MAX_SOURCE_LENGTH, blank=True)
@@ -51,9 +53,12 @@ class Event(TypedModel):
     resolved_at = models.DateTimeField(null=True)
     resolved_event = models.OneToOneField('self', on_delete=models.DO_NOTHING, null=True, blank=True)
 
-    # null=True until we can populate this field for existing notifications
+    # null=True until we can populate this field for existing events
     created_by_group = models.ForeignKey(Group, on_delete=models.CASCADE,
             null=True, editable=True)
+
+    run_environment = models.ForeignKey('RunEnvironment',
+        related_name='+', on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         indexes = [
@@ -96,7 +101,12 @@ class Event(TypedModel):
 
     @property
     def severity_label(self):
-        return self.SEVERITY_TO_LABEL.get(self.severity, 'unknown')
+        try:
+            sev = self.Severity(self.severity)
+        except Exception:
+            return 'unknown'
+
+        return sev.name.lower()
 
     @property
     def is_resolution(self):

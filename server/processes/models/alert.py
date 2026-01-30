@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 
 from .alert_method import AlertMethod
-from .alert_send_status import AlertSendStatus
+from .notification_send_status import NotificationSendStatus
 
 
 # Deprecated in favor of Notification
@@ -18,6 +18,6 @@ class Alert(models.Model):
     alert_method = models.ForeignKey(AlertMethod, on_delete=models.CASCADE)
     attempted_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    send_status = models.IntegerField(null=True, blank=True, default=AlertSendStatus.SENDING)
+    send_status = models.IntegerField(null=True, blank=True, default=NotificationSendStatus.SENDING)
     send_result = models.CharField(max_length=MAX_SEND_RESULT_LENGTH, blank=True, default='')
     error_message = models.CharField(max_length=MAX_ERROR_MESSAGE_LENGTH, blank=True, default='')

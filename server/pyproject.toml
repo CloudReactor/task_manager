@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cloudreactor-task-manager"
 version = "0.1.0"
@@ -75,6 +79,9 @@ dev = [
 [tool.uv]
 # requirements = ["requirements.txt"]
 
+[tool.setuptools.packages.find]
+include = ["processes*", "task_manager*", "spectacular*", "tests*"]
+exclude = ["sql*", "schema*", "static*"]
 
 [pytest]
 addopts = "--reuse-db --capture=tee-sys"

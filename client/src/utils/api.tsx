@@ -14,6 +14,8 @@ import {
 
 import {
   NotificationMethod,
+  NotificationDeliveryMethod,
+  NotificationProfile,
   ApiKey,
   Task,
   TaskImpl,
@@ -24,7 +26,8 @@ import {
   PagerDutyProfile,
   WorkflowExecutionSummary,
   WorkflowSummary,
-  EmailNotificationProfile
+  EmailNotificationProfile,
+  Event
 } from '../types/domain_types';
 
 import * as C from './constants';
@@ -65,6 +68,7 @@ export const DEFAULT_PAGE_FETCH_OPTIONS: PageFetchOptions = {
 
 export interface PageFetchWithGroupIdOptions extends PageFetchOptions {
   groupId?: number | null;
+  scope?: string;
 }
 
 export interface PageFetchWithGroupIdAndRunEnvironmentOptions
@@ -290,13 +294,18 @@ export async function fetchApiKeys(opts? : PageFetchWithGroupIdOptions):
   opts = opts ?? {};
 
   const {
-    abortSignal
+    abortSignal,
+    scope
   } = opts;
 
   const params = makePageFetchWithGroupParams(opts);
 
   params.group__id = params.created_by_group__id;
   delete params.created_by_group__id;
+
+  if (scope) {
+    params.scope = scope;
+  }
 
   const response = await makeAuthenticatedClient().get(
     'api/v1/api_keys/', {
@@ -572,6 +581,128 @@ export async function deleteNotificationMethod(uuid: string, abortSignal?: Abort
     });
 }
 
+
+
+
+
+// NotificationDeliveryMethod API functions
+export async function fetchNotificationDeliveryMethods(
+  opts?: PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<NotificationDeliveryMethod>> {
+  opts = opts ?? {};
+
+  const {
+    abortSignal
+  } = opts;
+
+  const params = makePageFetchWithGroupAndScopedRunEnvironmentParams(opts);
+  const response = await makeAuthenticatedClient().get(
+    'api/v1/notification_delivery_methods/', {
+      signal: abortSignal,
+      params
+    });
+
+  return response.data as ResultsPage<NotificationDeliveryMethod>;
+}
+
+export async function fetchNotificationDeliveryMethod(uuid: string, abortSignal?: AbortSignal) {
+  const response = await makeAuthenticatedClient().get(
+    `api/v1/notification_delivery_methods/${uuid}/`, {
+      signal: abortSignal
+    });
+  return response.data as NotificationDeliveryMethod;
+}
+
+export async function saveNotificationDeliveryMethod(uuid: string, values: any,
+    abortSignal?: AbortSignal): Promise<NotificationDeliveryMethod> {
+  const client = makeAuthenticatedClient();
+
+  const response = await ((!uuid || (uuid === 'new')) ? client.post(
+    'api/v1/notification_delivery_methods/', values, {
+      signal: abortSignal
+    }
+  ) : client.patch(`api/v1/notification_delivery_methods/${uuid}/`, values, {
+      signal: abortSignal
+    })
+  );
+
+  return response.data;
+}
+
+export async function cloneNotificationDeliveryMethod(uuid: string, attributes?: any,
+    abortSignal?: AbortSignal): Promise<NotificationDeliveryMethod> {
+  const response = await makeAuthenticatedClient().post(
+    'api/v1/notification_delivery_methods/' + uuid + '/clone/', attributes || {}, {
+        signal: abortSignal
+    });
+  return response.data as NotificationDeliveryMethod;
+}
+
+export async function deleteNotificationDeliveryMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
+  return await makeAuthenticatedClient().delete(
+    'api/v1/notification_delivery_methods/' + uuid + '/', {
+      signal: abortSignal
+    });
+}
+
+// NotificationProfile API functions
+export async function fetchNotificationProfiles(
+  opts?: PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<NotificationProfile>> {
+  opts = opts ?? {};
+
+  const {
+    abortSignal
+  } = opts;
+
+  const params = makePageFetchWithGroupAndScopedRunEnvironmentParams(opts);
+  const response = await makeAuthenticatedClient().get(
+    'api/v1/notification_profiles/', {
+      signal: abortSignal,
+      params
+    });
+
+  return response.data as ResultsPage<NotificationProfile>;
+}
+
+export async function fetchNotificationProfile(uuid: string, abortSignal?: AbortSignal) {
+  const response = await makeAuthenticatedClient().get(
+    `api/v1/notification_profiles/${uuid}/`, {
+      signal: abortSignal
+    });
+  return response.data as NotificationProfile;
+}
+
+export async function saveNotificationProfile(uuid: string, values: any,
+    abortSignal?: AbortSignal): Promise<NotificationProfile> {
+  const client = makeAuthenticatedClient();
+
+  const response = await ((!uuid || (uuid === 'new')) ? client.post(
+    'api/v1/notification_profiles/', values, {
+      signal: abortSignal
+    }
+  ) : client.patch(`api/v1/notification_profiles/${uuid}/`, values, {
+      signal: abortSignal
+    })
+  );
+
+  return response.data;
+}
+
+export async function cloneNotificationProfile(uuid: string, attributes?: any,
+    abortSignal?: AbortSignal): Promise<NotificationProfile> {
+  const response = await makeAuthenticatedClient().post(
+    'api/v1/notification_profiles/' + uuid + '/clone/', attributes || {}, {
+        signal: abortSignal
+    });
+  return response.data as NotificationProfile;
+}
+
+export async function deleteNotificationProfile(uuid: string, abortSignal?: AbortSignal): Promise<void> {
+  return await makeAuthenticatedClient().delete(
+    'api/v1/notification_profiles/' + uuid + '/', {
+      signal: abortSignal
+    });
+}
+
 export interface TaskPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
   enabled?: boolean;
   isService?: boolean;
@@ -601,7 +732,8 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     params['latest_task_execution__status'] = opts.statuses.join(',');
   }
 
-  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,alert_methods,links';
+  // TODO: remove alert_methods
+  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,alert_methods,notification_profiles,links';
 
   if (opts.otherParams) {
     Object.assign(params, opts.otherParams);
@@ -893,6 +1025,33 @@ export async function deleteEmailNotificationProfile(uuid: string, abortSignal?:
     'api/v1/email_notification_profiles/' + uuid + '/', {
       signal: abortSignal
     });
+}
+
+// Event API functions
+export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
+  severities?: string[];
+}
+
+export async function fetchEvents(opts?: EventPageFetchOptions): Promise<ResultsPage<Event>> {
+  opts = opts ?? {};
+
+  const {
+    abortSignal
+  } = opts;
+
+  const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
+
+  if (opts.severities && opts.severities.length > 0) {
+    params['severity'] = opts.severities.join(',');
+  }
+
+  const response = await makeAuthenticatedClient().get(
+    'api/v1/events/', {
+      signal: abortSignal,
+      params
+    });
+
+  return response.data as ResultsPage<Event>;
 }
 
 export function makeErrorElement(e: any, fallbackText: string = 'An error occurred'): any {

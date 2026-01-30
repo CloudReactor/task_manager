@@ -9,6 +9,9 @@ from .email_notification_profile_view_set import *
 from .pagerduty_profile_view_set import *
 
 from .notification_profile_view_set import *
+from .notification_delivery_method_view_set import *
+from .notification_view_set import *
+from .event_view_set import *
 
 from .task_view_set import *
 from .task_execution_view_set import *

@@ -24,11 +24,13 @@ interface Props {
   apiKeyPage: ResultsPage<ApiKey>;
   handlePageChanged: (currentPage: number) => void;
   handleDeletionRequest: (apiKey: ApiKey) => void;
+  scope?: string;
 }
 
 const ApiKeyTable = ({
   apiKeyPage,
-  handleDeletionRequest
+  handleDeletionRequest,
+  scope
 }: Props) => {
   const [keyCopiedAt, setKeyCopiedAt] = useState(null as number | null);
 
@@ -87,11 +89,19 @@ const ApiKeyTable = ({
       ) : 'Any'
     ),
   }, {
+    dataField: 'user',
+    text: scope === 'group' ? 'Owner' : 'User',
+    formatter: (user: string, apiKey: ApiKey, rowIndex: number, extraData: any) => (
+      <Fragment>{ user }</Fragment>
+    ),
+    hidden: scope !== 'group'
+  }, {
     dataField: 'group',
     text: 'Group',
     formatter: (group: any, apiKey: ApiKey, rowIndex: number, extraData: any) => (
       <Link to={'/groups/' + encodeURIComponent(apiKey.group.id)}>{ apiKey.group.name }</Link>
     ),
+    hidden: scope === 'group'
   }, {
     dataField: 'uuid',
     text: 'Actions',
@@ -127,7 +137,6 @@ const ApiKeyTable = ({
             columns={columns}
             striped={true}
             bootstrap4={true}
-            wrapperClasses="table-responsive"
           />
         </Col>
       </Row>

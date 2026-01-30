@@ -56,8 +56,15 @@ from tests.factories import (
     PagerDutyProfileFactory,
     EmailNotificationProfileFactory,
     BasicEventFactory,
+    TaskExecutionStatusChangeEventFactory,
+    WorkflowExecutionStatusChangeEventFactory,
+    MissingHeartbeatDetectionEventFactory,
+    MissingScheduledTaskExecutionEventFactory,
+    MissingScheduledWorkflowExecutionEventFactory,
+    InsufficientServiceTaskExecutionsEventFactory,
     NotificationProfileFactory,
     EmailNotificationDeliveryMethodFactory,
+    PagerDutyNotificationDeliveryMethodFactory,
     NotificationFactory,
 )
 
@@ -95,8 +102,15 @@ register(WorkflowExecutionFactory)
 register(WorkflowTaskInstanceExecutionFactory)
 
 register(BasicEventFactory)
+register(TaskExecutionStatusChangeEventFactory)
+register(WorkflowExecutionStatusChangeEventFactory)
+register(MissingHeartbeatDetectionEventFactory)
+register(MissingScheduledTaskExecutionEventFactory)
+register(MissingScheduledWorkflowExecutionEventFactory)
+register(InsufficientServiceTaskExecutionsEventFactory)
 register(NotificationProfileFactory)
 register(EmailNotificationDeliveryMethodFactory)
+register(PagerDutyNotificationDeliveryMethodFactory)
 register(NotificationFactory)
 
 # Legacy

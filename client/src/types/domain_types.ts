@@ -8,42 +8,6 @@ import {
   INFRASTRUCTURE_TYPE_AWS
 } from '../utils/constants';
 
-export interface NamelessEntityReference {
-  uuid: string;
-  url: string;
-  dashboard_url?: string;
-}
-
-export interface EntityReference extends NamelessEntityReference {
-  name: string;
-}
-
-export class EntityReferenceImpl implements EntityReference {
-  uuid = '';
-  name = '';
-  url = '';
-  dashboard_url? = undefined;
-}
-
-export function makeEmptyEntityReference(): EntityReference {
-  return new EntityReferenceImpl();
-}
-
-interface EntityReferenceWithDates extends EntityReference {
-  created_at: Date;
-  updated_at: Date;
-}
-
-export class EntityReferenceWithDatesImpl extends EntityReferenceImpl
-implements EntityReferenceWithDates {
-  created_at = new Date();
-  updated_at = new Date();
-}
-
-export function makeEmptyEntityReferenceWithDates(): EntityReferenceWithDates {
-  return new EntityReferenceWithDatesImpl();
-}
-
 export interface GroupReference {
   id: number;
   name?: string;
@@ -58,32 +22,75 @@ export function makeEmptyGroupReference(): GroupReference {
   return new GroupReferenceImpl();
 }
 
-export interface ApiKey extends EntityReference {
+export interface NamelessEntityReference {
+  uuid: string;
+  url: string;
+  dashboard_url?: string;
+}
+
+export interface EntityReference extends NamelessEntityReference {
+  name: string;
+}
+
+export class EntityReferenceImpl implements EntityReference {
+  uuid = '';
+  url = '';
+  dashboard_url = undefined;
+  name = '';
+}
+
+export function makeEmptyEntityReference(): EntityReference {
+  return new EntityReferenceImpl();
+}
+
+interface Timestamped {
   created_at: Date;
+  updated_at: Date;
+}
+
+interface TrackedEntityReference extends EntityReference, Timestamped {
+  created_by_group: GroupReference;
+  created_by_user?: string;
+}
+
+interface Described {
   description: string;
+}
+
+export class TrackedEntityReferenceImpl extends EntityReferenceImpl
+implements TrackedEntityReference {
+  created_at = new Date();
+  updated_at = new Date();
+  created_by_group = makeEmptyGroupReference();
+  created_by_user = '';
+}
+
+export function makeEmptyTrackedEntityReference(): TrackedEntityReference {
+  return new TrackedEntityReferenceImpl();
+}
+
+// Corresponds to the backend SaasToken model
+export interface ApiKey extends TrackedEntityReference, Described {
+  access_level: number;
   enabled: boolean;
   group: GroupReference;
   key: string;
-  name: string;
   run_environment: EntityReference | null;
-  updated_at: Date;
   user: string;
 }
 
-export interface EmailNotificationProfile extends EntityReferenceWithDates {
-  created_by_group: GroupReference;
-  created_by_user?: string;
+// Deprecated
+export interface EmailNotificationProfile extends TrackedEntityReference, Described {
   bcc_addresses: string[] | null;
   body_template: string;
   cc_addresses: string[] | null;
-  description: string;
   run_environment: EntityReference | null;
   subject_template: string;
   to_addresses: string[] | null;
 }
 
 export function makeEmptyEmailNotificationProfile(): EmailNotificationProfile {
-  return Object.assign(makeEmptyEntityReferenceWithDates(), {
+  return Object.assign(makeEmptyTrackedEntityReference(), {
     bcc_addresses: [],
     body_template: '',
     cc_addresses: [],
@@ -96,20 +103,18 @@ export function makeEmptyEmailNotificationProfile(): EmailNotificationProfile {
   });
 }
 
-export interface PagerDutyProfile extends EntityReferenceWithDates {
-  created_by_group: GroupReference;
-  created_by_user?: string;
+// Deprecated
+export interface PagerDutyProfile extends TrackedEntityReference, Described {
   default_event_severity: string;
   default_event_component_template: string;
   default_event_group_template: string;
   default_event_class_template: string;
-  description: string;
   integration_key: string;
   run_environment: EntityReference | null;
 }
 
 export function makeEmptyPagerDutyProfile(): PagerDutyProfile {
-  return Object.assign(makeEmptyEntityReferenceWithDates(), {
+  return Object.assign(makeEmptyTrackedEntityReference(), {
     created_by_group: makeEmptyGroupReference(),
     created_by_user: '',
     default_event_severity: 'error',
@@ -122,10 +127,8 @@ export function makeEmptyPagerDutyProfile(): PagerDutyProfile {
   });
 }
 
-export interface NotificationMethod extends EntityReferenceWithDates {
-  created_by_group: GroupReference;
-  created_by_user?: string;
-  description?: string;
+// Deprecated
+export interface NotificationMethod extends TrackedEntityReference, Described {
   enabled: boolean;
   notify_on_success: boolean;
   notify_on_failure: boolean;
@@ -145,9 +148,8 @@ export interface NotificationMethod extends EntityReferenceWithDates {
 }
 
 export function makeNewNotificationMethod(): NotificationMethod {
-  return Object.assign(makeEmptyEntityReferenceWithDates(), {
-    created_by_group: makeEmptyGroupReference(),
-    created_by_user: '',
+  return Object.assign(makeEmptyTrackedEntityReference(), {
+    description: '',
     enabled: true,
     notify_on_success: false,
     notify_on_failure: true,
@@ -164,6 +166,114 @@ export function makeNewNotificationMethod(): NotificationMethod {
     updated_at: new Date()
   })
 }
+
+export interface RateLimitTier {
+  max_requests_per_period: number | null;
+  request_period_seconds: number | null;
+  max_severity: number | null;
+  request_period_started_at: Date | null;
+  request_count_in_period: number | null;
+}
+
+// NotificationDeliveryMethod corresponds to the backend NotificationDeliveryMethod model
+export interface NotificationDeliveryMethod extends TrackedEntityReference, Described {
+  run_environment: EntityReference | null;
+  rate_limit_tiers: RateLimitTier[];
+  enabled?: boolean;
+  delivery_method_type?: string; // 'email' or 'pagerduty'
+}
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace NotificationDeliveryMethod {
+  export const MAX_RATE_LIMIT_TIERS = 8;
+}
+
+export function makeEmptyNotificationDeliveryMethod(): NotificationDeliveryMethod {
+  return Object.assign(makeEmptyTrackedEntityReference(), {
+    description: '',
+    run_environment: null,
+    rate_limit_tiers: [
+      {
+        max_requests_per_period: 5,
+        request_period_seconds: 60,
+        max_severity: null,
+        request_period_started_at: null,
+        request_count_in_period: null,
+      },
+      {
+        max_requests_per_period: 30,
+        request_period_seconds: 3600,
+        max_severity: null,
+        request_period_started_at: null,
+        request_count_in_period: null,
+      },
+      {
+        max_requests_per_period: 100,
+        request_period_seconds: 86400,
+        max_severity: null,
+        request_period_started_at: null,
+        request_count_in_period: null,
+      },
+    ],
+  });
+}
+
+// Email-specific delivery method (backend: EmailNotificationDeliveryMethod)
+export interface EmailNotificationDeliveryMethod extends NotificationDeliveryMethod {
+  email_to_addresses?: string[] | null;
+  email_cc_addresses?: string[] | null;
+  email_bcc_addresses?: string[] | null;
+}
+
+export function makeEmptyEmailNotificationDeliveryMethod(): EmailNotificationDeliveryMethod {
+  return Object.assign(makeEmptyNotificationDeliveryMethod(), {
+    email_to_addresses: [],
+    email_cc_addresses: [],
+    email_bcc_addresses: [],
+  });
+}
+
+// PagerDuty-specific delivery method (backend: PagerDutyNotificationDeliveryMethod)
+export interface PagerDutyNotificationDeliveryMethod extends NotificationDeliveryMethod {
+  pagerduty_api_key?: string | null;
+  pagerduty_event_class_template?: string | null;
+  pagerduty_event_component_template?: string | null;
+  pagerduty_event_group_template?: string | null;
+}
+
+export function makeEmptyPagerDutyNotificationDeliveryMethod(): PagerDutyNotificationDeliveryMethod {
+  return Object.assign(makeEmptyNotificationDeliveryMethod(), {
+    pagerduty_api_key: null,
+    pagerduty_event_class_template: null,
+    pagerduty_event_component_template: null,
+    pagerduty_event_group_template: null,
+  });
+}
+
+// NotificationProfile corresponds to the backend NotificationProfile model
+export interface NotificationProfile extends TrackedEntityReference, Described {
+  enabled: boolean;
+  notification_delivery_methods: EntityReference[];
+  run_environment: EntityReference | null;
+}
+
+export function makeEmptyNotificationProfile(): NotificationProfile {
+  return Object.assign(makeEmptyTrackedEntityReference(), {
+    enabled: true,
+    notification_delivery_methods: [],
+    description: '',
+    run_environment: null,
+  });
+}
+
+export class NotificationProfileImpl extends TrackedEntityReferenceImpl
+implements NotificationProfile {
+  description = '';
+  enabled = true;
+  notification_delivery_methods = [];
+  run_environment = null;
+}
+
 
 export interface AwsLoggingOptions {
   create_group?: string | null;
@@ -276,8 +386,7 @@ export interface NamedExecutionMethodSettings<T> {
   }
 }
 
-export interface RunEnvironment extends EntityReferenceWithDates {
-  created_by_group: GroupReference;
+export interface RunEnvironment extends TrackedEntityReference, Described {
   infrastructure_settings: {
     [INFRASTRUCTURE_TYPE_AWS]?: NamedInfrastructureSettings<AwsInfrastructureSettings>;
     [key: string]: NamedInfrastructureSettings<any> | undefined;
@@ -292,8 +401,7 @@ export interface RunEnvironment extends EntityReferenceWithDates {
 }
 
 export function makeNewRunEnvironment(): RunEnvironment {
-  return Object.assign(makeEmptyEntityReferenceWithDates(), {
-    created_by_group: makeEmptyGroupReference(),
+  return Object.assign(makeEmptyTrackedEntityReference(), {
     description: '',
     execution_method_settings: {
       [EXECUTION_METHOD_TYPE_AWS_ECS]: {
@@ -325,7 +433,8 @@ export function makeNewRunEnvironment(): RunEnvironment {
   });
 }
 
-export interface Executable {
+// Corresponds to the Schedulable model in the backend
+export interface Executable extends TrackedEntityReference, Described {
   default_max_retries: number;
   enabled: boolean;
   max_age_seconds: number | null;
@@ -355,10 +464,9 @@ export interface AwsLoadBalancer {
   container_port: number;
 }
 
-export interface ExternalLink extends EntityReferenceWithDates {
+export interface ExternalLink extends TrackedEntityReference, Described {
   link_url: string;
   link_url_template: string;
-  description: string | null;
   icon_url: string | null;
   rank: number;
 }
@@ -504,17 +612,14 @@ export interface TaskExecutionConfiguration {
 }
 
 
-export interface Task extends EntityReferenceWithDates, Executable, TaskExecutionConfiguration {
+export interface Task extends Executable, TaskExecutionConfiguration {
   alert_methods: EntityReference[];
   capabilities: string[];
-  created_by_group: GroupReference;
-  created_by_user?: string;
-  description: string;
   execution_method_capability_details: object | null;
   execution_method_type: string;
   heartbeat_interval_seconds: number;
   is_service: boolean;
-  latest_task_execution: any;
+  latest_task_execution: NamelessEntityReference | null;
   links: ExternalLink[];
   log_query: string;
   logs_url: string;
@@ -535,7 +640,7 @@ export interface Task extends EntityReferenceWithDates, Executable, TaskExecutio
   was_auto_created: boolean;
 }
 
-export class TaskImpl extends EntityReferenceWithDatesImpl
+export class TaskImpl extends TrackedEntityReferenceImpl
 implements Task {
   api_retry_delay_seconds = null;
   api_resume_delay_seconds = null;
@@ -631,7 +736,28 @@ export interface DeployInfo {
   task_execution: NamelessEntityReference | null;
 }
 
-export interface TaskExecution extends TaskExecutionConfiguration{
+export interface Execution extends NamelessEntityReference, Timestamped {
+  failed_attempts: number;
+  finished_at: Date | null;
+  kill_started_at: Date | null;
+  kill_finished_at: Date;
+  kill_error_code: number | null;
+  marked_done_at: Date | null;
+  run_reason: string;
+  started_at: Date;
+  status: string;
+  stop_reason: string | null;
+  timed_out_attempts: number;
+}
+
+export interface ExecutionDetails {
+  marked_done_by: string | null;
+  killed_by: string | null;
+  started_by: string | null;
+  notification_profiles: EntityReference[];
+}
+
+export interface TaskExecution extends Execution, ExecutionDetails, TaskExecutionConfiguration {
   api_base_url: string,
   api_error_timeout_seconds: number | null;
   api_request_timeout_seconds: number | null;
@@ -643,10 +769,8 @@ export interface TaskExecution extends TaskExecutionConfiguration{
   api_final_update_timeout_seconds: number | null;
   build: BuildInfo | null;
   commit_url: string;
-  created_at: Date;
   current_cpu_units: number | null;
   current_memory_mb: number | null;
-  dashboard_url: string;
   debug_log_tail: string | null;
   deploy: DeployInfo | null;
   deployment: string | null;
@@ -655,46 +779,16 @@ export interface TaskExecution extends TaskExecutionConfiguration{
   error_count: number;
   error_details: any;
   error_log_tail: string | null;
-  // Deprecated
-  execution_method: {
-    allocated_cpu_units: number;
-    allocated_memory_mb: number;
-    assign_public_ip: boolean | null;
-    cluster_arn: string;
-    cluster_infrastructure_website_url: string | null;
-    execution_role: string;
-    execution_role_infrastructure_website_url: string | null;
-    launch_type: string;
-    platform_version: string;
-    security_groups: string[];
-    security_group_infrastructure_website_urls: (string | null)[] | null;
-    subnets: string[];
-    subnet_infrastructure_website_urls: (string | null)[] | null;
-    tags: AwsTags | null;
-    task_arn: string;
-    task_definition_arn: string;
-    task_definition_infrastructure_website_url: string | null;
-    task_role: string | null;
-    task_role_infrastructure_website_url: string | null;
-    type: string;
-  };
   execution_method_details: object | null;
   execution_method_type: string;
   exit_code: number | null;
   expected_count: number | null;
-  failed_attempts: number;
-  finished_at: Date | null;
   heartbeat_interval_seconds: number | null;
   hostname: string | null;
   infrastructure_website_url: string;
   is_service: boolean | null;
-  killed_by: string,
-  kill_error_code: number;
-  kill_finished_at: number;
-  kill_started_at: number;
   last_heartbeat_at: Date | null;
   last_status_message: string | null;
-  marked_done_at: Date | null;
   marked_outdated_at: Date | null;
   max_conflicting_age_seconds: number | null;
   max_cpu_units: number | null;
@@ -710,27 +804,18 @@ export interface TaskExecution extends TaskExecutionConfiguration{
   task_version_text: string | null;
   schedule: string | null;
   skipped_count: number;
-  started_at: Date;
-  started_by: string;
-  status: string;
-  stop_reason: string | null;
   success_count: number;
-  timed_out_attempts: number;
-  updated_at: Date;
-  url: string;
-  uuid: string;
   workflow_task_instance_execution: BaseWorkflowTaskInstanceExecution | null;
   wrapper_log_level: string | null;
   wrapper_version: string;
 }
 
-export interface WorkflowTaskInstance extends EntityReferenceWithDates {
+export interface WorkflowTaskInstance extends TrackedEntityReference, Described {
   allocated_cpu_units: number | null;
   allocated_memory_mb: number | null;
   allow_workflow_execution_after_failure: boolean;
   allow_workflow_execution_after_timeout: boolean;
   default_max_retries: number;
-  description: string;
   environment_variables_overrides: object | null;
   failure_behavior: string;
   max_age_seconds: number | null;
@@ -750,9 +835,8 @@ export interface WorkflowTaskInstance extends EntityReferenceWithDates {
   [propName: string]: any;
 }
 
-export interface WorkflowTransition extends EntityReferenceWithDates {
+export interface WorkflowTransition extends TrackedEntityReference, Described {
   custom_expression: string;
-  description: string;
   exit_codes: number[];
 
   from_workflow_task_instance?: EntityReference;
@@ -796,46 +880,22 @@ export interface WorkflowTransitionEvaluation {
   workflow_execution: EntityReference;
 }
 
-export interface WorkflowExecutionSummary {
-  created_at: Date;
-  dashboard_url: string;
-  failed_attempts: number;
-  finished_at: Date;
-  kill_started_at: Date;
-  kill_finished_at: Date;
-  kill_error_code: number;
-  marked_done_at: Date;
-  run_reason: string;
-  started_at: Date;
-  status: string;
-  stop_reason: string,
-  timed_out_attempts: number;
-  updated_at: Date;
-  url: string;
-  uuid: string;
+export interface WorkflowExecutionSummary extends Execution {
   [propName: string]: any;
 }
 
 export interface WorkflowExecution extends WorkflowExecutionSummary {
-  started_by: string;
-  killed_by: string;
-  marked_done_by: string;
   workflow: EntityReference;
   workflow_task_instance_executions: WorkflowTaskInstanceExecution[];
   workflow_transition_evaluations: WorkflowTransitionEvaluation[];
 }
 
-export interface WorkflowSummary extends EntityReferenceWithDates,
-    Executable {
-  created_at: Date;
-  created_by_group: GroupReference;
-  created_by_user?: string;
-  description: string;
+export interface WorkflowSummary extends Executable {
   latest_workflow_execution: WorkflowExecutionSummary | null;
   [propName: string]: any;
 }
 
-export interface Workflow extends WorkflowSummary {
+export interface Workflow extends WorkflowSummary, ExecutionDetails {
   alert_methods: EntityReference[];
 
   workflow_task_instances?: WorkflowTaskInstance[];
@@ -858,6 +918,8 @@ export function makeNewWorkflow(): Workflow {
     default_max_retries: 0,
     description: '',
     enabled: true,
+    killed_by: null,
+    marked_done_by: null,
     max_age_seconds: null,
     max_concurrency: null,
     max_postponed_failure_count: null,
@@ -870,6 +932,7 @@ export function makeNewWorkflow(): Workflow {
     notification_event_severity_on_missing_execution: null,
     notification_event_severity_on_missing_heartbeat: null,
     notification_event_severity_on_service_down: null,
+    notification_profiles: [],
     postponed_failure_before_success_seconds: null,
     postponed_missing_execution_before_start_seconds: null,
     postponed_timeout_before_success_seconds: null,
@@ -877,9 +940,50 @@ export function makeNewWorkflow(): Workflow {
     required_success_count_to_clear_timeout: null,
     schedule: '',
     scheduled_instance_count: null,
+    started_by: null,
     workflow_task_instances: [],
     workflow_transitions: [],
     latest_workflow_execution: null,
+
+    // Deprecated
     alert_methods: []
   };
+}
+
+export interface Event extends NamelessEntityReference, Timestamped {
+  event_at: Date;
+  detected_at: Date | null;
+  severity: string;
+  event_type: string;
+  error_summary: string | null;
+  error_details_message: string | null;
+  source: string | null;
+  details: Record<string, any> | null;
+  grouping_key: string | null;
+  resolved_at: Date | null;
+  resolved_event: NamelessEntityReference | null;
+  created_by_group: GroupReference | null;
+  run_environment: EntityReference | null;
+  task?: EntityReference;
+  workflow?: EntityReference;
+  task_execution?: NamelessEntityReference;
+  workflow_execution?: NamelessEntityReference;
+}
+
+// Notification corresponds to the backend Notification model
+export interface Notification extends NamelessEntityReference {
+  event: NamelessEntityReference;
+  notification_profile: EntityReference;
+  notification_delivery_method: EntityReference;
+  attempted_at: Date | null;
+  completed_at: Date | null;
+  send_status: string | null;
+  send_result: Record<string, any> | null;
+  exception_type: string | null;
+  exception_message: string | null;
+  rate_limit_max_requests_per_period: number | null;
+  rate_limit_request_period_seconds: number | null;
+  rate_limit_max_severity: number | null;
+  rate_limit_tier_index: number | null;
+  created_by_group: GroupReference | null;
 }

@@ -20,15 +20,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 env = environ.Env()
 
+env.read_env(os.path.join(BASE_DIR, '.env'), parse_comments=True)
+
 IN_PYTEST = env.bool('IN_PYTEST', default=False)
 
-# print(f"{IN_PYTEST=}")
-
 if IN_PYTEST:
-    env.read_env(os.path.join(BASE_DIR, '.env.test'))
-else:
-    env.read_env(os.path.join(BASE_DIR, '.env'))
-
+    env.read_env(os.path.join(BASE_DIR, '.env.test'), parse_comments=True, overwrite=True)
 
 IN_DOCKER = env.bool('DJANGO_IN_DOCKER', default=False)
 
@@ -219,8 +216,6 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
-
-USE_L10N = True
 
 USE_TZ = True
 

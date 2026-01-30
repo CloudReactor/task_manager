@@ -80,7 +80,8 @@ class TaskFactory(OwnedModelFactory):
         if task.execution_method_capability_details:
             return
 
-        populate_task_emc_and_infra(task)
+        if populate_task_emc_and_infra(task):
+            task.save()
 
 
 class UnknownTaskFactory(TaskFactory):

@@ -463,7 +463,7 @@ class WorkflowExecution(Execution):
     # maybe_create_and_send_status_change_event(), and
     # send_event_notifications like TaskExecution
     def send_alerts_if_necessary(self):
-        from .alert_send_status import AlertSendStatus
+        from .notification_send_status import NotificationSendStatus
         from .alert import Alert
         from .workflow_execution_alert import WorkflowExecutionAlert
 
@@ -481,7 +481,7 @@ class WorkflowExecution(Execution):
 
             if should_send:
                 should_send = not WorkflowExecutionAlert.objects.filter(workflow_execution=self,
-                    alert_method=am, send_status=AlertSendStatus.SUCCEEDED,
+                    alert_method=am, send_status=NotificationSendStatus.SUCCEEDED,
                     for_latest_execution=True).exists()
 
             if should_send:
@@ -499,13 +499,13 @@ class WorkflowExecution(Execution):
 
                     logger.info(f"Done sending alert for Workflow {workflow.uuid} with status {self.status}")
 
-                    wea.send_status = AlertSendStatus.SUCCEEDED
+                    wea.send_status = NotificationSendStatus.SUCCEEDED
                     wea.completed_at = timezone.now()
 
                 except Exception as ex:
                     logger.exception(f"Can't send using Alert Method {am.uuid} / {am.name} for Workflow Execution Alert {self.uuid}")
 
-                    wea.send_status = AlertSendStatus.FAILED
+                    wea.send_status = NotificationSendStatus.FAILED
                     wea.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
 
                 wea.save()

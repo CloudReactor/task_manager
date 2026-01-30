@@ -1,20 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 import logging
 
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.timezone import make_aware
 
 import intervals as I
 
 from ..common.notification import *
-from ..common.request_helpers import context_with_request
 from ..models import *
-from ..serializers import LegacyInsufficientServiceInstancesEventSerializer
 
 LOOKBACK_DURATION_SECONDS = 5 * 60
-DEFAULT_MAX_STARTUP_DURATION_SECONDS = 120
+DEFAULT_MAX_STARTUP_DURATION_SECONDS = 5 * 60
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +24,8 @@ class ServiceConcurrencyChecker:
         """Service '{{task.name}}' now has a sufficient instance count of at least {{required_concurrency}}"""
 
     def check_all(self):
-        for service in Task.objects.filter(
-                enabled=True, min_service_instance_count__gt=0):
+        for service in Task.objects.filter(enabled=True, min_service_instance_count__gt=0,
+                notification_event_severity_on_insufficient_instances__isnull=False):
             with transaction.atomic():
                 try:
                     self.check_service(service)
@@ -49,6 +46,7 @@ class ServiceConcurrencyChecker:
                 seconds=max_delay_seconds)
 
         # Also if we recently updated the service, don't look until after the service was setup
+        # TODO: use a more generic field for other infrastructures
         if service.aws_ecs_service_updated_at:
             first_expected_execution_at = service.aws_ecs_service_updated_at + timedelta(
                 seconds=max_delay_seconds)
@@ -87,7 +85,7 @@ class ServiceConcurrencyChecker:
             end_timestamp = utc_timestamp
             is_end_closed = True
 
-            done_at = te.finished_at or te.marked_done_at or te.kill_started_at
+            done_at = te.finished_at or te.marked_done_at or te.kill_started_at or te.kill_finished_at
             if done_at:
                 end_timestamp = min(done_at.timestamp(), end_timestamp)
                 is_end_closed = False
@@ -116,73 +114,52 @@ class ServiceConcurrencyChecker:
         elif (service.min_service_instance_count is not None) and (min_concurrency_found < service.min_service_instance_count):
             logger.info(f"Found insufficient min concurrency {min_concurrency_found} for service {service.uuid}")
 
-            event = LegacyInsufficientServiceInstancesEvent.objects.filter(
-                    task=service).order_by('-detected_at', '-id').first()
+            event = InsufficientServiceTaskExecutionsEvent.objects.filter(
+                    task=service).order_by('-detected_at', '-event_at').first()
 
             if (event is None) or event.resolved_at:
                 logger.info(f"Found insufficient min concurrency {min_concurrency_found}, creating event")
+
                 # set microseconds to 0 so that formatted date in alert doesn't have fractional seconds
-                current_event = LegacyInsufficientServiceInstancesEvent(
+                current_event = InsufficientServiceTaskExecutionsEvent(
+                    severity=service.notification_event_severity_on_insufficient_instances,
+                    created_by_group=service.created_by_group,
+                    run_environment=service.run_environment,
                     task=service,
-                    interval_start_at=make_aware(datetime.utcfromtimestamp(min_concurrency_found_interval.lower).replace(microsecond=0)),
-                    interval_end_at=make_aware(datetime.utcfromtimestamp(min_concurrency_found_interval.upper).replace(microsecond=0)),
+                    interval_start_at=datetime.fromtimestamp(min_concurrency_found_interval.lower, tz=dt_timezone.utc).replace(microsecond=0),
+                    interval_end_at=datetime.fromtimestamp(min_concurrency_found_interval.upper, tz=dt_timezone.utc).replace(microsecond=0),
                     detected_concurrency=min_concurrency_found,
                     required_concurrency=service.min_service_instance_count,
                     resolved_at=None
                 )
                 current_event.save()
-                self.trigger_or_resolve_alerts(current_event)
+
+                service.send_event_notifications(current_event)
             else:
-                logger.info(f"There already exists a InsufficientServiceInstancesEvent detected at {event.detected_at}, not creating again")
+                logger.info(f"There already exists a InsufficientServiceTaskExecutionsEvent detected at {event.detected_at}, not creating again")
                 # TODO: create event if the last event was old
 
         else:
             logger.info(f"Found sufficient min concurrency {min_concurrency_found} for service {service.uuid}")
 
-            for event in LegacyInsufficientServiceInstancesEvent.objects.filter(task=service,
+            for event in InsufficientServiceTaskExecutionsEvent.objects.filter(task=service,
                     resolved_at__isnull=True):
-                logger.info(f"Resolving InsufficientServiceInstancesEvent {event.uuid} since concurrency is sufficient")
+                logger.info(f"Resolving InsufficientServiceTaskExecutionsEvent {event.uuid} since concurrency is sufficient")
                 event.resolved_at = utc_now
                 event.save()
-                self.trigger_or_resolve_alerts(event)
 
-    def trigger_or_resolve_alerts(self, event):
-        details = LegacyInsufficientServiceInstancesEventSerializer(event,
-            context=context_with_request()).data
+                resolving_event = InsufficientServiceTaskExecutionsEvent(
+                    severity=service.notification_event_severity_on_sufficient_instances_restored,                    
+                    created_by_group=service.created_by_group,
+                    run_environment=service.run_environment,
+                    task=service,
+                    interval_start_at=event.interval_start_at,
+                    interval_end_at=event.interval_end_at,
+                    detected_concurrency=min_concurrency_found,
+                    required_concurrency=event.required_concurrency,
+                    resolved_event=event,
+                    resolved_at=utc_now
+                )
+                resolving_event.save()
 
-        for am in event.task.alert_methods.filter(enabled=True).all():
-
-            is_resolution = (event.resolved_at is not None)
-
-            if is_resolution:
-                severity = DEFAULT_NOTIFICATION_RESOLUTION_SEVERITY
-                summary_template = self.RESOLVED_EVENT_SUMMARY_TEMPLATE
-            else:
-                severity = am.error_severity_on_missing_execution
-                summary_template = self.TRIGGERED_EVENT_SUMMARY_TEMPLATE
-
-            alert = InsufficientServiceInstancesAlert(event=event,
-                                                      alert_method=am)
-            alert.save()
-
-            try:
-                # task_execution is already in details
-                result = am.send(details=details, severity=severity,
-                                 summary_template=summary_template,
-                                 grouping_key=f"insufficient_service_instances-{event.task.uuid}",
-                                 is_resolution=is_resolution)
-                alert.send_result = result
-                alert.send_status = AlertSendStatus.SUCCEEDED
-                alert.completed_at = timezone.now()
-            except Exception as ex:
-                if is_resolution:
-                    logger.exception(
-                        f"Failed to resolve alert for insufficient service instances of Task {event.task.uuid}")
-                else:
-                    logger.exception(
-                        f"Failed to trigger alert for insufficient service instances of Task {event.task.uuid}")
-                alert.send_result = ''
-                alert.send_status = AlertSendStatus.FAILED
-                alert.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
-
-            alert.save()
+                service.send_event_notifications(resolving_event)

@@ -13,5 +13,5 @@ class BasicEventFactory(factory.django.DjangoModelFactory):
 
     created_by_group = factory.SubFactory(GroupFactory)
 
-    severity = Event.SEVERITY_ERROR
+    severity = Event.Severity.ERROR
     error_summary = 'Error'

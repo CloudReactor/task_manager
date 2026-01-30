@@ -36,6 +36,7 @@ type PathParamsType = {
 
 export interface EntityDetailConfig<T extends EntityReference> {
   entityName: string;
+  makeDeletionConfirmationNode?: React.ReactNode | ((entity: T) => React.ReactNode);
   fetchEntity: (uuid: string, abortSignal: AbortSignal) => Promise<T>;
   cloneEntity: (uuid: string, values: any, abortSignal: AbortSignal) => Promise<T>;
   deleteEntity: (uuid: string, abortSignal: AbortSignal) => Promise<void>;
@@ -69,6 +70,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
 
     const {
       entityName,
+      makeDeletionConfirmationNode,
       fetchEntity,
       cloneEntity,
       deleteEntity
@@ -201,17 +203,21 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
 
       const modal = create(AsyncConfirmationModal);
 
-      const rv = await modal({
-        title: `Delete ${entityName}`,
-        confirmLabel: 'Delete',
-        faIconName: 'trash',
-        children: (
+      const resolvedDeletionElement = typeof makeDeletionConfirmationNode === 'function'
+        ? makeDeletionConfirmationNode(entity)
+        : (makeDeletionConfirmationNode ?? (
           <p>
             Are you sure you want to delete the {entityName} &lsquo;{entity.name}&rsquo;?
             All Tasks and Workflows using this {entityName} won&apos;t use
             this {entityName} anymore.
           </p>
-        )
+        ));
+
+      const rv = await modal({
+        title: `Delete ${entityName}`,
+        confirmLabel: 'Delete',
+        faIconName: 'trash',
+        children: resolvedDeletionElement,
       });
 
       if (rv) {

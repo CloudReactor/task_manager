@@ -9,7 +9,7 @@ from .owned_model_factory import OwnedModelFactory
 
 class EmailNotificationProfileFactory(OwnedModelFactory):
     class Meta:
-        model = EmailNotificationProfile
+        model = EmailNotificationProfile        
 
     name = factory.Sequence(lambda n: f'pdp_{n}')
 

@@ -74,15 +74,19 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
     notification_event_severity_on_success = models.PositiveIntegerField(
         null=True, blank=True, default=None)
     notification_event_severity_on_failure = models.PositiveIntegerField(
-        null=True, blank=True, default=Event.SEVERITY_ERROR)
+        null=True, blank=True, default=Event.Severity.ERROR)
     notification_event_severity_on_timeout = models.PositiveIntegerField(
-        null=True, blank=True, default=Event.SEVERITY_ERROR)
+        null=True, blank=True, default=Event.Severity.ERROR)
     notification_event_severity_on_missing_execution = models.PositiveIntegerField(
-        null=True, blank=True, default=Event.SEVERITY_ERROR)
+        null=True, blank=True, default=Event.Severity.ERROR)
     notification_event_severity_on_missing_heartbeat = models.PositiveIntegerField(
-        null=True, blank=True, default=Event.SEVERITY_WARNING)
+        null=True, blank=True, default=Event.Severity.WARNING)
     notification_event_severity_on_service_down = models.PositiveIntegerField(
-        null=True, blank=True, default=Event.SEVERITY_ERROR)
+        null=True, blank=True, default=Event.Severity.ERROR)
+    notification_event_severity_on_insufficient_instances = models.PositiveIntegerField(
+        null=True, blank=True, default=Event.Severity.WARNING)
+    notification_event_severity_on_sufficient_instances_restored = models.PositiveIntegerField(
+        null=True, blank=True, default=Event.Severity.INFO)
 
 
     @property
