@@ -26,7 +26,8 @@ import {
   PagerDutyProfile,
   WorkflowExecutionSummary,
   WorkflowSummary,
-  EmailNotificationProfile
+  EmailNotificationProfile,
+  Event
 } from '../types/domain_types';
 
 import * as C from './constants';
@@ -1024,6 +1025,33 @@ export async function deleteEmailNotificationProfile(uuid: string, abortSignal?:
     'api/v1/email_notification_profiles/' + uuid + '/', {
       signal: abortSignal
     });
+}
+
+// Event API functions
+export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
+  severities?: string[];
+}
+
+export async function fetchEvents(opts?: EventPageFetchOptions): Promise<ResultsPage<Event>> {
+  opts = opts ?? {};
+
+  const {
+    abortSignal
+  } = opts;
+
+  const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
+
+  if (opts.severities && opts.severities.length > 0) {
+    params['severity'] = opts.severities.join(',');
+  }
+
+  const response = await makeAuthenticatedClient().get(
+    'api/v1/events/', {
+      signal: abortSignal,
+      params
+    });
+
+  return response.data as ResultsPage<Event>;
 }
 
 export function makeErrorElement(e: any, fallbackText: string = 'An error occurred'): any {

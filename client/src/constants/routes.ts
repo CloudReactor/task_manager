@@ -13,6 +13,7 @@ export const WORKFLOW = '/workflows/:uuid';
 export const WORKFLOW_EXECUTION = '/workflow_executions/:uuid';
 export const RUN_ENVIRONMENTS = '/run_environments';
 export const RUN_ENVIRONMENT = '/run_environments/:uuid';
+export const EVENTS = '/events';
 export const GROUPS = '/groups';
 export const GROUP = '/groups/:id';
 

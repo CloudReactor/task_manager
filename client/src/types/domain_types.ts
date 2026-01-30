@@ -954,6 +954,7 @@ export interface Event extends NamelessEntityReference, Timestamped {
   event_at: Date;
   detected_at: Date | null;
   severity: string;
+  event_type: string;
   error_summary: string | null;
   error_details_message: string | null;
   source: string | null;
@@ -962,6 +963,11 @@ export interface Event extends NamelessEntityReference, Timestamped {
   resolved_at: Date | null;
   resolved_event: NamelessEntityReference | null;
   created_by_group: GroupReference | null;
+  run_environment: EntityReference | null;
+  task?: EntityReference;
+  workflow?: EntityReference;
+  task_execution?: NamelessEntityReference;
+  workflow_execution?: NamelessEntityReference;
 }
 
 // Notification corresponds to the backend Notification model

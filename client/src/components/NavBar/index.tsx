@@ -111,6 +111,10 @@ const NavBar = (p: Props) => {
           <Link to={path.RUN_ENVIRONMENTS} className="nav-link">
               Run Environments
           </Link>
+
+          <Link to={path.EVENTS} className="nav-link">
+              Events
+          </Link>
         </Nav>
       </Navbar.Collapse>
 

@@ -1,0 +1,59 @@
+import React from 'react';
+
+interface Props {
+  sortBy: string;
+  descending: boolean;
+  onSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
+}
+
+const EventTableHeader = (props: Props) => {
+  const {
+    sortBy,
+    descending,
+    onSortChanged
+  } = props;
+
+  const handleSortClick = (field: string) => {
+    onSortChanged(field, true);
+  };
+
+  const renderSortIcon = (field: string) => {
+    if (sortBy === field) {
+      return descending ? ' ▼' : ' ▲';
+    }
+    return '';
+  };
+
+  return (
+    <thead>
+      <tr>
+        <th 
+          onClick={() => handleSortClick('event_at')}
+          style={{ cursor: 'pointer' }}
+        >
+          Event Time{renderSortIcon('event_at')}
+        </th>
+        <th 
+          onClick={() => handleSortClick('severity')}
+          style={{ cursor: 'pointer' }}
+        >
+          Severity{renderSortIcon('severity')}
+        </th>
+        <th>Event Type</th>
+        <th>Summary</th>
+        <th>Source</th>
+        <th>Run Environment</th>
+        <th 
+          onClick={() => handleSortClick('detected_at')}
+          style={{ cursor: 'pointer' }}
+        >
+          Detected At{renderSortIcon('detected_at')}
+        </th>
+        <th>Task/Workflow</th>
+        <th>Execution</th>
+      </tr>
+    </thead>
+  );
+};
+
+export default EventTableHeader;
