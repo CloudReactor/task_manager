@@ -20,11 +20,13 @@ import { transformSearchParams, updateSearchParams } from '../../../utils/url_se
 import Loading from '../../../components/Loading';
 import EventTable from '../../../components/EventList/EventTable';
 
-interface Props extends AbortSignalProps {
+interface Props {
   runEnvironment: RunEnvironment;
 }
 
-const RunEnvironmentEventsTab = (props: Props) => {
+type InnerProps = Props & AbortSignalProps;
+
+const RunEnvironmentEventsTab = (props: InnerProps) => {
   const {
     runEnvironment,
     abortSignal
@@ -81,7 +83,7 @@ const RunEnvironmentEventsTab = (props: Props) => {
         sortBy: finalOrdering,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
-        abortSignal: updatedLoadEventsAbortController.signal
+        abortSignal
       });
 
       setEventPage(fetchedPage);

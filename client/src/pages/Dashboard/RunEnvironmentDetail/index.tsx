@@ -45,11 +45,11 @@ const RunEnvironmentDetail = makeEntityDetailComponent<RunEnvironment, Props>(
           {(() => {
             switch (selectedTab) {
               case 'events':
-                return <RunEnvironmentEventsTab runEnvironment={props.entity} />;
+                return <RunEnvironmentEventsTab runEnvironment={props.entity}  />;
               case 'settings':
               default:
                 return (
-                  <RunEnvironmentSettingsTab 
+                  <RunEnvironmentSettingsTab
                     runEnvironment={props.entity}
                     onSaveStarted={props.onSaveStarted}
                     onSaveSuccess={props.onSaveSuccess}
