@@ -51,7 +51,7 @@ interface Props {
 const TaskTable = (props: Props) => (
   <Fragment key="taskTable">
     <div>
-      <Form inline>
+      <Form inline className={styles.filterForm}>
         <Form.Group>
           <Form.Label className="mr-3">Run Environment:</Form.Label>
           <RunEnvironmentSelector
