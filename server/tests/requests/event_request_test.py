@@ -712,7 +712,7 @@ def test_event_filtering_by_severity(
         basic_event_factory,
         api_client) -> None:
     """
-    Test that events can be filtered by severity.
+    Test that events can be filtered by severity using both numeric values and labels.
     """
     user = user_factory()
     group = user.groups.first()
@@ -730,23 +730,40 @@ def test_event_filtering_by_severity(
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_run_environment=None)
 
-    # Filter by ERROR severity
+    # Filter by ERROR severity using numeric value
     response = client.get('/api/v1/events/', {'severity': Event.Severity.ERROR.value})
     assert response.status_code == 200
     assert response.data['count'] == 1
     assert response.data['results'][0]['uuid'] == str(error_event.uuid)
 
-    # Filter by WARNING severity
-    response = client.get('/api/v1/events/', {'severity': Event.Severity.WARNING.value})
+    # Filter by ERROR severity using label (lowercase)
+    response = client.get('/api/v1/events/', {'severity': 'error'})
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['uuid'] == str(error_event.uuid)
+
+    # Filter by ERROR severity using label (uppercase)
+    response = client.get('/api/v1/events/', {'severity': 'ERROR'})
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['uuid'] == str(error_event.uuid)
+
+    # Filter by WARNING severity using label
+    response = client.get('/api/v1/events/', {'severity': 'warning'})
     assert response.status_code == 200
     assert response.data['count'] == 1
     assert response.data['results'][0]['uuid'] == str(warning_event.uuid)
 
-    # Filter by INFO severity
-    response = client.get('/api/v1/events/', {'severity': Event.Severity.INFO.value})
+    # Filter by INFO severity using label
+    response = client.get('/api/v1/events/', {'severity': 'info'})
     assert response.status_code == 200
     assert response.data['count'] == 1
     assert response.data['results'][0]['uuid'] == str(info_event.uuid)
+
+    # Filter by invalid severity label should return no results
+    response = client.get('/api/v1/events/', {'severity': 'invalid'})
+    assert response.status_code == 200
+    assert response.data['count'] == 0
 
 
 @pytest.mark.django_db
@@ -978,3 +995,188 @@ def test_missing_scheduled_workflow_execution_event_serialization_deserializatio
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     )
 
+
+@pytest.mark.django_db
+def test_task_execution_status_change_event_serialization_deserialization(
+        user_factory, group_factory, task_factory, task_execution_factory,
+        task_execution_status_change_event_factory,
+        api_client) -> None:
+    """
+    Test that TaskExecutionStatusChangeEvent can be properly serialized and deserialized.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create a Task and TaskExecution
+    task = task_factory(created_by_group=group)
+    task_execution = task_execution_factory(task=task, status=TaskExecution.Status.SUCCEEDED)
+
+    # Create a TaskExecutionStatusChangeEvent using factory
+    status_event = task_execution_status_change_event_factory(
+        created_by_group=group,
+        task=task,
+        task_execution=task_execution,
+        status=TaskExecution.Status.SUCCEEDED,
+        severity=Event.Severity.INFO.value
+    )
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test retrieve endpoint
+    response = client.get(f'/api/v1/events/{status_event.uuid}/')
+    assert response.status_code == 200
+    
+    # Verify event_type
+    assert response.data['event_type'] == 'task_execution_status_change_event'
+    
+    # Verify status change-specific fields
+    assert 'task' in response.data
+    assert 'task_execution' in response.data
+    assert 'status' in response.data
+    
+    # Verify the task and task execution references
+    assert response.data['task']['uuid'] == str(task.uuid)
+    assert response.data['task_execution']['uuid'] == str(task_execution.uuid)
+    
+    # Verify status value (serialized as string name)
+    assert response.data['status'] == 'SUCCEEDED'
+    
+    # Verify serialization matches expected format
+    ensure_serialized_event_valid(
+        response.data,
+        status_event,
+        user,
+        UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+        UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
+    )
+
+
+@pytest.mark.django_db
+def test_workflow_execution_status_change_event_serialization_deserialization(
+        user_factory, group_factory, workflow_factory, workflow_execution_factory,
+        workflow_execution_status_change_event_factory,
+        api_client) -> None:
+    """
+    Test that WorkflowExecutionStatusChangeEvent can be properly serialized and deserialized.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create a Workflow and WorkflowExecution
+    workflow = workflow_factory(created_by_group=group)
+    workflow_execution = workflow_execution_factory(workflow=workflow, 
+            status=WorkflowExecution.Status.SUCCEEDED)
+
+    # Create a WorkflowExecutionStatusChangeEvent using factory
+    status_event = workflow_execution_status_change_event_factory(
+        created_by_group=group,
+        workflow=workflow,
+        workflow_execution=workflow_execution,
+        status=WorkflowExecution.Status.SUCCEEDED,
+        severity=Event.Severity.INFO.value
+    )
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test retrieve endpoint
+    response = client.get(f'/api/v1/events/{status_event.uuid}/')
+    assert response.status_code == 200
+    
+    # Verify event_type
+    assert response.data['event_type'] == 'workflow_execution_status_change_event'
+    
+    # Verify status change-specific fields
+    assert 'workflow' in response.data
+    assert 'workflow_execution' in response.data
+    assert 'status' in response.data
+    
+    # Verify the workflow and workflow execution references
+    assert response.data['workflow']['uuid'] == str(workflow.uuid)
+    assert response.data['workflow_execution']['uuid'] == str(workflow_execution.uuid)
+    
+    # Verify status value (serialized as string name)
+    assert response.data['status'] == 'SUCCEEDED'
+    
+    # Verify serialization matches expected format
+    ensure_serialized_event_valid(
+        response.data,
+        status_event,
+        user,
+        UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+        UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
+    )
+
+
+@pytest.mark.django_db
+def test_insufficient_service_task_executions_event_serialization_deserialization(
+        user_factory, group_factory, task_factory, run_environment_factory,
+        insufficient_service_task_executions_event_factory,
+        api_client) -> None:
+    """
+    Test that InsufficientServiceTaskExecutionsEvent can be properly serialized and deserialized.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create a Task and RunEnvironment
+    run_environment = run_environment_factory(created_by_group=group)
+    task = task_factory(created_by_group=group, run_environment=run_environment)
+
+    # Create an InsufficientServiceTaskExecutionsEvent using factory
+    insufficient_event = insufficient_service_task_executions_event_factory(
+        created_by_group=group,
+        task=task,
+        run_environment=run_environment,
+        required_concurrency=3,
+        detected_concurrency=1,
+        severity=Event.Severity.WARNING.value
+    )
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test retrieve endpoint
+    response = client.get(f'/api/v1/events/{insufficient_event.uuid}/')
+    assert response.status_code == 200
+    
+    # Verify event_type
+    assert response.data['event_type'] == 'insufficient_service_task_executions_event'
+    
+    # Verify insufficient service-specific fields
+    assert 'task' in response.data
+    assert 'run_environment' in response.data
+    assert 'required_concurrency' in response.data
+    assert 'detected_concurrency' in response.data
+    
+    # Verify the task reference
+    assert response.data['task']['uuid'] == str(task.uuid)
+    
+    # Verify concurrency values
+    assert response.data['required_concurrency'] == 3
+    assert response.data['detected_concurrency'] == 1
+    
+    # Verify serialization matches expected format
+    ensure_serialized_event_valid(
+        response.data,
+        insufficient_event,
+        user,
+        UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+        UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
+    )

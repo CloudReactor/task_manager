@@ -2,10 +2,11 @@ import logging
 from typing import override
 from urllib.request import Request
 
+from django.db.models import Q
 from django.views import View
 
 from django_filters import rest_framework as filters
-from django_filters.filters import NumberFilter
+from django_filters.filters import NumberFilter, CharFilter
 
 from rest_framework import permissions
 
@@ -39,8 +40,32 @@ class EventPermission(IsCreatedByGroup):
 class EventFilter(filters.FilterSet):
     created_by_group__id = NumberFilter()
 
-    # CHECKME: should this be a ChoiceFilter?
-    severity = NumberFilter()
+    severity = CharFilter(method='filter_severity')
+
+    def filter_severity(self, queryset, name, value):
+        """
+        Filter severity by label (e.g., 'error', 'warning') or numeric value.
+        Accepts severity labels like 'error', 'warning', 'info', etc. (case-insensitive)
+        or numeric values.
+        """
+        if not value:
+            return queryset
+        
+        # Try to parse as integer first
+        try:
+            severity_int = int(value)
+            return queryset.filter(severity=severity_int)
+        except ValueError:
+            pass
+        
+        # Try to parse as severity label
+        try:
+            severity_enum = Event.Severity[value.upper()]
+            return queryset.filter(severity=severity_enum.value)
+        except KeyError:
+            # Invalid severity label, return empty queryset
+            logger.warning(f"Invalid severity filter value: {value}")
+            return queryset.none()
 
     class Meta:
         model = Event
