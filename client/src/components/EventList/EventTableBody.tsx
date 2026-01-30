@@ -13,6 +13,8 @@ interface Props {
   rowsPerPage: number;
   handlePageChanged: (currentPage: number) => void;
   handleSelectItemsPerPage: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  showRunEnvironmentColumn?: boolean;
+  showTaskWorkflowColumn?: boolean;
 }
 
 const EventTableBody = (props: Props) => {
@@ -21,7 +23,9 @@ const EventTableBody = (props: Props) => {
     currentPage,
     rowsPerPage,
     handlePageChanged,
-    handleSelectItemsPerPage
+    handleSelectItemsPerPage,
+    showRunEnvironmentColumn = true,
+    showTaskWorkflowColumn = true
   } = props;
 
   const formatTimestamp = (timestamp: Date | null) => {
@@ -108,21 +112,21 @@ const EventTableBody = (props: Props) => {
           <td>{formatEventType(event.event_type)}</td>
           <td>{event.error_summary || '-'}</td>
           <td>{event.source || '-'}</td>
-          <td>{event.run_environment?.name || '-'}</td>
+          {showRunEnvironmentColumn && <td>{event.run_environment?.name || '-'}</td>}
           <td>{formatTimestamp(event.detected_at)}</td>
-          <td>{renderTaskOrWorkflow(event)}</td>
+          {showTaskWorkflowColumn && <td>{renderTaskOrWorkflow(event)}</td>}
           <td>{renderExecution(event)}</td>
         </tr>
       ))}
       {eventPage.results.length === 0 && (
         <tr>
-          <td colSpan={9} className="text-center">
+          <td colSpan={9 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)} className="text-center">
             No events found
           </td>
         </tr>
       )}
       <tr>
-        <td colSpan={9}>
+        <td colSpan={9 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)}>
           <DefaultPagination
             currentPage={currentPage}
             pageSize={rowsPerPage}

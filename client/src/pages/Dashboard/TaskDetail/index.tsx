@@ -48,6 +48,7 @@ import TaskNotificationsTab from '../../../components/TaskNotificationMethods/Ta
 import TaskSettings from '../../../components/TaskSettings/TaskSettings';
 import TaskLinks from '../../../components/TaskLinks/TaskLinks';
 import TaskSummary from '../../../components/TaskSummary/TaskSummary';
+import TaskEventsTab from './TaskEventsTab';
 
 import DefaultPagination from '../../../components/Pagination/Pagination';
 import ConfigModalContainer from '../../../components/ConfigModal/ConfigModalContainer';
@@ -326,7 +327,7 @@ const TaskDetail = ({
   const isStartAllowed = !!accessLevel && (accessLevel >= C.ACCESS_LEVEL_TASK);
   const isMutationAllowed = accessLevel && (accessLevel >= C.ACCESS_LEVEL_DEVELOPER);
 
-  const navItems = ['Executions', 'Settings', 'Notifications'];
+  const navItems = ['Executions', 'Settings', 'Notifications', 'Events'];
 
   return (
     <div className={styles.container}>
@@ -395,6 +396,8 @@ const TaskDetail = ({
                     return <TaskSettings task={task} runEnvironment={runEnvironment ?? undefined} />;
                   case 'notifications':
                     return <TaskNotificationsTab task={task} onTaskSaved={handleTaskSubmitted} />;
+                  case 'events':
+                    return <TaskEventsTab task={task} />;
                   default: {
                     const {
                       selectedStatuses,

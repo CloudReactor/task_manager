@@ -27,6 +27,7 @@ import WorkflowNotificationMethodsTab from './WorkflowNotificationMethodsTab';
 import WorkflowNotificationProfilesTab from './WorkflowNotificationProfilesTab';
 import WorkflowGraphTab from './WorkflowGraphTab';
 import WorkflowSettingsTab from './WorkflowSettingsTab';
+import WorkflowEventsTab from './WorkflowEventsTab';
 
 
 import styles from './WorkflowEditor.module.scss';
@@ -47,6 +48,7 @@ const WorkflowEditor: React.FC<React.PropsWithChildren<Props>> = (props) => {
   const [isSaving, setIsSaving] = useState(false);
   const [flashBody, setFlashBody] = useState<any>();
   const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>();
+  const [abortController] = useState(() => new AbortController());
 
   const workflowSchema = Yup.object().shape({
     name: Yup.string().max(200).required(),
@@ -183,6 +185,10 @@ const WorkflowEditor: React.FC<React.PropsWithChildren<Props>> = (props) => {
                 <Tab eventKey="notification_methods" title="Notification Methods (legacy)"
                  className={styles.tabContainer}>
                   <WorkflowNotificationMethodsTab formikProps={formikProps} />
+                </Tab>
+                <Tab eventKey="events" title="Events"
+                 className={styles.tabContainer}>
+                  <WorkflowEventsTab workflow={workflow} abortSignal={abortController.signal} />
                 </Tab>
               </Tabs>
             </Form>

@@ -4,13 +4,17 @@ interface Props {
   sortBy: string;
   descending: boolean;
   onSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
+  showRunEnvironmentColumn?: boolean;
+  showTaskWorkflowColumn?: boolean;
 }
 
 const EventTableHeader = (props: Props) => {
   const {
     sortBy,
     descending,
-    onSortChanged
+    onSortChanged,
+    showRunEnvironmentColumn = true,
+    showTaskWorkflowColumn = true
   } = props;
 
   const handleSortClick = (field: string) => {
@@ -42,14 +46,14 @@ const EventTableHeader = (props: Props) => {
         <th>Event Type</th>
         <th>Summary</th>
         <th>Source</th>
-        <th>Run Environment</th>
+        {showRunEnvironmentColumn && <th>Run Environment</th>}
         <th 
           onClick={() => handleSortClick('detected_at')}
           style={{ cursor: 'pointer' }}
         >
           Detected At{renderSortIcon('detected_at')}
         </th>
-        <th>Task/Workflow</th>
+        {showTaskWorkflowColumn && <th>Task/Workflow</th>}
         <th>Execution</th>
       </tr>
     </thead>

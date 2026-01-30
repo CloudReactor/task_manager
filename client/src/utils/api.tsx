@@ -1030,6 +1030,8 @@ export async function deleteEmailNotificationProfile(uuid: string, abortSignal?:
 // Event API functions
 export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnvironmentOptions {
   severities?: string[];
+  taskUuid?: string;
+  workflowUuid?: string;
 }
 
 export async function fetchEvents(opts?: EventPageFetchOptions): Promise<ResultsPage<Event>> {
@@ -1043,6 +1045,14 @@ export async function fetchEvents(opts?: EventPageFetchOptions): Promise<Results
 
   if (opts.severities && opts.severities.length > 0) {
     params['severity'] = opts.severities.join(',');
+  }
+
+  if (opts.taskUuid) {
+    params['task__uuid'] = opts.taskUuid;
+  }
+
+  if (opts.workflowUuid) {
+    params['workflow__uuid'] = opts.workflowUuid;
   }
 
   const response = await makeAuthenticatedClient().get(
