@@ -16,6 +16,7 @@ import {
 
 import {
   NotificationMethod,
+  NotificationProfile,
   RunEnvironment,
   makeNewRunEnvironment
 } from '../../types/domain_types';
@@ -52,6 +53,7 @@ import FormikErrorsSummary from '../common/FormikErrorsSummary';
 import CustomButton from '../common/Button/CustomButton';
 
 import NotificationMethodSelector from '../common/NotificationMethodSelector';
+import NotificationProfileSelector from '../common/NotificationProfileSelector';
 
 import SettingsForm from '../../components/forms/SettingsForm';
 import styles from './index.module.scss';
@@ -471,11 +473,44 @@ const RunEnvironmentEditor = ({
                 runEnvironment && (
                   <div className={styles.formSection}>
                     <div className={styles.sectionTitle}>
-                      Notifications
+                      Notification Profiles
+                    </div>
+                    <div>
+                      <FormGroup controlId="forNotificationProfiles">
+                        <FormLabel>Select the default Notification Profiles for Tasks & Workflows created in this Run Environment</FormLabel>
+                        <FieldArray name="notification_profiles" render={arrayHelpers => {
+                          return (
+                            <NotificationProfileSelector
+                              entityTypeLabel="Run Environment"
+                              runEnvironmentUuid={runEnvironment?.uuid}
+                              selectedNotificationProfileUuids={(values.notification_profiles ?? []).map((np: any) => np.uuid)}
+                              onSelectedNotificationProfilesChanged={(notificationProfiles: NotificationProfile[]) => {
+                                let removed: (NotificationProfile | undefined);
+                                do {
+                                  removed = arrayHelpers.remove(0);
+                                } while (removed);
+                                notificationProfiles.forEach(np => {
+                                  arrayHelpers.push({ uuid: np.uuid });
+                                });
+                              }}
+                            />
+                          );
+                        }}/>
+                      </FormGroup>
+                    </div>
+                  </div>
+                )
+              }
+
+              {
+                runEnvironment && (
+                  <div className={styles.formSection}>
+                    <div className={styles.sectionTitle}>
+                      Notification Methods (legacy)
                     </div>
                     <div>
                       <FormGroup controlId="forNotifications">
-                        <FormLabel>Select default Notification Methods for Tasks & Workflows created in this Run Environment</FormLabel>
+                        <FormLabel>Select the default Notification Methods for Tasks & Workflows created in this Run Environment</FormLabel>
                         <FieldArray name="default_alert_methods" render={arrayHelpers => {
                           return (
                             <NotificationMethodSelector

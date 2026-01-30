@@ -23,7 +23,9 @@ const RunEnvironmentDetail = makeEntityDetailComponent<RunEnvironment, Props>(
       <RunEnvironmentEditor runEnvironment={props.entity ?? undefined}
         onSaveStarted={props.onSaveStarted}
         onSaveSuccess={props.onSaveSuccess}
-        onSaveError={props.onSaveError} />
+        onSaveError={props.onSaveError} 
+        debugMode={true}
+        />
     );
   }, {
     entityName: 'Run Environment',

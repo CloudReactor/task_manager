@@ -397,6 +397,7 @@ export interface RunEnvironment extends TrackedEntityReference, Described {
     [key: string]: NamedExecutionMethodSettings<any> | undefined;
   };
   default_alert_methods: EntityReference[];
+  notification_profiles: EntityReference[];
   [propName: string]: any;
 }
 
