@@ -55,6 +55,10 @@ const EventList = lazy(() =>
   import('./EventList')
 );
 
+const EventDetail = lazy(() =>
+  import('./EventDetail')
+);
+
 const GroupList = lazy(() =>
   import('./Group')
 );
@@ -146,6 +150,7 @@ const Dashboard = (p: Props) => {
             <Route path={path.RUN_ENVIRONMENTS} element={ <RunEnvironmentList /> } />
             <Route path={path.RUN_ENVIRONMENT} element={ <RunEnvironmentDetail /> } />
             <Route path={path.EVENTS} element={ <EventList /> } />
+            <Route path={path.EVENT} element={ <EventDetail /> } />
             <Route path={path.GROUPS} element={ <GroupList /> } />
             <Route path={path.GROUP} element={ <GroupEditor /> } />
             <Route path={path.EMAIL_NOTIFICATION_PROFILES} element={ <EmailNotificationProfileList /> } />

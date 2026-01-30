@@ -968,11 +968,92 @@ export interface Event extends NamelessEntityReference, Timestamped {
   resolved_event: NamelessEntityReference | null;
   created_by_group: GroupReference | null;
   run_environment: EntityReference | null;
+}
+
+// Subclasses corresponding to backend TypedModel subclasses
+export interface ExecutionStatusChangeEvent extends Event {
+  status?: number | null;
+  postponed_until?: Date | null;
+  count_with_same_status_after_postponement?: number | null;
+  count_with_success_status_after_postponement?: number | null;
+  triggered_at?: Date | null;
+}
+
+export interface TaskExecutionStatusChangeEvent extends ExecutionStatusChangeEvent {
   task?: EntityReference;
-  workflow?: EntityReference;
   task_execution?: NamelessEntityReference;
+}
+
+export interface WorkflowExecutionStatusChangeEvent extends ExecutionStatusChangeEvent {
+  workflow?: EntityReference;
   workflow_execution?: NamelessEntityReference;
 }
+
+export interface MissingHeartbeatDetectionEvent extends Event {
+  task?: EntityReference;
+  task_execution?: NamelessEntityReference;
+  last_heartbeat_at?: Date | null;
+  expected_heartbeat_at?: Date | null;
+  heartbeat_interval_seconds?: number | null;
+}
+
+export interface InsufficientServiceTaskExecutionsEvent extends Event {
+  task?: EntityReference;
+  interval_start_at?: Date | null;
+  interval_end_at?: Date | null;
+  detected_concurrency?: number | null;
+  required_concurrency?: number | null;
+}
+
+export interface MissingScheduledTaskExecutionEvent extends Event {
+  task?: EntityReference;
+  schedule?: string | null;
+  expected_execution_at?: Date | null;
+}
+
+export interface MissingScheduledWorkflowExecutionEvent extends Event {
+  workflow?: EntityReference;
+  schedule?: string | null;
+  expected_execution_at?: Date | null;
+}
+
+export interface BasicEvent extends Event {}
+
+export type AnyEvent =
+  | BasicEvent
+  | ExecutionStatusChangeEvent
+  | TaskExecutionStatusChangeEvent
+  | WorkflowExecutionStatusChangeEvent
+  | MissingHeartbeatDetectionEvent
+  | InsufficientServiceTaskExecutionsEvent
+  | MissingScheduledTaskExecutionEvent
+  | MissingScheduledWorkflowExecutionEvent
+  | Event;
+
+export const castEvent = (ev: any): AnyEvent => {
+  if (!ev || !ev.event_type) {
+    return ev as Event;
+  }
+  const key = (ev.event_type || '').toString().toLowerCase();
+
+  const casterMap: { [k: string]: (e: any) => AnyEvent } = {
+    'task_execution_status_change_event': (e) => e as TaskExecutionStatusChangeEvent,
+    'workflow_execution_status_change_event': (e) => e as WorkflowExecutionStatusChangeEvent,
+    'missing_heartbeat_detection_event': (e) => e as MissingHeartbeatDetectionEvent,
+    'missing_scheduled_task_execution_event': (e) => e as MissingScheduledTaskExecutionEvent,
+    'missing_scheduled_workflow_execution_event': (e) => e as MissingScheduledWorkflowExecutionEvent,
+    'insufficient_service_task_executions_event': (e) => e as InsufficientServiceTaskExecutionsEvent,
+    'basic_event': (e) => e as BasicEvent,
+    'execution_status_change_event': (e) => e as ExecutionStatusChangeEvent,
+  };
+
+  const caster = casterMap[key];
+  if (caster) {
+    return caster(ev);
+  }
+
+  return ev as Event;
+};
 
 // Notification corresponds to the backend Notification model
 export interface Notification extends NamelessEntityReference {

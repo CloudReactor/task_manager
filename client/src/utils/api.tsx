@@ -1036,7 +1036,7 @@ export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnviron
   workflowUuid?: string;
 }
 
-export async function fetchEvents(opts?: EventPageFetchOptions): Promise<ResultsPage<Event>> {
+export async function fetchEvents(opts?: EventPageFetchOptions): Promise<ResultsPage<import('../types/domain_types').AnyEvent>> {
   opts = opts ?? {};
 
   const {
@@ -1071,7 +1071,34 @@ export async function fetchEvents(opts?: EventPageFetchOptions): Promise<Results
       params
     });
 
-  return response.data as ResultsPage<Event>;
+  const page = response.data as ResultsPage<any>;
+  // Cast each result to the appropriate subclass where possible
+  try {
+    // Import cast helper lazily to avoid circular deps
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { castEvent } = require('../types/domain_types');
+    page.results = page.results.map((r: any) => castEvent(r));
+  } catch (e) {
+    // ignore and return raw
+  }
+
+  return page as ResultsPage<import('../types/domain_types').AnyEvent>;
+}
+
+export async function fetchEvent(uuid: string, abortSignal?: AbortSignal): Promise<import('../types/domain_types').AnyEvent> {
+  const response = await makeAuthenticatedClient().get(
+    `api/v1/events/${encodeURIComponent(uuid)}/`, {
+      signal: abortSignal
+    }
+  );
+  const raw = response.data as any;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { castEvent } = require('../types/domain_types');
+    return castEvent(raw) as import('../types/domain_types').AnyEvent;
+  } catch (e) {
+    return raw as import('../types/domain_types').AnyEvent;
+  }
 }
 
 export function makeErrorElement(e: any, fallbackText: string = 'An error occurred'): any {

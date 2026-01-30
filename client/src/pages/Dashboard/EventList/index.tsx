@@ -1,7 +1,7 @@
 import { AxiosError, isCancel } from 'axios';
 
 import {
-  Event, RunEnvironment
+  AnyEvent, RunEnvironment
 } from '../../../types/domain_types';
 
 import {
@@ -35,7 +35,7 @@ const EventList = (props: AbortSignalProps) => {
   const [areEventsLoading, setAreEventsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [eventPage, setEventPage] = useState(
-    makeEmptyResultsPage<Event>());
+    makeEmptyResultsPage<AnyEvent>());
 
   const [loadEventsAbortController, setLoadEventsAbortController] = useState<AbortController | null>(null);
 

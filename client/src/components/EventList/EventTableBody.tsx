@@ -2,13 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
 
-import { Event } from '../../types/domain_types';
+import { AnyEvent } from '../../types/domain_types';
 import { ResultsPage, itemsPerPageOptions } from '../../utils/api';
 
 import DefaultPagination from '../Pagination/Pagination';
 
 interface Props {
-  eventPage: ResultsPage<Event>;
+  eventPage: ResultsPage<AnyEvent>;
   currentPage: number;
   rowsPerPage: number;
   handlePageChanged: (currentPage: number) => void;
@@ -44,36 +44,38 @@ const EventTableBody = (props: Props) => {
       .join(' ');
   };
 
-  const renderTaskOrWorkflow = (event: Event) => {
-    if (event.task) {
+  const renderTaskOrWorkflow = (event: AnyEvent) => {
+    const eAny = event as any;
+    if (eAny.task) {
       return (
-        <Link to={`/tasks/${event.task.uuid}`}>
-          {event.task.name}
+        <Link to={`/tasks/${eAny.task.uuid}`}>
+          {eAny.task.name}
         </Link>
       );
     }
-    if (event.workflow) {
+    if (eAny.workflow) {
       return (
-        <Link to={`/workflows/${event.workflow.uuid}`}>
-          {event.workflow.name}
+        <Link to={`/workflows/${eAny.workflow.uuid}`}>
+          {eAny.workflow.name}
         </Link>
       );
     }
     return '-';
   };
 
-  const renderExecution = (event: Event) => {
-    if (event.task_execution) {
+  const renderExecution = (event: AnyEvent) => {
+    const eAny = event as any;
+    if (eAny.task_execution) {
       return (
-        <Link to={`/task_executions/${event.task_execution.uuid}`}>
-          {event.task_execution.uuid}
+        <Link to={`/task_executions/${eAny.task_execution.uuid}`}>
+          {eAny.task_execution.uuid}
         </Link>
       );
     }
-    if (event.workflow_execution) {
+    if (eAny.workflow_execution) {
       return (
-        <Link to={`/workflow_executions/${event.workflow_execution.uuid}`}>
-          {event.workflow_execution.uuid}
+        <Link to={`/workflow_executions/${eAny.workflow_execution.uuid}`}>
+          {eAny.workflow_execution.uuid}
         </Link>
       );
     }
@@ -101,9 +103,13 @@ const EventTableBody = (props: Props) => {
 
   return (
     <tbody>
-      {eventPage.results.map((event: Event) => (
+      {eventPage.results.map((event: AnyEvent) => (
         <tr key={event.uuid}>
-          <td>{formatTimestamp(event.event_at)}</td>
+          <td>
+            <Link to={`/events/${event.uuid}`}>
+              {formatTimestamp(event.event_at)}
+            </Link>
+          </td>
           <td>
             <span className={getSeverityBadgeClass(event.severity)}>
               {event.severity.toUpperCase()}

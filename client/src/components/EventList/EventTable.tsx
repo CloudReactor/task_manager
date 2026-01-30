@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 
-import { Event, RunEnvironment } from '../../types/domain_types';
+import { AnyEvent, RunEnvironment } from '../../types/domain_types';
 import { ResultsPage } from '../../utils/api';
 
 import "../../styles/tableStyles.scss";
@@ -21,7 +21,7 @@ interface Props {
   q?: string;
   sortBy: string;
   descending: boolean;
-  eventPage: ResultsPage<Event>;
+  eventPage: ResultsPage<AnyEvent>;
   currentPage: number;
   rowsPerPage: number;
   runEnvironments?: RunEnvironment[];
@@ -73,13 +73,13 @@ const EventTable = (props: Props) => {
   ];
 
   // Filter max severity options based on selected min severity
-  const maxSeverityOptions = minSeverity && minSeverity !== '' 
+  const maxSeverityOptions = minSeverity && minSeverity !== ''
     ? (() => {
         const minOption = severityOptions.find(opt => opt.value === minSeverity);
         if (minOption && minOption.numericValue !== undefined) {
           return [
             { value: '', label: 'Any' },
-            ...severityOptions.filter(opt => 
+            ...severityOptions.filter(opt =>
               opt.numericValue !== undefined && opt.numericValue >= minOption.numericValue
             )
           ];
