@@ -1275,3 +1275,38 @@ def validate_serialized_workflow_execution(body_workflow_execution: dict[str, An
     else:
         body_workflow_execution['killed_by'] == model_workflow_execution \
                 .killed_by.username
+
+
+def ensure_serialized_event_valid(response_dict: dict[str, Any],
+        event: Event, user: User,
+        group_access_level: int,
+        api_key_access_level: Optional[int] = None,
+        api_key_run_environment: Optional[RunEnvironment] = None) -> None:
+    context = context_with_authenticated_request(user=user,
+            group=event.created_by_group,
+            api_key_access_level=api_key_access_level,
+            api_key_run_environment=api_key_run_environment)
+
+    access_level = group_access_level
+    if api_key_access_level is not None:
+        access_level = min(access_level, api_key_access_level)
+
+    # Use the appropriate serializer based on event type
+    if isinstance(event, TaskExecutionStatusChangeEvent):
+        serializer_class = TaskExecutionStatusChangeEventSerializer
+    elif isinstance(event, WorkflowExecutionStatusChangeEvent):
+        serializer_class = WorkflowExecutionStatusChangeEventSerializer
+    elif isinstance(event, InsufficientServiceTaskExecutionsEvent):
+        serializer_class = InsufficientServiceTaskExecutionsEventSerializer
+    elif isinstance(event, MissingHeartbeatDetectionEvent):
+        serializer_class = MissingHeartbeatDetectionEventSerializer
+    elif isinstance(event, MissingScheduledTaskExecutionEvent):
+        serializer_class = MissingScheduledTaskExecutionEventSerializer
+    elif isinstance(event, MissingScheduledWorkflowExecutionEvent):
+        serializer_class = MissingScheduledWorkflowExecutionEventSerializer
+    elif isinstance(event, BasicEvent):
+        serializer_class = BasicEventSerializer
+    else:
+        serializer_class = EventSerializer
+
+    assert response_dict == serializer_class(event, context=context).data
