@@ -114,19 +114,20 @@ const EventTableBody = (props: Props) => {
           <td>{event.source || '-'}</td>
           {showRunEnvironmentColumn && <td>{event.run_environment?.name || '-'}</td>}
           <td>{formatTimestamp(event.detected_at)}</td>
+          <td>{formatTimestamp(event.resolved_at)}</td>
           {showTaskWorkflowColumn && <td>{renderTaskOrWorkflow(event)}</td>}
           <td>{renderExecution(event)}</td>
         </tr>
       ))}
       {eventPage.results.length === 0 && (
         <tr>
-          <td colSpan={9 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)} className="text-center">
+          <td colSpan={10 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)} className="text-center">
             No events found
           </td>
         </tr>
       )}
       <tr>
-        <td colSpan={9 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)}>
+        <td colSpan={10 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)}>
           <DefaultPagination
             currentPage={currentPage}
             pageSize={rowsPerPage}

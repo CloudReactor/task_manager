@@ -31,13 +31,13 @@ const EventTableHeader = (props: Props) => {
   return (
     <thead>
       <tr>
-        <th 
+        <th
           onClick={() => handleSortClick('event_at')}
           style={{ cursor: 'pointer' }}
         >
           Event Time{renderSortIcon('event_at')}
         </th>
-        <th 
+        <th
           onClick={() => handleSortClick('severity')}
           style={{ cursor: 'pointer' }}
         >
@@ -47,11 +47,17 @@ const EventTableHeader = (props: Props) => {
         <th>Summary</th>
         <th>Source</th>
         {showRunEnvironmentColumn && <th>Run Environment</th>}
-        <th 
+        <th
           onClick={() => handleSortClick('detected_at')}
           style={{ cursor: 'pointer' }}
         >
           Detected At{renderSortIcon('detected_at')}
+        </th>
+        <th
+          onClick={() => handleSortClick('resolved_at')}
+          style={{ cursor: 'pointer' }}
+        >
+          Resolved At{renderSortIcon('resolved_at')}
         </th>
         {showTaskWorkflowColumn && <th>Task/Workflow</th>}
         <th>Execution</th>
