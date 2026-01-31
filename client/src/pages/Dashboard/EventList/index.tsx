@@ -77,6 +77,8 @@ const EventList = (props: AbortSignalProps) => {
 
     const minSeverity = searchParams.get('min_severity') || undefined;
     const maxSeverity = searchParams.get('max_severity') || undefined;
+    const eventTypesParam = searchParams.get('event_type') ?? undefined;
+    const eventTypes = eventTypesParam ? eventTypesParam.split(',').filter(Boolean) : undefined;
 
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation superceded');
@@ -105,6 +107,7 @@ const EventList = (props: AbortSignalProps) => {
         runEnvironmentUuids: selectedRunEnvironmentUuids,
         minSeverity,
         maxSeverity,
+        eventTypes,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
         abortSignal: updatedLoadEventsAbortController.signal
@@ -162,6 +165,10 @@ const EventList = (props: AbortSignalProps) => {
     updateSearchParams(searchParams, setSearchParams, severity || undefined, 'max_severity');
   }, [location]);
 
+  const handleEventTypesChanged = useCallback((types?: string[]) => {
+    updateSearchParams(searchParams, setSearchParams, types && types.length ? types : undefined, 'event_type');
+  }, [location]);
+
   const cleanupLoading = () => {
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation canceled after component unmounted');
@@ -207,6 +214,8 @@ const EventList = (props: AbortSignalProps) => {
     handleQueryChanged,
     handleMinSeverityChanged,
     handleMaxSeverityChanged,
+    eventTypes: (searchParams.get('event_type') ?? undefined) ? (searchParams.get('event_type') || '').split(',').filter(Boolean) : undefined,
+    handleEventTypesChanged,
     loadEvents,
     handleSortChanged,
     handlePageChanged,

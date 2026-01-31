@@ -58,6 +58,8 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
     } = transformSearchParams(searchParams, true);
     const minSeverity = searchParams.get('min_severity') ?? undefined;
     const maxSeverity = searchParams.get('max_severity') ?? undefined;
+    const eventTypesParam = searchParams.get('event_type') ?? undefined;
+    const eventTypes = eventTypesParam ? eventTypesParam.split(',').filter(Boolean) : undefined;
 
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation superceded');
@@ -83,8 +85,9 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
         groupId: currentGroup?.id,
         runEnvironmentUuids: [runEnvironment.uuid],
         sortBy: finalOrdering,
-        minSeverity,
-        maxSeverity,
+          minSeverity,
+          maxSeverity,
+          eventTypes,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
         abortSignal
@@ -134,6 +137,10 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
     updateSearchParams(searchParams, setSearchParams, severity, 'max_severity');
   };
 
+  const handleEventTypesChanged = (types?: string[]) => {
+    updateSearchParams(searchParams, setSearchParams, types && types.length ? types : undefined, 'event_type');
+  };
+
   useEffect(() => {
     mounted.current = true;
 
@@ -171,6 +178,8 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
     maxSeverity: searchParams.get('max_severity') ?? undefined,
     handleMinSeverityChanged,
     handleMaxSeverityChanged,
+    eventTypes: (searchParams.get('event_type') ?? undefined) ? (searchParams.get('event_type') || '').split(',').filter(Boolean) : undefined,
+    handleEventTypesChanged,
     showRunEnvironmentColumn: false,
     showTaskWorkflowColumn: true,
     sortBy: finalSortBy,

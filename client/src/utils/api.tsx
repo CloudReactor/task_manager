@@ -1034,6 +1034,7 @@ export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnviron
   maxSeverity?: string | number;
   taskUuid?: string;
   workflowUuid?: string;
+  eventTypes?: string[];
 }
 
 export async function fetchEvents(opts?: EventPageFetchOptions): Promise<ResultsPage<import('../types/domain_types').AnyEvent>> {
@@ -1047,6 +1048,10 @@ export async function fetchEvents(opts?: EventPageFetchOptions): Promise<Results
 
   if (opts.severities && opts.severities.length > 0) {
     params['severity'] = opts.severities.join(',');
+  }
+
+  if (opts.eventTypes && opts.eventTypes.length > 0) {
+    params['event_type'] = opts.eventTypes.join(',');
   }
 
   if (opts.minSeverity !== undefined && opts.minSeverity !== null) {

@@ -1021,7 +1021,6 @@ export interface BasicEvent extends Event {}
 
 export type AnyEvent =
   | BasicEvent
-  | ExecutionStatusChangeEvent
   | TaskExecutionStatusChangeEvent
   | WorkflowExecutionStatusChangeEvent
   | MissingHeartbeatDetectionEvent
@@ -1044,7 +1043,6 @@ export const castEvent = (ev: any): AnyEvent => {
     'missing_scheduled_workflow_execution_event': (e) => e as MissingScheduledWorkflowExecutionEvent,
     'insufficient_service_task_executions_event': (e) => e as InsufficientServiceTaskExecutionsEvent,
     'basic_event': (e) => e as BasicEvent,
-    'execution_status_change_event': (e) => e as ExecutionStatusChangeEvent,
   };
 
   const caster = casterMap[key];

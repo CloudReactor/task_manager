@@ -187,7 +187,7 @@ def test_event_list(
         # Build a map of returned UUIDs for comparison
         returned_uuids = {r['uuid'] for r in results}
         expected_uuids = {str(events[i].uuid) for i in expected_indices}
-        
+
         assert returned_uuids == expected_uuids
 
         # Verify each event by matching UUID
@@ -599,29 +599,29 @@ def test_event_delete_access_control(
   ('WARNING', [2]),
   ('INFO', [3]),
   ('DEBUG', [4]),
-  
+
   # Filter by single severity - numeric value
   ('500', [1]),  # ERROR
   ('400', [2]),  # WARNING
   ('300', [3]),  # INFO
   ('200', [4]),  # DEBUG
-  
+
   # Filter by multiple severities - text labels
   ('ERROR,WARNING', [1, 2]),
   ('error,warning', [1, 2]),  # case-insensitive
   ('INFO,DEBUG,TRACE', [3, 4, 5]),
-  
+
   # Filter by multiple severities - numeric values
   ('500,400', [1, 2]),
   ('300,200,100', [3, 4, 5]),
-  
+
   # Filter by multiple severities - mixed text and numeric
   ('ERROR,400,300', [1, 2, 3]),
-  
+
   # Filter by CRITICAL
   ('CRITICAL', [0]),
   ('600', [0]),
-  
+
   # Filter by TRACE
   ('TRACE', [5]),
   ('100', [5]),
@@ -637,10 +637,10 @@ def test_event_filter_by_severity(
     """
     user = user_factory()
     group = user.groups.first()
-    
+
     set_group_access_level(user=user, group=group,
             access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
-    
+
     # Create events with different severities
     events = [
         basic_event_factory(created_by_group=group, severity=Event.Severity.CRITICAL.value),
@@ -650,28 +650,28 @@ def test_event_filter_by_severity(
         basic_event_factory(created_by_group=group, severity=Event.Severity.DEBUG.value),
         basic_event_factory(created_by_group=group, severity=Event.Severity.TRACE.value),
     ]
-    
+
     client = make_api_client_from_options(api_client=api_client,
             is_authenticated=True, user=user, group=group,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_run_environment=None)
-    
+
     params = {
         'severity': severity_filter
     }
-    
+
     response = client.get('/api/v1/events/', params)
-    
+
     assert response.status_code == 200
-    
+
     page = response.data
     assert page['count'] == len(expected_indices)
     results = page['results']
-    
+
     # Build a map of returned UUIDs for comparison
     returned_uuids = {r['uuid'] for r in results}
     expected_uuids = {str(events[i].uuid) for i in expected_indices}
-    
+
     assert returned_uuids == expected_uuids
 
 
@@ -688,7 +688,7 @@ def test_event_filter_by_severity(
   ('INFO', [0, 1, 2, 3]),
   ('DEBUG', [0, 1, 2, 3, 4]),
   ('TRACE', [0, 1, 2, 3, 4, 5]),
-  
+
   # Filter by minimum severity - numeric values
   ('600', [0]),  # CRITICAL
   ('500', [0, 1]),  # ERROR
@@ -708,10 +708,10 @@ def test_event_filter_by_min_severity(
     """
     user = user_factory()
     group = user.groups.first()
-    
+
     set_group_access_level(user=user, group=group,
             access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
-    
+
     # Create events with different severities
     events = [
         basic_event_factory(created_by_group=group, severity=Event.Severity.CRITICAL.value),
@@ -721,28 +721,107 @@ def test_event_filter_by_min_severity(
         basic_event_factory(created_by_group=group, severity=Event.Severity.DEBUG.value),
         basic_event_factory(created_by_group=group, severity=Event.Severity.TRACE.value),
     ]
-    
+
     client = make_api_client_from_options(api_client=api_client,
             is_authenticated=True, user=user, group=group,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_run_environment=None)
-    
+
     params = {
         'min_severity': min_severity_filter
     }
-    
+
     response = client.get('/api/v1/events/', params)
-    
+
     assert response.status_code == 200
-    
+
     page = response.data
     assert page['count'] == len(expected_indices)
     results = page['results']
-    
+
     # Build a map of returned UUIDs for comparison
     returned_uuids = {r['uuid'] for r in results}
     expected_uuids = {str(events[i].uuid) for i in expected_indices}
-    
+
+    assert returned_uuids == expected_uuids
+
+
+@pytest.mark.django_db
+def test_event_filter_by_event_type_single(
+    user_factory, group_factory,
+    basic_event_factory,
+    task_execution_status_change_event_factory,
+    missing_heartbeat_detection_event_factory,
+    api_client) -> None:
+    """
+    Test filtering events by a single event_type string.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+        access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create events of different types
+    events = [
+        basic_event_factory(created_by_group=group),
+        task_execution_status_change_event_factory(created_by_group=group),
+        missing_heartbeat_detection_event_factory(created_by_group=group),
+    ]
+
+    client = make_api_client_from_options(api_client=api_client,
+        is_authenticated=True, user=user, group=group,
+        api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+        api_key_run_environment=None)
+
+    # Filter by basic_event
+    params = {'event_type': 'basic'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 1
+    results = page['results']
+    assert results[0]['uuid'] == str(events[0].uuid)
+
+
+@pytest.mark.django_db
+def test_event_filter_by_event_type_multiple(
+    user_factory, group_factory,
+    basic_event_factory,
+    task_execution_status_change_event_factory,
+    missing_heartbeat_detection_event_factory,
+    api_client) -> None:
+    """
+    Test filtering events by multiple comma-separated event_type strings.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+        access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create events of different types
+    events = [
+    basic_event_factory(created_by_group=group),
+    task_execution_status_change_event_factory(created_by_group=group),
+    missing_heartbeat_detection_event_factory(created_by_group=group),
+    ]
+
+    client = make_api_client_from_options(api_client=api_client,
+        is_authenticated=True, user=user, group=group,
+        api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+        api_key_run_environment=None)
+
+    # Filter by basic_event and task_execution_status_change_event
+    params = {'event_type': 'basic,task_execution_status_change'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 2
+    results = page['results']
+
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(events[0].uuid), str(events[1].uuid)}
     assert returned_uuids == expected_uuids
 
 
@@ -759,7 +838,7 @@ def test_event_filter_by_min_severity(
   ('INFO', [3, 4, 5]),
   ('DEBUG', [4, 5]),
   ('TRACE', [5]),
-  
+
   # Filter by maximum severity - numeric values
   ('600', [0, 1, 2, 3, 4, 5]),  # CRITICAL
   ('500', [1, 2, 3, 4, 5]),  # ERROR
@@ -779,10 +858,10 @@ def test_event_filter_by_max_severity(
     """
     user = user_factory()
     group = user.groups.first()
-    
+
     set_group_access_level(user=user, group=group,
             access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
-    
+
     # Create events with different severities
     events = [
         basic_event_factory(created_by_group=group, severity=Event.Severity.CRITICAL.value),
@@ -792,28 +871,28 @@ def test_event_filter_by_max_severity(
         basic_event_factory(created_by_group=group, severity=Event.Severity.DEBUG.value),
         basic_event_factory(created_by_group=group, severity=Event.Severity.TRACE.value),
     ]
-    
+
     client = make_api_client_from_options(api_client=api_client,
             is_authenticated=True, user=user, group=group,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_run_environment=None)
-    
+
     params = {
         'max_severity': max_severity_filter
     }
-    
+
     response = client.get('/api/v1/events/', params)
-    
+
     assert response.status_code == 200
-    
+
     page = response.data
     assert page['count'] == len(expected_indices)
     results = page['results']
-    
+
     # Build a map of returned UUIDs for comparison
     returned_uuids = {r['uuid'] for r in results}
     expected_uuids = {str(events[i].uuid) for i in expected_indices}
-    
+
     assert returned_uuids == expected_uuids
 
 
@@ -829,17 +908,17 @@ def test_event_filter_by_max_severity(
   ('INFO', 'WARNING', [2, 3]),
   ('TRACE', 'DEBUG', [4, 5]),
   ('warning', 'error', [1, 2]),  # case-insensitive
-  
+
   # Combine min and max severity - numeric values
   ('500', '500', [1]),
   ('400', '500', [1, 2]),
   ('300', '400', [2, 3]),
   ('100', '200', [4, 5]),
-  
+
   # Combine min and max severity - mixed text and numeric
   ('400', 'ERROR', [1, 2]),
   ('INFO', '400', [2, 3]),
-  
+
   # Wide range
   ('TRACE', 'CRITICAL', [0, 1, 2, 3, 4, 5]),
   ('100', '600', [0, 1, 2, 3, 4, 5]),
@@ -856,10 +935,10 @@ def test_event_filter_by_min_and_max_severity(
     """
     user = user_factory()
     group = user.groups.first()
-    
+
     set_group_access_level(user=user, group=group,
             access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
-    
+
     # Create events with different severities
     events = [
         basic_event_factory(created_by_group=group, severity=Event.Severity.CRITICAL.value),
@@ -869,29 +948,29 @@ def test_event_filter_by_min_and_max_severity(
         basic_event_factory(created_by_group=group, severity=Event.Severity.DEBUG.value),
         basic_event_factory(created_by_group=group, severity=Event.Severity.TRACE.value),
     ]
-    
+
     client = make_api_client_from_options(api_client=api_client,
             is_authenticated=True, user=user, group=group,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_run_environment=None)
-    
+
     params = {
         'min_severity': min_severity,
         'max_severity': max_severity
     }
-    
+
     response = client.get('/api/v1/events/', params)
-    
+
     assert response.status_code == 200
-    
+
     page = response.data
     assert page['count'] == len(expected_indices)
     results = page['results']
-    
+
     # Build a map of returned UUIDs for comparison
     returned_uuids = {r['uuid'] for r in results}
     expected_uuids = {str(events[i].uuid) for i in expected_indices}
-    
+
     assert returned_uuids == expected_uuids
 
 
@@ -905,34 +984,33 @@ def test_event_filter_by_invalid_severity(
     """
     user = user_factory()
     group = user.groups.first()
-    
+
     set_group_access_level(user=user, group=group,
             access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
-    
+
     # Create some events
     basic_event_factory(created_by_group=group, severity=Event.Severity.ERROR.value)
     basic_event_factory(created_by_group=group, severity=Event.Severity.WARNING.value)
-    
+
     client = make_api_client_from_options(api_client=api_client,
             is_authenticated=True, user=user, group=group,
             api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
             api_key_run_environment=None)
-    
+
     # Test with invalid severity labels
     params = {'severity': 'INVALID'}
     response = client.get('/api/v1/events/', params)
     assert response.status_code == 200
     assert response.data['count'] == 0
-    
+
     # Test with invalid min_severity
     params = {'min_severity': 'INVALID'}
     response = client.get('/api/v1/events/', params)
     assert response.status_code == 200
     assert response.data['count'] == 0
-    
+
     # Test with invalid max_severity
     params = {'max_severity': 'INVALID'}
     response = client.get('/api/v1/events/', params)
     assert response.status_code == 200
     assert response.data['count'] == 0
-

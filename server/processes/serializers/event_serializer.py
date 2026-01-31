@@ -83,20 +83,20 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
         model = Event
         fields = [
             'url', 'uuid', 'created_by_group', 'created_by_user',
-            'run_environment',    
+            'run_environment',
             'event_at', 'detected_at',
             'severity', 'event_type',
             'error_summary', 'error_details_message',
             'source', 'details', 'grouping_key',
-            'resolved_at', 'resolved_event', 
+            'resolved_at', 'resolved_event',
         ]
         read_only_fields = [
-            'url', 'uuid', 'created_by_user', 'created_at', 'updated_at', 
+            'url', 'uuid', 'created_by_user', 'created_at', 'updated_at',
             'event_type',
         ]
 
     def get_event_type(self, obj: Event) -> str:
-        return model_class_to_type_string(obj.__class__)
+        return model_class_to_type_string(obj.__class__).removesuffix('_event')
 
     # Class-level mapping of model types to serializers (most specific first)
     _type_to_serializer_cache = None
@@ -153,7 +153,7 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
 
         # Direct lookup using the instance's class
         serializer_class = type_map.get(type(instance))
-        
+
         if serializer_class:
             # Pass flag in context to prevent infinite recursion
             child_context = {**self.context, SerializerHelpers.SKIP_POLYMORPHIC_DELEGATION: True}
@@ -165,4 +165,3 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
 
     def required_access_level_for_mutation(self):
         return UserGroupAccessLevel.ACCESS_LEVEL_TASK
-    

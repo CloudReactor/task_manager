@@ -33,12 +33,16 @@ logger = logging.getLogger(__name__)
 class EventPermission(IsCreatedByGroup):
     @override
     def required_access_level_for_mutation(self, request: Request, view: View,
-            obj: object) -> int | None:        
+            obj: object) -> int | None:
         return UserGroupAccessLevel.ACCESS_LEVEL_TASK
 
 
 class EventFilter(filters.FilterSet):
     created_by_group__id = NumberFilter()
+
+    # Filter by event_type strings (as returned by the API, e.g. 'basic_event',
+    # 'execution_status_change_event'). Accepts comma-separated list.
+    event_type = CharFilter(method='filter_event_type')
 
     severity = CharFilter(method='filter_severity')
     min_severity = CharFilter(method='filter_min_severity')
@@ -54,7 +58,7 @@ class EventFilter(filters.FilterSet):
             return int(value)
         except ValueError:
             pass
-        
+
         # Try to parse as severity label
         try:
             severity_enum = Event.Severity[value.upper()]
@@ -70,7 +74,7 @@ class EventFilter(filters.FilterSet):
         """
         if not value:
             return queryset
-        
+
         # Check if it's a comma-separated list
         if ',' in value:
             values = [v.strip() for v in value.split(',')]
@@ -79,7 +83,7 @@ class EventFilter(filters.FilterSet):
                 severity_int = self._parse_severity_value(v)
                 if severity_int is not None:
                     severity_ints.append(severity_int)
-            
+
             if severity_ints:
                 return queryset.filter(severity__in=severity_ints)
             else:
@@ -99,7 +103,7 @@ class EventFilter(filters.FilterSet):
         """
         if not value:
             return queryset
-        
+
         severity_int = self._parse_severity_value(value)
         if severity_int is not None:
             return queryset.filter(severity__gte=severity_int)
@@ -113,12 +117,33 @@ class EventFilter(filters.FilterSet):
         """
         if not value:
             return queryset
-        
+
         severity_int = self._parse_severity_value(value)
         if severity_int is not None:
             return queryset.filter(severity__lte=severity_int)
         else:
             return queryset.none()
+
+    def filter_event_type(self, queryset, name, value):
+        """
+        Filter events by event_type strings (as returned by `EventSerializer.get_event_type`).
+        Accepts a single value or a comma-separated list of type strings.
+        Maps the incoming type string(s) to the underlying TypedModel `type` values
+        and filters the queryset by the `type` column.
+        """
+        if not value:
+            return queryset
+
+        # Support comma-separated lists
+        event_types = [v for v in value.split(',')] if ',' in value else [value]
+
+        type_names = ["processes." + value.strip().replace("_", "") + "event" for value in event_types]
+
+        if not type_names:
+            # No matching types; return empty queryset
+            return queryset.none()
+
+        return queryset.filter(type__in=type_names)
 
     class Meta:
         model = Event
@@ -147,7 +172,7 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
         """Build mapping from event_type strings to serializer classes using EventSerializer's mapping."""
         if cls._type_string_to_serializer_cache is None:
             type_map = EventSerializer._get_type_to_serializer_map()
-            
+
             # Convert to type_string-to-serializer mapping
             cls._type_string_to_serializer_cache = {
                 model_class_to_type_string(model_class): serializer_class
