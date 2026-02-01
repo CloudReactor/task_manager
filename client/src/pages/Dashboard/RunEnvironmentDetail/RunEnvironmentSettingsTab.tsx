@@ -17,7 +17,7 @@ const RunEnvironmentSettingsTab = (props: Props) => {
       onSaveStarted={props.onSaveStarted}
       onSaveSuccess={props.onSaveSuccess}
       onSaveError={props.onSaveError} 
-      debugMode={true}
+      debugMode={false}
     />
   );
 };
