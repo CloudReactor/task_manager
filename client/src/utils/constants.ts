@@ -1,3 +1,4 @@
+
 export const NOTIFICATION_EVENT_SEVERITY_CRITICAL = 600;
 export const NOTIFICATION_EVENT_SEVERITY_ERROR = 500;
 export const NOTIFICATION_EVENT_SEVERITY_WARNING = 400;
@@ -23,6 +24,12 @@ export const NOTIFICATION_EVENT_SEVERITY_TO_LABEL = {
   [NOTIFICATION_EVENT_SEVERITY_TRACE   ] : 'trace',
 }
 
+// Map from label (lowercase) to numeric severity value
+export const NOTIFICATION_EVENT_SEVERITY_LABEL_TO_VALUE: Record<string, number> = Object.entries(NOTIFICATION_EVENT_SEVERITY_TO_LABEL)
+  .reduce((acc, [num, label]) => {
+    acc[String(label).toLowerCase()] = Number(num);
+    return acc;
+  }, {} as Record<string, number>);
 
 export const TASK_EXECUTION_STATUS_RUNNING = 'RUNNING';
 export const TASK_EXECUTION_STATUS_MANUALLY_STARTED = 'MANUALLY_STARTED';

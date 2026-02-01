@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import moment from 'moment';
 
 import { ACCESS_LEVEL_DEVELOPER } from '../../utils/constants';
 
@@ -14,7 +15,8 @@ import {
 
 import * as Yup from 'yup';
 
-import React, { useContext, useState, useEffect, useMemo } from 'react';
+import * as React from 'react';
+import { useContext, useState, useEffect, useMemo } from 'react';
 
 import './NotificationDeliveryMethodEditor.css';
 
@@ -40,8 +42,10 @@ import {
 
 import { Button } from '@mui/material/';
 
+
 import RunEnvironmentSelector from '../common/RunEnvironmentSelector';
 import FormikErrorsSummary from '../common/FormikErrorsSummary';
+import NotificationEventSeveritySelector from '../common/NotificationEventSeveritySelector/NotificationEventSeveritySelector';
 
 type Props = {
   notificationDeliveryMethod?: NotificationDeliveryMethod;
@@ -264,6 +268,173 @@ const NotificationDeliveryMethodEditor = ({
                 </Col>
               </Row>
 
+              <Row className="pb-3">
+                <Col sm={12}>
+                  <Form.Group>
+                    <Form.Label>Rate Limit Tiers</Form.Label>
+                    <FieldArray name="rate_limit_tiers">
+                      {({ push, remove, form }) => (
+                        <>
+                          {(values.rate_limit_tiers || []).filter((tier: any) => tier.max_requests_per_period != null).map((tier: any, index: number) => {
+                            const actualIndex = (values.rate_limit_tiers || []).indexOf(tier);
+                            return (
+                            <div key={actualIndex} className="border rounded p-3 mb-2">
+                              <Row>
+                                <Col md={4} className="mb-2">
+                                  <Form.Label>Max Requests</Form.Label>
+                                  <Field
+                                    name={`rate_limit_tiers.${actualIndex}.max_requests_per_period`}
+                                    type="number"
+                                    className="form-control"
+                                    min={1}
+                                    placeholder="e.g. 5"
+                                  />
+                                </Col>
+                                <Col md={4} className="mb-2">
+                                  <Form.Label>Period (seconds)</Form.Label>
+                                  <Field
+                                    name={`rate_limit_tiers.${actualIndex}.request_period_seconds`}
+                                    type="number"
+                                    className="form-control"
+                                    min={1}
+                                    placeholder="e.g. 60"
+                                  />
+                                </Col>
+                                <Col md={3} className="mb-2">
+                                  <Form.Label>Max Severity</Form.Label>
+                                  <div style={{ display: 'block' }}>
+                                    <Field name={`rate_limit_tiers.${actualIndex}.max_severity`}>
+                                      {({ field, form }: any) => (
+                                        <NotificationEventSeveritySelector
+                                          selectedSeverity={field.value}
+                                          onSelectedSeverityChanged={sev => form.setFieldValue(`rate_limit_tiers.${actualIndex}.max_severity`, sev)}
+                                          disabled={!isAccessAllowed}
+                                        />
+                                      )}
+                                    </Field>
+                                  </div>
+                                </Col>
+                                <Col md={1} className="mb-2 d-flex justify-content-end align-items-center" style={{ marginTop: '22px' }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-danger"
+                                    onClick={() => remove(actualIndex)}
+                                    disabled={values.rate_limit_tiers.length <= 1}
+                                    title="Remove tier"
+                                  >
+                                    <i className="fas fa-trash" />
+                                  </button>
+                                </Col>
+                              </Row>
+                              {tier.max_requests_per_period && (
+                                <>
+                                  <Row className="mt-2">
+                                    <Col md={11}>
+                                      <small className="text-muted">
+                                        {tier.request_period_started_at 
+                                          ? `Usage as of ${moment(tier.request_period_started_at).format('YYYY-MM-DDTHH:mm:ss[Z]')} (${moment(tier.request_period_started_at).fromNow()})`
+                                          : 'Usage'
+                                        }
+                                      </small>
+                                    </Col>
+                                  </Row>
+                                  <Row className="mt-2">
+                                    <Col md={11}>
+                                      <div
+                                        style={{
+                                          width: '100%',
+                                          height: '24px',
+                                          backgroundColor: '#e9ecef',
+                                          borderRadius: '4px',
+                                          overflow: 'hidden',
+                                          position: 'relative',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center'
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            position: 'absolute',
+                                            left: 0,
+                                            height: '100%',
+                                            width: `${Math.min(100, ((tier.request_count_in_period ?? 0) / tier.max_requests_per_period) * 100)}%`,
+                                            backgroundColor: (tier.request_count_in_period ?? 0) > tier.max_requests_per_period * 0.9 ? '#dc3545' : (tier.request_count_in_period ?? 0) > tier.max_requests_per_period * 0.7 ? '#ffc107' : '#28a745',
+                                            transition: 'width 0.3s ease'
+                                          }}
+                                        />
+                                        <div
+                                          style={{
+                                            position: 'relative',
+                                            zIndex: 1,
+                                            fontSize: '0.75rem',
+                                            fontWeight: 'bold',
+                                            color: '#212529'
+                                          }}
+                                        >
+                                          {tier.request_count_in_period ?? 0} / {tier.max_requests_per_period}
+                                        </div>
+                                      </div>
+                                    </Col>
+                                    <Col md={1} className="d-flex justify-content-end align-items-center">
+                                      <div style={{ whiteSpace: 'nowrap' }}>
+                                        <strong>{Math.round((tier.request_count_in_period / tier.max_requests_per_period) * 100)}%</strong>
+                                      </div>
+                                    </Col>
+                                  </Row>
+                                  <Row className="mt-3">
+                                    <Col md={11}>
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-outline-secondary"
+                                        onClick={() => setFieldValue(`rate_limit_tiers.${actualIndex}.request_count_in_period`, 0)}
+                                        disabled={!isAccessAllowed}
+                                      >
+                                      Reset Usage
+                                    </button>
+                                  </Col>
+                                </Row>
+                                </>
+                              )}
+                            </div>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            className="btn btn-secondary mt-3"
+                            onClick={() => push({ max_requests_per_period: 0, request_period_seconds: 0, max_severity: null, request_period_started_at: null, request_count_in_period: null })}
+                            disabled={(values.rate_limit_tiers || []).filter((tier: any) => tier.max_requests_per_period != null).length >= 8}
+                          >
+                            <i className="fa fa-plus" /> Add Rate Limit Tier
+                          </button>
+                          <ErrorMessage name="rate_limit_tiers" component="div" className="text-danger" />
+                        </>
+                      )}
+                    </FieldArray>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              {/* PagerDuty-specific fields */}
+              {selectedType === 'pagerduty' && (
+                <>
+                  <Row className="pb-3">
+                    <Col sm={12}>
+                      <Form.Group controlId="pagerduty_api_key">
+                        <Form.Label>PagerDuty API Key *</Form.Label>
+                        <Field
+                          name="pagerduty_api_key"
+                          type="text"
+                          className="form-control"
+                          placeholder="Enter PagerDuty API key"
+                        />
+                        <ErrorMessage name="pagerduty_api_key" component="div" className="text-danger" />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </>
+              )}
+
               {/* Type Selector */}
               <Row className="pb-3">
                 <Col sm={4} md={3}>
@@ -452,25 +623,6 @@ const NotificationDeliveryMethodEditor = ({
                 </>
               )}
 
-              {/* PagerDuty-specific fields */}
-              {selectedType === 'pagerduty' && (
-                <>
-                  <Row className="pb-3">
-                    <Col sm={12}>
-                      <Form.Group controlId="pagerduty_api_key">
-                        <Form.Label>PagerDuty API Key *</Form.Label>
-                        <Field
-                          name="pagerduty_api_key"
-                          type="text"
-                          className="form-control"
-                          placeholder="Enter PagerDuty API key"
-                        />
-                        <ErrorMessage name="pagerduty_api_key" component="div" className="text-danger" />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                </>
-              )}
 
               {/* Submit Button */}
               <Row className="pt-4">

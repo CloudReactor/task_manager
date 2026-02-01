@@ -1,5 +1,5 @@
 import logging
-from typing import override
+from typing import Any, override
 
 from django.utils.text import camel_case_to_spaces
 
@@ -17,6 +17,32 @@ from .serializer_helpers import SerializerHelpers
 
 
 logger = logging.getLogger(__name__)
+
+
+def convert_event_severity_value(data: Any) -> int:
+    """Convert data to its corresponding integer value."""
+    # Accept None, integer, or string inputs.
+    if data is None:
+        return Event.Severity.NONE.value
+
+    if isinstance(data, int):
+        # Store integer severities as-is per request.
+        return data
+
+    if isinstance(data, str):
+        s = data.strip()
+
+        # Try mapping by enum name first (case-insensitive)
+        try:
+            return Event.Severity[s.upper()].value
+        except KeyError:
+            # Fallback: if client passed a numeric string, parse and use as-is
+            try:
+                return int(s)
+            except ValueError:
+                raise serializers.ValidationError(f"Unknown severity: {data}")
+
+    raise serializers.ValidationError('Invalid severity')
 
 
 @extend_schema_field(field=serializers.ChoiceField(choices=[
@@ -37,29 +63,7 @@ class EventSeveritySerializer(serializers.BaseSerializer):
 
     @override
     def to_internal_value(self, data) -> int:
-        # Accept None, integer, or string inputs.
-        if data is None:
-            return Event.Severity.NONE.value
-
-        if isinstance(data, int):
-            # Store integer severities as-is per request.
-            return data
-
-        if isinstance(data, str):
-            s = data.strip()
-
-            # Try mapping by enum name first (case-insensitive)
-            try:
-                return Event.Severity[s.upper()].value
-            except KeyError:
-                # Fallback: if client passed a numeric string, parse and use as-is
-                try:
-                    return int(s)
-                except ValueError:
-                    raise serializers.ValidationError(f"Unknown severity: {data}")
-
-        raise serializers.ValidationError('Invalid severity')
-
+        return convert_event_severity_value(data)
 
 class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerializerMixin,
     SerializerHelpers, serializers.HyperlinkedModelSerializer):

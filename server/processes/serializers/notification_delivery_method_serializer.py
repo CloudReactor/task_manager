@@ -3,16 +3,26 @@ from typing import override
 
 from rest_framework import serializers
 
-from ..models import NotificationDeliveryMethod, Event
 from ..common.utils import model_class_to_type_string
+from ..models import NotificationDeliveryMethod
+
 from .embedded_id_validating_serializer_mixin import EmbeddedIdValidatingSerializerMixin
 from .group_serializer import GroupSerializer
 from .group_setting_serializer_mixin import GroupSettingSerializerMixin
-from .event_serializer import EventSeveritySerializer
+from .event_serializer import EventSeveritySerializer, convert_event_severity_value
 from .serializer_helpers import SerializerHelpers
 
 
 logger = logging.getLogger(__name__)
+
+# Rate limit tier field names
+RATE_LIMIT_TIER_FIELDS = [
+    "max_requests_per_period",
+    "request_period_seconds",
+    "max_severity",
+    "request_period_started_at",
+    "request_count_in_period"
+]
 
 
 class RateLimitTierSerializer(serializers.Serializer):
@@ -63,6 +73,23 @@ class NotificationDeliveryMethodSerializer(GroupSettingSerializerMixin,
         return type_string
 
     @override
+    def to_internal_value(self, data):
+        ret = super().to_internal_value(data)
+        rate_limit_tiers = data.get('rate_limit_tiers')
+        if isinstance(rate_limit_tiers, list):
+            for i in range(NotificationDeliveryMethod.MAX_RATE_LIMIT_TIERS):
+                tier = rate_limit_tiers[i] if i < len(rate_limit_tiers) else {}
+                for field in RATE_LIMIT_TIER_FIELDS:
+                    value = tier.get(field, None)
+
+                    if field == "max_severity":
+                        # Convert severity label to numeric value
+                        value = convert_event_severity_value(value)
+
+                    ret[f"{field}_{i}"] = value
+        return ret
+
+    @override
     def to_representation(self, instance):
         """
         Dynamically delegate to the appropriate child serializer based on instance type.
@@ -97,19 +124,16 @@ class NotificationDeliveryMethodSerializer(GroupSettingSerializerMixin,
         severity_serializer = EventSeveritySerializer()
 
         for i in range(NotificationDeliveryMethod.MAX_RATE_LIMIT_TIERS):
-            numeric = getattr(ndm, f'max_severity_{i}')
-            if numeric is None:
-                severity_label = None
-            else:
-                severity_label = severity_serializer.to_representation(numeric)
-
-            tier = {
-                'max_requests_per_period': getattr(ndm, f'max_requests_per_period_{i}'),
-                'request_period_seconds': getattr(ndm, f'request_period_seconds_{i}'),
-                'max_severity': severity_label,
-                'request_period_started_at': getattr(ndm, f'request_period_started_at_{i}'),
-                'request_count_in_period': getattr(ndm, f'request_count_in_period_{i}'),
-            }
+            tier = {}
+            for field in RATE_LIMIT_TIER_FIELDS:
+                if field == "max_severity":
+                    numeric = getattr(ndm, f'{field}_{i}')
+                    if numeric is None:
+                        tier[field] = None
+                    else:
+                        tier[field] = severity_serializer.to_representation(numeric)
+                else:
+                    tier[field] = getattr(ndm, f'{field}_{i}')
 
             tiers.append(tier)
 

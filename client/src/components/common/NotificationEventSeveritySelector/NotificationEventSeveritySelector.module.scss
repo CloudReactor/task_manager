@@ -1,3 +1,27 @@
 .selector {
   min-width: 8em;
+  width: 100%;
+  
+  &.MuiOutlinedInput-root {
+    height: 38px;
+  }
+
+  .MuiOutlinedInput-input {
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #212529;
+  }
+
+  .MuiOutlinedInput-notchedOutline {
+    border-color: #dee2e6 !important;
+  }
+
+  &:hover .MuiOutlinedInput-notchedOutline {
+    border-color: #adb5bd;
+  }
+
+  &.Mui-focused .MuiOutlinedInput-notchedOutline {
+    border-color: #80bdff;
+  }
 }
