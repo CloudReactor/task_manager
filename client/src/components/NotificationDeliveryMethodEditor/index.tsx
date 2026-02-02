@@ -211,7 +211,7 @@ const NotificationDeliveryMethodEditor = ({
                     <Field
                       name="name"
                       type="text"
-                      className="form-control"
+                      className="form-control description-textarea"
                       placeholder="Enter notification method name"
                     />
                     <ErrorMessage name="name" component="div" className="text-danger" />
@@ -227,7 +227,7 @@ const NotificationDeliveryMethodEditor = ({
                       name="description"
                       as="textarea"
                       rows={3}
-                      className="form-control"
+                      className="form-control description-textarea"
                       placeholder="Enter description (optional)"
                     />
                     <ErrorMessage name="description" component="div" className="text-danger" />
@@ -239,14 +239,16 @@ const NotificationDeliveryMethodEditor = ({
                 <Col sm={6}>
                   <Form.Group controlId="runEnvironmentUuid">
                     <Form.Label>Run Environment</Form.Label>
-                    <RunEnvironmentSelector
-                      selectedUuid={values.runEnvironmentUuid}
-                      onChange={(uuid) => {
-                        setFieldValue('runEnvironmentUuid', uuid);
-                      }}
-                      groupId={currentGroup?.id}
-                      noSelectionText="(Unscoped)"
-                    />
+                    <div className="description-textarea">
+                      <RunEnvironmentSelector
+                        selectedUuid={values.runEnvironmentUuid}
+                        onChange={(uuid) => {
+                          setFieldValue('runEnvironmentUuid', uuid);
+                        }}
+                        groupId={currentGroup?.id}
+                        noSelectionText="(Unscoped)"
+                      />
+                    </div>
                   </Form.Group>
                 </Col>
               </Row>
@@ -278,7 +280,7 @@ const NotificationDeliveryMethodEditor = ({
                           {(values.rate_limit_tiers || []).filter((tier: any) => tier.max_requests_per_period != null).map((tier: any, index: number) => {
                             const actualIndex = (values.rate_limit_tiers || []).indexOf(tier);
                             return (
-                            <div key={actualIndex} className="border rounded p-3 mb-2">
+                            <div key={actualIndex} className="border rounded p-3 mb-4">
                               <Row>
                                 <Col md={4} className="mb-2">
                                   <Form.Label>Max Requests</Form.Label>
@@ -317,12 +319,12 @@ const NotificationDeliveryMethodEditor = ({
                                 <Col md={1} className="mb-2 d-flex justify-content-end align-items-center" style={{ marginTop: '22px' }}>
                                   <button
                                     type="button"
-                                    className="btn btn-danger"
+                                    className="btn btn-secondary"
                                     onClick={() => remove(actualIndex)}
                                     disabled={values.rate_limit_tiers.length <= 1}
                                     title="Remove tier"
                                   >
-                                    <i className="fas fa-trash" />
+                                    <i className="fas fa-times" />
                                   </button>
                                 </Col>
                               </Row>
@@ -331,7 +333,7 @@ const NotificationDeliveryMethodEditor = ({
                                   <Row className="mt-2">
                                     <Col md={11}>
                                       <small className="text-muted">
-                                        {tier.request_period_started_at 
+                                        {tier.request_period_started_at
                                           ? `Usage as of ${moment(tier.request_period_started_at).format('YYYY-MM-DDTHH:mm:ss[Z]')} (${moment(tier.request_period_started_at).fromNow()})`
                                           : 'Usage'
                                         }
@@ -509,7 +511,7 @@ const NotificationDeliveryMethodEditor = ({
                                     />
                                     <button
                                       type="button"
-                                      className="btn btn-danger ms-2"
+                                      className="btn btn-secondary ms-2"
                                       style={{ height: '50px' }}
                                       onClick={() => remove(index)}
                                     >
@@ -553,7 +555,7 @@ const NotificationDeliveryMethodEditor = ({
                                     />
                                     <button
                                       type="button"
-                                      className="btn btn-danger ms-2"
+                                      className="btn btn-secondary ms-2"
                                       style={{ height: '50px' }}
                                       onClick={() => remove(index)}
                                     >
@@ -597,7 +599,7 @@ const NotificationDeliveryMethodEditor = ({
                                     />
                                     <button
                                       type="button"
-                                      className="btn btn-danger ms-2"
+                                      className="btn btn-secondary ms-2"
                                       style={{ height: '50px' }}
                                       onClick={() => remove(index)}
                                     >

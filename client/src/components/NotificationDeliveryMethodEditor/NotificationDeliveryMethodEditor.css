@@ -7,3 +7,18 @@ select.form-control.disabled-select:disabled {
   -moz-appearance: none;
   appearance: none;
 }
+
+/* Limit width of description textarea to a readable line length */
+.description-textarea {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* Stronger selectors to ensure inputs/textareas get the max-width applied */
+input.form-control.description-textarea,
+textarea.form-control.description-textarea {
+  width: 100% !important;
+  max-width: 720px !important;
+  display: block;
+  box-sizing: border-box;
+}
