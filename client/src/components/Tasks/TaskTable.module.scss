@@ -1,9 +1,100 @@
 
+.searchPaginationContainer {
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.5rem;
+
+    /* Align the MUI pagination "Showing" label with the table Name column text */
+    :global(.MuiTablePagination-root) {
+      margin-left: 0.75rem;
+    }
+  }
+}
+
 .searchContainer {
   margin-bottom: 1em;
-  width: 382px;
+  /* Keep left border fixed; set width so right edge lines up with Run Environment selector */
+  margin-left: 0;
+  width: calc(0.5rem + 135px + 1rem + 233px);
+  max-width: calc(100vw - 2rem);
+  margin-right: 1rem;
 }
 
 .filterForm {
-  padding-left: 0.75rem;
+  padding-left: 0.5rem; /* nudge filters right by 0.5rem */
+  
+  :global(.form-group) {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  
+  :global(.form-label) {
+    margin-bottom: 0;
+    white-space: nowrap;
+    width: 135px;
+    display: inline-block;
+    text-align: right;
+  }
+  
+  > :global(.form-group):not(:first-child) {
+    margin-left: 2rem;
+  }
+  
+  @media (max-width: 768px) {
+    :global(.form-group) {
+      margin-right: 1rem;
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    :global(.form-label) {
+      margin-bottom: 0.25rem;
+      width: 100%;
+      text-align: left;
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+    }
+
+    /* force filterForm to remove any left padding/margin that prevents left-edge alignment */
+    padding-left: 0 !important;
+
+    /* make sure individual form-groups don't keep left offsets */
+    :global(.form-group) {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+    }
+    
+    > :global(.form-group):not(:first-child) {
+      margin-left: 0;
+    }
+  }
+
+  /* Ensure clean stacking and alignment when groups wrap on slightly larger tablets */
+  @media (min-width: 769px) and (max-width: 900px) {
+    :global(.form-group) {
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-right: 0;
+    }
+
+    :global(.form-label) {
+      width: 100%;
+      text-align: left;
+      margin-bottom: 0.25rem;
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+    }
+
+    /* force filterForm to remove any left padding/margin in this wrapping range */
+    padding-left: 0 !important;
+
+    :global(.form-group) {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+    }
+  }
 }

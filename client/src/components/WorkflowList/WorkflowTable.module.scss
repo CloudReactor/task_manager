@@ -1,4 +1,92 @@
 .searchContainer {
   margin-bottom: 1em;
-  width: 362px;
+  width: calc(0.5rem + 135px + 1rem + 233px);
+  margin-right: 1rem;
+  
+  @media (max-width: 768px) {
+    width: calc(100vw - 3rem);
+  }
+}
+
+.filterForm {
+  padding-left: 0.5rem; /* nudge filters right by 0.5rem */
+  
+  :global(.form-group) {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  
+  :global(.form-label) {
+    margin-bottom: 0;
+    white-space: nowrap;
+    width: 135px;
+    display: inline-block;
+    text-align: right;
+    margin-right: 1rem;
+  }
+  
+  > :global(.form-group):not(:first-child) {
+    margin-left: 2rem;
+  }
+  
+  @media (max-width: 768px) {
+    padding-right: 1rem;
+    margin-right: 1rem;
+    padding-left: 0 !important;
+    
+    :global(.form-group) {
+      margin-right: 0;
+      width: calc(100vw - 3rem);
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+    }
+    
+    :global(.form-label) {
+      margin-bottom: 0.5rem;
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      width: auto !important;
+      text-align: left !important;
+    }
+    
+    /* ensure form groups align to the left edge when stacked */
+    :global(.form-group) {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+    }
+    
+    > :global(.form-group):not(:first-child) {
+      margin-left: 0;
+    }
+  }
+
+  /* Ensure clean stacking and alignment when groups wrap on slightly larger tablets */
+  @media (min-width: 769px) and (max-width: 900px) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    
+    :global(.form-group) {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-right: 0;
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      margin-bottom: 1rem;
+      width: 100%;
+    }
+
+    :global(.form-label) {
+      margin-bottom: 0.5rem;
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      width: auto !important;
+      text-align: left !important;
+    }
+  }
 }

@@ -1,5 +1,10 @@
 .runEnvironmentSelector {
-  width: 100% !important;
+  width: 233px !important;
   max-width: 720px !important;
   box-sizing: border-box;
+  
+  @media (max-width: 768px) {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }

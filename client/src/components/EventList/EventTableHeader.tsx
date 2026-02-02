@@ -45,7 +45,6 @@ const EventTableHeader = (props: Props) => {
         </th>
         <th>Event Type</th>
         <th>Summary</th>
-        <th>Source</th>
         {showRunEnvironmentColumn && <th>Run Environment</th>}
         <th
           onClick={() => handleSortClick('detected_at')}

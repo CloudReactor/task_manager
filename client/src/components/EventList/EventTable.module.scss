@@ -1,3 +1,53 @@
 .table {
   margin-top: 1rem;
 }
+
+.filterLabel {
+  width: 135px;
+  display: inline-block;
+  text-align: right;
+}
+
+.filterInput {
+  width: 233px;
+  display: inline-block;
+  
+  > * {
+    width: 100%;
+  }
+}
+
+.searchInput {
+  width: calc(233px + 1rem + 135px + 0.5rem + 233px);
+  max-width: calc(100vw - 135px - 0.5rem - 3rem);
+  display: inline-block;
+  
+  input[type="search"] {
+    -webkit-appearance: searchfield;
+    
+    &::-webkit-search-cancel-button {
+      -webkit-appearance: searchfield-cancel-button;
+      cursor: pointer;
+    }
+  }
+}
+
+@media (max-width: 575px) {
+  .filterLabel {
+    width: 100%;
+    display: block;
+    text-align: left;
+    margin-bottom: 0.25rem;
+  }
+  
+  .filterInput {
+    width: 100%;
+    display: block;
+  }
+  
+  .searchInput {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+  }
+}

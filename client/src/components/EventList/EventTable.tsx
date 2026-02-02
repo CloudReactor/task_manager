@@ -1,4 +1,5 @@
 import React, { Fragment } from 'react';
+import _ from 'lodash';
 
 import { AnyEvent, RunEnvironment } from '../../types/domain_types';
 import { ResultsPage } from '../../utils/api';
@@ -99,9 +100,9 @@ const EventTable = (props: Props) => {
         <div>
           <Form inline className="mb-2">
             {runEnvironments.length > 0 && handleSelectedRunEnvironmentUuidsChanged && (
-              <Form.Group className="mr-3">
-                <Form.Label className="mr-2" style={{ width: '135px', display: 'inline-block', textAlign: 'right' }}>Run Environment:</Form.Label>
-                <div style={{ width: '250px', display: 'inline-block' }}>
+              <Form.Group className="mr-3 mb-2">
+                <Form.Label className={`mr-2 ${styles.filterLabel}`}>Run Environment:</Form.Label>
+                <div className={styles.filterInput}>
                   <RunEnvironmentSelector
                     runEnvironments={runEnvironments}
                     selectedRunEnvironmentUuids={selectedRunEnvironmentUuids}
@@ -109,52 +110,10 @@ const EventTable = (props: Props) => {
                 </div>
               </Form.Group>
             )}
-            {handleQueryChanged && (
-              <Form.Group className="ml-auto">
-                <Form.Control
-                  type="search"
-                  placeholder="Search"
-                  value={q || ''}
-                  onChange={handleQueryChanged}
-                />
-              </Form.Group>
-            )}
-          </Form>
-          {(handleMinSeverityChanged || handleMaxSeverityChanged) && (
-            <Form inline className="mb-2">
-              {handleMinSeverityChanged && (
-                <Form.Group className="mr-3">
-                  <Form.Label className="mr-2" style={{ width: '135px', display: 'inline-block', textAlign: 'right' }}>Min Severity:</Form.Label>
-                  <Select
-                    value={minSeverity || ''}
-                    onChange={(e) => handleMinSeverityChanged(e.target.value as string)}
-                    style={{ width: '233px', minHeight: '38px' }}
-                    displayEmpty
-                  >
-                    {severityOptions.map(opt => (
-                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                    ))}
-                  </Select>
-                </Form.Group>
-              )}
-              {handleMaxSeverityChanged && (
-                <Form.Group className="mr-3">
-                  <Form.Label className="mr-2" style={{ width: '135px', display: 'inline-block', textAlign: 'right' }}>Max Severity:</Form.Label>
-                  <Select
-                    value={maxSeverity || ''}
-                    onChange={(e) => handleMaxSeverityChanged(e.target.value as string)}
-                    style={{ width: '233px', minHeight: '38px' }}
-                    displayEmpty
-                  >
-                    {maxSeverityOptions.map(opt => (
-                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                    ))}
-                  </Select>
-                </Form.Group>
-              )}
-              {handleEventTypesChanged && (
-                <Form.Group className="mr-3 py-2">
-                  <Form.Label className="mr-2" style={{ width: '135px', display: 'inline-block', textAlign: 'right' }}>Event Types:</Form.Label>
+            {handleEventTypesChanged && (
+              <Form.Group className="mr-3 mb-2 py-2">
+                <Form.Label className={`mr-2 ${styles.filterLabel}`}>Event Types:</Form.Label>
+                <div className={styles.filterInput}>
                   <Select
                     multiple
                     value={eventTypes || []}
@@ -169,8 +128,8 @@ const EventTable = (props: Props) => {
                         handleEventTypesChanged?.(arr.length ? arr : undefined);
                       }
                     }}
-                    renderValue={(selected) => ((selected as string[])?.length ? (selected as string[]).join(', ') : 'Any')}
-                    style={{ width: '233px', minHeight: '38px' }}
+                    renderValue={(selected) => ((selected as string[])?.length ? (selected as string[]).map(_.startCase).join(', ') : 'Any')}
+                    style={{ minHeight: '38px' }}
                     displayEmpty
                   >
                     {/* We don't have a canonical list of event types here; allow caller to control via initial props or use common types. */}
@@ -183,8 +142,62 @@ const EventTable = (props: Props) => {
                     <MenuItem value="task_execution_status_change"><Checkbox checked={(eventTypes || []).indexOf('task_execution_status_change') > -1} /><ListItemText primary="Task Execution Status Change" /></MenuItem>
                     <MenuItem value="workflow_execution_status_change"><Checkbox checked={(eventTypes || []).indexOf('workflow_execution_status_change') > -1} /><ListItemText primary="Workflow Execution Status Change" /></MenuItem>
                   </Select>
+                </div>
+              </Form.Group>
+            )}
+          </Form>
+          {(handleMinSeverityChanged || handleMaxSeverityChanged) && (
+            <Form inline className="mb-2">
+              {handleMinSeverityChanged && (
+                <Form.Group className="mr-3 mb-3">
+                  <Form.Label className={`mr-2 ${styles.filterLabel}`}>Min Severity:</Form.Label>
+                  <div className={styles.filterInput}>
+                    <Select
+                      value={minSeverity || ''}
+                      onChange={(e) => handleMinSeverityChanged(e.target.value as string)}
+                      style={{ minHeight: '38px' }}
+                      displayEmpty
+                    >
+                      {severityOptions.map(opt => (
+                        <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </div>
                 </Form.Group>
               )}
+              {handleMaxSeverityChanged && (
+                <Form.Group className="mr-3 mb-3">
+                  <Form.Label className={`mr-2 ${styles.filterLabel}`}>Max Severity:</Form.Label>
+                  <div className={styles.filterInput}>
+                    <Select
+                      value={maxSeverity || ''}
+                      onChange={(e) => handleMaxSeverityChanged(e.target.value as string)}
+                      style={{ minHeight: '38px' }}
+                      displayEmpty
+                    >
+                      {maxSeverityOptions.map(opt => (
+                        <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </div>
+                </Form.Group>
+              )}
+            </Form>
+          )}
+          {handleQueryChanged && (
+            <Form inline className="mb-2">
+              <Form.Group className="mr-3">
+                <Form.Label className={`mr-2 ${styles.filterLabel}`}>Search:</Form.Label>
+                <div className={styles.searchInput}>
+                  <Form.Control
+                    type="search"
+                    placeholder="Search"
+                    value={q || ''}
+                    onChange={handleQueryChanged}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </Form.Group>
             </Form>
           )}
         </div>

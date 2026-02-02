@@ -53,7 +53,7 @@ const WorkflowTable = (props: Props) => {
   return (
     <Fragment>
       <div>
-        <Form inline>
+        <Form inline className={styles.filterForm}>
           <Form.Group>
             <Form.Label className="mr-3">Run Environment:</Form.Label>
             <RunEnvironmentSelector
@@ -62,7 +62,7 @@ const WorkflowTable = (props: Props) => {
               handleSelectedRunEnvironmentUuidsChanged={props.handleSelectedRunEnvironmentUuidsChanged} />
           </Form.Group>
           <Form.Group>
-            <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
+            <Form.Label className="mr-3">Status:</Form.Label>
             <StatusFilter selectedStatuses={props.selectedStatuses}
              onSelectedStatusesChanged={props.handleSelectedStatusesChanged}
              forWorkflows={true} />

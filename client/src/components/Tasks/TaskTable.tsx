@@ -60,13 +60,13 @@ const TaskTable = (props: Props) => (
             handleSelectedRunEnvironmentUuidsChanged={props.handleSelectedRunEnvironmentUuidsChanged} />
         </Form.Group>
         <Form.Group>
-          <Form.Label className="mr-3 mt-3 mb-3">Status:</Form.Label>
+          <Form.Label className="mr-3">Status:</Form.Label>
           <StatusFilter selectedStatuses={props.selectedStatuses}
            onSelectedStatusesChanged={props.handleSelectedStatusesChanged} />
         </Form.Group>
       </Form>
     </div>
-    <div className="d-flex justify-content-between align-items-center">
+    <div className={`d-flex justify-content-between align-items-center ${styles.searchPaginationContainer}`}>
       <div className={styles.searchContainer}>
         <Form.Control type="search" as={DebounceInput}
           onChange={props.handleQueryChanged}

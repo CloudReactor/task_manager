@@ -202,7 +202,7 @@ export function makeEntityList<T>({
           {
             isLoading ? <Loading /> : ((page?.count ?? 0) === 0) ? (
               <p className="mt-3">
-                There are no {pluralEntityName} set up yet.
+                There are no {pluralEntityName} created yet.
               </p>
             ) : (
               <Fragment>
