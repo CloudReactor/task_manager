@@ -48,6 +48,7 @@ interface Props {
   handleSelectItemsPerPage: (
     event: ChangeEvent<HTMLSelectElement>
   ) => void;
+  onEventAcknowledged?: (eventUuid: string) => void;
 }
 
 const EventTable = (props: Props) => {
@@ -220,6 +221,7 @@ const EventTable = (props: Props) => {
           handleSelectItemsPerPage={props.handleSelectItemsPerPage}
           showRunEnvironmentColumn={showRunEnvironmentColumn}
           showTaskWorkflowColumn={showTaskWorkflowColumn}
+          onEventAcknowledged={props.onEventAcknowledged}
         />
       </Table>
     </Fragment>

@@ -1106,6 +1106,21 @@ export async function fetchEvent(uuid: string, abortSignal?: AbortSignal): Promi
   }
 }
 
+export async function updateEvent(uuid: string, data: Record<string, any>): Promise<import('../types/domain_types').AnyEvent> {
+  const response = await makeAuthenticatedClient().patch(
+    `api/v1/events/${encodeURIComponent(uuid)}/`,
+    data
+  );
+  const raw = response.data as any;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { castEvent } = require('../types/domain_types');
+    return castEvent(raw) as import('../types/domain_types').AnyEvent;
+  } catch (e) {
+    return raw as import('../types/domain_types').AnyEvent;
+  }
+}
+
 export function makeErrorElement(e: any, fallbackText: string = 'An error occurred'): any {
   const data = e?.response?.data;
   if (data) {

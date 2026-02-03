@@ -234,6 +234,7 @@ const EventList = (props: AbortSignalProps) => {
     eventPage,
     runEnvironments,
     selectedRunEnvironmentUuids,
+    onEventAcknowledged: () => loadEvents(),
   };
 
   return (

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
 
 import { AnyEvent } from '../../types/domain_types';
-import { ResultsPage, itemsPerPageOptions } from '../../utils/api';
+import { ResultsPage, itemsPerPageOptions, updateEvent } from '../../utils/api';
+import { ACCESS_LEVEL_SUPPORT } from '../../utils/constants';
+import { GlobalContext, accessLevelForCurrentGroup } from '../../context/GlobalContext';
 
 import DefaultPagination from '../Pagination/Pagination';
 
@@ -15,6 +17,7 @@ interface Props {
   handleSelectItemsPerPage: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   showRunEnvironmentColumn?: boolean;
   showTaskWorkflowColumn?: boolean;
+  onEventAcknowledged?: (eventUuid: string) => void;
 }
 
 const EventTableBody = (props: Props) => {
@@ -25,8 +28,32 @@ const EventTableBody = (props: Props) => {
     handlePageChanged,
     handleSelectItemsPerPage,
     showRunEnvironmentColumn = true,
-    showTaskWorkflowColumn = true
+    showTaskWorkflowColumn = true,
+    onEventAcknowledged
   } = props;
+
+  const globalContext = useContext(GlobalContext);
+  const userAccessLevel = accessLevelForCurrentGroup(globalContext);
+
+  const [acknowledgeLoadingMap, setAcknowledgeLoadingMap] = useState<{ [uuid: string]: boolean }>({});
+
+  const handleAcknowledgeEvent = async (eventUuid: string) => {
+    setAcknowledgeLoadingMap(prev => ({ ...prev, [eventUuid]: true }));
+    try {
+      await updateEvent(eventUuid, {
+        acknowledged_at: new Date().toISOString()
+      });
+      if (onEventAcknowledged) {
+        onEventAcknowledged(eventUuid);
+      }
+    } catch (error) {
+      console.error('Failed to acknowledge event:', error);
+    } finally {
+      setAcknowledgeLoadingMap(prev => ({ ...prev, [eventUuid]: false }));
+    }
+  };
+
+  const canAcknowledge = userAccessLevel !== null && userAccessLevel !== undefined && userAccessLevel >= ACCESS_LEVEL_SUPPORT;
 
   const formatTimestamp = (timestamp: Date | null) => {
     if (!timestamp) {
@@ -131,19 +158,34 @@ const EventTableBody = (props: Props) => {
           {showRunEnvironmentColumn && <td>{renderRunEnvironment(event)}</td>}
           <td>{formatTimestamp(event.detected_at)}</td>
           <td>{formatTimestamp(event.resolved_at)}</td>
+          <td>
+            {(event as any).acknowledged_at ? 
+              formatTimestamp((event as any).acknowledged_at) : 
+              (canAcknowledge ? 
+                <button 
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => handleAcknowledgeEvent(event.uuid)}
+                  disabled={acknowledgeLoadingMap[event.uuid] || false}
+                >
+                  {acknowledgeLoadingMap[event.uuid] ? 'Acknowledging...' : 'Acknowledge'}
+                </button> : 
+                '-'
+              )
+            }
+          </td>
           {showTaskWorkflowColumn && <td>{renderTaskOrWorkflow(event)}</td>}
           <td>{renderExecution(event)}</td>
         </tr>
       ))}
       {eventPage.results.length === 0 && (
         <tr>
-          <td colSpan={9 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)} className="text-center">
+          <td colSpan={10 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)} className="text-center">
             No events found
           </td>
         </tr>
       )}
       <tr>
-        <td colSpan={9 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)}>
+        <td colSpan={10 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)}>
           <DefaultPagination
             currentPage={currentPage}
             pageSize={rowsPerPage}

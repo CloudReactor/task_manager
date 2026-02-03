@@ -88,7 +88,7 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
         fields = [
             'url', 'uuid', 'created_by_group', 'created_by_user',
             'run_environment',
-            'event_at', 'detected_at',
+            'event_at', 'detected_at', 'acknowledged_at',
             'severity', 'event_type',
             'error_summary', 'error_details_message',
             'source', 'details', 'grouping_key',

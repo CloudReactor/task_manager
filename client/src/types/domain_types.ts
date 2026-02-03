@@ -957,6 +957,7 @@ export function makeNewWorkflow(): Workflow {
 export interface Event extends NamelessEntityReference, Timestamped {
   event_at: Date;
   detected_at: Date | null;
+  acknowledged_at: Date | null;
   severity: string;
   event_type: string;
   error_summary: string | null;

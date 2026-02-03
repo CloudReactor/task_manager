@@ -44,6 +44,7 @@ class Event(TypedModel):
 
     event_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     detected_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
     severity = models.PositiveIntegerField(default=Severity.ERROR)
     error_summary = models.CharField(max_length=MAX_ERROR_SUMMARY_LENGTH, blank=True)
     error_details_message = models.CharField(max_length=MAX_ERROR_DETAILS_MESSAGE_LENGTH, blank=True)
