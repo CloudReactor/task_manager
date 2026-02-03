@@ -7,7 +7,7 @@ from .task_event import TaskEvent
 
 
 class TaskExecutionEvent(TaskEvent):
-    task_execution = models.ForeignKey('TaskExecution', null=True, on_delete=models.CASCADE)
+    task_execution = models.ForeignKey('TaskExecution', null=True, blank=True, on_delete=models.CASCADE)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

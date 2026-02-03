@@ -50,12 +50,12 @@ class Event(TypedModel):
     source = models.CharField(max_length=MAX_SOURCE_LENGTH, blank=True)
     details = models.JSONField(null=True, blank=True)
     grouping_key = models.CharField(max_length=MAX_GROUPING_KEY_LENGTH, blank=True)
-    resolved_at = models.DateTimeField(null=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
     resolved_event = models.OneToOneField('self', on_delete=models.DO_NOTHING, null=True, blank=True)
 
     # null=True until we can populate this field for existing events
     created_by_group = models.ForeignKey(Group, on_delete=models.CASCADE,
-            null=True, editable=True)
+            null=True, blank=True, editable=True)
 
     run_environment = models.ForeignKey('RunEnvironment',
         related_name='+', on_delete=models.CASCADE, blank=True, null=True)

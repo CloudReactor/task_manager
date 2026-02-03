@@ -12,7 +12,7 @@ class LegacyInsufficientServiceInstancesEvent(models.Model):
     detected_concurrency = models.IntegerField()
     required_concurrency = models.IntegerField()
     detected_at = models.DateTimeField(auto_now_add=True)
-    resolved_at = models.DateTimeField(null=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['detected_at']

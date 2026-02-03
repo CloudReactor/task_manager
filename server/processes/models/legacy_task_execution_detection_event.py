@@ -13,7 +13,7 @@ class LegacyTaskExecutionDetectionEvent(models.Model):
             on_delete=models.CASCADE,
             db_column='process_execution_id')
     detected_at = models.DateTimeField(auto_now_add=True)
-    resolved_at = models.DateTimeField(null=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self) -> str:
         return 'Task Execution ' + str(self.task_execution.uuid) + ' / ' + str(self.uuid)

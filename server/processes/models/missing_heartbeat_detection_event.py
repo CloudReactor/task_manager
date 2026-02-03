@@ -17,9 +17,9 @@ Expected heartbeat at {{expected_heartbeat_at}} but last heartbeat was at {{last
     FOUND_HEARTBEAT_EVENT_DETAILS_TEMPLATE = \
 """Execution {{task_execution.uuid}} of the Task '{{task.name}}' has sent a late heartbeat at {{last_heartbeat_at}} after being marked as missing a heartbeat."""
 
-    last_heartbeat_at = models.DateTimeField(null=True)
-    expected_heartbeat_at = models.DateTimeField(null=True)
-    heartbeat_interval_seconds = models.IntegerField(null=True)
+    last_heartbeat_at = models.DateTimeField(null=True, blank=True)
+    expected_heartbeat_at = models.DateTimeField(null=True, blank=True)
+    heartbeat_interval_seconds = models.IntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ['event_at', 'detected_at']
