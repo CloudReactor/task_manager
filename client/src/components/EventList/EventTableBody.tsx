@@ -82,6 +82,17 @@ const EventTableBody = (props: Props) => {
     return '-';
   };
 
+  const renderRunEnvironment = (event: AnyEvent) => {
+    if (event.run_environment) {
+      return (
+        <Link to={`/run_environments/${event.run_environment.uuid}`}>
+          {event.run_environment.name}
+        </Link>
+      );
+    }
+    return '-';
+  };
+
   const getSeverityBadgeClass = (severity: string) => {
     switch (severity.toLowerCase()) {
       case 'critical':
@@ -117,7 +128,7 @@ const EventTableBody = (props: Props) => {
           </td>
           <td>{formatEventType(event.event_type)}</td>
           <td>{event.error_summary || '-'}</td>
-          {showRunEnvironmentColumn && <td>{event.run_environment?.name || '-'}</td>}
+          {showRunEnvironmentColumn && <td>{renderRunEnvironment(event)}</td>}
           <td>{formatTimestamp(event.detected_at)}</td>
           <td>{formatTimestamp(event.resolved_at)}</td>
           {showTaskWorkflowColumn && <td>{renderTaskOrWorkflow(event)}</td>}
