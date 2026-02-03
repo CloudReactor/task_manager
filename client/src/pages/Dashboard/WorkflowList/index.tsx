@@ -68,6 +68,10 @@ const WorkflowList = (props: AbortSignalProps) => {
 
   const mounted = useRef(false);
 
+  useEffect(() => {
+    document.title = 'CloudReactor - Workflows';
+  }, []);  
+
   const loadRunEnvironments = useCallback(async () => {
     setAreRunEnvironmentsLoading(true);
     try {

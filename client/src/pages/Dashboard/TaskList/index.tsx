@@ -56,6 +56,10 @@ const TaskList = ({
 
   const mounted = useRef(false);
 
+  useEffect(() => {
+    document.title = 'CloudReactor - Tasks';
+  }, []);
+
   //console.log('TaskList: searchParams:', searchParams);
 
   const loadRunEnvironments = useCallback(async () => {

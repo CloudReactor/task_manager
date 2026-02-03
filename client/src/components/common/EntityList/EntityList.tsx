@@ -76,12 +76,6 @@ export function makeEntityList<T>({
     const context = useContext(GlobalContext);
     const accessLevel = accessLevelForCurrentGroup(context);
 
-    if (!accessLevel) {
-      return (
-        <p>You don&apos;t have permission to access to this page.</p>
-      );
-    }
-
     const { currentGroup } = context;
 
     const [isLoading, setLoading] = useState(true);
@@ -94,7 +88,7 @@ export function makeEntityList<T>({
 
     useEffect(() => {
       document.title = `CloudReactor - ${pluralEntityName}`;
-    }, []);
+    }, [pluralEntityName, location.pathname, isLoading]);
 
     const navigate = useNavigate();
 
@@ -115,6 +109,12 @@ export function makeEntityList<T>({
         setLoading(false);
       }
     }, [offset, currentGroup]);
+
+    if (!accessLevel) {
+      return (
+        <p>You don&apos;t have permission to access to this page.</p>
+      );
+    }
 
     const handleSelection = (uuid: string) => {
       if (uuid === 'new') {

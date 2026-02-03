@@ -42,6 +42,10 @@ const EventList = (props: AbortSignalProps) => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  useEffect(() => {
+    document.title = 'CloudReactor - Events';
+  }, []);
+
   const mounted = useRef(false);
 
   const loadRunEnvironments = useCallback(async () => {

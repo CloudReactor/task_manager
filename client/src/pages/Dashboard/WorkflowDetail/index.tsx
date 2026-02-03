@@ -60,17 +60,9 @@ const WorkflowDetail = ({
 
   const accessLevel = accessLevelForCurrentGroup(context);
 
-  if (!accessLevel) {
-    return <AccessDenied />;
-  }
-
   const {
     uuid
   } = useParams<PathParamsType>();
-
-  if (!uuid) {
-    return <div>Invalid UUID</div>;
-  }
 
   const [workflow, setWorkflow] = useState<Workflow | null>(
     (uuid == 'new') ? makeNewWorkflow() : null);
@@ -91,6 +83,14 @@ const WorkflowDetail = ({
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  if (!accessLevel) {
+    return <AccessDenied />;
+  }
+
+  if (!uuid) {
+    return <div>Invalid UUID</div>;
+  }
 
   const selectedTab = searchParams.get('tab') ?? TAB_EXECUTIONS;
 
