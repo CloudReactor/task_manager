@@ -1,4 +1,5 @@
-import React, { Fragment } from 'react';
+import * as React from 'react';
+import { Fragment, ChangeEvent } from 'react';
 import _ from 'lodash';
 
 import { AnyEvent, RunEnvironment } from '../../types/domain_types';
@@ -36,7 +37,7 @@ interface Props {
   handleEventTypesChanged?: (types?: string[]) => void;
   handleSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
   handleSelectedRunEnvironmentUuidsChanged?: (uuids?: string[]) => void;
-  handleQueryChanged?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleQueryChanged?: (event: ChangeEvent<HTMLInputElement>) => void;
   handleMinSeverityChanged?: (severity: string) => void;
   handleMaxSeverityChanged?: (severity: string) => void;
   loadEvents: (
@@ -45,7 +46,7 @@ interface Props {
   ) => Promise<void>;
   handlePageChanged: (currentPage: number) => void;
   handleSelectItemsPerPage: (
-    event: React.ChangeEvent<HTMLSelectElement>
+    event: ChangeEvent<HTMLSelectElement>
   ) => void;
 }
 

@@ -9,7 +9,7 @@ import {
   fetchEvents
 } from '../../../utils/api';
 
-import React, { Fragment, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useContext, useEffect, useRef, useState, ChangeEvent } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
@@ -51,6 +51,7 @@ const TaskEventsTab = (props: InnerProps) => {
     toggleDirection?: boolean
   ) => {
     const {
+      q,
       sortBy,
       descending,
       rowsPerPage,
@@ -85,6 +86,7 @@ const TaskEventsTab = (props: InnerProps) => {
       const fetchedPage = await fetchEvents({
         groupId: currentGroup?.id,
         taskUuid: task.uuid,
+        q,
         sortBy: finalOrdering,
           minSeverity,
           maxSeverity,
@@ -110,7 +112,7 @@ const TaskEventsTab = (props: InnerProps) => {
   }, [location, task.uuid]);
 
   const handleSelectItemsPerPage = (
-    event: React.ChangeEvent<HTMLSelectElement>
+    event: ChangeEvent<HTMLSelectElement>
   ) => {
     const rowsPerPage = parseInt(event.target.value);
     updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'rows_per_page');
@@ -122,6 +124,12 @@ const TaskEventsTab = (props: InnerProps) => {
 
   const handlePageChanged = useCallback((currentPage: number) => {
     updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
+  }, [location]);
+
+  const handleQueryChanged = useCallback((
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    updateSearchParams(searchParams, setSearchParams, event.target.value, 'events_q');
   }, [location]);
 
   const cleanupLoading = () => {
@@ -160,6 +168,7 @@ const TaskEventsTab = (props: InnerProps) => {
   }, [location]);
 
   const {
+    q,
     sortBy,
     descending,
     rowsPerPage,
@@ -174,6 +183,8 @@ const TaskEventsTab = (props: InnerProps) => {
     handleSortChanged,
     handlePageChanged,
     handleSelectItemsPerPage,
+    handleQueryChanged,
+    q,
     showFilters: true,
     minSeverity: searchParams.get('min_severity') ?? undefined,
     maxSeverity: searchParams.get('max_severity') ?? undefined,

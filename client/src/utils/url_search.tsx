@@ -44,7 +44,7 @@ export const transformSearchParams = (searchParams: URLSearchParams,
   }
 
   return {
-    q: searchParams.get('q') ?? undefined,
+    q: searchParams.get('events_q') ?? searchParams.get('q') ?? undefined,
     sortBy: searchParams.get('sort_by') ?? undefined,
     descending,
     selectedRunEnvironmentUuids,

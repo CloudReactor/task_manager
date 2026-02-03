@@ -147,7 +147,7 @@ const EventList = (props: AbortSignalProps) => {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const q = event.target.value;
-    updateSearchParams(searchParams, setSearchParams, q, 'q');
+    updateSearchParams(searchParams, setSearchParams, q, 'events_q');
   }, [location]);
 
   const handlePageChanged = useCallback((currentPage: number) => {
