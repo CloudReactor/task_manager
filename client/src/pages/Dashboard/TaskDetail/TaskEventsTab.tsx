@@ -9,7 +9,9 @@ import {
   fetchEvents
 } from '../../../utils/api';
 
-import { Fragment, useCallback, useContext, useEffect, useRef, useState, ChangeEvent } from 'react';
+import React, {
+  Fragment, useCallback, useContext, useEffect, useRef, useState, ChangeEvent
+} from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
