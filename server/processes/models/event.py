@@ -64,6 +64,7 @@ class Event(TypedModel):
     class Meta:
         indexes = [
             models.Index(fields=['created_by_group', 'event_at']),
+            models.Index(fields=['run_environment', 'event_at']),
         ]
 
 

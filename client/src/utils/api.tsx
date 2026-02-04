@@ -108,7 +108,12 @@ function makePageFetchParams(pageFetchOptions?: PageFetchOptions,
   }
 
   if (sortBy) {
-    params.ordering = descending ? `-${sortBy}` : sortBy;
+    // Support multiple sort fields as comma-separated list
+    const sortFields = sortBy.split(',').map((field) => {
+      const trimmedField = field.trim();
+      return descending ? `-${trimmedField}` : trimmedField;
+    });
+    params.ordering = sortFields.join(',');
   }
 
   return params;

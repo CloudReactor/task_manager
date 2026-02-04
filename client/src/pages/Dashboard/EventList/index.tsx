@@ -38,6 +38,7 @@ const EventList = (props: AbortSignalProps) => {
     makeEmptyResultsPage<AnyEvent>());
 
   const [loadEventsAbortController, setLoadEventsAbortController] = useState<AbortController | null>(null);
+  const [eventTimeDescending, setEventTimeDescending] = useState(true);
 
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -77,7 +78,7 @@ const EventList = (props: AbortSignalProps) => {
       selectedRunEnvironmentUuids,
       rowsPerPage,
       currentPage
-    } = transformSearchParams(searchParams, true);
+    } = transformSearchParams(searchParams, false);
 
     const minSeverity = searchParams.get('min_severity') || undefined;
     const maxSeverity = searchParams.get('max_severity') || undefined;
@@ -90,16 +91,28 @@ const EventList = (props: AbortSignalProps) => {
     const updatedLoadEventsAbortController = new AbortController();
     setLoadEventsAbortController(updatedLoadEventsAbortController);
 
-    let finalOrdering = ordering ?? sortBy;
+    let finalOrdering = ordering ?? sortBy ?? 'event_at';
     let finalDescending = toggleDirection ? !descending : descending;
+    let finalEventTimeDescending = eventTimeDescending;
 
     if (ordering && (ordering === sortBy)) {
       finalDescending = toggleDirection ? !descending : descending;
+    } else if (!ordering && !sortBy) {
+      // Initial load without sort_by in URL. Default to event_at descending.
+      finalDescending = true;
     }
 
     if (finalDescending) {
       finalOrdering = '-' + finalOrdering;
     }
+
+    // Append event_at as secondary sort field, but only if it's not already the primary sort
+    const sortFields = [finalOrdering];
+    const primarySortField = finalOrdering.startsWith('-') ? finalOrdering.substring(1) : finalOrdering;
+    if (primarySortField !== 'event_at') {
+      sortFields.push(finalEventTimeDescending ? '-event_at' : 'event_at');
+    }
+    const finalSortBy = sortFields.join(',');
 
     setAreEventsLoading(true);
 
@@ -107,7 +120,7 @@ const EventList = (props: AbortSignalProps) => {
       const fetchedPage = await fetchEvents({
         groupId: currentGroup?.id,
         q: q ?? undefined,
-        sortBy: finalOrdering,
+        sortBy: finalSortBy,
         runEnvironmentUuids: selectedRunEnvironmentUuids,
         minSeverity,
         maxSeverity,
@@ -130,7 +143,7 @@ const EventList = (props: AbortSignalProps) => {
       setAreEventsLoading(false);
       setIsInitialLoad(false);
     }
-  }, [location]);
+  }, [location, eventTimeDescending]);
 
   const handleSelectItemsPerPage = (
     event: React.ChangeEvent<HTMLSelectElement>
@@ -140,8 +153,41 @@ const EventList = (props: AbortSignalProps) => {
   };
 
   const handleSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
-    updateSearchParams(searchParams, setSearchParams, ordering, 'sort_by');
-  }, [location]);
+    // When a new sortable column is selected, clear any previous multi-column sort
+    // and reset to just that column + event_at (secondary)
+    const currentSortBy = searchParams.get('sort_by');
+    const currentDescending = searchParams.get('descending') === 'true';
+
+    let nextDescending = false;
+    if (ordering === currentSortBy) {
+      nextDescending = toggleDirection ? !currentDescending : currentDescending;
+    } else {
+      // New column selected. Default to ascending for most columns,
+      // but event_at uses the preserved direction.
+      nextDescending = (ordering === 'event_at') ? eventTimeDescending : false;
+    }
+
+    if (ordering === 'event_at') {
+      setEventTimeDescending(nextDescending);
+    }
+
+    const params = new URLSearchParams(searchParams);
+    if (ordering) {
+      params.set('sort_by', ordering);
+    } else {
+      params.delete('sort_by');
+    }
+
+    if (nextDescending) {
+      params.set('descending', 'true');
+    } else {
+      params.delete('descending');
+    }
+
+    params.delete('page');
+
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams, eventTimeDescending]);
 
   const handleQueryChanged = useCallback((
     event: React.ChangeEvent<HTMLInputElement>
@@ -205,7 +251,7 @@ const EventList = (props: AbortSignalProps) => {
     selectedRunEnvironmentUuids,
     rowsPerPage,
     currentPage
-  } = transformSearchParams(searchParams, true);
+  } = transformSearchParams(searchParams, false);
 
   const minSeverity = searchParams.get('min_severity') || undefined;
   const maxSeverity = searchParams.get('max_severity') || undefined;

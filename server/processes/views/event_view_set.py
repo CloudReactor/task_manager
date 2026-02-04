@@ -161,7 +161,10 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
     permission_classes = (permissions.IsAuthenticated, EventPermission,)
     filterset_class = EventFilter
     search_fields = ('uuid', 'error_summary', 'source',)
-    ordering_fields = ('event_at', 'detected_at', 'severity',)
+    ordering_fields = (
+        'event_at', 'type', 'severity', 'run_environment__name',
+        'detected_at', 'resolved_at', 'acknowledged_at'
+    )
     ordering = '-event_at'  # Default ordering by event timestamp, newest first
 
     # Cache for type string to serializer mapping
