@@ -47,7 +47,7 @@ def test_missing_scheduled_workflow_execution_event_serialization_deserializatio
     assert response.status_code == 200
     
     # Verify event_type
-    assert response.data['event_type'] == 'missing_scheduled_workflow_execution_event'
+    assert response.data['event_type'] == 'missing_scheduled_workflow_execution'
     
     # Verify scheduled workflow execution-specific fields
     assert 'workflow' in response.data

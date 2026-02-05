@@ -110,13 +110,13 @@ def test_event_polymorphic_serialization(
 
     # Verify specific event types
     event_types = {r['uuid']: r['event_type'] for r in results}
-    assert event_types[str(basic_event.uuid)] == 'basic_event'
-    assert event_types[str(task_event.uuid)] == 'task_execution_status_change_event'
-    assert event_types[str(workflow_event.uuid)] == 'workflow_execution_status_change_event'
-    assert event_types[str(insufficient_event.uuid)] == 'insufficient_service_task_executions_event'
-    assert event_types[str(heartbeat_event.uuid)] == 'missing_heartbeat_detection_event'
-    assert event_types[str(scheduled_task_event.uuid)] == 'missing_scheduled_task_execution_event'
-    assert event_types[str(scheduled_workflow_event.uuid)] == 'missing_scheduled_workflow_execution_event'
+    assert event_types[str(basic_event.uuid)] == 'basic'
+    assert event_types[str(task_event.uuid)] == 'task_execution_status_change'
+    assert event_types[str(workflow_event.uuid)] == 'workflow_execution_status_change'
+    assert event_types[str(insufficient_event.uuid)] == 'insufficient_service_task_executions'
+    assert event_types[str(heartbeat_event.uuid)] == 'missing_heartbeat_detection'
+    assert event_types[str(scheduled_task_event.uuid)] == 'missing_scheduled_task_execution'
+    assert event_types[str(scheduled_workflow_event.uuid)] == 'missing_scheduled_workflow_execution'
 
     # Test retrieve endpoint for TaskExecutionStatusChangeEvent
     response = client.get(f'/api/v1/events/{task_event.uuid}/')
@@ -128,7 +128,7 @@ def test_event_polymorphic_serialization(
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     )
-    assert response.data['event_type'] == 'task_execution_status_change_event'
+    assert response.data['event_type'] == 'task_execution_status_change'
     assert 'task' in response.data
     assert 'task_execution' in response.data
 
@@ -142,7 +142,7 @@ def test_event_polymorphic_serialization(
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     )
-    assert response.data['event_type'] == 'workflow_execution_status_change_event'
+    assert response.data['event_type'] == 'workflow_execution_status_change'
     assert 'workflow' in response.data
     assert 'workflow_execution' in response.data
 
@@ -156,7 +156,7 @@ def test_event_polymorphic_serialization(
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     )
-    assert response.data['event_type'] == 'insufficient_service_task_executions_event'
+    assert response.data['event_type'] == 'insufficient_service_task_executions'
     assert 'task' in response.data
     assert 'interval_start_at' in response.data
     assert 'interval_end_at' in response.data
@@ -173,7 +173,7 @@ def test_event_polymorphic_serialization(
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     )
-    assert response.data['event_type'] == 'missing_heartbeat_detection_event'
+    assert response.data['event_type'] == 'missing_heartbeat_detection'
     assert 'task' in response.data
     assert 'last_heartbeat_at' in response.data
     assert 'expected_heartbeat_at' in response.data
@@ -189,7 +189,7 @@ def test_event_polymorphic_serialization(
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     )
-    assert response.data['event_type'] == 'missing_scheduled_task_execution_event'
+    assert response.data['event_type'] == 'missing_scheduled_task_execution'
     assert 'task' in response.data
     assert 'schedule' in response.data
     assert 'expected_execution_at' in response.data
@@ -204,7 +204,7 @@ def test_event_polymorphic_serialization(
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
         UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     )
-    assert response.data['event_type'] == 'missing_scheduled_workflow_execution_event'
+    assert response.data['event_type'] == 'missing_scheduled_workflow_execution'
     assert 'workflow' in response.data
     assert 'schedule' in response.data
     assert 'expected_execution_at' in response.data
