@@ -7,6 +7,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from ..models import Event, UserGroupAccessLevel
+from ..common.request_helpers import required_user_and_group_from_request
 from ..common.utils import model_class_to_type_string
 
 from .embedded_id_validating_serializer_mixin import EmbeddedIdValidatingSerializerMixin
@@ -80,23 +81,24 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
     # Serialize severity as a string label (e.g. 'error', 'warning')
     severity = EventSeveritySerializer()
     event_type = serializers.SerializerMethodField()
-    resolved_event = NameAndUuidSerializer(view_name='events-detail', required=False)
-    created_by_group = GroupSerializer(read_only=True, include_users=False)
+    acknowledged_by_user = serializers.ReadOnlyField(source='acknowledged_by_user.username')
+    resolved_event = NameAndUuidSerializer(view_name='events-detail', required=False)        
+    resolved_by_user = serializers.ReadOnlyField(source='resolved_by_user.username')
 
     class Meta:
         model = Event
         fields = [
             'url', 'uuid', 'created_by_group', 'created_by_user',
             'run_environment',
-            'event_at', 'detected_at', 'acknowledged_at',
+            'event_at', 'detected_at', 'acknowledged_at', 'acknowledged_by_user',
             'severity', 'event_type',
             'error_summary', 'error_details_message',
             'source', 'details', 'grouping_key',
-            'resolved_at', 'resolved_event',
+            'resolved_at', 'resolved_by_user', 'resolved_event',
         ]
         read_only_fields = [
             'url', 'uuid', 'created_by_user', 'created_at', 'updated_at',
-            'event_type',
+            'event_type', 'acknowledged_by_user', 'resolved_by_user',
         ]
 
     def get_event_type(self, obj: Event) -> str:
@@ -169,3 +171,26 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
 
     def required_access_level_for_mutation(self):
         return UserGroupAccessLevel.ACCESS_LEVEL_TASK
+
+    @override
+    def update(self, instance: Event, validated_data: dict) -> Event:
+        """Set acknowledged_by_user / resolved_by_user to the request user when
+        the corresponding timestamp fields are provided (or clear them when set to None).
+        """
+        user, _group = required_user_and_group_from_request()
+
+        # If acknowledged_at is present in the payload, set/clear acknowledged_by_user
+
+        if 'acknowledged_at' in validated_data:
+            if validated_data.get('acknowledged_at'):
+                instance.acknowledged_by_user = user
+            else:
+                instance.acknowledged_by_user = None    
+        
+        if 'resolved_at' in validated_data:
+            if validated_data.get('resolved_at'):
+                instance.resolved_by_user = user
+            else:
+                instance.resolved_by_user = None
+
+        return super().update(instance, validated_data)

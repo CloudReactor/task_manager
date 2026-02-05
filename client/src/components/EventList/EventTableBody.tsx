@@ -1,5 +1,9 @@
 import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCheckCircle, faEye } from '@fortawesome/free-solid-svg-icons'
+
 import moment from 'moment';
 
 import { AnyEvent } from '../../types/domain_types';
@@ -36,12 +40,13 @@ const EventTableBody = (props: Props) => {
   const userAccessLevel = accessLevelForCurrentGroup(globalContext);
 
   const [acknowledgeLoadingMap, setAcknowledgeLoadingMap] = useState<{ [uuid: string]: boolean }>({});
+  const [resolveLoadingMap, setResolveLoadingMap] = useState<{ [uuid: string]: boolean }>({});
 
   const handleAcknowledgeEvent = async (eventUuid: string) => {
     setAcknowledgeLoadingMap(prev => ({ ...prev, [eventUuid]: true }));
     try {
       await updateEvent(eventUuid, {
-        acknowledged_at: new Date().toISOString()
+        acknowledged_at: moment.utc().toISOString()
       });
       if (onEventAcknowledged) {
         onEventAcknowledged(eventUuid);
@@ -53,13 +58,37 @@ const EventTableBody = (props: Props) => {
     }
   };
 
+  const handleResolveEvent = async (eventUuid: string) => {
+    setResolveLoadingMap(prev => ({ ...prev, [eventUuid]: true }));
+    try {
+      await updateEvent(eventUuid, {
+        resolved_at: moment.utc().toISOString()
+      });
+      if (onEventAcknowledged) {
+        onEventAcknowledged(eventUuid);
+      }
+    } catch (error) {
+      console.error('Failed to resolve event:', error);
+    } finally {
+      setResolveLoadingMap(prev => ({ ...prev, [eventUuid]: false }));
+    }
+  };
+
   const canAcknowledge = userAccessLevel !== null && userAccessLevel !== undefined && userAccessLevel >= ACCESS_LEVEL_SUPPORT;
+  const canResolve = canAcknowledge;
 
   const formatTimestamp = (timestamp: Date | null) => {
     if (!timestamp) {
       return '-';
     }
-    return moment(timestamp).format('YYYY-MM-DD HH:mm:ss');
+    // show time in UTC (no timezone suffix)
+    return moment.utc(timestamp).format('YYYY-MM-DD HH:mm:ss');
+  };
+
+  const formatAgo = (timestamp: Date | null) => {
+    if (!timestamp) return '';
+    // compute relative time using UTC
+    return moment.utc(timestamp).fromNow();
   };
 
   const formatEventType = (eventType: string) => {
@@ -146,6 +175,9 @@ const EventTableBody = (props: Props) => {
           <td>
             <Link to={`/events/${event.uuid}`}>
               {formatTimestamp(event.event_at)}
+              {event.event_at && (
+                <span className="text-muted"> ({formatAgo(event.event_at)})</span>
+              )}
             </Link>
           </td>
           <td>
@@ -156,27 +188,61 @@ const EventTableBody = (props: Props) => {
           <td>{formatEventType(event.event_type)}</td>
           <td>{event.error_summary || '-'}</td>
           {showRunEnvironmentColumn && <td>{renderRunEnvironment(event)}</td>}
-          <td>{formatTimestamp(event.detected_at)}</td>
-          <td>{formatTimestamp(event.resolved_at)}</td>
           <td>
-            {(event as any).acknowledged_at ? 
-              formatTimestamp((event as any).acknowledged_at) : 
-              (canAcknowledge ? 
-                <button 
-                  className="btn btn-sm btn-secondary"
+            {formatTimestamp(event.detected_at)}
+            {event.detected_at && (
+              <span className="text-muted"> ({formatAgo(event.detected_at)})</span>
+            )}
+          </td>
+          <td>
+            {event.acknowledged_at ? (
+              <>
+                {formatTimestamp(event.acknowledged_at)}
+                <span className="text-muted"> ({formatAgo(event.acknowledged_at)})</span>
+                {event.acknowledged_by_user && (
+                    <span> by {event.acknowledged_by_user}</span>
+                )}
+              </>
+            ) : (
+              (canAcknowledge ? (
+                <button
+                  className="btn btn-sm btn-secondary d-inline-flex align-items-center"
                   onClick={() => handleAcknowledgeEvent(event.uuid)}
                   disabled={acknowledgeLoadingMap[event.uuid] || false}
                 >
-                  {acknowledgeLoadingMap[event.uuid] ? 'Acknowledging...' : 'Acknowledge'}
-                </button> : 
-                '-'
-              )
-            }
+                  <span style={{ marginRight: '0.5rem' }}><FontAwesomeIcon icon={faEye} /></span>
+                  <span style={{ whiteSpace: 'nowrap' }}>{acknowledgeLoadingMap[event.uuid] ? 'Acknowledging...' : 'Acknowledge'}</span>
+                </button>
+              ) : '-')
+            )}
+          </td>
+          <td>
+            {event.resolved_at ? (
+              <>
+                {formatTimestamp(event.resolved_at)}
+                <span className="text-muted"> ({formatAgo(event.resolved_at)})</span>
+                {event.resolved_by_user && (
+                    <span> by {event.resolved_by_user}</span>
+                )}
+              </>
+            ) : (
+              (canResolve ? (
+                <button
+                  className="btn btn-sm btn-secondary d-inline-flex align-items-center"
+                  onClick={() => handleResolveEvent(event.uuid)}
+                  disabled={resolveLoadingMap[event.uuid] || false}
+                >
+                  <span style={{ marginRight: '0.5rem' }}><FontAwesomeIcon icon={faCheckCircle} /></span>
+                  <span style={{ whiteSpace: 'nowrap' }}>{resolveLoadingMap[event.uuid] ? 'Resolving...' : 'Resolve'}</span>
+                </button>
+              ) : '-')
+            )}
           </td>
           {showTaskWorkflowColumn && <td>{renderTaskOrWorkflow(event)}</td>}
           <td>{renderExecution(event)}</td>
         </tr>
       ))}
+
       {eventPage.results.length === 0 && (
         <tr>
           <td colSpan={10 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)} className="text-center">

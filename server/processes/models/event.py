@@ -8,7 +8,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import User, Group
 
 from typedmodels.models import TypedModel
 from enum import IntEnum, unique
@@ -45,6 +45,8 @@ class Event(TypedModel):
     event_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     detected_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     acknowledged_at = models.DateTimeField(null=True, blank=True)
+    acknowledged_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, editable=True,
+            related_name='acknowledged_events')
     severity = models.PositiveIntegerField(default=Severity.ERROR)
     error_summary = models.CharField(max_length=MAX_ERROR_SUMMARY_LENGTH, blank=True)
     error_details_message = models.CharField(max_length=MAX_ERROR_DETAILS_MESSAGE_LENGTH, blank=True)
@@ -52,6 +54,8 @@ class Event(TypedModel):
     details = models.JSONField(null=True, blank=True)
     grouping_key = models.CharField(max_length=MAX_GROUPING_KEY_LENGTH, blank=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, editable=True,
+            related_name='resolved_events')
     resolved_event = models.OneToOneField('self', on_delete=models.DO_NOTHING, null=True, blank=True)
 
     # null=True until we can populate this field for existing events

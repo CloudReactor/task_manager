@@ -958,6 +958,7 @@ export interface Event extends NamelessEntityReference, Timestamped {
   event_at: Date;
   detected_at: Date | null;
   acknowledged_at: Date | null;
+  acknowledged_by_user: string | null;
   severity: string;
   event_type: string;
   error_summary: string | null;
@@ -966,6 +967,7 @@ export interface Event extends NamelessEntityReference, Timestamped {
   details: Record<string, any> | null;
   grouping_key: string | null;
   resolved_at: Date | null;
+  resolved_by_user: string | null;
   resolved_event: NamelessEntityReference | null;
   created_by_group: GroupReference | null;
   run_environment: EntityReference | null;

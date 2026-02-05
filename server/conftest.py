@@ -1309,4 +1309,84 @@ def ensure_serialized_event_valid(response_dict: dict[str, Any],
     else:
         serializer_class = EventSerializer
 
-    assert response_dict == serializer_class(event, context=context).data
+    expected_data = serializer_class(event, context=context).data
+
+    # Verify all fields have expected values
+    assert response_dict == expected_data, \
+        f"Event serialization mismatch. Response: {response_dict}, Expected: {expected_data}"
+
+    # Verify core Event fields
+    assert response_dict['uuid'] == str(event.uuid), \
+        f"UUID mismatch: {response_dict['uuid']} != {event.uuid}"
+
+    assert response_dict['event_at'] == iso8601_with_z(event.event_at), \
+        f"event_at mismatch: {response_dict['event_at']} != {event.event_at}"
+
+    assert response_dict['detected_at'] == iso8601_with_z(event.detected_at), \
+        f"detected_at mismatch: {response_dict['detected_at']} != {event.detected_at}"
+
+    assert response_dict['acknowledged_at'] == iso8601_with_z(event.acknowledged_at), \
+        f"acknowledged_at mismatch: {response_dict['acknowledged_at']} != {event.acknowledged_at}"
+
+    # Verify severity (serialized as string label)
+    assert 'severity' in response_dict, "severity field missing from response"
+    assert isinstance(response_dict['severity'], str), \
+        f"severity should be string, got {type(response_dict['severity'])}"
+
+    assert response_dict['error_summary'] == event.error_summary, \
+        f"error_summary mismatch: {response_dict['error_summary']} != {event.error_summary}"
+
+    assert response_dict['error_details_message'] == event.error_details_message, \
+        f"error_details_message mismatch: {response_dict['error_details_message']} != {event.error_details_message}"
+
+    assert response_dict['source'] == event.source, \
+        f"source mismatch: {response_dict['source']} != {event.source}"
+
+    assert response_dict['grouping_key'] == event.grouping_key, \
+        f"grouping_key mismatch: {response_dict['grouping_key']} != {event.grouping_key}"
+
+    assert response_dict['details'] == event.details, \
+        f"details mismatch: {response_dict['details']} != {event.details}"
+
+    assert response_dict['resolved_at'] == iso8601_with_z(event.resolved_at), \
+        f"resolved_at mismatch: {response_dict['resolved_at']} != {event.resolved_at}"
+
+    # Verify acknowledged_by_user and resolved_by_user are serialized as usernames (or null)
+    if event.acknowledged_by_user is None:
+        assert response_dict.get('acknowledged_by_user') is None, \
+            f"acknowledged_by_user should be null when model has none: {response_dict.get('acknowledged_by_user')}"
+    else:
+        assert response_dict.get('acknowledged_by_user') == event.acknowledged_by_user.username, \
+            f"acknowledged_by_user mismatch: {response_dict.get('acknowledged_by_user')} != {event.acknowledged_by_user.username}"
+
+    if event.resolved_by_user is None:
+        assert response_dict.get('resolved_by_user') is None, \
+            f"resolved_by_user should be null when model has none: {response_dict.get('resolved_by_user')}"
+    else:
+        assert response_dict.get('resolved_by_user') == event.resolved_by_user.username, \
+            f"resolved_by_user mismatch: {response_dict.get('resolved_by_user')} != {event.resolved_by_user.username}"
+
+    # Verify event_type is properly set
+    assert 'event_type' in response_dict, "event_type field missing from response"
+    assert isinstance(response_dict['event_type'], str), \
+        f"event_type should be string, got {type(response_dict['event_type'])}"
+
+    # Verify created_by_group (GroupSerializer uses 'id', not 'uuid')
+    assert 'created_by_group' in response_dict, "created_by_group field missing from response"
+    if event.created_by_group:
+        assert response_dict['created_by_group']['id'] == event.created_by_group.id, \
+            f"created_by_group id mismatch: {response_dict['created_by_group']['id']} != {event.created_by_group.id}"
+        assert response_dict['created_by_group']['name'] == event.created_by_group.name, \
+            f"created_by_group name mismatch"
+
+    # Verify run_environment if present
+    if event.run_environment:
+        assert 'run_environment' in response_dict, "run_environment field missing from response"
+        assert response_dict['run_environment']['uuid'] == str(event.run_environment.uuid), \
+            f"run_environment uuid mismatch"
+
+    # Verify resolved_event if present
+    if event.resolved_event:
+        assert 'resolved_event' in response_dict, "resolved_event field missing from response"
+        assert response_dict['resolved_event']['uuid'] == str(event.resolved_event.uuid), \
+            f"resolved_event uuid mismatch"
