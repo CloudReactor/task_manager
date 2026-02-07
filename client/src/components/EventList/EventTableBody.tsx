@@ -1,15 +1,16 @@
-import React, { useState, useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCheckCircle, faEye } from '@fortawesome/free-solid-svg-icons'
+import { faCheckCircle, faEye } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import moment from 'moment';
 
-import { AnyEvent } from '../../types/domain_types';
-import { ResultsPage, itemsPerPageOptions, updateEvent } from '../../utils/api';
-import { ACCESS_LEVEL_SUPPORT } from '../../utils/constants';
 import { GlobalContext, accessLevelForCurrentGroup } from '../../context/GlobalContext';
+import { AnyEvent } from '../../types/domain_types';
+import { ResultsPage, updateEvent } from '../../utils/api';
+import { ACCESS_LEVEL_SUPPORT } from '../../utils/constants';
+import styles from './EventTableBody.module.scss';
 
 
 
@@ -173,7 +174,7 @@ const EventTableBody = (props: Props) => {
       {eventPage.results.map((event: AnyEvent) => (
         <tr key={event.uuid}>
           <td>
-            <Link to={`/events/${event.uuid}`}>
+            <Link to={`/events/${event.uuid}`} className={styles.eventLink}>
               {formatTimestamp(event.event_at)}
               {event.event_at && (
                 <span className="text-muted"> ({formatAgo(event.event_at)})</span>
@@ -186,7 +187,15 @@ const EventTableBody = (props: Props) => {
             </span>
           </td>
           <td>{formatEventType(event.event_type)}</td>
-          <td>{event.error_summary || '-'}</td>
+          <td>
+            {event.error_summary ? (
+              <Link to={`/events/${event.uuid}`} className={styles.eventLink}>
+                {event.error_summary}
+              </Link>
+            ) : (
+              '-'
+            )}
+          </td>
           {showRunEnvironmentColumn && <td>{renderRunEnvironment(event)}</td>}
           <td>
             {formatTimestamp(event.detected_at)}
