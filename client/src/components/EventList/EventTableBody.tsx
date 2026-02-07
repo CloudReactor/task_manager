@@ -11,7 +11,7 @@ import { ResultsPage, itemsPerPageOptions, updateEvent } from '../../utils/api';
 import { ACCESS_LEVEL_SUPPORT } from '../../utils/constants';
 import { GlobalContext, accessLevelForCurrentGroup } from '../../context/GlobalContext';
 
-import DefaultPagination from '../Pagination/Pagination';
+
 
 interface Props {
   eventPage: ResultsPage<AnyEvent>;
@@ -250,18 +250,6 @@ const EventTableBody = (props: Props) => {
           </td>
         </tr>
       )}
-      <tr>
-        <td colSpan={10 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)}>
-          <DefaultPagination
-            currentPage={currentPage}
-            pageSize={rowsPerPage}
-            count={eventPage.count}
-            handleClick={handlePageChanged}
-            handleSelectItemsPerPage={handleSelectItemsPerPage}
-            itemsPerPageOptions={itemsPerPageOptions}
-          />
-        </td>
-      </tr>
     </tbody>
   );
 };

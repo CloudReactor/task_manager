@@ -3,7 +3,7 @@ import { Fragment, ChangeEvent } from 'react';
 import _ from 'lodash';
 
 import { AnyEvent, RunEnvironment } from '../../types/domain_types';
-import { ResultsPage } from '../../utils/api';
+import { ResultsPage, itemsPerPageOptions } from '../../utils/api';
 
 import "../../styles/tableStyles.scss";
 
@@ -17,6 +17,7 @@ import { MenuItem, Select, Checkbox, ListItemText } from '@mui/material';
 import RunEnvironmentSelector from "../common/RunEnvironmentSelector/RunEnvironmentSelector";
 import EventTableHeader from "./EventTableHeader";
 import EventTableBody from "./EventTableBody";
+import DefaultPagination from "../Pagination/Pagination";
 import styles from './EventTable.module.scss';
 
 interface Props {
@@ -225,6 +226,17 @@ const EventTable = (props: Props) => {
           onEventAcknowledged={props.onEventAcknowledged}
         />
       </Table>
+
+      <div className="mt-3">
+        <DefaultPagination
+          currentPage={props.currentPage}
+          pageSize={props.rowsPerPage}
+          count={props.eventPage.count}
+          handleClick={props.handlePageChanged}
+          handleSelectItemsPerPage={props.handleSelectItemsPerPage}
+          itemsPerPageOptions={itemsPerPageOptions}
+        />
+      </div>
     </Fragment>
   );
 };
