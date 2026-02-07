@@ -3,6 +3,7 @@ import * as path from '../../../constants/routes';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Row, Col } from 'react-bootstrap';
+import { startCase } from 'lodash-es';
 
 import { AnyEvent,
   ExecutionStatusChangeEvent,
@@ -79,21 +80,6 @@ const EventDetail = ({ abortSignal }: Props) => {
     return words.join(' ');
   };
 
-  const titleCase = (input: string) => {
-    if (!input) return input;
-    // Preserve ALL-CAPS tokens like UUID
-    if (!input.includes(' ') && input === input.toUpperCase()) return input;
-    const smallWords = new Set([
-      'a','an','the','and','but','or','for','nor','on','at','to','from','by','in','of','with','after','before','over','under','per','as','via'
-    ]);
-    const words = input.split(/\s+/).map(w => w.toLowerCase());
-    return words.map((w, i) => {
-      if (i === 0) return w.charAt(0).toUpperCase() + w.slice(1);
-      if (smallWords.has(w)) return w;
-      return w.charAt(0).toUpperCase() + w.slice(1);
-    }).join(' ');
-  };
-
   const firstLevel = (
     <Link to={path.EVENTS}>Events</Link>
   );
@@ -109,51 +95,51 @@ const EventDetail = ({ abortSignal }: Props) => {
           <table className="table table-striped">
             <tbody>
               <tr>
-                <th>{titleCase('UUID')}</th>
+                <th>{startCase('UUID')}</th>
                 <td>{event.uuid}</td>
               </tr>
               <tr>
-                <th>{titleCase('Event Time')}</th>
+                <th>{startCase('Event Time')}</th>
                 <td>{formatTs(event.event_at)}</td>
               </tr>
               <tr>
-                <th>{titleCase('Detected At')}</th>
+                <th>{startCase('Detected At')}</th>
                 <td>{formatTs(event.detected_at)}</td>
               </tr>
               <tr>
-                <th>{titleCase('Resolved At')}</th>
+                <th>{startCase('Resolved At')}</th>
                 <td>{formatTs(event.resolved_at)}</td>
               </tr>
               <tr>
-                <th>{titleCase('Severity')}</th>
+                <th>{startCase('Severity')}</th>
                 <td>{event.severity}</td>
               </tr>
               <tr>
-                <th>{titleCase('Event Type')}</th>
+                <th>{startCase('Event Type')}</th>
                 <td>{formatEventType(event.event_type)}</td>
               </tr>
               <tr>
-                <th>{titleCase('Summary')}</th>
+                <th>{startCase('Summary')}</th>
                 <td>{event.error_summary || '-'}</td>
               </tr>
               <tr>
-                <th>{titleCase('Details')}</th>
+                <th>{startCase('Details')}</th>
                 <td><pre style={{ whiteSpace: 'pre-wrap' }}>{event.details ? JSON.stringify(event.details, null, 2) : '-'}</pre></td>
               </tr>
               <tr>
-                <th>{titleCase('Source')}</th>
+                <th>{startCase('Source')}</th>
                 <td>{event.source || '-'}</td>
               </tr>
               <tr>
-                <th>{titleCase('Grouping Key')}</th>
+                <th>{startCase('Grouping Key')}</th>
                 <td>{event.grouping_key || '-'}</td>
               </tr>
               <tr>
-                <th>{titleCase('Resolved Event')}</th>
+                <th>{startCase('Resolved Event')}</th>
                 <td>{event.resolved_event ? <a href={event.resolved_event.url}>{event.resolved_event.uuid}</a> : '-'}</td>
               </tr>
               <tr>
-                <th>{titleCase('Run Environment')}</th>
+                <th>{startCase('Run Environment')}</th>
                 <td>{event.run_environment ? <Link to={`/run_environments/${event.run_environment.uuid}`}>{event.run_environment.name}</Link> : '-'}</td>
               </tr>
               {/* Subclass-specific fields */}
@@ -196,35 +182,35 @@ const EventDetail = ({ abortSignal }: Props) => {
                 if (isExecutionStatusChange(event)) {
                   rows.push(
                     <tr key="status">
-                      <th>{titleCase('Status')}</th>
+                      <th>{startCase('Status')}</th>
                       <td>{formatStatus((event as ExecutionStatusChangeEvent).status)}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="triggered_at">
-                      <th>{titleCase('Triggered At')}</th>
+                      <th>{startCase('Triggered At')}</th>
                       <td>{formatTs((event as ExecutionStatusChangeEvent).triggered_at)}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="postponed_until">
-                      <th>{titleCase('Postponed Until')}</th>
+                      <th>{startCase('Postponed Until')}</th>
                       <td>{formatTs((event as ExecutionStatusChangeEvent).postponed_until)}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="count_same_after">
-                      <th>{titleCase('Count With Same Status After Postponement')}</th>
+                      <th>{startCase('Count With Same Status After Postponement')}</th>
                       <td>{(event as ExecutionStatusChangeEvent).count_with_same_status_after_postponement ?? '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="count_success_after">
-                      <th>{titleCase('Count With Success Status After Postponement')}</th>
+                      <th>{startCase('Count With Success Status After Postponement')}</th>
                       <td>{(event as ExecutionStatusChangeEvent).count_with_success_status_after_postponement ?? '-'}</td>
                     </tr>
                   );
@@ -234,14 +220,14 @@ const EventDetail = ({ abortSignal }: Props) => {
                   // task and task_execution
                   rows.push(
                     <tr key="task">
-                      <th>{titleCase('Task')}</th>
+                      <th>{startCase('Task')}</th>
                       <td>{(event as any).task ? <Link to={`/tasks/${(event as any).task.uuid}`}>{(event as any).task.name}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="task_execution">
-                      <th>{titleCase('Task Execution')}</th>
+                      <th>{startCase('Task Execution')}</th>
                       <td>{(event as any).task_execution ? <Link to={`/task_executions/${(event as any).task_execution.uuid}`}>{(event as any).task_execution.uuid}</Link> : '-'}</td>
                     </tr>
                   );
@@ -250,14 +236,14 @@ const EventDetail = ({ abortSignal }: Props) => {
                 if (isWorkflowExecutionStatusChange(event)) {
                   rows.push(
                     <tr key="workflow">
-                      <th>{titleCase('Workflow')}</th>
+                      <th>{startCase('Workflow')}</th>
                       <td>{(event as any).workflow ? <Link to={`/workflows/${(event as any).workflow.uuid}`}>{(event as any).workflow.name}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="workflow_execution">
-                      <th>{titleCase('Workflow Execution')}</th>
+                      <th>{startCase('Workflow Execution')}</th>
                       <td>{(event as any).workflow_execution ? <Link to={`/workflow_executions/${(event as any).workflow_execution.uuid}`}>{(event as any).workflow_execution.uuid}</Link> : '-'}</td>
                     </tr>
                   );
@@ -266,35 +252,35 @@ const EventDetail = ({ abortSignal }: Props) => {
                 if (isMissingHeartbeat(event)) {
                   rows.push(
                     <tr key="mh_task">
-                      <th>{titleCase('Task')}</th>
+                      <th>{startCase('Task')}</th>
                       <td>{(event as any).task ? <Link to={`/tasks/${(event as any).task.uuid}`}>{(event as any).task.name}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="mh_task_execution">
-                      <th>{titleCase('Task Execution')}</th>
+                      <th>{startCase('Task Execution')}</th>
                       <td>{(event as any).task_execution ? <Link to={`/task_executions/${(event as any).task_execution.uuid}`}>{(event as any).task_execution.uuid}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="last_heartbeat_at">
-                      <th>{titleCase('Last Heartbeat At')}</th>
+                      <th>{startCase('Last Heartbeat At')}</th>
                       <td>{formatTs((event as MissingHeartbeatDetectionEvent).last_heartbeat_at)}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="expected_heartbeat_at">
-                      <th>{titleCase('Expected Heartbeat At')}</th>
+                      <th>{startCase('Expected Heartbeat At')}</th>
                       <td>{formatTs((event as MissingHeartbeatDetectionEvent).expected_heartbeat_at)}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="heartbeat_interval_seconds">
-                      <th>{titleCase('Heartbeat Interval Seconds')}</th>
+                      <th>{startCase('Heartbeat Interval Seconds')}</th>
                       <td>{(event as MissingHeartbeatDetectionEvent).heartbeat_interval_seconds ?? '-'}</td>
                     </tr>
                   );
@@ -303,35 +289,35 @@ const EventDetail = ({ abortSignal }: Props) => {
                 if (isInsufficientService(event)) {
                   rows.push(
                     <tr key="ist_task">
-                      <th>{titleCase('Task')}</th>
+                      <th>{startCase('Task')}</th>
                       <td>{(event as any).task ? <Link to={`/tasks/${(event as any).task.uuid}`}>{(event as any).task.name}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="interval_start_at">
-                      <th>{titleCase('Interval Start At')}</th>
+                      <th>{startCase('Interval Start At')}</th>
                       <td>{formatTs((event as InsufficientServiceTaskExecutionsEvent).interval_start_at)}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="interval_end_at">
-                      <th>{titleCase('Interval End At')}</th>
+                      <th>{startCase('Interval End At')}</th>
                       <td>{formatTs((event as InsufficientServiceTaskExecutionsEvent).interval_end_at)}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="detected_concurrency">
-                      <th>{titleCase('Detected Concurrency')}</th>
+                      <th>{startCase('Detected Concurrency')}</th>
                       <td>{(event as InsufficientServiceTaskExecutionsEvent).detected_concurrency ?? '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="required_concurrency">
-                      <th>{titleCase('Required Concurrency')}</th>
+                      <th>{startCase('Required Concurrency')}</th>
                       <td>{(event as InsufficientServiceTaskExecutionsEvent).required_concurrency ?? '-'}</td>
                     </tr>
                   );
@@ -340,21 +326,21 @@ const EventDetail = ({ abortSignal }: Props) => {
                 if (isMissingScheduledTask(event)) {
                   rows.push(
                     <tr key="mst_task">
-                      <th>{titleCase('Task')}</th>
+                      <th>{startCase('Task')}</th>
                       <td>{(event as any).task ? <Link to={`/tasks/${(event as any).task.uuid}`}>{(event as any).task.name}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="mst_schedule">
-                      <th>{titleCase('Schedule')}</th>
+                      <th>{startCase('Schedule')}</th>
                       <td>{(event as MissingScheduledTaskExecutionEvent).schedule ?? '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="mst_expected_execution_at">
-                      <th>{titleCase('Expected Execution At')}</th>
+                      <th>{startCase('Expected Execution At')}</th>
                       <td>{formatTs((event as MissingScheduledTaskExecutionEvent).expected_execution_at)}</td>
                     </tr>
                   );
@@ -363,21 +349,21 @@ const EventDetail = ({ abortSignal }: Props) => {
                 if (isMissingScheduledWorkflow(event)) {
                   rows.push(
                     <tr key="msw_workflow">
-                      <th>{titleCase('Workflow')}</th>
+                      <th>{startCase('Workflow')}</th>
                       <td>{(event as any).workflow ? <Link to={`/workflows/${(event as any).workflow.uuid}`}>{(event as any).workflow.name}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="msw_schedule">
-                      <th>{titleCase('Schedule')}</th>
+                      <th>{startCase('Schedule')}</th>
                       <td>{(event as MissingScheduledWorkflowExecutionEvent).schedule ?? '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="msw_expected_execution_at">
-                      <th>{titleCase('Expected Execution At')}</th>
+                      <th>{startCase('Expected Execution At')}</th>
                       <td>{formatTs((event as MissingScheduledWorkflowExecutionEvent).expected_execution_at)}</td>
                     </tr>
                   );
@@ -386,28 +372,28 @@ const EventDetail = ({ abortSignal }: Props) => {
                 if (isDelayedTaskExecutionStart(event)) {
                   rows.push(
                     <tr key="dtes_task">
-                      <th>{titleCase('Task')}</th>
+                      <th>{startCase('Task')}</th>
                       <td>{(event as any).task ? <Link to={`/tasks/${(event as any).task.uuid}`}>{(event as any).task.name}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="dtes_task_execution">
-                      <th>{titleCase('Task Execution')}</th>
+                      <th>{startCase('Task Execution')}</th>
                       <td>{(event as any).task_execution ? <Link to={`/task_executions/${(event as any).task_execution.uuid}`}>{(event as any).task_execution.uuid}</Link> : '-'}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="dtes_desired_start_at">
-                      <th>{titleCase('Desired Start At')}</th>
+                      <th>{startCase('Desired Start At')}</th>
                       <td>{formatTs((event as DelayedTaskExecutionStartEvent).desired_start_at)}</td>
                     </tr>
                   );
 
                   rows.push(
                     <tr key="dtes_expected_start_by_deadline">
-                      <th>{titleCase('Expected Start By Deadline')}</th>
+                      <th>{startCase('Expected Start By Deadline')}</th>
                       <td>{formatTs((event as DelayedTaskExecutionStartEvent).expected_start_by_deadline)}</td>
                     </tr>
                   );
@@ -416,11 +402,11 @@ const EventDetail = ({ abortSignal }: Props) => {
                 return rows;
               })()}
               <tr>
-                <th>{titleCase('Created At')}</th>
+                <th>{startCase('Created At')}</th>
                 <td>{formatTs(event.created_at)}</td>
               </tr>
               <tr>
-                <th>{titleCase('Updated At')}</th>
+                <th>{startCase('Updated At')}</th>
                 <td>{formatTs(event.updated_at)}</td>
               </tr>
             </tbody>
