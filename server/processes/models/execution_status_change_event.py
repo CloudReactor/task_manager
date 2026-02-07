@@ -1,4 +1,6 @@
-from typing import Optional, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from datetime import datetime, timedelta
 import enum
@@ -33,7 +35,7 @@ class ExecutionStatusChangeEvent(Event):
         self.failed_status: enum.IntEnum = TaskExecution.Status.FAILED
         self.terminated_status: enum.IntEnum = TaskExecution.Status.TERMINATED_AFTER_TIME_OUT
 
-    def maybe_postpone(self, schedulable: 'Schedulable') -> bool:
+    def maybe_postpone(self, schedulable: Schedulable) -> bool:
         should_postpone = False
         if (self.status == self.failed_status) and \
                 ((schedulable.max_postponed_failure_count or 0) > 0) and \
@@ -92,7 +94,7 @@ class ExecutionStatusChangeEvent(Event):
             count_with_same_status = (self.count_with_same_status_after_postponement or 0) + 1
             self.count_with_same_status_after_postponement = count_with_same_status
 
-            threshold_count: Optional[int] = None
+            threshold_count: int | None = None
 
             if status == self.failed_status:
                 threshold_count = schedulable.max_postponed_failure_count or 0
@@ -115,7 +117,7 @@ class ExecutionStatusChangeEvent(Event):
 
         return False
 
-    def get_schedulable(self) -> Optional['Schedulable']:
+    def get_schedulable(self) -> Schedulable | None:
         execution = self.get_execution()
 
         if execution is None:
@@ -123,5 +125,5 @@ class ExecutionStatusChangeEvent(Event):
 
         return execution.get_schedulable()
 
-    def get_execution(self) -> Optional['Execution']:
+    def get_execution(self) -> Execution | None:
         return None

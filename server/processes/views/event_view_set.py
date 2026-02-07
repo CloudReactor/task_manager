@@ -150,8 +150,9 @@ class EventFilter(filters.FilterSet):
         fields = {
             'created_by_group__id': ['exact'],
             'run_environment__uuid': ['exact', 'in'],
+            'grouping_key': ['exact'],
             'task__uuid': ['exact'],
-            'workflow__uuid': ['exact'],
+            'workflow__uuid': ['exact'],            
         }
 
 

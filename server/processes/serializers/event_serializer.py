@@ -81,14 +81,14 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
     # Serialize severity as a string label (e.g. 'error', 'warning')
     severity = EventSeveritySerializer()
     event_type = serializers.SerializerMethodField()
-    acknowledged_by_user = serializers.ReadOnlyField(source='acknowledged_by_user.username')
+    acknowledged_by_user = serializers.ReadOnlyField(source='acknowledged_by_user.username', allow_null=True)
     resolved_event = NameAndUuidSerializer(view_name='events-detail', required=False)        
-    resolved_by_user = serializers.ReadOnlyField(source='resolved_by_user.username')
+    resolved_by_user = serializers.ReadOnlyField(source='resolved_by_user.username', allow_null=True)
 
     class Meta:
         model = Event
         fields = [
-            'url', 'uuid', 'created_by_group', 'created_by_user',
+            'url', 'uuid', 'created_by_group', 'created_by_user', 'created_at', 'updated_at',
             'run_environment',
             'event_at', 'detected_at', 'acknowledged_at', 'acknowledged_by_user',
             'severity', 'event_type',
@@ -120,6 +120,7 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
             from .missing_scheduled_task_execution_event_serializer import MissingScheduledTaskExecutionEventSerializer
             from .missing_scheduled_workflow_execution_event_serializer import MissingScheduledWorkflowExecutionEventSerializer
             from .insufficient_service_task_executions_event_serializer import InsufficientServiceTaskExecutionsEventSerializer
+            from .delayed_task_execution_start_event_serializer import DelayedTaskExecutionStartEventSerializer
             from ..models import (
                 BasicEvent,
                 ExecutionStatusChangeEvent,
@@ -128,7 +129,8 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
                 MissingHeartbeatDetectionEvent,
                 MissingScheduledTaskExecutionEvent,
                 MissingScheduledWorkflowExecutionEvent,
-                InsufficientServiceTaskExecutionsEvent
+                InsufficientServiceTaskExecutionsEvent,
+                DelayedTaskExecutionStartEvent
             )
 
             # Order matters: most specific types first
@@ -139,6 +141,7 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
                 MissingScheduledTaskExecutionEvent: MissingScheduledTaskExecutionEventSerializer,
                 MissingScheduledWorkflowExecutionEvent: MissingScheduledWorkflowExecutionEventSerializer,
                 InsufficientServiceTaskExecutionsEvent: InsufficientServiceTaskExecutionsEventSerializer,
+                DelayedTaskExecutionStartEvent: DelayedTaskExecutionStartEventSerializer,
                 BasicEvent: BasicEventSerializer,
                 ExecutionStatusChangeEvent: ExecutionStatusChangeEventSerializer,
             }

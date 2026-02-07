@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional, Type, TYPE_CHECKING, cast, override
 
 import enum
@@ -24,7 +26,6 @@ from ..execution_methods import ExecutionMethod
 from .execution import Execution
 from .task import Task
 from .event import Event
-from .notification_send_status import NotificationSendStatus
 from .task_execution_configuration import TaskExecutionConfiguration
 from .schedulable import Schedulable
 from .aws_tagged_entity import AwsTaggedEntity
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
     from .task_execution_status_change_event import (
         TaskExecutionStatusChangeEvent
     )
+    from .delayed_task_execution_start_event import DelayedTaskExecutionStartEvent
 
 
 logger = logging.getLogger(__name__)
@@ -81,8 +83,6 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 
     FOUND_HEARTBEAT_EVENT_SUMMARY_TEMPLATE = \
         """Task '{{task_execution.task.name}}' has sent a heartbeat after being late"""
-    CLEARED_DELAYED_PROCESS_START_EVENT_SUMMARY_TEMPLATE = \
-        """Task '{{task_execution.task.name}}' has started after being manually started and being late to start"""
     FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE = \
         """Task '{{task.name}}' has started after being late according to its schedule"""
 
@@ -519,39 +519,39 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         return status_change_event
 
 
-    def clear_delayed_task_start_alerts(self, dpsde):
-        from .alert import Alert
-        from .delayed_process_start_alert import DelayedProcessStartAlert
-        from processes.serializers import DelayedTaskStartDetectionEventSerializer
+    # def clear_delayed_task_start_alerts(self, dpsde):
+    #     from .alert import Alert
+    #     from .delayed_process_start_alert import DelayedProcessStartAlert
+    #     from processes.serializers import DelayedTaskStartDetectionEventSerializer
 
-        details = DelayedTaskStartDetectionEventSerializer(dpsde,
-            context=context_with_request()).data
+    #     details = DelayedTaskStartDetectionEventSerializer(dpsde,
+    #         context=context_with_request()).data
 
-        details['max_manual_start_delay_before_alert_seconds'] = self.task.max_manual_start_delay_before_alert_seconds
+    #     details['max_manual_start_delay_before_alert_seconds'] = self.task.max_manual_start_delay_before_alert_seconds
 
-        for am in self.task.alert_methods.filter(
-                enabled=True).exclude(error_severity_on_missing_execution='').all():
-            dpsa = DelayedProcessStartAlert(delayed_process_start_detection_event=dpsde,
-                                            alert_method=am)
-            dpsa.save()
+    #     for am in self.task.alert_methods.filter(
+    #             enabled=True).exclude(error_severity_on_missing_execution='').all():
+    #         dpsa = DelayedProcessStartAlert(delayed_process_start_detection_event=dpsde,
+    #                                         alert_method=am)
+    #         dpsa.save()
 
-            try:
-                # task_execution is already in details
-                result = am.send(details=details,
-                                 summary_template=self.CLEARED_DELAYED_PROCESS_START_EVENT_SUMMARY_TEMPLATE,
-                                 grouping_key=f"delayed_task_start-{self.uuid}",
-                                 is_resolution=True)
-                dpsa.send_result = result or ''
-                dpsa.send_status = NotificationSendStatus.SUCCEEDED
-                dpsa.completed_at = timezone.now()
-            except Exception as ex:
-                logger.exception(
-                    f"Failed to clear alert for delayed start of Task Execution {dpsde.task_execution.uuid}")
-                dpsa.send_result = ''
-                dpsa.send_status = NotificationSendStatus.FAILED
-                dpsa.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
+    #         try:
+    #             # task_execution is already in details
+    #             result = am.send(details=details,
+    #                              summary_template=self.CLEARED_DELAYED_PROCESS_START_EVENT_SUMMARY_TEMPLATE,
+    #                              grouping_key=f"delayed_task_start-{self.uuid}",
+    #                              is_resolution=True)
+    #             dpsa.send_result = result or ''
+    #             dpsa.send_status = NotificationSendStatus.SUCCEEDED
+    #             dpsa.completed_at = timezone.now()
+    #         except Exception as ex:
+    #             logger.exception(
+    #                 f"Failed to clear alert for delayed start of Task Execution {dpsde.task_execution.uuid}")
+    #             dpsa.send_result = ''
+    #             dpsa.send_status = NotificationSendStatus.FAILED
+    #             dpsa.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
 
-            dpsa.save()
+    #         dpsa.save()
 
 @receiver(pre_save, sender=TaskExecution)
 def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
@@ -565,16 +565,8 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
         logger.info(f'Purged {num_removed} Task Executions')
 
     if instance.status != TaskExecution.Status.MANUALLY_STARTED:
-        from .delayed_process_start_detection_event import DelayedProcessStartDetectionEvent
-
-        existing_dpsde = DelayedProcessStartDetectionEvent.objects.filter(
-            task_execution=instance
-        ).order_by('-detected_at', '-id').first()
-
-        if existing_dpsde and (existing_dpsde.resolved_at is None):
-            existing_dpsde.resolved_at = timezone.now()
-            existing_dpsde.save()
-            instance.clear_delayed_task_start_alerts(existing_dpsde)
+        from .delayed_task_execution_start_event import DelayedTaskExecutionStartEvent
+        DelayedTaskExecutionStartEvent.resolve_existing_for_task_execution(task_execution=instance)
 
     current_user = None
 

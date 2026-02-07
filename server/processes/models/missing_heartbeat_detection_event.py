@@ -22,7 +22,7 @@ Expected heartbeat at {{expected_heartbeat_at}} but last heartbeat was at {{last
     heartbeat_interval_seconds = models.IntegerField(null=True, blank=True)
 
     class Meta:
-        ordering = ['event_at', 'detected_at']
+        ordering = ['event_at', 'detected_at', 'created_at']
 
     def __init__(self, *args, **kwargs):
         from ..services.notification_generator import NotificationGenerator

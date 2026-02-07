@@ -1020,6 +1020,13 @@ export interface MissingScheduledWorkflowExecutionEvent extends Event {
   expected_execution_at?: Date | null;
 }
 
+export interface DelayedTaskExecutionStartEvent extends Event {
+  task?: EntityReference;
+  task_execution?: NamelessEntityReference;
+  desired_start_at?: Date | null;
+  expected_start_by_deadline?: Date | null;
+}
+
 export interface BasicEvent extends Event {}
 
 export type AnyEvent =
@@ -1030,6 +1037,7 @@ export type AnyEvent =
   | InsufficientServiceTaskExecutionsEvent
   | MissingScheduledTaskExecutionEvent
   | MissingScheduledWorkflowExecutionEvent
+  | DelayedTaskExecutionStartEvent
   | Event;
 
 export const castEvent = (ev: any): AnyEvent => {
@@ -1045,6 +1053,7 @@ export const castEvent = (ev: any): AnyEvent => {
     'missing_scheduled_task_execution_event': (e) => e as MissingScheduledTaskExecutionEvent,
     'missing_scheduled_workflow_execution_event': (e) => e as MissingScheduledWorkflowExecutionEvent,
     'insufficient_service_task_executions_event': (e) => e as InsufficientServiceTaskExecutionsEvent,
+    'delayed_task_execution_start_event': (e) => e as DelayedTaskExecutionStartEvent,
     'basic_event': (e) => e as BasicEvent,
   };
 

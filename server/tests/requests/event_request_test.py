@@ -17,6 +17,7 @@ from processes.models import (
     MissingScheduledTaskExecutionEvent,
     MissingScheduledWorkflowExecutionEvent,
     InsufficientServiceTaskExecutionsEvent,
+    DelayedTaskExecutionStartEvent,
     RunEnvironment,
     UserGroupAccessLevel
 )
@@ -752,6 +753,7 @@ def test_event_filter_by_event_type_single(
     basic_event_factory,
     task_execution_status_change_event_factory,
     missing_heartbeat_detection_event_factory,
+    delayed_task_execution_start_event_factory,
     api_client) -> None:
     """
     Test filtering events by a single event_type string.
@@ -767,6 +769,7 @@ def test_event_filter_by_event_type_single(
         basic_event_factory(created_by_group=group),
         task_execution_status_change_event_factory(created_by_group=group),
         missing_heartbeat_detection_event_factory(created_by_group=group),
+        delayed_task_execution_start_event_factory(created_by_group=group),
     ]
 
     client = make_api_client_from_options(api_client=api_client,
@@ -782,6 +785,15 @@ def test_event_filter_by_event_type_single(
     assert page['count'] == 1
     results = page['results']
     assert results[0]['uuid'] == str(events[0].uuid)
+    
+    # Filter by delayed_task_execution_start
+    params = {'event_type': 'delayed_task_execution_start'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 1
+    results = page['results']
+    assert results[0]['uuid'] == str(events[3].uuid)
 
 
 @pytest.mark.django_db
@@ -790,6 +802,7 @@ def test_event_filter_by_event_type_multiple(
     basic_event_factory,
     task_execution_status_change_event_factory,
     missing_heartbeat_detection_event_factory,
+    delayed_task_execution_start_event_factory,
     api_client) -> None:
     """
     Test filtering events by multiple comma-separated event_type strings.
@@ -805,6 +818,7 @@ def test_event_filter_by_event_type_multiple(
     basic_event_factory(created_by_group=group),
     task_execution_status_change_event_factory(created_by_group=group),
     missing_heartbeat_detection_event_factory(created_by_group=group),
+    delayed_task_execution_start_event_factory(created_by_group=group),
     ]
 
     client = make_api_client_from_options(api_client=api_client,
@@ -822,6 +836,18 @@ def test_event_filter_by_event_type_multiple(
 
     returned_uuids = {r['uuid'] for r in results}
     expected_uuids = {str(events[0].uuid), str(events[1].uuid)}
+    assert returned_uuids == expected_uuids
+    
+    # Filter by delayed_task_execution_start and missing_heartbeat_detection
+    params = {'event_type': 'delayed_task_execution_start,missing_heartbeat_detection'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 2
+    results = page['results']
+
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(events[2].uuid), str(events[3].uuid)}
     assert returned_uuids == expected_uuids
 
 

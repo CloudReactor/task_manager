@@ -5,17 +5,17 @@ from processes.models import MissingHeartbeatDetectionEvent
 import factory
 from pytest_factoryboy import register
 
-from .group_factory import GroupFactory
+from .event_factory import EventFactory
+
 from .task_factory import TaskFactory
 from .task_execution_factory import TaskExecutionFactory
 
 
 @register
-class MissingHeartbeatDetectionEventFactory(factory.django.DjangoModelFactory):
+class MissingHeartbeatDetectionEventFactory(EventFactory):
     class Meta:
         model = MissingHeartbeatDetectionEvent
 
-    created_by_group = factory.SubFactory(GroupFactory)
     task = factory.SubFactory(TaskFactory)
     task_execution = factory.SubFactory(TaskExecutionFactory)
 

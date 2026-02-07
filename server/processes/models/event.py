@@ -1,22 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import override
 
+from enum import IntEnum, unique
 import logging
 import uuid
 
 from django.db import models
 from django.utils import timezone
-
 from django.contrib.auth.models import User, Group
 
 from typedmodels.models import TypedModel
-from enum import IntEnum, unique
 
 from .subscription import Subscription
 
-if TYPE_CHECKING:
-    from .run_environment import RunEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +32,16 @@ class Event(TypedModel):
     # NOTE: severity labels are derived from the enum names where needed.
     # The special `NONE` value is handled by `severity_label`.
 
+    SOURCE_SYSTEM = 'system'
+
     MAX_ERROR_SUMMARY_LENGTH = 200
     MAX_ERROR_DETAILS_MESSAGE_LENGTH = 50000
     MAX_SOURCE_LENGTH = 1000
     MAX_GROUPING_KEY_LENGTH = 5000
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
 
     event_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
     detected_at = models.DateTimeField(default=timezone.now, null=True, blank=True)
@@ -58,6 +59,9 @@ class Event(TypedModel):
             related_name='resolved_events')
     resolved_event = models.OneToOneField('self', on_delete=models.DO_NOTHING, null=True, blank=True)
 
+    created_by_user = models.ForeignKey(User, on_delete=models.SET_NULL,
+            null=True, blank=True, editable=True)
+
     # null=True until we can populate this field for existing events
     created_by_group = models.ForeignKey(Group, on_delete=models.CASCADE,
             null=True, blank=True, editable=True)
@@ -71,6 +75,11 @@ class Event(TypedModel):
             models.Index(fields=['run_environment', 'event_at']),
         ]
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        if not self.source:
+            self.source = self.SOURCE_SYSTEM
 
     def save(self, *args, **kwargs) -> None:
         logger.info(f"pre-save with Event {self.uuid}, {self._state.adding=}, {self.created_by_group=}")
@@ -78,6 +87,10 @@ class Event(TypedModel):
         # https://stackoverflow.com/questions/2037320/what-is-the-canonical-way-to-find-out-if-a-django-model-is-saved-to-db
         if self._state.adding:
             group = self.created_by_group
+
+            if (group is None) and self.run_environment:
+                group = self.run_environment.created_by_group
+                self.created_by_group = group
 
             if group is None:
                 logger.warning(f"Event {self.uuid} has no group")
@@ -106,7 +119,7 @@ class Event(TypedModel):
 
 
     @property
-    def severity_label(self):
+    def severity_label(self) -> str:
         try:
             sev = self.Severity(self.severity)
         except Exception:
@@ -115,10 +128,11 @@ class Event(TypedModel):
         return sev.name.lower()
 
     @property
-    def is_resolution(self):
+    def is_resolution(self) -> bool:
         return self.resolved_event is not None
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__}>, {self.error_summary}"
 
 

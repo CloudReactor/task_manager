@@ -5,17 +5,16 @@ from processes.models import MissingScheduledTaskExecutionEvent
 import factory
 from pytest_factoryboy import register
 
-from .group_factory import GroupFactory
+from .event_factory import EventFactory
+
 from .task_factory import TaskFactory
 
 
 @register
-class MissingScheduledTaskExecutionEventFactory(factory.django.DjangoModelFactory):
+class MissingScheduledTaskExecutionEventFactory(EventFactory):
     class Meta:
         model = MissingScheduledTaskExecutionEvent
 
-    created_by_group = factory.SubFactory(GroupFactory)
     task = factory.SubFactory(TaskFactory)
 
-    severity = MissingScheduledTaskExecutionEvent.Severity.ERROR
     expected_execution_at = factory.LazyFunction(timezone.now)

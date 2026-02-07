@@ -137,6 +137,7 @@ const EventTable = (props: Props) => {
                     {/* We don't have a canonical list of event types here; allow caller to control via initial props or use common types. */}
                     <MenuItem value=""><Checkbox checked={!(eventTypes && eventTypes.length > 0)} /><ListItemText primary="Any" /></MenuItem>
                     {/* Example/commonly used types - callers can still fetch by string values */}
+                    <MenuItem value="delayed_task_execution_start"><Checkbox checked={(eventTypes || []).indexOf('delayed_task_execution_start') > -1} /><ListItemText primary="Delayed Task Execution Start" /></MenuItem>
                     <MenuItem value="insufficient_service_instances"><Checkbox checked={(eventTypes || []).indexOf('insufficient_service_instances') > -1} /><ListItemText primary="Insufficient Service Instances" /></MenuItem>
                     <MenuItem value="missing_heartbeat_detection"><Checkbox checked={(eventTypes || []).indexOf('missing_heartbeat_detection') > -1} /><ListItemText primary="Missing Heartbeat" /></MenuItem>
                     <MenuItem value="missing_scheduled_task_execution"><Checkbox checked={(eventTypes || []).indexOf('missing_scheduled_task_execution') > -1} /><ListItemText primary="Missing Scheduled Task Execution" /></MenuItem>

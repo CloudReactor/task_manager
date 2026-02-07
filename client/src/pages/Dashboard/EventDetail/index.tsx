@@ -11,7 +11,8 @@ import { AnyEvent,
   MissingHeartbeatDetectionEvent,
   InsufficientServiceTaskExecutionsEvent,
   MissingScheduledTaskExecutionEvent,
-  MissingScheduledWorkflowExecutionEvent
+  MissingScheduledWorkflowExecutionEvent,
+  DelayedTaskExecutionStartEvent
 } from '../../../types/domain_types';
 import { fetchEvent } from '../../../utils/api';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
@@ -185,6 +186,10 @@ const EventDetail = ({ abortSignal }: Props) => {
 
                 const isMissingScheduledWorkflow = (e: AnyEvent): e is MissingScheduledWorkflowExecutionEvent => {
                   return (e as any).schedule !== undefined && !!(e as any).workflow;
+                };
+
+                const isDelayedTaskExecutionStart = (e: AnyEvent): e is DelayedTaskExecutionStartEvent => {
+                  return (e as any).desired_start_at !== undefined || (e as any).expected_start_by_deadline !== undefined;
                 };
 
                 // Execution status change (task/workflow shared fields)
@@ -374,6 +379,36 @@ const EventDetail = ({ abortSignal }: Props) => {
                     <tr key="msw_expected_execution_at">
                       <th>{titleCase('Expected Execution At')}</th>
                       <td>{formatTs((event as MissingScheduledWorkflowExecutionEvent).expected_execution_at)}</td>
+                    </tr>
+                  );
+                }
+
+                if (isDelayedTaskExecutionStart(event)) {
+                  rows.push(
+                    <tr key="dtes_task">
+                      <th>{titleCase('Task')}</th>
+                      <td>{(event as any).task ? <Link to={`/tasks/${(event as any).task.uuid}`}>{(event as any).task.name}</Link> : '-'}</td>
+                    </tr>
+                  );
+
+                  rows.push(
+                    <tr key="dtes_task_execution">
+                      <th>{titleCase('Task Execution')}</th>
+                      <td>{(event as any).task_execution ? <Link to={`/task_executions/${(event as any).task_execution.uuid}`}>{(event as any).task_execution.uuid}</Link> : '-'}</td>
+                    </tr>
+                  );
+
+                  rows.push(
+                    <tr key="dtes_desired_start_at">
+                      <th>{titleCase('Desired Start At')}</th>
+                      <td>{formatTs((event as DelayedTaskExecutionStartEvent).desired_start_at)}</td>
+                    </tr>
+                  );
+
+                  rows.push(
+                    <tr key="dtes_expected_start_by_deadline">
+                      <th>{titleCase('Expected Start By Deadline')}</th>
+                      <td>{formatTs((event as DelayedTaskExecutionStartEvent).expected_start_by_deadline)}</td>
                     </tr>
                   );
                 }

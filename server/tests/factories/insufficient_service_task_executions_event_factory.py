@@ -5,16 +5,15 @@ from processes.models import InsufficientServiceTaskExecutionsEvent
 import factory
 from pytest_factoryboy import register
 
-from .group_factory import GroupFactory
+from .event_factory import EventFactory
 from .task_factory import TaskFactory
 
 
 @register
-class InsufficientServiceTaskExecutionsEventFactory(factory.django.DjangoModelFactory):
+class InsufficientServiceTaskExecutionsEventFactory(EventFactory):
     class Meta:
         model = InsufficientServiceTaskExecutionsEvent
 
-    created_by_group = factory.SubFactory(GroupFactory)
     task = factory.SubFactory(TaskFactory)
 
     severity = InsufficientServiceTaskExecutionsEvent.Severity.ERROR

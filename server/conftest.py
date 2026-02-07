@@ -62,10 +62,11 @@ from tests.factories import (
     MissingScheduledTaskExecutionEventFactory,
     MissingScheduledWorkflowExecutionEventFactory,
     InsufficientServiceTaskExecutionsEventFactory,
+    DelayedTaskExecutionStartEventFactory,
     NotificationProfileFactory,
     EmailNotificationDeliveryMethodFactory,
     PagerDutyNotificationDeliveryMethodFactory,
-    NotificationFactory,
+    NotificationFactory,    
 )
 
 
@@ -108,6 +109,7 @@ register(MissingHeartbeatDetectionEventFactory)
 register(MissingScheduledTaskExecutionEventFactory)
 register(MissingScheduledWorkflowExecutionEventFactory)
 register(InsufficientServiceTaskExecutionsEventFactory)
+register(DelayedTaskExecutionStartEventFactory)
 register(NotificationProfileFactory)
 register(EmailNotificationDeliveryMethodFactory)
 register(PagerDutyNotificationDeliveryMethodFactory)
@@ -1378,6 +1380,13 @@ def ensure_serialized_event_valid(response_dict: dict[str, Any],
             f"created_by_group id mismatch: {response_dict['created_by_group']['id']} != {event.created_by_group.id}"
         assert response_dict['created_by_group']['name'] == event.created_by_group.name, \
             f"created_by_group name mismatch"
+
+    assert 'created_by_user' in response_dict, "created_by_user field missing from response"
+    if event.created_by_user is None:
+        assert response_dict['created_by_user'] is None
+    else:
+        assert response_dict['created_by_user'] == event.created_by_user.username, \
+            f"created_by_user id mismatch: {response_dict['created_by_user']} != {event.created_by_user.username}"
 
     # Verify run_environment if present
     if event.run_environment:

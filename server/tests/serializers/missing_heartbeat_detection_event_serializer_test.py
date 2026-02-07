@@ -33,6 +33,7 @@ def test_missing_heartbeat_detection_event_serialization_deserialization(
     
     heartbeat_event = MissingHeartbeatDetectionEvent.objects.create(
         created_by_group=group,
+        created_by_user=user,
         task=task,
         task_execution=task_execution,
         last_heartbeat_at=now - timedelta(minutes=10),

@@ -444,9 +444,3 @@ SPECTACULAR_SETTINGS = {
 # Application-specific settings for export in django.conf.settings
 ENVIRON = env
 # End application-specific settings
-
-# if enable_queryinspect:
-#   QUERY_INSPECT_ENABLED = True
-#   QUERY_INSPECT_LOG_QUERIES = True
-#   QUERY_INSPECT_ABSOLUTE_LIMIT = 1000
-#   QUERY_INSPECT_LOG_TRACEBACKS = True
