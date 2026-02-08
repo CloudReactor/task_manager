@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Row, Col } from 'react-bootstrap';
 import { startCase } from 'lodash-es';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCheckCircle, faEye } from '@fortawesome/free-solid-svg-icons'
 
 import { AnyEvent,
   ExecutionStatusChangeEvent,
@@ -15,7 +17,8 @@ import { AnyEvent,
   MissingScheduledWorkflowExecutionEvent,
   DelayedTaskExecutionStartEvent
 } from '../../../types/domain_types';
-import { fetchEvent } from '../../../utils/api';
+import { fetchEvent, updateEvent } from '../../../utils/api';
+import { getSeverityBadgeClass } from '../../../utils/ui_utils';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 import BreadcrumbBar from '../../../components/BreadcrumbBar/BreadcrumbBar';
 import Loading from '../../../components/Loading';
@@ -34,6 +37,8 @@ const EventDetail = ({ abortSignal }: Props) => {
 
   const [isLoading, setLoading] = useState(false);
   const [event, setEvent] = useState<AnyEvent | null>(null);
+  const [acknowledgeLoading, setAcknowledgeLoading] = useState(false);
+  const [resolveLoading, setResolveLoading] = useState(false);
 
   const loadEvent = useCallback(async () => {
     if (!uuid) return;
@@ -59,7 +64,7 @@ const EventDetail = ({ abortSignal }: Props) => {
     return <Loading />;
   }
 
-  const formatTs = (ts: Date | null | undefined) => ts ? moment(ts).format('YYYY-MM-DD HH:mm:ss') : '-';
+  const formatTs = (ts: Date | null | undefined) => ts ? moment.utc(ts).format('YYYY-MM-DD HH:mm:ss') : '-';
 
   const formatEventType = (eventType: string) => {
     if (!eventType) return '-';
@@ -78,6 +83,44 @@ const EventDetail = ({ abortSignal }: Props) => {
     if (words.length === 0) return '-';
     words[0] = words[0].charAt(0).toUpperCase() + words[0].slice(1);
     return words.join(' ');
+  };
+
+  const handleAcknowledgeEvent = async () => {
+    if (!event) return;
+    setAcknowledgeLoading(true);
+    try {
+      await updateEvent(event.uuid, {
+        acknowledged_at: moment.utc().toISOString()
+      });
+      setEvent({
+        ...event,
+        acknowledged_at: new Date(),
+        acknowledged_by_user: 'You'
+      });
+    } catch (error) {
+      console.error('Failed to acknowledge event:', error);
+    } finally {
+      setAcknowledgeLoading(false);
+    }
+  };
+
+  const handleResolveEvent = async () => {
+    if (!event) return;
+    setResolveLoading(true);
+    try {
+      await updateEvent(event.uuid, {
+        resolved_at: moment.utc().toISOString()
+      });
+      setEvent({
+        ...event,
+        resolved_at: new Date(),
+        resolved_by_user: 'You'
+      });
+    } catch (error) {
+      console.error('Failed to resolve event:', error);
+    } finally {
+      setResolveLoading(false);
+    }
   };
 
   const firstLevel = (
@@ -99,6 +142,18 @@ const EventDetail = ({ abortSignal }: Props) => {
                 <td>{event.uuid}</td>
               </tr>
               <tr>
+                <th>{startCase('Run Environment')}</th>
+                <td>{event.run_environment ? <Link to={`/run_environments/${event.run_environment.uuid}`}>{event.run_environment.name}</Link> : '-'}</td>
+              </tr>
+              <tr>
+                <th>{startCase('Severity')}</th>
+                <td>
+                  <span className={getSeverityBadgeClass(event.severity)}>
+                    {event.severity.toUpperCase()}
+                  </span>
+                </td>
+              </tr>
+              <tr>
                 <th>{startCase('Event Time')}</th>
                 <td>{formatTs(event.event_at)}</td>
               </tr>
@@ -107,12 +162,50 @@ const EventDetail = ({ abortSignal }: Props) => {
                 <td>{formatTs(event.detected_at)}</td>
               </tr>
               <tr>
-                <th>{startCase('Resolved At')}</th>
-                <td>{formatTs(event.resolved_at)}</td>
+                <th>Acknowledgement</th>
+                <td>
+                  {event.acknowledged_at ? (
+                    <>
+                      {formatTs(event.acknowledged_at)}
+                      {event.acknowledged_by_user && (
+                        <span> by {event.acknowledged_by_user}</span>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      className="btn btn-sm btn-secondary d-inline-flex align-items-center"
+                      onClick={handleAcknowledgeEvent}
+                      disabled={acknowledgeLoading}
+                      style={{ width: '130px' }}
+                    >
+                      <span style={{ marginRight: '0.5rem' }}><FontAwesomeIcon icon={faEye} /></span>
+                      <span style={{ whiteSpace: 'nowrap' }}>{acknowledgeLoading ? 'Acknowledging...' : 'Acknowledge'}</span>
+                    </button>
+                  )}
+                </td>
               </tr>
               <tr>
-                <th>{startCase('Severity')}</th>
-                <td>{event.severity}</td>
+                <th>Resolution</th>
+                <td>
+                  {event.resolved_at ? (
+                    <>
+                      {formatTs(event.resolved_at)}
+                      {event.resolved_by_user && (
+                        <span> by {event.resolved_by_user}</span>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      className="btn btn-sm btn-secondary d-inline-flex align-items-center"
+                      onClick={handleResolveEvent}
+                      disabled={resolveLoading}
+                      style={{ width: '130px' }}
+                    >
+                      <span style={{ marginRight: '0.5rem' }}><FontAwesomeIcon icon={faCheckCircle} /></span>
+                      <span style={{ whiteSpace: 'nowrap' }}>{resolveLoading ? 'Resolving...' : 'Resolve'}</span>
+                    </button>
+                  )}
+                </td>
               </tr>
               <tr>
                 <th>{startCase('Event Type')}</th>
@@ -139,8 +232,12 @@ const EventDetail = ({ abortSignal }: Props) => {
                 <td>{event.resolved_event ? <a href={event.resolved_event.url}>{event.resolved_event.uuid}</a> : '-'}</td>
               </tr>
               <tr>
-                <th>{startCase('Run Environment')}</th>
-                <td>{event.run_environment ? <Link to={`/run_environments/${event.run_environment.uuid}`}>{event.run_environment.name}</Link> : '-'}</td>
+                <th>{startCase('Created At')}</th>
+                <td>{formatTs(event.created_at)}</td>
+              </tr>
+              <tr>
+                <th>{startCase('Updated At')}</th>
+                <td>{formatTs(event.updated_at)}</td>
               </tr>
               {/* Subclass-specific fields */}
               {(() => {
@@ -401,14 +498,6 @@ const EventDetail = ({ abortSignal }: Props) => {
 
                 return rows;
               })()}
-              <tr>
-                <th>{startCase('Created At')}</th>
-                <td>{formatTs(event.created_at)}</td>
-              </tr>
-              <tr>
-                <th>{startCase('Updated At')}</th>
-                <td>{formatTs(event.updated_at)}</td>
-              </tr>
             </tbody>
           </table>
         </Col>

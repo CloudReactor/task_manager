@@ -10,6 +10,7 @@ import { GlobalContext, accessLevelForCurrentGroup } from '../../context/GlobalC
 import { AnyEvent } from '../../types/domain_types';
 import { ResultsPage, updateEvent } from '../../utils/api';
 import { ACCESS_LEVEL_SUPPORT } from '../../utils/constants';
+import { getSeverityBadgeClass } from '../../utils/ui_utils';
 import styles from './EventTableBody.module.scss';
 
 
@@ -148,25 +149,6 @@ const EventTableBody = (props: Props) => {
       );
     }
     return '-';
-  };
-
-  const getSeverityBadgeClass = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case 'critical':
-        return 'badge badge-danger';
-      case 'error':
-        return 'badge badge-danger';
-      case 'warning':
-        return 'badge badge-warning';
-      case 'info':
-        return 'badge badge-info';
-      case 'debug':
-        return 'badge badge-secondary';
-      case 'trace':
-        return 'badge badge-light';
-      default:
-        return 'badge badge-secondary';
-    }
   };
 
   return (
