@@ -1,9 +1,9 @@
-import * as React from 'react';
-import { Fragment, ChangeEvent } from 'react';
+import React, { Fragment, ChangeEvent } from 'react';
 import _ from 'lodash';
 
-import { AnyEvent, RunEnvironment } from '../../types/domain_types';
+import { AnyEvent, RunEnvironment, EVENT_TYPE_DELAYED_TASK_EXECUTION_START, EVENT_TYPE_INSUFFICIENT_SERVICE_INSTANCES, EVENT_TYPE_MISSING_HEARTBEAT_DETECTION, EVENT_TYPE_MISSING_SCHEDULED_TASK_EXECUTION, EVENT_TYPE_MISSING_SCHEDULED_WORKFLOW_EXECUTION, EVENT_TYPE_TASK_EXECUTION_STATUS_CHANGE, EVENT_TYPE_WORKFLOW_EXECUTION_STATUS_CHANGE, EVENT_TYPES } from '../../types/domain_types';
 import { ResultsPage, itemsPerPageOptions } from '../../utils/api';
+import * as Constants from '../../utils/constants';
 
 import "../../styles/tableStyles.scss";
 
@@ -72,13 +72,12 @@ const EventTable = (props: Props) => {
   } = props;
 
   const severityOptions = [
-    { value: '', label: 'Any' },
-    { value: 'CRITICAL', label: 'Critical', numericValue: 600 },
-    { value: 'ERROR', label: 'Error', numericValue: 500 },
-    { value: 'WARNING', label: 'Warning', numericValue: 400 },
-    { value: 'INFO', label: 'Info', numericValue: 300 },
-    { value: 'DEBUG', label: 'Debug', numericValue: 200 },
-    { value: 'TRACE', label: 'Trace', numericValue: 100 },
+    { value: '', label: 'Any', numericValue: undefined },
+    ...Constants.NOTIFICATION_EVENT_SEVERITIES.map(numericValue => ({
+      value: String(numericValue),
+      label: _.startCase(Constants.NOTIFICATION_EVENT_SEVERITY_TO_LABEL[numericValue]),
+      numericValue
+    })).reverse() // Reverse to show highest severity first
   ];
 
   // Filter max severity options based on selected min severity
@@ -134,17 +133,14 @@ const EventTable = (props: Props) => {
                     renderValue={(selected) => ((selected as string[])?.length ? (selected as string[]).map(_.startCase).join(', ') : 'Any')}
                     style={{ minHeight: '38px' }}
                     displayEmpty
-                  >
-                    {/* We don't have a canonical list of event types here; allow caller to control via initial props or use common types. */}
-                    <MenuItem value=""><Checkbox checked={!(eventTypes && eventTypes.length > 0)} /><ListItemText primary="Any" /></MenuItem>
-                    {/* Example/commonly used types - callers can still fetch by string values */}
-                    <MenuItem value="delayed_task_execution_start"><Checkbox checked={(eventTypes || []).indexOf('delayed_task_execution_start') > -1} /><ListItemText primary="Delayed Task Execution Start" /></MenuItem>
-                    <MenuItem value="insufficient_service_instances"><Checkbox checked={(eventTypes || []).indexOf('insufficient_service_instances') > -1} /><ListItemText primary="Insufficient Service Instances" /></MenuItem>
-                    <MenuItem value="missing_heartbeat_detection"><Checkbox checked={(eventTypes || []).indexOf('missing_heartbeat_detection') > -1} /><ListItemText primary="Missing Heartbeat" /></MenuItem>
-                    <MenuItem value="missing_scheduled_task_execution"><Checkbox checked={(eventTypes || []).indexOf('missing_scheduled_task_execution') > -1} /><ListItemText primary="Missing Scheduled Task Execution" /></MenuItem>
-                    <MenuItem value="missing_scheduled_workflow_execution"><Checkbox checked={(eventTypes || []).indexOf('missing_scheduled_workflow_execution') > -1} /><ListItemText primary="Missing Scheduled Workflow Execution" /></MenuItem>
-                    <MenuItem value="task_execution_status_change"><Checkbox checked={(eventTypes || []).indexOf('task_execution_status_change') > -1} /><ListItemText primary="Task Execution Status Change" /></MenuItem>
-                    <MenuItem value="workflow_execution_status_change"><Checkbox checked={(eventTypes || []).indexOf('workflow_execution_status_change') > -1} /><ListItemText primary="Workflow Execution Status Change" /></MenuItem>
+                  >                    
+                    <MenuItem value=""><Checkbox checked={!(eventTypes && eventTypes.length > 0)} /><ListItemText primary="Any" /></MenuItem>                    
+                    {EVENT_TYPES.map(eventType => (
+                      <MenuItem key={eventType} value={eventType}>
+                        <Checkbox checked={(eventTypes || []).indexOf(eventType) > -1} />
+                        <ListItemText primary={_.startCase(eventType)} />
+                      </MenuItem>
+                    ))}
                   </Select>
                 </div>
               </Form.Group>

@@ -8,6 +8,26 @@ import {
   INFRASTRUCTURE_TYPE_AWS
 } from '../utils/constants';
 
+// Event type constants
+export const EVENT_TYPE_TASK_EXECUTION_STATUS_CHANGE = 'task_execution_status_change';
+export const EVENT_TYPE_WORKFLOW_EXECUTION_STATUS_CHANGE = 'workflow_execution_status_change';
+export const EVENT_TYPE_MISSING_HEARTBEAT_DETECTION = 'missing_heartbeat_detection';
+export const EVENT_TYPE_MISSING_SCHEDULED_TASK_EXECUTION = 'missing_scheduled_task_execution';
+export const EVENT_TYPE_MISSING_SCHEDULED_WORKFLOW_EXECUTION = 'missing_scheduled_workflow_execution';
+export const EVENT_TYPE_INSUFFICIENT_SERVICE_INSTANCES = 'insufficient_service_instances';
+export const EVENT_TYPE_DELAYED_TASK_EXECUTION_START = 'delayed_task_execution_start';
+export const EVENT_TYPE_BASIC = 'basic';
+
+export const EVENT_TYPES = [
+  EVENT_TYPE_DELAYED_TASK_EXECUTION_START,
+  EVENT_TYPE_INSUFFICIENT_SERVICE_INSTANCES,
+  EVENT_TYPE_MISSING_HEARTBEAT_DETECTION,
+  EVENT_TYPE_MISSING_SCHEDULED_TASK_EXECUTION,
+  EVENT_TYPE_MISSING_SCHEDULED_WORKFLOW_EXECUTION,
+  EVENT_TYPE_TASK_EXECUTION_STATUS_CHANGE,
+  EVENT_TYPE_WORKFLOW_EXECUTION_STATUS_CHANGE,
+];
+
 export interface GroupReference {
   id: number;
   name?: string;
@@ -1047,14 +1067,14 @@ export const castEvent = (ev: any): AnyEvent => {
   const key = (ev.event_type || '').toString().toLowerCase();
 
   const casterMap: { [k: string]: (e: any) => AnyEvent } = {
-    'task_execution_status_change_event': (e) => e as TaskExecutionStatusChangeEvent,
-    'workflow_execution_status_change_event': (e) => e as WorkflowExecutionStatusChangeEvent,
-    'missing_heartbeat_detection_event': (e) => e as MissingHeartbeatDetectionEvent,
-    'missing_scheduled_task_execution_event': (e) => e as MissingScheduledTaskExecutionEvent,
-    'missing_scheduled_workflow_execution_event': (e) => e as MissingScheduledWorkflowExecutionEvent,
-    'insufficient_service_task_executions_event': (e) => e as InsufficientServiceTaskExecutionsEvent,
-    'delayed_task_execution_start_event': (e) => e as DelayedTaskExecutionStartEvent,
-    'basic_event': (e) => e as BasicEvent,
+    [EVENT_TYPE_TASK_EXECUTION_STATUS_CHANGE]: (e) => e as TaskExecutionStatusChangeEvent,
+    [EVENT_TYPE_WORKFLOW_EXECUTION_STATUS_CHANGE]: (e) => e as WorkflowExecutionStatusChangeEvent,
+    [EVENT_TYPE_MISSING_HEARTBEAT_DETECTION]: (e) => e as MissingHeartbeatDetectionEvent,
+    [EVENT_TYPE_MISSING_SCHEDULED_TASK_EXECUTION]: (e) => e as MissingScheduledTaskExecutionEvent,
+    [EVENT_TYPE_MISSING_SCHEDULED_WORKFLOW_EXECUTION]: (e) => e as MissingScheduledWorkflowExecutionEvent,
+    [EVENT_TYPE_INSUFFICIENT_SERVICE_INSTANCES]: (e) => e as InsufficientServiceTaskExecutionsEvent,
+    [EVENT_TYPE_DELAYED_TASK_EXECUTION_START]: (e) => e as DelayedTaskExecutionStartEvent,
+    [EVENT_TYPE_BASIC]: (e) => e as BasicEvent,
   };
 
   const caster = casterMap[key];
