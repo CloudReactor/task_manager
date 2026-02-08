@@ -61,6 +61,8 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
     const maxSeverity = searchParams.get('max_severity') ?? undefined;
     const eventTypesParam = searchParams.get('event_type') ?? undefined;
     const eventTypes = eventTypesParam ? eventTypesParam.split(',').filter(Boolean) : undefined;
+    const acknowledgedStatus = searchParams.get('acknowledged_status') ?? undefined;
+    const resolvedStatus = searchParams.get('resolved_status') ?? undefined;
 
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation superceded');
@@ -90,6 +92,8 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
           minSeverity,
           maxSeverity,
           eventTypes,
+          acknowledgedStatus,
+          resolvedStatus,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
         abortSignal
@@ -149,6 +153,14 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
     updateSearchParams(searchParams, setSearchParams, types && types.length ? types : undefined, 'event_type');
   };
 
+  const handleAcknowledgedStatusChanged = (status: string) => {
+    updateSearchParams(searchParams, setSearchParams, status, 'acknowledged_status');
+  };
+
+  const handleResolvedStatusChanged = (status: string) => {
+    updateSearchParams(searchParams, setSearchParams, status, 'resolved_status');
+  };
+
   useEffect(() => {
     mounted.current = true;
 
@@ -191,6 +203,10 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
     handleMaxSeverityChanged,
     eventTypes: (searchParams.get('event_type') ?? undefined) ? (searchParams.get('event_type') || '').split(',').filter(Boolean) : undefined,
     handleEventTypesChanged,
+    acknowledgedStatus: searchParams.get('acknowledged_status') ?? undefined,
+    resolvedStatus: searchParams.get('resolved_status') ?? undefined,
+    handleAcknowledgedStatusChanged,
+    handleResolvedStatusChanged,
     showRunEnvironmentColumn: false,
     showTaskWorkflowColumn: true,
     sortBy: finalSortBy,
