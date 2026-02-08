@@ -1039,6 +1039,7 @@ export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnviron
   maxSeverity?: string | number;
   taskUuid?: string;
   workflowUuid?: string;
+  taskExecutionUuid?: string;
   eventTypes?: string[];
   acknowledgedStatus?: string;
   resolvedStatus?: string;
@@ -1075,6 +1076,10 @@ export async function fetchEvents(opts?: EventPageFetchOptions): Promise<Results
 
   if (opts.workflowUuid) {
     params['workflow__uuid'] = opts.workflowUuid;
+  }
+
+  if (opts.taskExecutionUuid) {
+    params['task_execution__uuid'] = opts.taskExecutionUuid;
   }
 
   if (opts.acknowledgedStatus) {

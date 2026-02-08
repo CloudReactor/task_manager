@@ -1345,3 +1345,157 @@ def test_event_ordering_by_executable_name(
     assert str(results[0]['uuid']) == str(event_z.uuid)
     assert str(results[1]['uuid']) == str(event_m.uuid)
     assert str(results[2]['uuid']) == str(event_a.uuid)
+
+
+@pytest.mark.django_db
+def test_event_filter_by_task_execution_uuid(
+        user_factory, group_factory,
+        task_factory, task_execution_factory,
+        task_execution_status_change_event_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by task_execution__uuid.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create two tasks and task executions
+    task1 = task_factory(created_by_group=group, name='Task 1')
+    task2 = task_factory(created_by_group=group, name='Task 2')
+
+    task_execution1 = task_execution_factory(task=task1)
+    task_execution2 = task_execution_factory(task=task2)
+
+    # Create events associated with each task execution
+    event1_for_te1 = task_execution_status_change_event_factory(
+        created_by_group=group, task=task1, task_execution=task_execution1)
+    event2_for_te1 = task_execution_status_change_event_factory(
+        created_by_group=group, task=task1, task_execution=task_execution1)
+    event1_for_te2 = task_execution_status_change_event_factory(
+        created_by_group=group, task=task2, task_execution=task_execution2)
+
+    # Create a basic event with no task execution
+    basic_event_with_no_te = basic_event_factory(created_by_group=group)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Filter by first task execution UUID
+    params = {'task_execution__uuid': str(task_execution1.uuid)}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 2
+    results = page['results']
+
+    # Build a map of returned UUIDs for comparison
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(event1_for_te1.uuid), str(event2_for_te1.uuid)}
+
+    assert returned_uuids == expected_uuids
+
+    # Filter by second task execution UUID
+    params = {'task_execution__uuid': str(task_execution2.uuid)}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 1
+    results = page['results']
+
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(event1_for_te2.uuid)}
+
+    assert returned_uuids == expected_uuids
+
+    # Filter by non-existent task execution UUID
+    params = {'task_execution__uuid': str(uuid.uuid4())}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 0
+
+
+@pytest.mark.django_db
+def test_event_filter_by_workflow_execution_uuid(
+        user_factory, group_factory,
+        workflow_factory, workflow_execution_factory,
+        workflow_execution_status_change_event_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by workflow_execution__uuid.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create two workflows and workflow executions
+    workflow1 = workflow_factory(created_by_group=group, name='Workflow 1')
+    workflow2 = workflow_factory(created_by_group=group, name='Workflow 2')
+
+    workflow_execution1 = workflow_execution_factory(workflow=workflow1)
+    workflow_execution2 = workflow_execution_factory(workflow=workflow2)
+
+    # Create events associated with each workflow execution
+    event1_for_we1 = workflow_execution_status_change_event_factory(
+        created_by_group=group, workflow=workflow1, workflow_execution=workflow_execution1)
+    event2_for_we1 = workflow_execution_status_change_event_factory(
+        created_by_group=group, workflow=workflow1, workflow_execution=workflow_execution1)
+    event1_for_we2 = workflow_execution_status_change_event_factory(
+        created_by_group=group, workflow=workflow2, workflow_execution=workflow_execution2)
+
+    # Create a basic event with no workflow execution
+    basic_event_with_no_we = basic_event_factory(created_by_group=group)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Filter by first workflow execution UUID
+    params = {'workflow_execution__uuid': str(workflow_execution1.uuid)}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 2
+    results = page['results']
+
+    # Build a map of returned UUIDs for comparison
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(event1_for_we1.uuid), str(event2_for_we1.uuid)}
+
+    assert returned_uuids == expected_uuids
+
+    # Filter by second workflow execution UUID
+    params = {'workflow_execution__uuid': str(workflow_execution2.uuid)}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 1
+    results = page['results']
+
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(event1_for_we2.uuid)}
+
+    assert returned_uuids == expected_uuids
+
+    # Filter by non-existent workflow execution UUID
+    params = {'workflow_execution__uuid': str(uuid.uuid4())}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 0

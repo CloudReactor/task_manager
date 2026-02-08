@@ -32,6 +32,7 @@ interface Props {
   showFilters?: boolean;
   showRunEnvironmentColumn?: boolean;
   showTaskWorkflowColumn?: boolean;
+  showExecutionColumn?: boolean;
   minSeverity?: string;
   maxSeverity?: string;
   eventTypes?: string[];
@@ -62,6 +63,7 @@ const EventTable = (props: Props) => {
     showFilters = true,
     showRunEnvironmentColumn = true,
     showTaskWorkflowColumn = true,
+    showExecutionColumn = true,
     runEnvironments = [],
     selectedRunEnvironmentUuids,
     handleSelectedRunEnvironmentUuidsChanged,
@@ -256,6 +258,7 @@ const EventTable = (props: Props) => {
           onSortChanged={props.handleSortChanged}
           showRunEnvironmentColumn={showRunEnvironmentColumn}
           showTaskWorkflowColumn={showTaskWorkflowColumn}
+          showExecutionColumn={showExecutionColumn}
         />
         <EventTableBody
           eventPage={props.eventPage}
@@ -265,6 +268,7 @@ const EventTable = (props: Props) => {
           handleSelectItemsPerPage={props.handleSelectItemsPerPage}
           showRunEnvironmentColumn={showRunEnvironmentColumn}
           showTaskWorkflowColumn={showTaskWorkflowColumn}
+          showExecutionColumn={showExecutionColumn}
           onEventAcknowledged={props.onEventAcknowledged}
         />
       </Table>

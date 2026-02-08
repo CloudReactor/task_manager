@@ -210,6 +210,7 @@ const TaskEventsTab = (props: InnerProps) => {
     handleResolvedStatusChanged,
     showRunEnvironmentColumn: false,
     showTaskWorkflowColumn: false,
+    showExecutionColumn: true,
     sortBy: finalSortBy,
     descending: finalDescending,
     currentPage,

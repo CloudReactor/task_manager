@@ -23,6 +23,7 @@ interface Props {
   handleSelectItemsPerPage: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   showRunEnvironmentColumn?: boolean;
   showTaskWorkflowColumn?: boolean;
+  showExecutionColumn?: boolean;
   onEventAcknowledged?: (eventUuid: string) => void;
 }
 
@@ -35,6 +36,7 @@ const EventTableBody = (props: Props) => {
     handleSelectItemsPerPage,
     showRunEnvironmentColumn = true,
     showTaskWorkflowColumn = true,
+    showExecutionColumn = true,
     onEventAcknowledged
   } = props;
 
@@ -230,13 +232,13 @@ const EventTableBody = (props: Props) => {
             )}
           </td>
           {showTaskWorkflowColumn && <td>{renderTaskOrWorkflow(event)}</td>}
-          <td>{renderExecution(event)}</td>
+          {showExecutionColumn && <td>{renderExecution(event)}</td>}
         </tr>
       ))}
 
       {eventPage.results.length === 0 && (
         <tr>
-          <td colSpan={10 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1)} className="text-center">
+          <td colSpan={10 - (showRunEnvironmentColumn ? 0 : 1) - (showTaskWorkflowColumn ? 0 : 1) - (showExecutionColumn ? 0 : 1)} className="text-center">
             No events found
           </td>
         </tr>

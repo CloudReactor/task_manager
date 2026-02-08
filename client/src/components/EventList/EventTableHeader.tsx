@@ -6,6 +6,7 @@ interface Props {
   onSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
   showRunEnvironmentColumn?: boolean;
   showTaskWorkflowColumn?: boolean;
+  showExecutionColumn?: boolean;
 }
 
 const EventTableHeader = (props: Props) => {
@@ -14,7 +15,8 @@ const EventTableHeader = (props: Props) => {
     descending,
     onSortChanged,
     showRunEnvironmentColumn = true,
-    showTaskWorkflowColumn = true
+    showTaskWorkflowColumn = true,
+    showExecutionColumn = true
   } = props;
 
   const handleSortClick = (field: string) => {
@@ -94,7 +96,7 @@ const EventTableHeader = (props: Props) => {
             Task/Workflow{renderSortIcon('executable__name')}
           </th>
         )}
-        <th>Execution</th>
+        {showExecutionColumn && <th>Execution</th>}
       </tr>
     </thead>
   );

@@ -195,7 +195,9 @@ class EventFilter(filters.FilterSet):
             'run_environment__uuid': ['exact', 'in'],
             'grouping_key': ['exact'],
             'task__uuid': ['exact'],
-            'workflow__uuid': ['exact'],            
+            'workflow__uuid': ['exact'],
+            'task_execution__uuid': ['exact'],
+            'workflow_execution__uuid': ['exact'],            
         }
 
 
