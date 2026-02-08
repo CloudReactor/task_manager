@@ -1294,3 +1294,54 @@ def test_event_filter_by_invalid_resolved_status(
     response = client.get('/api/v1/events/', params)
     assert response.status_code == 200
     assert response.data['count'] == 0
+
+
+@pytest.mark.django_db
+def test_event_ordering_by_executable_name(
+        user_factory, group_factory,
+        task_factory, task_execution_status_change_event_factory,
+        workflow_factory, workflow_execution_status_change_event_factory,
+        api_client) -> None:
+    """
+    Test ordering events by executable name (coalesced task and workflow names).
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create tasks and workflows with different names
+    task_a = task_factory(created_by_group=group, name='Executable A')
+    task_z = task_factory(created_by_group=group, name='Executable Z')
+    workflow_m = workflow_factory(created_by_group=group, name='Executable M')
+
+    # Create events for tasks and workflow
+    event_a = task_execution_status_change_event_factory(created_by_group=group, task=task_a)
+    event_z = task_execution_status_change_event_factory(created_by_group=group, task=task_z)
+    event_m = workflow_execution_status_change_event_factory(created_by_group=group, workflow=workflow_m)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test ascending order (A, M, Z)
+    params = {'ordering': 'executable__name'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 3
+    results = response.data['results']
+    assert str(results[0]['uuid']) == str(event_a.uuid)
+    assert str(results[1]['uuid']) == str(event_m.uuid)
+    assert str(results[2]['uuid']) == str(event_z.uuid)
+
+    # Test descending order (Z, M, A)
+    params = {'ordering': '-executable__name'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 3
+    results = response.data['results']
+    assert str(results[0]['uuid']) == str(event_z.uuid)
+    assert str(results[1]['uuid']) == str(event_m.uuid)
+    assert str(results[2]['uuid']) == str(event_a.uuid)

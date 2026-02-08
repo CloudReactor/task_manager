@@ -2,7 +2,8 @@ import logging
 from typing import override
 from urllib.request import Request
 
-from django.db.models import Q
+from django.db.models import Q, F, Value
+from django.db.models.functions import Coalesce
 from django.views import View
 
 from django_filters import rest_framework as filters
@@ -206,7 +207,8 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
     search_fields = ('uuid', 'error_summary', 'source',)
     ordering_fields = (
         'event_at', 'type', 'severity', 'run_environment__name',
-        'detected_at', 'resolved_at', 'acknowledged_at'
+        'detected_at', 'resolved_at', 'acknowledged_at',
+        'executable__name'
     )
     ordering = '-event_at'  # Default ordering by event timestamp, newest first
 
@@ -225,6 +227,19 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
                 for model_class, serializer_class in type_map.items()
             }
         return cls._type_string_to_serializer_cache
+
+    @override
+    def get_queryset(self):
+        """Override to annotate executable__name using COALESCE of task__name and workflow__name."""
+        queryset = super().get_queryset()
+        
+        # Annotate the queryset with executable__name that coalesces task__name and workflow__name
+        # This allows ordering by either task or workflow name using a single field
+        queryset = queryset.annotate(
+            executable__name=Coalesce(F('task__name'), F('workflow__name'), Value(''))
+        )
+        
+        return queryset
 
     # CHECKME: is this needed?
     @override

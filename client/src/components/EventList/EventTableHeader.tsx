@@ -86,7 +86,14 @@ const EventTableHeader = (props: Props) => {
         >
           Resolved{renderSortIcon('resolved_at')}
         </th>
-        {showTaskWorkflowColumn && <th>Task/Workflow</th>}
+        {showTaskWorkflowColumn && (
+          <th
+            onClick={() => handleSortClick('executable__name')}
+            style={{ cursor: 'pointer' }}
+          >
+            Task/Workflow{renderSortIcon('executable__name')}
+          </th>
+        )}
         <th>Execution</th>
       </tr>
     </thead>
