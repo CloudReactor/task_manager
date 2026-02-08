@@ -48,6 +48,12 @@ class EventFilter(filters.FilterSet):
     min_severity = CharFilter(method='filter_min_severity')
     max_severity = CharFilter(method='filter_max_severity')
 
+    # Filter by acknowledgement status: 'acknowledged', 'not_acknowledged', or empty for any
+    acknowledged_status = CharFilter(method='filter_acknowledged_status')
+
+    # Filter by resolved status: 'resolved', 'not_resolved', or empty for any
+    resolved_status = CharFilter(method='filter_resolved_status')
+
     def _parse_severity_value(self, value):
         """
         Parse a severity value which can be either a label or numeric value.
@@ -144,6 +150,42 @@ class EventFilter(filters.FilterSet):
             return queryset.none()
 
         return queryset.filter(type__in=type_names)
+
+    def filter_acknowledged_status(self, queryset, name, value):
+        """
+        Filter events by acknowledgement status.
+        - 'acknowledged': events that have been acknowledged (acknowledged_at is not null)
+        - 'not_acknowledged': events that have not been acknowledged (acknowledged_at is null)
+        - empty or other values: no filtering
+        """
+        if not value:
+            return queryset
+
+        if value == 'acknowledged':
+            return queryset.filter(acknowledged_at__isnull=False)
+        elif value == 'not_acknowledged':
+            return queryset.filter(acknowledged_at__isnull=True)
+        else:
+            # Invalid value, return empty queryset
+            return queryset.none()
+
+    def filter_resolved_status(self, queryset, name, value):
+        """
+        Filter events by resolved status.
+        - 'resolved': events that have been resolved (resolved_at is not null)
+        - 'not_resolved': events that have not been resolved (resolved_at is null)
+        - empty or other values: no filtering
+        """
+        if not value:
+            return queryset
+
+        if value == 'resolved':
+            return queryset.filter(resolved_at__isnull=False)
+        elif value == 'not_resolved':
+            return queryset.filter(resolved_at__isnull=True)
+        else:
+            # Invalid value, return empty queryset
+            return queryset.none()
 
     class Meta:
         model = Event

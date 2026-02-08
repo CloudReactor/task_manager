@@ -84,6 +84,8 @@ const EventList = (props: AbortSignalProps) => {
     const maxSeverity = searchParams.get('max_severity') || undefined;
     const eventTypesParam = searchParams.get('event_type') ?? undefined;
     const eventTypes = eventTypesParam ? eventTypesParam.split(',').filter(Boolean) : undefined;
+    const acknowledgedStatus = searchParams.get('acknowledged_status') || undefined;
+    const resolvedStatus = searchParams.get('resolved_status') || undefined;
 
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation superceded');
@@ -93,7 +95,6 @@ const EventList = (props: AbortSignalProps) => {
 
     let finalOrdering = ordering ?? sortBy ?? 'event_at';
     let finalDescending = toggleDirection ? !descending : descending;
-    let finalEventTimeDescending = eventTimeDescending;
 
     if (ordering && (ordering === sortBy)) {
       finalDescending = toggleDirection ? !descending : descending;
@@ -110,7 +111,7 @@ const EventList = (props: AbortSignalProps) => {
     const sortFields = [finalOrdering];
     const primarySortField = finalOrdering.startsWith('-') ? finalOrdering.substring(1) : finalOrdering;
     if (primarySortField !== 'event_at') {
-      sortFields.push(finalEventTimeDescending ? '-event_at' : 'event_at');
+      sortFields.push(eventTimeDescending ? '-event_at' : 'event_at');
     }
     const finalSortBy = sortFields.join(',');
 
@@ -125,6 +126,8 @@ const EventList = (props: AbortSignalProps) => {
         minSeverity,
         maxSeverity,
         eventTypes,
+        acknowledgedStatus,
+        resolvedStatus,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
         abortSignal: updatedLoadEventsAbortController.signal
@@ -219,6 +222,14 @@ const EventList = (props: AbortSignalProps) => {
     updateSearchParams(searchParams, setSearchParams, types && types.length ? types : undefined, 'event_type');
   }, [location]);
 
+  const handleAcknowledgedStatusChanged = useCallback((status: string) => {
+    updateSearchParams(searchParams, setSearchParams, status || undefined, 'acknowledged_status');
+  }, [location]);
+
+  const handleResolvedStatusChanged = useCallback((status: string) => {
+    updateSearchParams(searchParams, setSearchParams, status || undefined, 'resolved_status');
+  }, [location]);
+
   const cleanupLoading = () => {
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation canceled after component unmounted');
@@ -255,6 +266,8 @@ const EventList = (props: AbortSignalProps) => {
 
   const minSeverity = searchParams.get('min_severity') || undefined;
   const maxSeverity = searchParams.get('max_severity') || undefined;
+  const acknowledgedStatus = searchParams.get('acknowledged_status') || undefined;
+  const resolvedStatus = searchParams.get('resolved_status') || undefined;
 
   const finalSortBy = (sortBy ?? 'event_at');
   const finalDescending = descending ?? true;
@@ -266,6 +279,8 @@ const EventList = (props: AbortSignalProps) => {
     handleMaxSeverityChanged,
     eventTypes: (searchParams.get('event_type') ?? undefined) ? (searchParams.get('event_type') || '').split(',').filter(Boolean) : undefined,
     handleEventTypesChanged,
+    handleAcknowledgedStatusChanged,
+    handleResolvedStatusChanged,
     loadEvents,
     handleSortChanged,
     handlePageChanged,
@@ -273,6 +288,8 @@ const EventList = (props: AbortSignalProps) => {
     q,
     minSeverity,
     maxSeverity,
+    acknowledgedStatus,
+    resolvedStatus,
     sortBy: finalSortBy,
     descending: finalDescending,
     currentPage,

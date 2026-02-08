@@ -1040,3 +1040,257 @@ def test_event_filter_by_invalid_severity(
     response = client.get('/api/v1/events/', params)
     assert response.status_code == 200
     assert response.data['count'] == 0
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+  acknowledged_status_filter, expected_indices
+""", [
+  # Filter by acknowledged events
+  ('acknowledged', [0, 1]),
+  # Filter by not acknowledged events
+  ('not_acknowledged', [2, 3]),
+])
+def test_event_filter_by_acknowledged_status(
+        acknowledged_status_filter: str,
+        expected_indices: List[int],
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by acknowledgement status.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create acknowledged and non-acknowledged events
+    acknowledged_event_1 = basic_event_factory(created_by_group=group, acknowledged_at=now)
+    acknowledged_event_2 = basic_event_factory(created_by_group=group, acknowledged_at=now)
+    not_acknowledged_event_1 = basic_event_factory(created_by_group=group, acknowledged_at=None)
+    not_acknowledged_event_2 = basic_event_factory(created_by_group=group, acknowledged_at=None)
+
+    events = [
+        acknowledged_event_1,
+        acknowledged_event_2,
+        not_acknowledged_event_1,
+        not_acknowledged_event_2,
+    ]
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    params = {
+        'acknowledged_status': acknowledged_status_filter
+    }
+
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+
+    page = response.data
+    assert page['count'] == len(expected_indices)
+    results = page['results']
+
+    # Build a map of returned UUIDs for comparison
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(events[i].uuid) for i in expected_indices}
+
+    assert returned_uuids == expected_uuids
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+  resolved_status_filter, expected_indices
+""", [
+  # Filter by resolved events
+  ('resolved', [0, 1]),
+  # Filter by not resolved events
+  ('not_resolved', [2, 3]),
+])
+def test_event_filter_by_resolved_status(
+        resolved_status_filter: str,
+        expected_indices: List[int],
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by resolved status.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create resolved and non-resolved events
+    resolved_event_1 = basic_event_factory(created_by_group=group, resolved_at=now)
+    resolved_event_2 = basic_event_factory(created_by_group=group, resolved_at=now)
+    not_resolved_event_1 = basic_event_factory(created_by_group=group, resolved_at=None)
+    not_resolved_event_2 = basic_event_factory(created_by_group=group, resolved_at=None)
+
+    events = [
+        resolved_event_1,
+        resolved_event_2,
+        not_resolved_event_1,
+        not_resolved_event_2,
+    ]
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    params = {
+        'resolved_status': resolved_status_filter
+    }
+
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+
+    page = response.data
+    assert page['count'] == len(expected_indices)
+    results = page['results']
+
+    # Build a map of returned UUIDs for comparison
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(events[i].uuid) for i in expected_indices}
+
+    assert returned_uuids == expected_uuids
+
+
+@pytest.mark.django_db
+def test_event_filter_by_acknowledged_and_resolved_status_combined(
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by both acknowledged and resolved status combined.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create events with different combinations of acknowledged_at and resolved_at
+    acknowledged_and_resolved = basic_event_factory(
+        created_by_group=group, acknowledged_at=now, resolved_at=now)
+    acknowledged_not_resolved = basic_event_factory(
+        created_by_group=group, acknowledged_at=now, resolved_at=None)
+    not_acknowledged_resolved = basic_event_factory(
+        created_by_group=group, acknowledged_at=None, resolved_at=now)
+    not_acknowledged_not_resolved = basic_event_factory(
+        created_by_group=group, acknowledged_at=None, resolved_at=None)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test: acknowledged AND not_resolved should return only acknowledged_not_resolved
+    params = {
+        'acknowledged_status': 'acknowledged',
+        'resolved_status': 'not_resolved'
+    }
+
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['uuid'] == str(acknowledged_not_resolved.uuid)
+
+    # Test: not_acknowledged AND resolved should return only not_acknowledged_resolved
+    params = {
+        'acknowledged_status': 'not_acknowledged',
+        'resolved_status': 'resolved'
+    }
+
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['uuid'] == str(not_acknowledged_resolved.uuid)
+
+    # Test: acknowledged AND resolved should return only acknowledged_and_resolved
+    params = {
+        'acknowledged_status': 'acknowledged',
+        'resolved_status': 'resolved'
+    }
+
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['uuid'] == str(acknowledged_and_resolved.uuid)
+
+
+@pytest.mark.django_db
+def test_event_filter_by_invalid_acknowledged_status(
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events with invalid acknowledged_status returns no results.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create some events
+    acknowledged_event = basic_event_factory(created_by_group=group, acknowledged_at=now)
+    not_acknowledged_event = basic_event_factory(created_by_group=group, acknowledged_at=None)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test with invalid acknowledged_status (should return no events)
+    params = {'acknowledged_status': 'invalid_status'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 0
+
+
+@pytest.mark.django_db
+def test_event_filter_by_invalid_resolved_status(
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events with invalid resolved_status returns no results.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create some events
+    resolved_event = basic_event_factory(created_by_group=group, resolved_at=now)
+    not_resolved_event = basic_event_factory(created_by_group=group, resolved_at=None)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test with invalid resolved_status (should return no events)
+    params = {'resolved_status': 'invalid_status'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 0

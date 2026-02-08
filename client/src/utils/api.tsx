@@ -1040,6 +1040,8 @@ export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnviron
   taskUuid?: string;
   workflowUuid?: string;
   eventTypes?: string[];
+  acknowledgedStatus?: string;
+  resolvedStatus?: string;
 }
 
 export async function fetchEvents(opts?: EventPageFetchOptions): Promise<ResultsPage<import('../types/domain_types').AnyEvent>> {
@@ -1073,6 +1075,14 @@ export async function fetchEvents(opts?: EventPageFetchOptions): Promise<Results
 
   if (opts.workflowUuid) {
     params['workflow__uuid'] = opts.workflowUuid;
+  }
+
+  if (opts.acknowledgedStatus) {
+    params['acknowledged_status'] = opts.acknowledgedStatus;
+  }
+
+  if (opts.resolvedStatus) {
+    params['resolved_status'] = opts.resolvedStatus;
   }
 
   const response = await makeAuthenticatedClient().get(

@@ -35,7 +35,11 @@ interface Props {
   minSeverity?: string;
   maxSeverity?: string;
   eventTypes?: string[];
+  acknowledgedStatus?: string;
+  resolvedStatus?: string;
   handleEventTypesChanged?: (types?: string[]) => void;
+  handleAcknowledgedStatusChanged?: (status: string) => void;
+  handleResolvedStatusChanged?: (status: string) => void;
   handleSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
   handleSelectedRunEnvironmentUuidsChanged?: (uuids?: string[]) => void;
   handleQueryChanged?: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -68,7 +72,11 @@ const EventTable = (props: Props) => {
     handleMaxSeverityChanged
     ,
     eventTypes,
-    handleEventTypesChanged
+    handleEventTypesChanged,
+    acknowledgedStatus,
+    resolvedStatus,
+    handleAcknowledgedStatusChanged,
+    handleResolvedStatusChanged
   } = props;
 
   const severityOptions = [
@@ -146,6 +154,44 @@ const EventTable = (props: Props) => {
               </Form.Group>
             )}
           </Form>
+          {(handleAcknowledgedStatusChanged || handleResolvedStatusChanged) && (
+            <Form inline className="mb-2">
+              {handleAcknowledgedStatusChanged && (
+                <Form.Group className="mr-3 mb-2">
+                  <Form.Label className={`mr-2 ${styles.filterLabel}`}>Acknowledged Status:</Form.Label>
+                  <div className={styles.filterInput}>
+                    <Select
+                      value={acknowledgedStatus || ''}
+                      onChange={(e) => handleAcknowledgedStatusChanged(e.target.value as string)}
+                      style={{ minHeight: '38px' }}
+                      displayEmpty
+                    >
+                      <MenuItem value="">Any</MenuItem>
+                      <MenuItem value="not_acknowledged">Not Acknowledged Yet</MenuItem>
+                      <MenuItem value="acknowledged">Acknowledged</MenuItem>
+                    </Select>
+                  </div>
+                </Form.Group>
+              )}
+              {handleResolvedStatusChanged && (
+                <Form.Group className="mr-3 mb-2">
+                  <Form.Label className={`mr-2 ${styles.filterLabel}`}>Resolved Status:</Form.Label>
+                  <div className={styles.filterInput}>
+                    <Select
+                      value={resolvedStatus || ''}
+                      onChange={(e) => handleResolvedStatusChanged(e.target.value as string)}
+                      style={{ minHeight: '38px' }}
+                      displayEmpty
+                    >
+                      <MenuItem value="">Any</MenuItem>
+                      <MenuItem value="not_resolved">Not Resolved Yet</MenuItem>
+                      <MenuItem value="resolved">Resolved</MenuItem>
+                    </Select>
+                  </div>
+                </Form.Group>
+              )}
+            </Form>
+          )}
           {(handleMinSeverityChanged || handleMaxSeverityChanged) && (
             <Form inline className="mb-2">
               {handleMinSeverityChanged && (
