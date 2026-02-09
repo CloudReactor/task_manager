@@ -16,7 +16,7 @@ import {
   makeLink, makeLinks
 } from "../../utils/index";
 
-import React, { Fragment, useState, useCallback, useEffect, ChangeEvent } from 'react';
+import React, { Fragment, useState, useCallback, useEffect, useMemo, ChangeEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { Col, Row, Table, Nav, Tab } from 'react-bootstrap';
@@ -87,19 +87,31 @@ function LogSection({ te, isStdout }: { te: TaskExecution; isStdout: boolean }) 
 
 const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) => {
   const [eventsPage, setEventsPage] = useState<ResultsPage<AnyEvent>>(makeEmptyResultsPage());
-  const [currentEventPage, setCurrentEventPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [eventQuery, setEventQuery] = useState('');
-  const [minSeverity, setMinSeverity] = useState<string | undefined>(undefined);
-  const [maxSeverity, setMaxSeverity] = useState<string | undefined>(undefined);
-  const [eventTypes, setEventTypes] = useState<string[] | undefined>(undefined);
-  const [acknowledgedStatus, setAcknowledgedStatus] = useState<string | undefined>(undefined);
-  const [resolvedStatus, setResolvedStatus] = useState<string | undefined>(undefined);
-  const [eventSortBy, setEventSortBy] = useState('event_at');
-  const [eventDescending, setEventDescending] = useState(true);
+
+  // Derive all event filter state from URL parameters - memoized to prevent infinite loops
+  const eventFilterState = useMemo(() => {
+    const rpp = searchParams.get('event_rows_per_page') ? parseInt(searchParams.get('event_rows_per_page')!) : 10;
+    
+    // Don't use page from URL - always start at page 0 to avoid pagination errors
+    // Page navigation will update URL, but on reload we start fresh
+    const currentEventPage = 0;
+    
+    return {
+      eventQuery: searchParams.get('event_q') ?? '',
+      minSeverity: searchParams.get('event_min_severity'),
+      maxSeverity: searchParams.get('event_max_severity'),
+      eventTypes: searchParams.get('event_type') ? searchParams.get('event_type')!.split(',').filter(Boolean) : undefined,
+      acknowledgedStatus: searchParams.get('event_acknowledged_status') ?? undefined,
+      resolvedStatus: searchParams.get('event_resolved_status') ?? undefined,
+      eventSortBy: searchParams.get('event_sort_by') ?? 'event_at',
+      eventDescending: searchParams.get('event_descending') !== 'false',
+      currentEventPage,
+      rowsPerPage: rpp
+    };
+  }, [searchParams]);
 
   // Sync active tab with URL parameters
   useEffect(() => {
@@ -108,28 +120,6 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
       setActiveTab(tabParam);
     }
   }, [searchParams]);
-
-  // Sync event filters with URL parameters
-  useEffect(() => {
-    const query = searchParams.get('event_q') ?? '';
-    const minSev = searchParams.get('event_min_severity') ?? undefined;
-    const maxSev = searchParams.get('event_max_severity') ?? undefined;
-    const eventTypeParam = searchParams.get('event_type') ?? undefined;
-    const eventTypesList = eventTypeParam ? eventTypeParam.split(',').filter(Boolean) : undefined;
-    const ackStatus = searchParams.get('event_acknowledged_status') ?? undefined;
-    const resStatus = searchParams.get('event_resolved_status') ?? undefined;
-    const sortBy = searchParams.get('event_sort') ?? 'event_at';
-    const descending = searchParams.get('event_descending') !== 'false';
-
-    setEventQuery(query);
-    setMinSeverity(minSev);
-    setMaxSeverity(maxSev);
-    setEventTypes(eventTypesList);
-    setAcknowledgedStatus(ackStatus);
-    setResolvedStatus(resStatus);
-    setEventSortBy(sortBy);
-    setEventDescending(descending);
-  }, []);
 
   const updateEventFiltersInUrl = useCallback((updates: Record<string, any>) => {
     const newParams = new URLSearchParams(searchParams);
@@ -155,20 +145,20 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
   const loadTaskExecutionEvents = useCallback(async () => {
     setIsLoadingEvents(true);
     try {
-      let sortBy = eventSortBy;
-      if (eventDescending) {
+      let sortBy = eventFilterState.eventSortBy;
+      if (eventFilterState.eventDescending) {
         sortBy = '-' + sortBy;
       }
       const fetchedPage = await fetchEvents({
         taskExecutionUuid: taskExecution.uuid,
-        q: eventQuery,
-        minSeverity,
-        maxSeverity,
-        eventTypes,
-        acknowledgedStatus,
-        resolvedStatus,
-        offset: currentEventPage * rowsPerPage,
-        maxResults: rowsPerPage,
+        q: eventFilterState.eventQuery,
+        minSeverity: eventFilterState.minSeverity,
+        maxSeverity: eventFilterState.maxSeverity,
+        eventTypes: eventFilterState.eventTypes,
+        acknowledgedStatus: eventFilterState.acknowledgedStatus,
+        resolvedStatus: eventFilterState.resolvedStatus,
+        offset: eventFilterState.currentEventPage * eventFilterState.rowsPerPage,
+        maxResults: eventFilterState.rowsPerPage,
         sortBy: sortBy
       });
       setEventsPage(fetchedPage);
@@ -177,74 +167,62 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     } finally {
       setIsLoadingEvents(false);
     }
-  }, [taskExecution.uuid, currentEventPage, rowsPerPage, eventQuery, minSeverity, maxSeverity, eventTypes, acknowledgedStatus, resolvedStatus, eventSortBy, eventDescending]);
+  }, [taskExecution.uuid, eventFilterState]);
 
   useEffect(() => {
     loadTaskExecutionEvents();
   }, [loadTaskExecutionEvents]);
 
   const handleEventPageChanged = useCallback((currentPage: number) => {
-    setCurrentEventPage(currentPage);
-  }, []);
+    updateEventFiltersInUrl({ event_page: currentPage });
+  }, [updateEventFiltersInUrl]);
 
   const handleSelectItemsPerPage = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(parseInt(event.target.value));
-  }, []);
+    const rpp = parseInt(event.target.value);
+    updateEventFiltersInUrl({ event_rows_per_page: rpp, event_page: 1 });
+  }, [updateEventFiltersInUrl]);
 
   const handleEventQueryChanged = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const newQuery = event.target.value;
-    setEventQuery(newQuery);
-    setCurrentEventPage(0);
     updateEventFiltersInUrl({ event_q: newQuery });
   }, [updateEventFiltersInUrl]);
 
   const handleEventTypesChanged = useCallback((types?: string[]) => {
-    setEventTypes(types);
-    setCurrentEventPage(0);
     updateEventFiltersInUrl({ event_type: types });
   }, [updateEventFiltersInUrl]);
 
   const handleMinSeverityChanged = useCallback((severity: string) => {
     const newValue = severity || undefined;
-    setMinSeverity(newValue);
-    setCurrentEventPage(0);
     updateEventFiltersInUrl({ event_min_severity: newValue });
   }, [updateEventFiltersInUrl]);
 
   const handleMaxSeverityChanged = useCallback((severity: string) => {
     const newValue = severity || undefined;
-    setMaxSeverity(newValue);
-    setCurrentEventPage(0);
     updateEventFiltersInUrl({ event_max_severity: newValue });
   }, [updateEventFiltersInUrl]);
 
   const handleAcknowledgedStatusChanged = useCallback((status: string) => {
     const newValue = status || undefined;
-    setAcknowledgedStatus(newValue);
-    setCurrentEventPage(0);
     updateEventFiltersInUrl({ event_acknowledged_status: newValue });
   }, [updateEventFiltersInUrl]);
 
   const handleResolvedStatusChanged = useCallback((status: string) => {
     const newValue = status || undefined;
-    setResolvedStatus(newValue);
-    setCurrentEventPage(0);
     updateEventFiltersInUrl({ event_resolved_status: newValue });
   }, [updateEventFiltersInUrl]);
 
   const handleEventSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
-    let newSortBy = ordering ?? eventSortBy;
-    let newDescending = toggleDirection ? !eventDescending : eventDescending;
-
-    if (ordering && ordering === eventSortBy) {
-      newDescending = toggleDirection ? !eventDescending : eventDescending;
+    const currentSortBy = searchParams.get('event_sort_by') ?? 'event_at';
+    const currentDescending = searchParams.get('event_descending') !== 'false';
+    
+    if (ordering === currentSortBy) {
+      // Toggle direction if same field
+      updateEventFiltersInUrl({ event_descending: !currentDescending });
+    } else {
+      // New field, set to descending
+      updateEventFiltersInUrl({ event_sort_by: ordering, event_descending: true });
     }
-
-    setEventSortBy(newSortBy);
-    setEventDescending(newDescending);
-    setCurrentEventPage(0);
-    updateEventFiltersInUrl({ event_sort: newSortBy, event_descending: newDescending });
-  }, [eventSortBy, eventDescending, updateEventFiltersInUrl]);
+  }, [searchParams, updateEventFiltersInUrl]);
 
   const te = taskExecution;
   const tem = te.execution_method_details;
@@ -539,28 +517,28 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
         <Tab.Pane eventKey="events">
           <EventTable
             eventPage={eventsPage}
-            currentPage={currentEventPage}
-            rowsPerPage={rowsPerPage}
+            currentPage={eventFilterState.currentEventPage}
+            rowsPerPage={eventFilterState.rowsPerPage}
             handlePageChanged={handleEventPageChanged}
             handleSelectItemsPerPage={handleSelectItemsPerPage}
             showFilters={true}
             showRunEnvironmentColumn={false}
             showTaskWorkflowColumn={false}
             showExecutionColumn={false}
-            sortBy={eventSortBy}
-            descending={eventDescending}
+            sortBy={eventFilterState.eventSortBy}
+            descending={eventFilterState.eventDescending}
             loadEvents={loadTaskExecutionEvents}
             handleSortChanged={handleEventSortChanged}
-            q={eventQuery}
+            q={eventFilterState.eventQuery}
             handleQueryChanged={handleEventQueryChanged}
-            minSeverity={minSeverity}
-            maxSeverity={maxSeverity}
+            minSeverity={eventFilterState.minSeverity}
+            maxSeverity={eventFilterState.maxSeverity}
             handleMinSeverityChanged={handleMinSeverityChanged}
             handleMaxSeverityChanged={handleMaxSeverityChanged}
-            eventTypes={eventTypes}
+            eventTypes={eventFilterState.eventTypes}
             handleEventTypesChanged={handleEventTypesChanged}
-            acknowledgedStatus={acknowledgedStatus}
-            resolvedStatus={resolvedStatus}
+            acknowledgedStatus={eventFilterState.acknowledgedStatus}
+            resolvedStatus={eventFilterState.resolvedStatus}
             handleAcknowledgedStatusChanged={handleAcknowledgedStatusChanged}
             handleResolvedStatusChanged={handleResolvedStatusChanged}
           />

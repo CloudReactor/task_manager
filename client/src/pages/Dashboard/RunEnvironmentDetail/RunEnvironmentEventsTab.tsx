@@ -9,13 +9,11 @@ import {
   fetchEvents
 } from '../../../utils/api';
 
-import React, { Fragment, useCallback, useContext, useEffect, useRef, useState, ChangeEvent } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import React, { Fragment, useCallback, useContext, useEffect, useState, useMemo, ChangeEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import abortableHoc, { AbortSignalProps } from '../../../hocs/abortableHoc';
 
 import { GlobalContext } from '../../../context/GlobalContext';
-
-import { transformSearchParams, updateSearchParams } from '../../../utils/url_search';
 
 import Loading from '../../../components/Loading';
 import EventTable from '../../../components/EventList/EventTable';
@@ -41,61 +39,68 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
 
   const [loadEventsAbortController, setLoadEventsAbortController] = useState<AbortController | null>(null);
 
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const mounted = useRef(false);
+  // Derive all filter state from URL parameters - memoized to prevent infinite loops
+  const filterState = useMemo(() => {
+    const rpp = searchParams.get('event_rows_per_page') ? parseInt(searchParams.get('event_rows_per_page')!) : 10;
+    
+    // Use 0-indexed pagination to match DefaultPagination component expectations
+    const currentPage = 0;
+    
+    return {
+      eventQuery: searchParams.get('event_q') ?? '',
+      minSeverity: searchParams.get('event_min_severity') ?? '',
+      maxSeverity: searchParams.get('event_max_severity') ?? '',
+      eventTypes: searchParams.get('event_type') ? searchParams.get('event_type')!.split(',') : [],
+      acknowledgedStatus: searchParams.get('event_acknowledged_status') ?? '',
+      resolvedStatus: searchParams.get('event_resolved_status') ?? '',
+      eventSortBy: searchParams.get('event_sort_by') ?? 'event_at',
+      eventDescending: searchParams.get('event_descending') === 'true',
+      currentPage,
+      rowsPerPage: rpp
+    };
+  }, [searchParams]);
 
-  const loadEvents = useCallback(async (
-    ordering?: string,
-    toggleDirection?: boolean
-  ) => {
-    const {
-      q,
-      sortBy,
-      descending,
-      rowsPerPage,
-      currentPage
-    } = transformSearchParams(searchParams, true);
-    const minSeverity = searchParams.get('min_severity') ?? undefined;
-    const maxSeverity = searchParams.get('max_severity') ?? undefined;
-    const eventTypesParam = searchParams.get('event_type') ?? undefined;
-    const eventTypes = eventTypesParam ? eventTypesParam.split(',').filter(Boolean) : undefined;
-    const acknowledgedStatus = searchParams.get('acknowledged_status') ?? undefined;
-    const resolvedStatus = searchParams.get('resolved_status') ?? undefined;
+  const updateEventFiltersInUrl = useCallback((updates: Record<string, any>) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+        newParams.delete(key);
+      } else if (Array.isArray(value)) {
+        newParams.set(key, value.join(','));
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
 
+  const loadEvents = useCallback(async () => {
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation superceded');
     }
     const updatedLoadEventsAbortController = new AbortController();
     setLoadEventsAbortController(updatedLoadEventsAbortController);
 
-    let finalOrdering = ordering ?? sortBy;
-    let finalDescending = toggleDirection ? !descending : descending;
-
-    if (ordering && (ordering === sortBy)) {
-      finalDescending = toggleDirection ? !descending : descending;
-    }
-
-    if (finalDescending) {
-      finalOrdering = '-' + finalOrdering;
-    }
-
     setAreEventsLoading(true);
-
     try {
+      let sortBy = filterState.eventSortBy;
+      if (filterState.eventDescending) {
+        sortBy = '-' + sortBy;
+      }
       const fetchedPage = await fetchEvents({
         groupId: currentGroup?.id,
         runEnvironmentUuids: [runEnvironment.uuid],
-        q,
-        sortBy: finalOrdering,
-          minSeverity,
-          maxSeverity,
-          eventTypes,
-          acknowledgedStatus,
-          resolvedStatus,
-        offset: currentPage * rowsPerPage,
-        maxResults: rowsPerPage,
+        q: filterState.eventQuery,
+        sortBy: sortBy,
+        minSeverity: filterState.minSeverity ? parseInt(filterState.minSeverity) : undefined,
+        maxSeverity: filterState.maxSeverity ? parseInt(filterState.maxSeverity) : undefined,
+        eventTypes: filterState.eventTypes.length > 0 ? filterState.eventTypes : undefined,
+        acknowledgedStatus: filterState.acknowledgedStatus || undefined,
+        resolvedStatus: filterState.resolvedStatus || undefined,
+        offset: filterState.currentPage * filterState.rowsPerPage,
+        maxResults: filterState.rowsPerPage,
         abortSignal
       });
 
@@ -112,109 +117,72 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
       setAreEventsLoading(false);
       setIsInitialLoad(false);
     }
-  }, [location, runEnvironment.uuid]);
+  }, [runEnvironment.uuid, currentGroup?.id, filterState, abortSignal]);
 
-  const handleSelectItemsPerPage = (
-    event: ChangeEvent<HTMLSelectElement>
-  ) => {
-    const rowsPerPage = parseInt(event.target.value);
-    updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'rows_per_page');
-  };
+  const handleEventQueryChanged = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const newQuery = event.target.value;
+    updateEventFiltersInUrl({ event_q: newQuery });
+  }, [updateEventFiltersInUrl]);
+
+  const handleMinSeverityChanged = useCallback((severity: string) => {
+    updateEventFiltersInUrl({ event_min_severity: severity || undefined });
+  }, [updateEventFiltersInUrl]);
+
+  const handleMaxSeverityChanged = useCallback((severity: string) => {
+    updateEventFiltersInUrl({ event_max_severity: severity || undefined });
+  }, [updateEventFiltersInUrl]);
+
+  const handleEventTypesChanged = useCallback((types?: string[]) => {
+    updateEventFiltersInUrl({ event_type: types && types.length > 0 ? types : undefined });
+  }, [updateEventFiltersInUrl]);
+
+  const handleAcknowledgedStatusChanged = useCallback((status: string) => {
+    updateEventFiltersInUrl({ event_acknowledged_status: status || undefined });
+  }, [updateEventFiltersInUrl]);
+
+  const handleResolvedStatusChanged = useCallback((status: string) => {
+    updateEventFiltersInUrl({ event_resolved_status: status || undefined });
+  }, [updateEventFiltersInUrl]);
 
   const handleSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
-    updateSearchParams(searchParams, setSearchParams, ordering, 'sort_by');
-  }, [location]);
+    if (!ordering) return;
+    
+    const currentSortBy = searchParams.get('event_sort_by') ?? 'event_at';
+    const currentDescending = searchParams.get('event_descending') === 'true';
+    
+    if (ordering === currentSortBy && toggleDirection) {
+      // Toggle direction if same field
+      updateEventFiltersInUrl({ event_descending: !currentDescending });
+    } else {
+      // New field or not toggling
+      updateEventFiltersInUrl({ event_sort_by: ordering, event_descending: true });
+    }
+  }, [searchParams, updateEventFiltersInUrl]);
 
-  const handlePageChanged = useCallback((currentPage: number) => {
-    updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
-  }, [location]);
+  const handlePageChanged = useCallback((page: number) => {
+    updateEventFiltersInUrl({ event_page: page });
+  }, [updateEventFiltersInUrl]);
 
-  const handleQueryChanged = useCallback((
-    event: ChangeEvent<HTMLInputElement>
-  ) => {
-    updateSearchParams(searchParams, setSearchParams, event.target.value, 'events_q');
-  }, [location]);
+  const handleSelectItemsPerPage = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
+    const rpp = parseInt(event.target.value);
+    updateEventFiltersInUrl({ event_rows_per_page: rpp, event_page: 1 });
+  }, [updateEventFiltersInUrl]);
 
-  const cleanupLoading = () => {
+  const cleanupLoading = useCallback(() => {
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation canceled after component unmounted');
     }
-  };
+  }, [loadEventsAbortController]);
 
-  const handleMinSeverityChanged = (severity: string) => {
-    updateSearchParams(searchParams, setSearchParams, severity, 'min_severity');
-  };
-
-  const handleMaxSeverityChanged = (severity: string) => {
-    updateSearchParams(searchParams, setSearchParams, severity, 'max_severity');
-  };
-
-  const handleEventTypesChanged = (types?: string[]) => {
-    updateSearchParams(searchParams, setSearchParams, types && types.length ? types : undefined, 'event_type');
-  };
-
-  const handleAcknowledgedStatusChanged = (status: string) => {
-    updateSearchParams(searchParams, setSearchParams, status, 'acknowledged_status');
-  };
-
-  const handleResolvedStatusChanged = (status: string) => {
-    updateSearchParams(searchParams, setSearchParams, status, 'resolved_status');
-  };
-
-  useEffect(() => {
-    mounted.current = true;
-
-    return () => {
-      mounted.current = false;
-      cleanupLoading();
-    };
-  }, []);
-
+  // Load events whenever loadEvents changes (which happens when filterState/URL changes)
   useEffect(() => {
     loadEvents();
+  }, [loadEvents]);
 
-    return () => {
-      cleanupLoading();
-    };
-  }, [location]);
-
-  const {
-    q,
-    sortBy,
-    descending,
-    rowsPerPage,
-    currentPage
-  } = transformSearchParams(searchParams, true);
-
-  const finalSortBy = (sortBy ?? 'event_at');
-  const finalDescending = descending ?? true;
-
-  const eventTableProps = {
-    loadEvents,
-    handleSortChanged,
-    handlePageChanged,
-    handleSelectItemsPerPage,
-    handleQueryChanged,
-    q,
-    showFilters: true,
-    minSeverity: searchParams.get('min_severity') ?? undefined,
-    maxSeverity: searchParams.get('max_severity') ?? undefined,
-    handleMinSeverityChanged,
-    handleMaxSeverityChanged,
-    eventTypes: (searchParams.get('event_type') ?? undefined) ? (searchParams.get('event_type') || '').split(',').filter(Boolean) : undefined,
-    handleEventTypesChanged,
-    acknowledgedStatus: searchParams.get('acknowledged_status') ?? undefined,
-    resolvedStatus: searchParams.get('resolved_status') ?? undefined,
-    handleAcknowledgedStatusChanged,
-    handleResolvedStatusChanged,
-    showRunEnvironmentColumn: false,
-    showTaskWorkflowColumn: true,
-    sortBy: finalSortBy,
-    descending: finalDescending,
-    currentPage,
-    rowsPerPage,
-    eventPage
-  };
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanupLoading;
+  }, [cleanupLoading]);
 
   return (
     <div>
@@ -223,7 +191,33 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
           <Loading />
         ) : (
           <Fragment>
-            <EventTable {...eventTableProps} />
+            <EventTable
+              eventPage={eventPage}
+              q={filterState.eventQuery}
+              handleQueryChanged={handleEventQueryChanged}
+              minSeverity={filterState.minSeverity}
+              maxSeverity={filterState.maxSeverity}
+              handleMinSeverityChanged={handleMinSeverityChanged}
+              handleMaxSeverityChanged={handleMaxSeverityChanged}
+              eventTypes={filterState.eventTypes}
+              handleEventTypesChanged={handleEventTypesChanged}
+              acknowledgedStatus={filterState.acknowledgedStatus}
+              handleAcknowledgedStatusChanged={handleAcknowledgedStatusChanged}
+              resolvedStatus={filterState.resolvedStatus}
+              handleResolvedStatusChanged={handleResolvedStatusChanged}
+              sortBy={filterState.eventSortBy}
+              descending={filterState.eventDescending}
+              handleSortChanged={handleSortChanged}
+              loadEvents={loadEvents}
+              currentPage={filterState.currentPage}
+              handlePageChanged={handlePageChanged}
+              rowsPerPage={filterState.rowsPerPage}
+              handleSelectItemsPerPage={handleSelectItemsPerPage}
+              showFilters={true}
+              showRunEnvironmentColumn={false}
+              showTaskWorkflowColumn={true}
+              showExecutionColumn={true}
+            />
           </Fragment>
         )
       }
