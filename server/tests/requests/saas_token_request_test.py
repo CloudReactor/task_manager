@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import uuid
 from urllib.parse import quote
@@ -15,8 +15,10 @@ from processes.models import (
 )
 
 from processes.serializers import SaasTokenSerializer
+from processes.views.saas_token_view_set import SaasTokenViewSet
 
 import pytest
+from pytest import fail
 
 from conftest import *
 
@@ -27,8 +29,8 @@ RUN_ENVIRONMENT_TYPE_NOT_IN_GROUP = 'not_in_group'
 
 def set_run_environment_in_request(request_body: dict[str, Any],
         use_run_environment_type: str,
-        existing_run_environment: Optional[RunEnvironment],
-        run_environment_factory) -> Optional[RunEnvironment]:
+        existing_run_environment: RunEnvironment | None,
+        run_environment_factory) -> RunEnvironment | None:
     run_environment_uuid = None
     run_environment = None
     if use_run_environment_type == RUN_ENVIRONMENT_TYPE_NOT_FOUND:
@@ -51,78 +53,149 @@ def set_run_environment_in_request(request_body: dict[str, Any],
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  is_authenticated, group_access_level, use_api_key,
-  user_has_another_group, send_group_id_type, status_code, expected_token_count
+    is_authenticated, group_access_level, api_key_access_level,
+    api_key_run_environment_scope,
+    user_has_another_group, scope, send_group_id_type,
+    status_code, expected_token_count
 """, [
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, False,
-   False, SEND_ID_NONE, 200, 3),
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
-   False, SEND_ID_NONE, 200, 2),
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, False,
-   False, SEND_ID_NONE, 403, 0),
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 200, 4),
+
+  # Scope user only returns user's token
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_USER, SEND_ID_NONE, 200, 1),
+
+  # Omitted scope defaults to user scope
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+   SCOPE_TYPE_NONE,
+   False, None, SEND_ID_NONE, 200, 1),
+
+  # Developer can see all non-admin tokens for group
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 200, 3),
+
+  # Scope user only returns user's token
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_USER, SEND_ID_NONE, 200, 1),
+
+  # Developer has access via API key
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 200, 3),
+
+  # Developer with API key scoped to Run Environment only sees tokens in that Run Environment
+  # which are the key being used and the Task key
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+   SCOPE_TYPE_CORRECT,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 200, 2),
+
+  # API key scoped to a different Run Environment sees no tokens other than itself
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+   SCOPE_TYPE_OTHER,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 200, 1),
+
+  # Task has no access when using login
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 403, 0),
+
+  # Task has no access when using API key
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_TASK, UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 403, 0),
+
+  # Support has no access
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 403, 0),
+
+  # Observer has no access
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 403, 0),
 
   # Sending correct group ID is fine
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, False,
-   False, SEND_ID_CORRECT, 200, 3),
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_CORRECT, 200, 4),
 
   # User with multiple groups needs to specify group ID
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, False,
-   True, SEND_ID_NONE, 400, 0),
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+   SCOPE_TYPE_NONE,
+   True, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NONE, 400, 0),
 
   # User with multiple groups needs to specify group ID
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
-   True, SEND_ID_CORRECT, 200, 2),
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
+   SCOPE_TYPE_NONE,
+   True, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_CORRECT, 200, 3),
 
   # User with multiple groups with bad group ID
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
-   True, SEND_ID_NOT_FOUND, 400, 0),
+  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
+   SCOPE_TYPE_NONE,
+   True, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_NOT_FOUND, 400, 0),
 
   # Anonymous user gets 401
-  (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, False,
-   False, SEND_ID_CORRECT, 401, 3),
-
-  # Authentication via API key gets 401
-  (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, True,
-   False, SEND_ID_CORRECT, 401, 3),
-
-  # TODO: check filtering, ordering
+  (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
+   SCOPE_TYPE_NONE,
+   False, SaasTokenViewSet.SCOPE_GROUP, SEND_ID_CORRECT, 401, 3),
 ])
 def test_saas_token_list(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
-        user_has_another_group: bool, send_group_id_type: str,
+        is_authenticated: bool, group_access_level: int | None, api_key_access_level: int | None,
+        api_key_run_environment_scope: str,
+        user_has_another_group: bool, scope: str | None, send_group_id_type: str,
         status_code: int, expected_token_count: int,
         user_factory, group_factory, run_environment_factory, api_client):
     user = user_factory()
-    another_group = group_factory()
 
     if group_access_level is None:
-        group = another_group
+        group = group_factory()
     else:
         group = user.groups.first()
         ugal = UserGroupAccessLevel.objects.get(user=user, group=group)
         ugal.access_level = group_access_level
         ugal.save()
 
+    run_environment = run_environment_factory(created_by_group=group)
+
+    api_key_run_environment: RunEnvironment | None = None
+
+    if api_key_run_environment_scope == SCOPE_TYPE_CORRECT:
+        api_key_run_environment = run_environment
+    elif api_key_run_environment_scope == SCOPE_TYPE_OTHER:
+        api_key_run_environment = run_environment_factory(created_by_group=group)
+
+    user_token = SaasToken(user=user, group=group,
+            access_level=api_key_access_level or group_access_level,
+            run_environment=api_key_run_environment)
+    user_token.save()
+
     if user_has_another_group:
         yet_another_group = group_factory()
         yet_another_group.user_set.add(user)
 
-    admin_token = SaasToken(user=user_factory(), group=group,
+    admin = user_factory()
+    admin_token = SaasToken(user=admin, group=group,
             access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
     admin_token.save()
 
-    dev_token = SaasToken(user=user_factory(), group=group,
+    dev = user_factory()
+    dev_token = SaasToken(user=dev, group=group,
             access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
     dev_token.save()
 
     task_token = SaasToken(user=user_factory(), group=group,
-            access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK)
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+            run_environment=run_environment)
     task_token.save()
 
-    api_key_access_level = UserGroupAccessLevel.ACCESS_LEVEL_ADMIN if use_api_key else None
     client = make_api_client_from_options(api_client=api_client,
             is_authenticated=is_authenticated, user=user, group=group,
-            api_key_access_level=api_key_access_level)
+            api_key_access_level=api_key_access_level,
+            api_key_run_environment=api_key_run_environment)
 
     params = {}
 
@@ -130,6 +203,9 @@ def test_saas_token_list(
         params['group__id'] = str(group.id)
     elif send_group_id_type == SEND_ID_NOT_FOUND:
         params['group__id'] = '666'
+
+    if scope is not None:
+        params[SaasTokenViewSet.PARAMETER_NAME_SCOPE] = scope
 
     response = client.get('/api/v1/api_keys/', params)
 
@@ -142,20 +218,26 @@ def test_saas_token_list(
         context = context_with_request()
 
         def ensure_token_included(expected_token):
-            body_token = list(filter(
-                    lambda token: token['access_level'] == expected_token.access_level,
-                    results))[0]
-            assert body_token == SaasTokenSerializer(expected_token,
-                    context=context).data
+            for token in results:
+                if token['key'] == expected_token.key:
+                    assert token == SaasTokenSerializer(expected_token,
+                        context=context).data
+                    return
 
-        if expected_token_count > 2:
-            ensure_token_included(admin_token)
+            fail(f'Token with key {expected_token.key} not found in response')
 
-        if expected_token_count > 1:
-            ensure_token_included(dev_token)
+        if scope == SaasTokenViewSet.SCOPE_GROUP:
+            if expected_token_count > 4:
+                ensure_token_included(admin_token)
 
-        if expected_token_count > 0:
-            ensure_token_included(task_token)
+            if expected_token_count > 2:
+                ensure_token_included(dev_token)
+
+            if expected_token_count > 1:
+                ensure_token_included(task_token)
+
+        ensure_token_included(user_token)
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
@@ -197,13 +279,13 @@ def test_saas_token_list(
   (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, False,
    SEND_ID_CORRECT, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, 401),
 
-  # Authentication via API key gets 401
+  # Authentication via API key gets 200
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, True,
-   SEND_ID_CORRECT, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, 401),
+   SEND_ID_CORRECT, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, 200),
 ])
 def test_saas_token_fetch(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
-        send_uuid_type: str, existing_token_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
+        send_uuid_type: str, existing_token_access_level: int | None,
         status_code: int,
         user_factory, group_factory, run_environment_factory, api_client):
     user = user_factory()
@@ -285,7 +367,7 @@ def test_saas_token_fetch(
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, True,
    'Some Token', UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, RUN_ENVIRONMENT_TYPE_EXISTING,
    True, 1,
-   401),
+   201),
   # Duplicate name
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
    'Existing Token', UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, RUN_ENVIRONMENT_TYPE_EXISTING,
@@ -322,9 +404,9 @@ def test_saas_token_fetch(
    403),
 ])
 def test_saas_token_creation(is_authenticated: bool,
-        group_access_level: Optional[int], use_api_key: bool,
-        name: Optional[str], requested_access_level: int,
-        use_run_environment_type: str, enabled: Optional[bool],
+        group_access_level: int | None, use_api_key: bool,
+        name: str | None, requested_access_level: int,
+        use_run_environment_type: str, enabled: bool | None,
         existing_token_count: int,
         status_code: int, user_factory, run_environment_factory,
         subscription_plan_factory, api_client):
@@ -423,12 +505,12 @@ def test_saas_token_creation(is_authenticated: bool,
    False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, RUN_ENVIRONMENT_TYPE_EXISTING,
    200),
 
-  # API key not allowed to be used to authenticate
+  # API key is allowed to be used to update a token
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, True,
    True, True,
    True,
    False, UserGroupAccessLevel.ACCESS_LEVEL_TASK, RUN_ENVIRONMENT_TYPE_EXISTING,
-   401),
+   200),
 
   # Happy path with developer access
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, False,
@@ -522,10 +604,10 @@ def test_saas_token_creation(is_authenticated: bool,
    422),
 ])
 def test_saas_token_update(is_authenticated: bool,
-        group_access_level: Optional[int], use_api_key: bool,
+        group_access_level: int | None, use_api_key: bool,
         is_token_existing: bool, is_token_in_allowed_group: bool,
         has_existing_run_environment: bool,
-        is_name_conflict: bool, requested_access_level: Optional[int],
+        is_name_conflict: bool, requested_access_level: int | None,
         use_run_environment_type: str,
         status_code: int,
         user_factory, group_factory, run_environment_factory, api_client):
@@ -539,7 +621,7 @@ def test_saas_token_update(is_authenticated: bool,
             created_by_user=user_factory(), created_by_group=group)
     existing_run_environment.save()
 
-    existing_token: Optional[SaasToken] = None
+    existing_token: SaasToken | None = None
     token_uuid = uuid.uuid4()
     if is_token_existing:
         run_environment = existing_run_environment if has_existing_run_environment else None
@@ -616,9 +698,9 @@ def test_saas_token_update(is_authenticated: bool,
   (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, False,
    True, True, 404),
 
-  # Using API key is not allowed
+  # Using API key is allowed
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, True,
-   True, True, 401),
+   True, True, 204),
 
   # Non-authenticated user is blocked
   (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, False,
@@ -634,7 +716,7 @@ def test_saas_token_update(is_authenticated: bool,
 
 ])
 def test_saas_token_removal(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: Optional[int],
+        is_authenticated: bool, group_access_level: int | None, use_api_key: int | None,
         is_token_existing: bool, is_token_in_allowed_group: bool,
         status_code: int, user_factory, group_factory, api_client):
     user = user_factory()
@@ -645,7 +727,7 @@ def test_saas_token_removal(
     set_group_access_level(user=user, group=group,
             access_level=group_access_level)
 
-    existing_token: Optional[SaasToken] = None
+    existing_token: SaasToken | None = None
     token_uuid = uuid.uuid4()
     if is_token_existing:
         token_group = group

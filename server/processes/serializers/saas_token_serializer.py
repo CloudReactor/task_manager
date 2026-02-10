@@ -109,7 +109,7 @@ class SaasTokenSerializer(
                 group=token_group,
                 min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
                 run_environment=run_environment,
-                allow_api_key=False,
+                allow_api_key=True,
                 request=request)
 
         token_access_level = validated.get('access_level',
