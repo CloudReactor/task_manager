@@ -349,7 +349,6 @@ LOGGING = {
             'propagate': False,  # this tells logger to send logging message
             # to its parent (will send if set to True)
         },
-        # 2026-02-09, Doesn't seem to work
         'django.db.backends': {
             'handlers': ['console'],
             'level': DB_LOGGING_LEVEL,
