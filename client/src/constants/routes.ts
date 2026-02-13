@@ -18,14 +18,6 @@ export const EVENT = '/events/:uuid';
 export const GROUPS = '/groups';
 export const GROUP = '/groups/:id';
 
-// Legacy routes
-export const NOTIFICATION_METHODS = '/legacy_notification_methods';
-export const NOTIFICATION_METHOD = '/legacy_notification_methods/:uuid';
-export const PAGERDUTY_PROFILES = '/legacy_pagerduty_profiles';
-export const PAGERDUTY_PROFILE = '/legacy_pagerduty_profiles/:uuid'
-export const EMAIL_NOTIFICATION_PROFILES = '/legacy_email_notification_profiles';
-export const EMAIL_NOTIFICATION_PROFILE = '/legacy_email_notification_profiles/:uuid';
-
 export const NOTIFICATION_PROFILES = '/notification_profiles'
 export const NOTIFICATION_PROFILE = '/notification_profiles/:uuid'
 export const NOTIFICATION_DELIVERY_METHODS = '/notification_delivery_methods'

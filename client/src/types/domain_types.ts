@@ -2,8 +2,8 @@ import {
   AWS_ECS_LAUNCH_TYPE_FARGATE,
   DEFAULT_NAME,
   EXECUTION_CAPABILITY_MANUAL_START,
-  EXECUTION_METHOD_TYPE_AWS_ECS,
   EXECUTION_METHOD_TYPE_AWS_CODEBUILD,
+  EXECUTION_METHOD_TYPE_AWS_ECS,
   EXECUTION_METHOD_TYPE_UNKNOWN,
   INFRASTRUCTURE_TYPE_AWS
 } from '../utils/constants';
@@ -97,94 +97,6 @@ export interface ApiKey extends TrackedEntityReference, Described {
   key: string;
   run_environment: EntityReference | null;
   user: string;
-}
-
-// Deprecated
-export interface EmailNotificationProfile extends TrackedEntityReference, Described {
-  bcc_addresses: string[] | null;
-  body_template: string;
-  cc_addresses: string[] | null;
-  run_environment: EntityReference | null;
-  subject_template: string;
-  to_addresses: string[] | null;
-}
-
-export function makeEmptyEmailNotificationProfile(): EmailNotificationProfile {
-  return Object.assign(makeEmptyTrackedEntityReference(), {
-    bcc_addresses: [],
-    body_template: '',
-    cc_addresses: [],
-    created_by_group: makeEmptyGroupReference(),
-    created_by_user: '',
-    description: '',
-    run_environment: null,
-    subject_template: '',
-    to_addresses: []
-  });
-}
-
-// Deprecated
-export interface PagerDutyProfile extends TrackedEntityReference, Described {
-  default_event_severity: string;
-  default_event_component_template: string;
-  default_event_group_template: string;
-  default_event_class_template: string;
-  integration_key: string;
-  run_environment: EntityReference | null;
-}
-
-export function makeEmptyPagerDutyProfile(): PagerDutyProfile {
-  return Object.assign(makeEmptyTrackedEntityReference(), {
-    created_by_group: makeEmptyGroupReference(),
-    created_by_user: '',
-    default_event_severity: 'error',
-    default_event_component_template: '',
-    default_event_group_template: '',
-    default_event_class_template: '',
-    description: '',
-    integration_key: '',
-    run_environment: null,
-  });
-}
-
-// Deprecated
-export interface NotificationMethod extends TrackedEntityReference, Described {
-  enabled: boolean;
-  notify_on_success: boolean;
-  notify_on_failure: boolean;
-  notify_on_timeout: boolean;
-  error_severity_on_missing_execution: string;
-  error_severity_on_missing_heartbeat: string;
-  error_severity_on_service_down: string;
-  method_details: {
-    profile: EntityReference;
-    event_severity?: string;
-    event_component_template?: string;
-    event_group_template?: string;
-    event_class_template?: string;
-    type: string;
-  };
-  run_environment: EntityReference | null;
-}
-
-export function makeNewNotificationMethod(): NotificationMethod {
-  return Object.assign(makeEmptyTrackedEntityReference(), {
-    description: '',
-    enabled: true,
-    notify_on_success: false,
-    notify_on_failure: true,
-    notify_on_timeout: true,
-    error_severity_on_missing_execution: 'error',
-    error_severity_on_missing_heartbeat: 'warning',
-    error_severity_on_service_down: 'error',
-    method_details: {
-      profile: makeEmptyEntityReference(),
-      event_severity: 'error',
-      type: 'email'
-    },
-    run_environment: null,
-    updated_at: new Date()
-  })
 }
 
 export interface RateLimitTier {
@@ -416,7 +328,6 @@ export interface RunEnvironment extends TrackedEntityReference, Described {
     [EXECUTION_METHOD_TYPE_AWS_CODEBUILD]?: NamedExecutionMethodSettings<AwsCodeBuildExecutionMethodSettings>;
     [key: string]: NamedExecutionMethodSettings<any> | undefined;
   };
-  default_alert_methods: EntityReference[];
   notification_profiles: EntityReference[];
   [propName: string]: any;
 }
@@ -449,7 +360,6 @@ export function makeNewRunEnvironment(): RunEnvironment {
         }
       }
     },
-    default_alert_methods: [],
     notification_profiles: [],
     tags: null,
   });
@@ -636,7 +546,6 @@ export interface TaskExecutionConfiguration {
 
 
 export interface Task extends Executable, TaskExecutionConfiguration {
-  alert_methods: EntityReference[];
   capabilities: string[];
   execution_method_capability_details: object | null;
   execution_method_type: string;
@@ -673,7 +582,6 @@ implements Task {
   api_task_execution_creation_conflict_retry_delay_seconds = null;
   api_final_update_timeout_seconds = null;
   api_request_timeout_seconds = null;
-  alert_methods = [];
   allocated_cpu_units = null;
   allocated_memory_mb = null;
   capabilities = [];
@@ -920,8 +828,6 @@ export interface WorkflowSummary extends Executable {
 }
 
 export interface Workflow extends WorkflowSummary, ExecutionDetails {
-  alert_methods: EntityReference[];
-
   workflow_task_instances?: WorkflowTaskInstance[];
 
   // For compatibility with old snapshots
@@ -968,9 +874,6 @@ export function makeNewWorkflow(): Workflow {
     workflow_task_instances: [],
     workflow_transitions: [],
     latest_workflow_execution: null,
-
-    // Deprecated
-    alert_methods: []
   };
 }
 

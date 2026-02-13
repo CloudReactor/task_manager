@@ -85,11 +85,6 @@ class TaskViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
         if 'links' not in omitted:
             qs = qs.prefetch_related('tasklink_set')
 
-        # Legacy
-        if 'alert_methods' not in omitted:
-            alert_methods_qs = AlertMethod.objects.only('uuid', 'name')
-            qs = qs.prefetch_related(Prefetch('alert_methods', queryset=alert_methods_qs))
-
         if 'notification_profiles' not in omitted:
             notification_profiles_qs = NotificationProfile.objects.only('uuid', 'name')
             qs = qs.prefetch_related(Prefetch('notification_profiles', queryset=notification_profiles_qs))

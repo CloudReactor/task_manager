@@ -89,10 +89,6 @@ class WorkflowSerializer(
     class Meta:
         model = Workflow
         fields = COMMON_FIELDS + [
-
-            # Legacy
-            'alert_methods',
-
             'notification_profiles',
             'workflow_task_instances',
             'workflow_transitions',
@@ -103,10 +99,6 @@ class WorkflowSerializer(
             many=True, read_only=True)
 
     workflow_transitions = WorkflowTransitionSerializer(many=True, read_only=True)
-
-    # Legacy
-    alert_methods = NameAndUuidSerializer(include_name=True,
-            view_name='alert_methods-detail', many=True, required=False)
 
     notification_profiles = NameAndUuidSerializer(include_name=True,
             view_name='notification_profiles-detail', many=True, required=False)

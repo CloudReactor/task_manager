@@ -13,7 +13,6 @@ import {
 } from '../types/website_types';
 
 import {
-  NotificationMethod,
   NotificationDeliveryMethod,
   NotificationProfile,
   ApiKey,
@@ -23,10 +22,8 @@ import {
   RunEnvironment,
   Workflow,
   WorkflowExecution,
-  PagerDutyProfile,
   WorkflowExecutionSummary,
   WorkflowSummary,
-  EmailNotificationProfile,
   Event
 } from '../types/domain_types';
 
@@ -524,72 +521,6 @@ export async function saveRunEnvironment(uuid: string,
   return response.data as RunEnvironment;
 }
 
-export async function fetchNotificationMethods(
-  opts? :  PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<NotificationMethod>> {
-  opts = opts ?? {};
-
-  const {
-    abortSignal
-  } = opts;
-
-  const params = makePageFetchWithGroupAndScopedRunEnvironmentParams(opts);
-  const response = await makeAuthenticatedClient().get(
-    'api/v1/alert_methods/', {
-      signal: abortSignal,
-      params
-    });
-
-  return response.data as ResultsPage<NotificationMethod>;
-}
-
-export async function fetchNotificationMethod(uuid: string, abortSignal?: AbortSignal) {
-  const response = await makeAuthenticatedClient().get(
-    `api/v1/alert_methods/${uuid}/`, {
-      signal: abortSignal
-    });
-  return response.data as NotificationMethod;
-}
-
-export async function saveNotificationMethod(uuid: string, values: any,
-    abortSignal?: AbortSignal) : Promise<NotificationMethod> {
-  // remove name & url -- only use UUID to associate selected PD profile with this NotificationMethod
-  delete values.method_details.profile.name;
-  delete values.method_details.profile.url;
-
-  const client = makeAuthenticatedClient();
-
-  const response = await ((!uuid || (uuid === 'new')) ? client.post(
-    'api/v1/alert_methods/', values, {
-      signal: abortSignal
-    }
-  ) : client.patch(`api/v1/alert_methods/${uuid}/`, values, {
-      signal: abortSignal
-    })
-  );
-
-  return response.data;
-}
-
-export async function cloneNotificationMethod(uuid: string, attributes?: any,
-    abortSignal?: AbortSignal): Promise<NotificationMethod> {
-  const response = await makeAuthenticatedClient().post(
-    'api/v1/alert_methods/' + uuid + '/clone/', attributes || {}, {
-        signal: abortSignal
-    });
-  return response.data as NotificationMethod
-}
-
-export async function deleteNotificationMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
-  return await makeAuthenticatedClient().delete(
-    'api/v1/alert_methods/' + uuid + '/', {
-      signal: abortSignal
-    });
-}
-
-
-
-
-
 // NotificationDeliveryMethod API functions
 export async function fetchNotificationDeliveryMethods(
   opts?: PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<NotificationDeliveryMethod>> {
@@ -737,8 +668,7 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     params['latest_task_execution__status'] = opts.statuses.join(',');
   }
 
-  // TODO: remove alert_methods
-  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,alert_methods,notification_profiles,links';
+  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,notification_profiles,links';
 
   if (opts.otherParams) {
     Object.assign(params, opts.otherParams);
@@ -916,120 +846,6 @@ export async function cloneRunEnvironment(uuid: string, attributes: any,
       signal: abortSignal
     });
   return response.data as RunEnvironment
-}
-
-export async function fetchPagerDutyProfiles(
-  opts? : PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<PagerDutyProfile>> {
-  opts = opts ?? {};
-
-  const {
-    abortSignal
-  } = opts;
-
-  const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
-
-  const response = await makeAuthenticatedClient().get(
-    'api/v1/pagerduty_profiles/', {
-      signal: abortSignal,
-      params
-    });
-
-  return response.data as ResultsPage<PagerDutyProfile>;
-}
-
-export async function fetchPagerDutyProfile(uuid: string,
-    abortSignal?: AbortSignal): Promise<PagerDutyProfile> {
-  const response = await makeAuthenticatedClient().get(
-    `api/v1/pagerduty_profiles/${uuid}/`, {
-      signal: abortSignal
-    });
-  return response.data as PagerDutyProfile;
-}
-
-export async function savePagerDutyProfile(uuid: string, values: any,
-    abortSignal?: AbortSignal) : Promise<PagerDutyProfile> {
-  const client = makeAuthenticatedClient();
-
-  const response = await ((!uuid || (uuid === 'new')) ? client.post(
-    'api/v1/pagerduty_profiles/', values, {
-      signal: abortSignal
-    }
-  ) : client.patch(`api/v1/pagerduty_profiles/${uuid}/`, values, {
-      signal: abortSignal
-    }
-  ));
-
-  return response.data as PagerDutyProfile;
-}
-
-export async function clonePagerDutyProfile(uuid: string, attributes?: any, abortSignal?: AbortSignal): Promise<PagerDutyProfile> {
-  const response = await makeAuthenticatedClient().post(
-    'api/v1/pagerduty_profiles/' + uuid + '/clone/', attributes || {}, {
-        signal: abortSignal
-    });
-  return response.data as PagerDutyProfile
-}
-
-export async function deletePagerDutyProfile(uuid: string, abortSignal?: AbortSignal): Promise<void> {
-  return await makeAuthenticatedClient().delete(
-    'api/v1/pagerduty_profiles/' + uuid + '/', {
-      signal: abortSignal
-    });
-}
-
-export async function fetchEmailNotificationProfiles(
-  opts? : PageFetchWithGroupIdAndScopedRunEnvironmentOptions): Promise<ResultsPage<EmailNotificationProfile>> {
-  opts = opts ?? {};
-
-  const {
-    abortSignal
-  } = opts;
-
-  const params = makePageFetchWithGroupAndRunEnvironmentParams(opts);
-  const response = await makeAuthenticatedClient().get(
-    'api/v1/email_notification_profiles/', {
-    signal: abortSignal,
-    params
-  });
-  return response.data as ResultsPage<EmailNotificationProfile>;
-}
-
-export async function fetchEmailNotificationProfile(uuid: string,
-    abortSignal?: AbortSignal): Promise<EmailNotificationProfile> {
-  const response = await makeAuthenticatedClient().get(
-    `api/v1/email_notification_profiles/${uuid}/`, {
-      signal: abortSignal
-    });
-  return response.data as EmailNotificationProfile;
-}
-
-export async function saveEmailNotificationProfile(uuid: string, values: any,
-    abortSignal?: AbortSignal) : Promise<EmailNotificationProfile> {
-  const client = makeAuthenticatedClient();
-
-  const response = await ((!uuid || (uuid === 'new')) ? client.post(
-    'api/v1/email_notification_profiles/',
-    values, {
-      signal: abortSignal
-    }
-  ) : client.patch(`api/v1/email_notification_profiles/${uuid}/`, values));
-
-  return response.data as EmailNotificationProfile;
-}
-
-export async function cloneEmailNotificationProfile(uuid: string, attributes?: any, abortSignal?: AbortSignal): Promise<EmailNotificationProfile> {
-  const response = await makeAuthenticatedClient().post(
-    'api/v1/email_notification_profiles/' + uuid + '/clone/', attributes || {}, {
-        signal: abortSignal
-    });
-  return response.data as EmailNotificationProfile
-}
-
-export async function deleteEmailNotificationProfile(uuid: string, abortSignal?: AbortSignal): Promise<void> {
-  return await makeAuthenticatedClient().delete(
-    'api/v1/email_notification_profiles/' + uuid + '/', {
-      signal: abortSignal
-    });
 }
 
 // Event API functions

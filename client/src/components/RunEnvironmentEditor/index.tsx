@@ -15,7 +15,6 @@ import {
 } from '../../utils/constants';
 
 import {
-  NotificationMethod,
   NotificationProfile,
   RunEnvironment,
   makeNewRunEnvironment
@@ -52,7 +51,6 @@ import IconButton from '@mui/material/IconButton';
 import FormikErrorsSummary from '../common/FormikErrorsSummary';
 import CustomButton from '../common/Button/CustomButton';
 
-import NotificationMethodSelector from '../common/NotificationMethodSelector';
 import NotificationProfileSelector from '../common/NotificationProfileSelector';
 
 import SettingsForm from '../../components/forms/SettingsForm';
@@ -501,41 +499,7 @@ const RunEnvironmentEditor = ({
                   </div>
                 )
               }
-
-              {
-                runEnvironment && (
-                  <div className={styles.formSection}>
-                    <div className={styles.sectionTitle}>
-                      Notification Methods (legacy)
-                    </div>
-                    <div>
-                      <FormGroup controlId="forNotifications">
-                        <FormLabel>Select the default Notification Methods for Tasks & Workflows created in this Run Environment</FormLabel>
-                        <FieldArray name="default_alert_methods" render={arrayHelpers => {
-                          return (
-                            <NotificationMethodSelector
-                              entityTypeLabel="Run Environment"
-                              runEnvironmentUuid={runEnvironment?.uuid}
-                              noNotificationMethodsText="No Notification Methods scoped to this Run Environment are available."
-                              selectedNotificationMethodUuids={(values.default_alert_methods ?? []).map((am: any) => am.uuid)}
-                              onSelectedNotificationMethodsChanged={(alertMethods: NotificationMethod[]) => {
-                                let removed: (NotificationMethod | undefined);
-                                do {
-                                  removed = arrayHelpers.remove(0);
-                                } while (removed);
-                                alertMethods.forEach(am => {
-                                  arrayHelpers.push({ uuid: am.uuid });
-                                });
-                              }}
-                            />
-                          );
-                        }}/>
-                      </FormGroup>
-                    </div>
-                  </div>
-                )
-              }
-
+            
               <CustomButton className={styles.saveButton}
                 onActionRequested={ (action, cbData) => handleSubmit() }
                 color="primary"

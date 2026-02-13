@@ -123,10 +123,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             'scheduling_settings',
             'is_service_managed', 'service_provider_type', 'service_settings',
             'default_input_value', 'input_value_schema', 'output_value_schema',
-
-            # Deprecated
-            'alert_methods',
-
             'notification_profiles',
             'other_metadata',
             'latest_task_execution',
@@ -151,12 +147,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             lookup_field='uuid')
 
     capabilities = serializers.SerializerMethodField()
-
-    # Deprecated
-    alert_methods = NameAndUuidSerializer(
-            include_name=True,
-            view_name='alert_methods-detail',
-            many=True, required=False)
 
     notification_profiles = NameAndUuidSerializer(
             include_name=True,
