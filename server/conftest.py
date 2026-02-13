@@ -119,6 +119,17 @@ register(PagerDutyProfileFactory)
 register(EmailNotificationProfileFactory)
 
 
+@pytest.fixture(autouse=True)
+def enable_db_debug_cursor():
+    """
+    Forces the Django database cursor to capture queries even if settings.DEBUG is False.
+    """
+    from django.db import connection
+
+    if settings.LOG_SQL:
+        connection.force_debug_cursor = True
+
+
 @pytest.fixture
 def api_client():
     return APIClient()

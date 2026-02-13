@@ -44,10 +44,16 @@ SECRET_KEY = env.str('DJANGO_SECRET_KEY',
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DJANGO_DEBUG', default=False)
 
+ROOT_LOGGING_LEVEL = env.str('DJANGO_ROOT_LOGGING_LEVEL', default='INFO')
+DB_LOGGING_LEVEL = env.str('DJANGO_DB_LOGGING_LEVEL', default='INFO')
+BOTO_LOGGING_LEVEL = env.str('DJANGO_BOTO_LOGGING_LEVEL', default='INFO')
+LOG_SQL = env.bool('DJANGO_LOG_SQL', default=False)
+
+print(f"settings.py: {DEBUG=}, {ROOT_LOGGING_LEVEL=}, {DB_LOGGING_LEVEL=}, {BOTO_LOGGING_LEVEL=}")
+
+
 ALLOWED_HOSTS = ['*']
 
-ROOT_LOGGING_LEVEL = env.str('DJANGO_ROOT_LOGGING_LEVEL', default='INFO')
-BOTO_LOGGING_LEVEL = env.str('DJANGO_BOTO_LOGGING_LEVEL', default='INFO')
 
 # Application definition
 
@@ -93,11 +99,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_middleware_global_request.middleware.GlobalRequestMiddleware',
 ]
-
-# enable_queryinspect = os.environ.get('DJANGO_ENABLE_QUERYINSPECT') == 'TRUE'
-#
-# if enable_queryinspect:
-#     MIDDLEWARE.append('qinspect.middleware.QueryInspectMiddleware')
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -348,11 +349,12 @@ LOGGING = {
             'propagate': False,  # this tells logger to send logging message
             # to its parent (will send if set to True)
         },
-        # 'django.db.backends': {
-        #     'level': 'DEBUG',
-        #     'handlers': ['console'],
-        #     'propagate': False
-        # },
+        # 2026-02-09, Doesn't seem to work
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': DB_LOGGING_LEVEL,
+            'propagate': False,
+        },
         'botocore': {
             'level': 'DEBUG',
             'handlers': ['console'],
@@ -383,11 +385,6 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False
         },
-        # 'qinspect': {
-        #     'handlers': ['console'],
-        #     'level': 'DEBUG',
-        #     'propagate': True,
-        # },
     },
 }
 
@@ -444,9 +441,3 @@ SPECTACULAR_SETTINGS = {
 # Application-specific settings for export in django.conf.settings
 ENVIRON = env
 # End application-specific settings
-
-# if enable_queryinspect:
-#   QUERY_INSPECT_ENABLED = True
-#   QUERY_INSPECT_LOG_QUERIES = True
-#   QUERY_INSPECT_ABSOLUTE_LIMIT = 1000
-#   QUERY_INSPECT_LOG_TRACEBACKS = True
