@@ -94,11 +94,11 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
   // Derive all event filter state from URL parameters - memoized to prevent infinite loops
   const eventFilterState = useMemo(() => {
     const rpp = searchParams.get('event_rows_per_page') ? parseInt(searchParams.get('event_rows_per_page')!) : 10;
-    
+
     // Don't use page from URL - always start at page 0 to avoid pagination errors
     // Page navigation will update URL, but on reload we start fresh
     const currentEventPage = 0;
-    
+
     return {
       eventQuery: searchParams.get('event_q') ?? '',
       minSeverity: searchParams.get('event_min_severity'),
@@ -214,7 +214,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
   const handleEventSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
     const currentSortBy = searchParams.get('event_sort_by') ?? 'event_at';
     const currentDescending = searchParams.get('event_descending') !== 'false';
-    
+
     if (ordering === currentSortBy) {
       // Toggle direction if same field
       updateEventFiltersInUrl({ event_descending: !currentDescending });
@@ -223,6 +223,11 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
       updateEventFiltersInUrl({ event_sort_by: ordering, event_descending: true });
     }
   }, [searchParams, updateEventFiltersInUrl]);
+
+  const handleEventAcknowledged = useCallback((eventUuid: string) => {
+    // Refresh the events table after acknowledging an event
+    loadTaskExecutionEvents();
+  }, [loadTaskExecutionEvents]);
 
   const te = taskExecution;
   const tem = te.execution_method_details;
@@ -541,6 +546,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
             resolvedStatus={eventFilterState.resolvedStatus ?? undefined}
             handleAcknowledgedStatusChanged={handleAcknowledgedStatusChanged}
             handleResolvedStatusChanged={handleResolvedStatusChanged}
+            onEventAcknowledged={handleEventAcknowledged}
           />
         </Tab.Pane>
       </Tab.Content>

@@ -159,6 +159,11 @@ const WorkflowEventsTab = (props: Props) => {
     updateSearchParams(searchParams, setSearchParams, status, 'resolved_status', 'event_');
   };
 
+  const handleEventAcknowledged = useCallback((eventUuid: string) => {
+    // Refresh the events table after acknowledging an event
+    loadEvents();
+  }, [loadEvents]);
+
   useEffect(() => {
     mounted.current = true;
 
@@ -211,7 +216,8 @@ const WorkflowEventsTab = (props: Props) => {
     descending: finalDescending,
     currentPage,
     rowsPerPage,
-    eventPage
+    eventPage,
+    onEventAcknowledged: handleEventAcknowledged
   };
 
   return (

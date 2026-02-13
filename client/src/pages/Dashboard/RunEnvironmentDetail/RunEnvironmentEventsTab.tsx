@@ -169,6 +169,11 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
     updateEventFiltersInUrl({ event_rows_per_page: rpp, event_page: 1 });
   }, [updateEventFiltersInUrl]);
 
+  const handleEventAcknowledged = useCallback((eventUuid: string) => {
+    // Refresh the events table after acknowledging an event
+    loadEvents();
+  }, [loadEvents]);
+
   const cleanupLoading = useCallback(() => {
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation canceled after component unmounted');
@@ -218,6 +223,7 @@ const RunEnvironmentEventsTab = (props: InnerProps) => {
               showRunEnvironmentColumn={false}
               showTaskWorkflowColumn={true}
               showExecutionColumn={true}
+              onEventAcknowledged={handleEventAcknowledged}
             />
           </Fragment>
         )
