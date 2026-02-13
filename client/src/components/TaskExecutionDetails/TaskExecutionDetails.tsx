@@ -2,6 +2,7 @@ import {
   RunEnvironment,
   Task,
   TaskExecution,
+  AnyEvent,
   AwsEcsExecutionMethodSettings,
   AwsLambdaExecutionMethodSettings,
   AwsCodeBuildExecutionMethodSettings,
@@ -15,15 +16,19 @@ import {
   makeLink, makeLinks
 } from "../../utils/index";
 
-import React, { Fragment } from 'react';
+import React, { Fragment, useState, useCallback, useEffect, useMemo, ChangeEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
-import { Col, Row, Table } from 'react-bootstrap';
+import { Col, Row, Table, Nav, Tab } from 'react-bootstrap';
 import {
   EXECUTION_METHOD_TYPE_AWS_CODEBUILD,
   EXECUTION_METHOD_TYPE_AWS_ECS,
   EXECUTION_METHOD_TYPE_AWS_LAMBDA,
   INFRASTRUCTURE_TYPE_AWS
 } from '../../utils/constants';
+
+import EventTable from '../EventList/EventTable';
+import { ResultsPage, makeEmptyResultsPage, fetchEvents } from '../../utils/api';
 
 import styles from './TaskExecutionDetails.module.scss';
 
@@ -46,7 +51,24 @@ function formatTime(x: Date | null) : string {
   return timeFormat(x, true);
 }
 
-function makeLogSection(te: TaskExecution, isStdout: boolean) {
+function PropertyTable({ rows }: { rows: NameValuePair[] }) {
+  return (
+    <Table striped bordered responsive hover size="sm">
+      <tbody>
+        {rows.map(row => (
+          <tr key={row.name}>
+            <td style={{fontWeight: 'bold'}}>
+              {row.name}
+            </td>
+            <td align="left">{row.value}</td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
+}
+
+function LogSection({ te, isStdout }: { te: TaskExecution; isStdout: boolean }) {
   const logLines = isStdout ? te.debug_log_tail : te.error_log_tail;
   return (
     <Row className={styles.logSection}>
@@ -64,9 +86,148 @@ function makeLogSection(te: TaskExecution, isStdout: boolean) {
 }
 
 const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) => {
+  const [eventsPage, setEventsPage] = useState<ResultsPage<AnyEvent>>(makeEmptyResultsPage());
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Derive all event filter state from URL parameters - memoized to prevent infinite loops
+  const eventFilterState = useMemo(() => {
+    const rpp = searchParams.get('event_rows_per_page') ? parseInt(searchParams.get('event_rows_per_page')!) : 10;
+    
+    // Don't use page from URL - always start at page 0 to avoid pagination errors
+    // Page navigation will update URL, but on reload we start fresh
+    const currentEventPage = 0;
+    
+    return {
+      eventQuery: searchParams.get('event_q') ?? '',
+      minSeverity: searchParams.get('event_min_severity'),
+      maxSeverity: searchParams.get('event_max_severity'),
+      eventTypes: searchParams.get('event_type') ? searchParams.get('event_type')!.split(',').filter(Boolean) : undefined,
+      acknowledgedStatus: searchParams.get('event_acknowledged_status') ?? undefined,
+      resolvedStatus: searchParams.get('event_resolved_status') ?? undefined,
+      eventSortBy: searchParams.get('event_sort_by') ?? 'event_at',
+      eventDescending: searchParams.get('event_descending') !== 'false',
+      currentEventPage,
+      rowsPerPage: rpp
+    };
+  }, [searchParams]);
+
+  // Sync active tab with URL parameters
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['general', 'wrapper', 'execution', 'infrastructure', 'logs', 'events'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const updateEventFiltersInUrl = useCallback((updates: Record<string, any>) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+        newParams.delete(key);
+      } else if (Array.isArray(value)) {
+        newParams.set(key, value.join(','));
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
+
+  const handleTabChange = (eventKey: string | null) => {
+    if (eventKey) {
+      setActiveTab(eventKey);
+      setSearchParams({ tab: eventKey });
+    }
+  };
+
+  const loadTaskExecutionEvents = useCallback(async () => {
+    setIsLoadingEvents(true);
+    try {
+      let sortBy = eventFilterState.eventSortBy;
+      if (eventFilterState.eventDescending) {
+        sortBy = '-' + sortBy;
+      }
+      const fetchedPage = await fetchEvents({
+        taskExecutionUuid: taskExecution.uuid,
+        q: eventFilterState.eventQuery,
+        minSeverity: eventFilterState.minSeverity,
+        maxSeverity: eventFilterState.maxSeverity,
+        eventTypes: eventFilterState.eventTypes,
+        acknowledgedStatus: eventFilterState.acknowledgedStatus,
+        resolvedStatus: eventFilterState.resolvedStatus,
+        offset: eventFilterState.currentEventPage * eventFilterState.rowsPerPage,
+        maxResults: eventFilterState.rowsPerPage,
+        sortBy: sortBy
+      });
+      setEventsPage(fetchedPage);
+    } catch (error) {
+      console.error('Failed to load task execution events:', error);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [taskExecution.uuid, eventFilterState]);
+
+  useEffect(() => {
+    loadTaskExecutionEvents();
+  }, [loadTaskExecutionEvents]);
+
+  const handleEventPageChanged = useCallback((currentPage: number) => {
+    updateEventFiltersInUrl({ event_page: currentPage });
+  }, [updateEventFiltersInUrl]);
+
+  const handleSelectItemsPerPage = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
+    const rpp = parseInt(event.target.value);
+    updateEventFiltersInUrl({ event_rows_per_page: rpp, event_page: 1 });
+  }, [updateEventFiltersInUrl]);
+
+  const handleEventQueryChanged = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const newQuery = event.target.value;
+    updateEventFiltersInUrl({ event_q: newQuery });
+  }, [updateEventFiltersInUrl]);
+
+  const handleEventTypesChanged = useCallback((types?: string[]) => {
+    updateEventFiltersInUrl({ event_type: types });
+  }, [updateEventFiltersInUrl]);
+
+  const handleMinSeverityChanged = useCallback((severity: string) => {
+    const newValue = severity || undefined;
+    updateEventFiltersInUrl({ event_min_severity: newValue });
+  }, [updateEventFiltersInUrl]);
+
+  const handleMaxSeverityChanged = useCallback((severity: string) => {
+    const newValue = severity || undefined;
+    updateEventFiltersInUrl({ event_max_severity: newValue });
+  }, [updateEventFiltersInUrl]);
+
+  const handleAcknowledgedStatusChanged = useCallback((status: string) => {
+    const newValue = status || undefined;
+    updateEventFiltersInUrl({ event_acknowledged_status: newValue });
+  }, [updateEventFiltersInUrl]);
+
+  const handleResolvedStatusChanged = useCallback((status: string) => {
+    const newValue = status || undefined;
+    updateEventFiltersInUrl({ event_resolved_status: newValue });
+  }, [updateEventFiltersInUrl]);
+
+  const handleEventSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
+    const currentSortBy = searchParams.get('event_sort_by') ?? 'event_at';
+    const currentDescending = searchParams.get('event_descending') !== 'false';
+    
+    if (ordering === currentSortBy) {
+      // Toggle direction if same field
+      updateEventFiltersInUrl({ event_descending: !currentDescending });
+    } else {
+      // New field, set to descending
+      updateEventFiltersInUrl({ event_sort_by: ordering, event_descending: true });
+    }
+  }, [searchParams, updateEventFiltersInUrl]);
+
   const te = taskExecution;
   const tem = te.execution_method_details;
-  let rows = [
+  // General tab rows
+  let generalRows: NameValuePair[] = [
     pair('Status', te.status),
     pair('Started by', te.started_by),
     pair('Started at', formatTime(te.started_at)),
@@ -94,6 +255,14 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     pair('Expected count', formatNumber(te.expected_count)),
     pair('Failed attempts', formatNumber(te.failed_attempts)),
     pair('Timed out attempts', formatNumber(te.timed_out_attempts)),
+    pair('Workflow Execution',
+      makeLink(te?.workflow_task_instance_execution?.workflow_execution?.uuid,
+        '/workflow_executions/' +
+        te?.workflow_task_instance_execution?.workflow_execution?.uuid)),
+  ];
+
+  // Wrapper tab rows
+  let wrapperRows: NameValuePair[] = [
     pair('Hostname', te.hostname),
     pair('Wrapper version', te.wrapper_version),
     pair('Embedded mode', formatBoolean(te.embedded_mode)),
@@ -126,12 +295,10 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     pair('Ignore stdout', formatBoolean(te.ignore_stdout)),
     pair('Ignore stderr', formatBoolean(te.ignore_stderr)),
     pair('API base URL', te.api_base_url),
-    pair('Build Task Execution', te.build?.task_execution ?
-      makeLink(te.build.task_execution.uuid,
-        '/task_executions/' + te.build.task_execution.uuid, true) : 'N/A'),
-    pair('Deployment Task Execution', te.deploy?.task_execution ?
-      makeLink(te.deploy.task_execution.uuid,
-        '/task_executions/' + te.deploy.task_execution.uuid, true) : 'N/A'),
+  ];
+
+  // Execution Details tab rows
+  let executionDetailsRows: NameValuePair[] = [
     pair('Execution method', te.execution_method_type)
   ];
 
@@ -139,7 +306,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     switch (te.execution_method_type) {
       case EXECUTION_METHOD_TYPE_AWS_ECS: {
         const awsEcsTem = tem as AwsEcsExecutionMethodSettings;
-        rows = rows.concat([
+        executionDetailsRows = executionDetailsRows.concat([
           pair('ECS launch type', awsEcsTem.launch_type),
           pair('ECS cluster', makeLink(awsEcsTem.cluster_arn, awsEcsTem.cluster_infrastructure_website_url)),
           pair('ECS task definition ARN', makeLink(awsEcsTem.task_definition_arn,
@@ -154,17 +321,16 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
 
       case EXECUTION_METHOD_TYPE_AWS_LAMBDA: {
         const awsLambdaTem = tem as AwsLambdaExecutionMethodSettings;
-        rows = rows.concat([
+        executionDetailsRows = executionDetailsRows.concat([
           pair('Function version', awsLambdaTem.function_version),
           pair('AWS Request ID', awsLambdaTem.aws_request_id),
-
         ]);
       }
       break;
 
       case EXECUTION_METHOD_TYPE_AWS_CODEBUILD: {
         const awsCbTem = tem as AwsCodeBuildExecutionMethodSettings;
-        rows = rows.concat([
+        executionDetailsRows = executionDetailsRows.concat([
           pair('Build ARN', makeLink(awsCbTem.build_arn, awsCbTem.infrastructure_website_url)),
           pair('Build ID', makeLink(awsCbTem.build_id, awsCbTem.infrastructure_website_url)),
           pair('Build number', awsCbTem.build_number),
@@ -193,7 +359,10 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
     };
   }
 
-  rows.push(pair('Infrastructure provider', te.infrastructure_type));
+  // Infrastructure tab rows
+  let infrastructureRows: NameValuePair[] = [
+    pair('Infrastructure provider', te.infrastructure_type)
+  ];
 
   const teInfra = taskExecution.infrastructure_settings;
   const taskInfra = task?.infrastructure_settings;
@@ -303,47 +472,80 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
       break;
     }
 
-    rows = rows.concat(infraRows);
+    infrastructureRows = infrastructureRows.concat(infraRows);
   }
 
-/*
-    pair('ECS execution role', makeLink(awsEcsTem.execution_role,
-      awsEcsTem.execution_role_infrastructure_website_url)),
-    pair('Subnet(s) ', makeLinks(awsEcsTem.subnets, awsEcsTem.subnet_infrastructure_website_urls)),
-    pair('Security group(s) ', makeLinks(awsEcsTem.security_groups, awsEcsTem.security_group_infrastructure_website_urls)),
-    pair('Assign public IP', (awsEcsTem.assign_public_ip === null) ? 'Unknown' :
-      (awsEcsTem.assign_public_ip ? 'ENABLED' : 'DISABLED')),
-  */
-
-  rows = rows.concat([
-     pair('Workflow Execution',
-      makeLink(te?.workflow_task_instance_execution?.workflow_execution?.uuid,
-        '/workflow_executions/' +
-        te?.workflow_task_instance_execution?.workflow_execution?.uuid)),
-  ]);
-
-  /*,
-  pair('PagerDuty notified at ', pe.pagerduty_event_sent_at, true),
-  pair('PagerDuty event severity ', pe.pagerduty_event_severity), */
-
-	return (
-    <Fragment>
-      <Table striped bordered responsive hover size="sm">
-        <tbody>
-          {rows.map(row => (
-            <tr key={row.name}>
-              <td style={{fontWeight: 'bold'}}>
-                {row.name}
-              </td>
-              <td align="left">{row.value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      { makeLogSection(te, true) }
-      { makeLogSection(te, false) }
-    </Fragment>
-	);
+  return (
+    <Tab.Container activeKey={activeTab} onSelect={handleTabChange}>
+      <Nav variant="tabs" className="mb-3">
+        <Nav.Item>
+          <Nav.Link eventKey="general">General</Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link eventKey="wrapper">Wrapper</Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link eventKey="execution">Execution Details</Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link eventKey="infrastructure">Infrastructure</Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link eventKey="logs">Logs</Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link eventKey="events">Events</Nav.Link>
+        </Nav.Item>
+      </Nav>
+      <Tab.Content>
+        <Tab.Pane eventKey="general">
+          <PropertyTable rows={generalRows} />
+        </Tab.Pane>
+        <Tab.Pane eventKey="wrapper">
+          <PropertyTable rows={wrapperRows} />
+        </Tab.Pane>
+        <Tab.Pane eventKey="execution">
+          <PropertyTable rows={executionDetailsRows} />
+        </Tab.Pane>
+        <Tab.Pane eventKey="infrastructure">
+          <PropertyTable rows={infrastructureRows} />
+        </Tab.Pane>
+        <Tab.Pane eventKey="logs">
+          <LogSection te={te} isStdout={true} />
+          <LogSection te={te} isStdout={false} />
+        </Tab.Pane>
+        <Tab.Pane eventKey="events">
+          <EventTable
+            eventPage={eventsPage}
+            currentPage={eventFilterState.currentEventPage}
+            rowsPerPage={eventFilterState.rowsPerPage}
+            handlePageChanged={handleEventPageChanged}
+            handleSelectItemsPerPage={handleSelectItemsPerPage}
+            showFilters={true}
+            showRunEnvironmentColumn={false}
+            showTaskWorkflowColumn={false}
+            showExecutionColumn={false}
+            sortBy={eventFilterState.eventSortBy}
+            descending={eventFilterState.eventDescending}
+            loadEvents={loadTaskExecutionEvents}
+            handleSortChanged={handleEventSortChanged}
+            q={eventFilterState.eventQuery}
+            handleQueryChanged={handleEventQueryChanged}
+            minSeverity={eventFilterState.minSeverity}
+            maxSeverity={eventFilterState.maxSeverity}
+            handleMinSeverityChanged={handleMinSeverityChanged}
+            handleMaxSeverityChanged={handleMaxSeverityChanged}
+            eventTypes={eventFilterState.eventTypes}
+            handleEventTypesChanged={handleEventTypesChanged}
+            acknowledgedStatus={eventFilterState.acknowledgedStatus}
+            resolvedStatus={eventFilterState.resolvedStatus}
+            handleAcknowledgedStatusChanged={handleAcknowledgedStatusChanged}
+            handleResolvedStatusChanged={handleResolvedStatusChanged}
+          />
+        </Tab.Pane>
+      </Tab.Content>
+    </Tab.Container>
+  );
 }
 
 export default TaskExecutionDetails;

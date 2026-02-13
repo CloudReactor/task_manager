@@ -47,7 +47,7 @@ def test_insufficient_service_task_executions_event_serialization_deserializatio
     assert response.status_code == 200
     
     # Verify event_type
-    assert response.data['event_type'] == 'insufficient_service_task_executions_event'
+    assert response.data['event_type'] == 'insufficient_service_task_executions'
     
     # Verify insufficient service-specific fields
     assert 'task' in response.data

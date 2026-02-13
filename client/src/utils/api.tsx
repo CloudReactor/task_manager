@@ -108,7 +108,12 @@ function makePageFetchParams(pageFetchOptions?: PageFetchOptions,
   }
 
   if (sortBy) {
-    params.ordering = descending ? `-${sortBy}` : sortBy;
+    // Support multiple sort fields as comma-separated list
+    const sortFields = sortBy.split(',').map((field) => {
+      const trimmedField = field.trim();
+      return descending ? `-${trimmedField}` : trimmedField;
+    });
+    params.ordering = sortFields.join(',');
   }
 
   return params;
@@ -1034,7 +1039,10 @@ export interface EventPageFetchOptions extends PageFetchWithGroupIdAndRunEnviron
   maxSeverity?: string | number;
   taskUuid?: string;
   workflowUuid?: string;
+  taskExecutionUuid?: string;
   eventTypes?: string[];
+  acknowledgedStatus?: string;
+  resolvedStatus?: string;
 }
 
 export async function fetchEvents(opts?: EventPageFetchOptions): Promise<ResultsPage<import('../types/domain_types').AnyEvent>> {
@@ -1070,6 +1078,18 @@ export async function fetchEvents(opts?: EventPageFetchOptions): Promise<Results
     params['workflow__uuid'] = opts.workflowUuid;
   }
 
+  if (opts.taskExecutionUuid) {
+    params['task_execution__uuid'] = opts.taskExecutionUuid;
+  }
+
+  if (opts.acknowledgedStatus) {
+    params['acknowledged_status'] = opts.acknowledgedStatus;
+  }
+
+  if (opts.resolvedStatus) {
+    params['resolved_status'] = opts.resolvedStatus;
+  }
+
   const response = await makeAuthenticatedClient().get(
     'api/v1/events/', {
       signal: abortSignal,
@@ -1095,6 +1115,21 @@ export async function fetchEvent(uuid: string, abortSignal?: AbortSignal): Promi
     `api/v1/events/${encodeURIComponent(uuid)}/`, {
       signal: abortSignal
     }
+  );
+  const raw = response.data as any;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { castEvent } = require('../types/domain_types');
+    return castEvent(raw) as import('../types/domain_types').AnyEvent;
+  } catch (e) {
+    return raw as import('../types/domain_types').AnyEvent;
+  }
+}
+
+export async function updateEvent(uuid: string, data: Record<string, any>): Promise<import('../types/domain_types').AnyEvent> {
+  const response = await makeAuthenticatedClient().patch(
+    `api/v1/events/${encodeURIComponent(uuid)}/`,
+    data
   );
   const raw = response.data as any;
   try {

@@ -6,6 +6,7 @@ interface Props {
   onSortChanged: (ordering?: string, toggleDirection?: boolean) => Promise<void>;
   showRunEnvironmentColumn?: boolean;
   showTaskWorkflowColumn?: boolean;
+  showExecutionColumn?: boolean;
 }
 
 const EventTableHeader = (props: Props) => {
@@ -14,7 +15,8 @@ const EventTableHeader = (props: Props) => {
     descending,
     onSortChanged,
     showRunEnvironmentColumn = true,
-    showTaskWorkflowColumn = true
+    showTaskWorkflowColumn = true,
+    showExecutionColumn = true
   } = props;
 
   const handleSortClick = (field: string) => {
@@ -23,9 +25,19 @@ const EventTableHeader = (props: Props) => {
 
   const renderSortIcon = (field: string) => {
     if (sortBy === field) {
-      return descending ? ' ▼' : ' ▲';
+      return (
+        <span>
+          &nbsp;
+          <i className={'fas fa-arrow-' + (descending ? 'down' : 'up')} style={{ fontSize: '0.8em' }} />
+        </span>
+      );
     }
-    return '';
+    return (
+      <span style={{ opacity: 0.3 }}>
+        &nbsp;
+        <i className="fas fa-sort" style={{ fontSize: '0.8em' }} />
+      </span>
+    );
   };
 
   return (
@@ -43,9 +55,21 @@ const EventTableHeader = (props: Props) => {
         >
           Severity{renderSortIcon('severity')}
         </th>
-        <th>Event Type</th>
+        <th
+          onClick={() => handleSortClick('type')}
+          style={{ cursor: 'pointer' }}
+        >
+          Event Type{renderSortIcon('type')}
+        </th>
         <th>Summary</th>
-        {showRunEnvironmentColumn && <th>Run Environment</th>}
+        {showRunEnvironmentColumn && (
+          <th
+            onClick={() => handleSortClick('run_environment__name')}
+            style={{ cursor: 'pointer' }}
+          >
+            Run Environment{renderSortIcon('run_environment__name')}
+          </th>
+        )}
         <th
           onClick={() => handleSortClick('detected_at')}
           style={{ cursor: 'pointer' }}
@@ -53,13 +77,26 @@ const EventTableHeader = (props: Props) => {
           Detected At{renderSortIcon('detected_at')}
         </th>
         <th
+          onClick={() => handleSortClick('acknowledged_at')}
+          style={{ cursor: 'pointer' }}
+        >
+          Acknowledged{renderSortIcon('acknowledged_at')}
+        </th>
+        <th
           onClick={() => handleSortClick('resolved_at')}
           style={{ cursor: 'pointer' }}
         >
-          Resolved At{renderSortIcon('resolved_at')}
+          Resolved{renderSortIcon('resolved_at')}
         </th>
-        {showTaskWorkflowColumn && <th>Task/Workflow</th>}
-        <th>Execution</th>
+        {showTaskWorkflowColumn && (
+          <th
+            onClick={() => handleSortClick('executable__name')}
+            style={{ cursor: 'pointer' }}
+          >
+            Task/Workflow{renderSortIcon('executable__name')}
+          </th>
+        )}
+        {showExecutionColumn && <th>Execution</th>}
       </tr>
     </thead>
   );

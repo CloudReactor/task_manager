@@ -17,6 +17,7 @@ from processes.models import (
     MissingScheduledTaskExecutionEvent,
     MissingScheduledWorkflowExecutionEvent,
     InsufficientServiceTaskExecutionsEvent,
+    DelayedTaskExecutionStartEvent,
     RunEnvironment,
     UserGroupAccessLevel
 )
@@ -752,6 +753,7 @@ def test_event_filter_by_event_type_single(
     basic_event_factory,
     task_execution_status_change_event_factory,
     missing_heartbeat_detection_event_factory,
+    delayed_task_execution_start_event_factory,
     api_client) -> None:
     """
     Test filtering events by a single event_type string.
@@ -767,6 +769,7 @@ def test_event_filter_by_event_type_single(
         basic_event_factory(created_by_group=group),
         task_execution_status_change_event_factory(created_by_group=group),
         missing_heartbeat_detection_event_factory(created_by_group=group),
+        delayed_task_execution_start_event_factory(created_by_group=group),
     ]
 
     client = make_api_client_from_options(api_client=api_client,
@@ -782,6 +785,15 @@ def test_event_filter_by_event_type_single(
     assert page['count'] == 1
     results = page['results']
     assert results[0]['uuid'] == str(events[0].uuid)
+    
+    # Filter by delayed_task_execution_start
+    params = {'event_type': 'delayed_task_execution_start'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 1
+    results = page['results']
+    assert results[0]['uuid'] == str(events[3].uuid)
 
 
 @pytest.mark.django_db
@@ -790,6 +802,7 @@ def test_event_filter_by_event_type_multiple(
     basic_event_factory,
     task_execution_status_change_event_factory,
     missing_heartbeat_detection_event_factory,
+    delayed_task_execution_start_event_factory,
     api_client) -> None:
     """
     Test filtering events by multiple comma-separated event_type strings.
@@ -805,6 +818,7 @@ def test_event_filter_by_event_type_multiple(
     basic_event_factory(created_by_group=group),
     task_execution_status_change_event_factory(created_by_group=group),
     missing_heartbeat_detection_event_factory(created_by_group=group),
+    delayed_task_execution_start_event_factory(created_by_group=group),
     ]
 
     client = make_api_client_from_options(api_client=api_client,
@@ -822,6 +836,18 @@ def test_event_filter_by_event_type_multiple(
 
     returned_uuids = {r['uuid'] for r in results}
     expected_uuids = {str(events[0].uuid), str(events[1].uuid)}
+    assert returned_uuids == expected_uuids
+    
+    # Filter by delayed_task_execution_start and missing_heartbeat_detection
+    params = {'event_type': 'delayed_task_execution_start,missing_heartbeat_detection'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 2
+    results = page['results']
+
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(events[2].uuid), str(events[3].uuid)}
     assert returned_uuids == expected_uuids
 
 
@@ -1014,3 +1040,462 @@ def test_event_filter_by_invalid_severity(
     response = client.get('/api/v1/events/', params)
     assert response.status_code == 200
     assert response.data['count'] == 0
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+  acknowledged_status_filter, expected_indices
+""", [
+  # Filter by acknowledged events
+  ('acknowledged', [0, 1]),
+  # Filter by not acknowledged events
+  ('not_acknowledged', [2, 3]),
+])
+def test_event_filter_by_acknowledged_status(
+        acknowledged_status_filter: str,
+        expected_indices: List[int],
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by acknowledgement status.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create acknowledged and non-acknowledged events
+    acknowledged_event_1 = basic_event_factory(created_by_group=group, acknowledged_at=now)
+    acknowledged_event_2 = basic_event_factory(created_by_group=group, acknowledged_at=now)
+    not_acknowledged_event_1 = basic_event_factory(created_by_group=group, acknowledged_at=None)
+    not_acknowledged_event_2 = basic_event_factory(created_by_group=group, acknowledged_at=None)
+
+    events = [
+        acknowledged_event_1,
+        acknowledged_event_2,
+        not_acknowledged_event_1,
+        not_acknowledged_event_2,
+    ]
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    params = {
+        'acknowledged_status': acknowledged_status_filter
+    }
+
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+
+    page = response.data
+    assert page['count'] == len(expected_indices)
+    results = page['results']
+
+    # Build a map of returned UUIDs for comparison
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(events[i].uuid) for i in expected_indices}
+
+    assert returned_uuids == expected_uuids
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+  resolved_status_filter, expected_indices
+""", [
+  # Filter by resolved events
+  ('resolved', [0, 1]),
+  # Filter by not resolved events
+  ('not_resolved', [2, 3]),
+])
+def test_event_filter_by_resolved_status(
+        resolved_status_filter: str,
+        expected_indices: List[int],
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by resolved status.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create resolved and non-resolved events
+    resolved_event_1 = basic_event_factory(created_by_group=group, resolved_at=now)
+    resolved_event_2 = basic_event_factory(created_by_group=group, resolved_at=now)
+    not_resolved_event_1 = basic_event_factory(created_by_group=group, resolved_at=None)
+    not_resolved_event_2 = basic_event_factory(created_by_group=group, resolved_at=None)
+
+    events = [
+        resolved_event_1,
+        resolved_event_2,
+        not_resolved_event_1,
+        not_resolved_event_2,
+    ]
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    params = {
+        'resolved_status': resolved_status_filter
+    }
+
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+
+    page = response.data
+    assert page['count'] == len(expected_indices)
+    results = page['results']
+
+    # Build a map of returned UUIDs for comparison
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(events[i].uuid) for i in expected_indices}
+
+    assert returned_uuids == expected_uuids
+
+
+@pytest.mark.django_db
+def test_event_filter_by_acknowledged_and_resolved_status_combined(
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by both acknowledged and resolved status combined.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create events with different combinations of acknowledged_at and resolved_at
+    acknowledged_and_resolved = basic_event_factory(
+        created_by_group=group, acknowledged_at=now, resolved_at=now)
+    acknowledged_not_resolved = basic_event_factory(
+        created_by_group=group, acknowledged_at=now, resolved_at=None)
+    not_acknowledged_resolved = basic_event_factory(
+        created_by_group=group, acknowledged_at=None, resolved_at=now)
+    not_acknowledged_not_resolved = basic_event_factory(
+        created_by_group=group, acknowledged_at=None, resolved_at=None)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test: acknowledged AND not_resolved should return only acknowledged_not_resolved
+    params = {
+        'acknowledged_status': 'acknowledged',
+        'resolved_status': 'not_resolved'
+    }
+
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['uuid'] == str(acknowledged_not_resolved.uuid)
+
+    # Test: not_acknowledged AND resolved should return only not_acknowledged_resolved
+    params = {
+        'acknowledged_status': 'not_acknowledged',
+        'resolved_status': 'resolved'
+    }
+
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['uuid'] == str(not_acknowledged_resolved.uuid)
+
+    # Test: acknowledged AND resolved should return only acknowledged_and_resolved
+    params = {
+        'acknowledged_status': 'acknowledged',
+        'resolved_status': 'resolved'
+    }
+
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['uuid'] == str(acknowledged_and_resolved.uuid)
+
+
+@pytest.mark.django_db
+def test_event_filter_by_invalid_acknowledged_status(
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events with invalid acknowledged_status returns no results.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create some events
+    acknowledged_event = basic_event_factory(created_by_group=group, acknowledged_at=now)
+    not_acknowledged_event = basic_event_factory(created_by_group=group, acknowledged_at=None)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test with invalid acknowledged_status (should return no events)
+    params = {'acknowledged_status': 'invalid_status'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 0
+
+
+@pytest.mark.django_db
+def test_event_filter_by_invalid_resolved_status(
+        user_factory, group_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events with invalid resolved_status returns no results.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    now = timezone.now()
+
+    # Create some events
+    resolved_event = basic_event_factory(created_by_group=group, resolved_at=now)
+    not_resolved_event = basic_event_factory(created_by_group=group, resolved_at=None)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test with invalid resolved_status (should return no events)
+    params = {'resolved_status': 'invalid_status'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 0
+
+
+@pytest.mark.django_db
+def test_event_ordering_by_executable_name(
+        user_factory, group_factory,
+        task_factory, task_execution_status_change_event_factory,
+        workflow_factory, workflow_execution_status_change_event_factory,
+        api_client) -> None:
+    """
+    Test ordering events by executable name (coalesced task and workflow names).
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create tasks and workflows with different names
+    task_a = task_factory(created_by_group=group, name='Executable A')
+    task_z = task_factory(created_by_group=group, name='Executable Z')
+    workflow_m = workflow_factory(created_by_group=group, name='Executable M')
+
+    # Create events for tasks and workflow
+    event_a = task_execution_status_change_event_factory(created_by_group=group, task=task_a)
+    event_z = task_execution_status_change_event_factory(created_by_group=group, task=task_z)
+    event_m = workflow_execution_status_change_event_factory(created_by_group=group, workflow=workflow_m)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Test ascending order (A, M, Z)
+    params = {'ordering': 'executable__name'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 3
+    results = response.data['results']
+    assert str(results[0]['uuid']) == str(event_a.uuid)
+    assert str(results[1]['uuid']) == str(event_m.uuid)
+    assert str(results[2]['uuid']) == str(event_z.uuid)
+
+    # Test descending order (Z, M, A)
+    params = {'ordering': '-executable__name'}
+    response = client.get('/api/v1/events/', params)
+    assert response.status_code == 200
+    assert response.data['count'] == 3
+    results = response.data['results']
+    assert str(results[0]['uuid']) == str(event_z.uuid)
+    assert str(results[1]['uuid']) == str(event_m.uuid)
+    assert str(results[2]['uuid']) == str(event_a.uuid)
+
+
+@pytest.mark.django_db
+def test_event_filter_by_task_execution_uuid(
+        user_factory, group_factory,
+        task_factory, task_execution_factory,
+        task_execution_status_change_event_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by task_execution__uuid.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create two tasks and task executions
+    task1 = task_factory(created_by_group=group, name='Task 1')
+    task2 = task_factory(created_by_group=group, name='Task 2')
+
+    task_execution1 = task_execution_factory(task=task1)
+    task_execution2 = task_execution_factory(task=task2)
+
+    # Create events associated with each task execution
+    event1_for_te1 = task_execution_status_change_event_factory(
+        created_by_group=group, task=task1, task_execution=task_execution1)
+    event2_for_te1 = task_execution_status_change_event_factory(
+        created_by_group=group, task=task1, task_execution=task_execution1)
+    event1_for_te2 = task_execution_status_change_event_factory(
+        created_by_group=group, task=task2, task_execution=task_execution2)
+
+    # Create a basic event with no task execution
+    basic_event_with_no_te = basic_event_factory(created_by_group=group)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Filter by first task execution UUID
+    params = {'task_execution__uuid': str(task_execution1.uuid)}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 2
+    results = page['results']
+
+    # Build a map of returned UUIDs for comparison
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(event1_for_te1.uuid), str(event2_for_te1.uuid)}
+
+    assert returned_uuids == expected_uuids
+
+    # Filter by second task execution UUID
+    params = {'task_execution__uuid': str(task_execution2.uuid)}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 1
+    results = page['results']
+
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(event1_for_te2.uuid)}
+
+    assert returned_uuids == expected_uuids
+
+    # Filter by non-existent task execution UUID
+    params = {'task_execution__uuid': str(uuid.uuid4())}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 0
+
+
+@pytest.mark.django_db
+def test_event_filter_by_workflow_execution_uuid(
+        user_factory, group_factory,
+        workflow_factory, workflow_execution_factory,
+        workflow_execution_status_change_event_factory,
+        basic_event_factory,
+        api_client) -> None:
+    """
+    Test filtering events by workflow_execution__uuid.
+    """
+    user = user_factory()
+    group = user.groups.first()
+
+    set_group_access_level(user=user, group=group,
+            access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER)
+
+    # Create two workflows and workflow executions
+    workflow1 = workflow_factory(created_by_group=group, name='Workflow 1')
+    workflow2 = workflow_factory(created_by_group=group, name='Workflow 2')
+
+    workflow_execution1 = workflow_execution_factory(workflow=workflow1)
+    workflow_execution2 = workflow_execution_factory(workflow=workflow2)
+
+    # Create events associated with each workflow execution
+    event1_for_we1 = workflow_execution_status_change_event_factory(
+        created_by_group=group, workflow=workflow1, workflow_execution=workflow_execution1)
+    event2_for_we1 = workflow_execution_status_change_event_factory(
+        created_by_group=group, workflow=workflow1, workflow_execution=workflow_execution1)
+    event1_for_we2 = workflow_execution_status_change_event_factory(
+        created_by_group=group, workflow=workflow2, workflow_execution=workflow_execution2)
+
+    # Create a basic event with no workflow execution
+    basic_event_with_no_we = basic_event_factory(created_by_group=group)
+
+    client = make_api_client_from_options(api_client=api_client,
+            is_authenticated=True, user=user, group=group,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=None)
+
+    # Filter by first workflow execution UUID
+    params = {'workflow_execution__uuid': str(workflow_execution1.uuid)}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 2
+    results = page['results']
+
+    # Build a map of returned UUIDs for comparison
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(event1_for_we1.uuid), str(event2_for_we1.uuid)}
+
+    assert returned_uuids == expected_uuids
+
+    # Filter by second workflow execution UUID
+    params = {'workflow_execution__uuid': str(workflow_execution2.uuid)}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 1
+    results = page['results']
+
+    returned_uuids = {r['uuid'] for r in results}
+    expected_uuids = {str(event1_for_we2.uuid)}
+
+    assert returned_uuids == expected_uuids
+
+    # Filter by non-existent workflow execution UUID
+    params = {'workflow_execution__uuid': str(uuid.uuid4())}
+    response = client.get('/api/v1/events/', params)
+
+    assert response.status_code == 200
+    page = response.data
+    assert page['count'] == 0

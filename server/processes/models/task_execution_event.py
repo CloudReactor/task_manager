@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 from django.db import models
 
 from ..common.utils import strip_prefix_before_last_dot

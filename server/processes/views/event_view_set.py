@@ -2,7 +2,8 @@ import logging
 from typing import override
 from urllib.request import Request
 
-from django.db.models import Q
+from django.db.models import Q, F, Value
+from django.db.models.functions import Coalesce
 from django.views import View
 
 from django_filters import rest_framework as filters
@@ -47,6 +48,12 @@ class EventFilter(filters.FilterSet):
     severity = CharFilter(method='filter_severity')
     min_severity = CharFilter(method='filter_min_severity')
     max_severity = CharFilter(method='filter_max_severity')
+
+    # Filter by acknowledgement status: 'acknowledged', 'not_acknowledged', or empty for any
+    acknowledged_status = CharFilter(method='filter_acknowledged_status')
+
+    # Filter by resolved status: 'resolved', 'not_resolved', or empty for any
+    resolved_status = CharFilter(method='filter_resolved_status')
 
     def _parse_severity_value(self, value):
         """
@@ -145,13 +152,52 @@ class EventFilter(filters.FilterSet):
 
         return queryset.filter(type__in=type_names)
 
+    def filter_acknowledged_status(self, queryset, name, value):
+        """
+        Filter events by acknowledgement status.
+        - 'acknowledged': events that have been acknowledged (acknowledged_at is not null)
+        - 'not_acknowledged': events that have not been acknowledged (acknowledged_at is null)
+        - empty or other values: no filtering
+        """
+        if not value:
+            return queryset
+
+        if value == 'acknowledged':
+            return queryset.filter(acknowledged_at__isnull=False)
+        elif value == 'not_acknowledged':
+            return queryset.filter(acknowledged_at__isnull=True)
+        else:
+            # Invalid value, return empty queryset
+            return queryset.none()
+
+    def filter_resolved_status(self, queryset, name, value):
+        """
+        Filter events by resolved status.
+        - 'resolved': events that have been resolved (resolved_at is not null)
+        - 'not_resolved': events that have not been resolved (resolved_at is null)
+        - empty or other values: no filtering
+        """
+        if not value:
+            return queryset
+
+        if value == 'resolved':
+            return queryset.filter(resolved_at__isnull=False)
+        elif value == 'not_resolved':
+            return queryset.filter(resolved_at__isnull=True)
+        else:
+            # Invalid value, return empty queryset
+            return queryset.none()
+
     class Meta:
         model = Event
         fields = {
             'created_by_group__id': ['exact'],
             'run_environment__uuid': ['exact', 'in'],
+            'grouping_key': ['exact'],
             'task__uuid': ['exact'],
             'workflow__uuid': ['exact'],
+            'task_execution__uuid': ['exact'],
+            'workflow_execution__uuid': ['exact'],            
         }
 
 
@@ -161,7 +207,11 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
     permission_classes = (permissions.IsAuthenticated, EventPermission,)
     filterset_class = EventFilter
     search_fields = ('uuid', 'error_summary', 'source',)
-    ordering_fields = ('event_at', 'detected_at', 'severity',)
+    ordering_fields = (
+        'event_at', 'type', 'severity', 'run_environment__name',
+        'detected_at', 'resolved_at', 'acknowledged_at',
+        'executable__name'
+    )
     ordering = '-event_at'  # Default ordering by event timestamp, newest first
 
     # Cache for type string to serializer mapping
@@ -179,6 +229,19 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
                 for model_class, serializer_class in type_map.items()
             }
         return cls._type_string_to_serializer_cache
+
+    @override
+    def get_queryset(self):
+        """Override to annotate executable__name using COALESCE of task__name and workflow__name."""
+        queryset = super().get_queryset()
+        
+        # Annotate the queryset with executable__name that coalesces task__name and workflow__name
+        # This allows ordering by either task or workflow name using a single field
+        queryset = queryset.annotate(
+            executable__name=Coalesce(F('task__name'), F('workflow__name'), Value(''))
+        )
+        
+        return queryset
 
     # CHECKME: is this needed?
     @override

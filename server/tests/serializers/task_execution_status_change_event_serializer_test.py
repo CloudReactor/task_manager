@@ -47,7 +47,7 @@ def test_task_execution_status_change_event_serialization_deserialization(
     assert response.status_code == 200
     
     # Verify event_type
-    assert response.data['event_type'] == 'task_execution_status_change_event'
+    assert response.data['event_type'] == 'task_execution_status_change'
     
     # Verify status change-specific fields
     assert 'task' in response.data

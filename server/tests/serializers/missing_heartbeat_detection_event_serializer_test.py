@@ -33,6 +33,7 @@ def test_missing_heartbeat_detection_event_serialization_deserialization(
     
     heartbeat_event = MissingHeartbeatDetectionEvent.objects.create(
         created_by_group=group,
+        created_by_user=user,
         task=task,
         task_execution=task_execution,
         last_heartbeat_at=now - timedelta(minutes=10),
@@ -51,7 +52,7 @@ def test_missing_heartbeat_detection_event_serialization_deserialization(
     assert response.status_code == 200
     
     # Verify event_type
-    assert response.data['event_type'] == 'missing_heartbeat_detection_event'
+    assert response.data['event_type'] == 'missing_heartbeat_detection'
     
     # Verify heartbeat-specific fields exist
     assert 'task' in response.data

@@ -58,12 +58,14 @@ const TaskEventsTab = (props: InnerProps) => {
       descending,
       rowsPerPage,
       currentPage
-    } = transformSearchParams(searchParams, true);
+    } = transformSearchParams(searchParams, true, 'event_');
 
-    const minSeverity = searchParams.get('min_severity') ?? undefined;
-    const maxSeverity = searchParams.get('max_severity') ?? undefined;
+    const minSeverity = searchParams.get('event_min_severity') ?? undefined;
+    const maxSeverity = searchParams.get('event_max_severity') ?? undefined;
     const eventTypesParam = searchParams.get('event_type') ?? undefined;
     const eventTypes = eventTypesParam ? eventTypesParam.split(',').filter(Boolean) : undefined;
+    const acknowledgedStatus = searchParams.get('event_acknowledged_status') ?? undefined;
+    const resolvedStatus = searchParams.get('event_resolved_status') ?? undefined;
 
     if (loadEventsAbortController) {
       loadEventsAbortController.abort('Operation superceded');
@@ -93,6 +95,8 @@ const TaskEventsTab = (props: InnerProps) => {
           minSeverity,
           maxSeverity,
           eventTypes,
+          acknowledgedStatus,
+          resolvedStatus,
         offset: currentPage * rowsPerPage,
         maxResults: rowsPerPage,
         abortSignal: updatedLoadEventsAbortController.signal
@@ -117,21 +121,21 @@ const TaskEventsTab = (props: InnerProps) => {
     event: ChangeEvent<HTMLSelectElement>
   ) => {
     const rowsPerPage = parseInt(event.target.value);
-    updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'rows_per_page');
+    updateSearchParams(searchParams, setSearchParams, rowsPerPage, 'event_rows_per_page');
   };
 
   const handleSortChanged = useCallback(async (ordering?: string, toggleDirection?: boolean) => {
-    updateSearchParams(searchParams, setSearchParams, ordering, 'sort_by');
+    updateSearchParams(searchParams, setSearchParams, ordering, 'event_sort_by');
   }, [location]);
 
   const handlePageChanged = useCallback((currentPage: number) => {
-    updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'page');
+    updateSearchParams(searchParams, setSearchParams, currentPage + 1, 'event_page');
   }, [location]);
 
   const handleQueryChanged = useCallback((
     event: ChangeEvent<HTMLInputElement>
   ) => {
-    updateSearchParams(searchParams, setSearchParams, event.target.value, 'events_q');
+    updateSearchParams(searchParams, setSearchParams, event.target.value, 'event_q');
   }, [location]);
 
   const cleanupLoading = () => {
@@ -141,15 +145,23 @@ const TaskEventsTab = (props: InnerProps) => {
   };
 
   const handleMinSeverityChanged = (severity: string) => {
-    updateSearchParams(searchParams, setSearchParams, severity, 'min_severity');
+    updateSearchParams(searchParams, setSearchParams, severity, 'event_min_severity');
   };
 
   const handleMaxSeverityChanged = (severity: string) => {
-    updateSearchParams(searchParams, setSearchParams, severity, 'max_severity');
+    updateSearchParams(searchParams, setSearchParams, severity, 'event_max_severity');
   };
 
   const handleEventTypesChanged = (types?: string[]) => {
     updateSearchParams(searchParams, setSearchParams, types && types.length ? types : undefined, 'event_type');
+  };
+
+  const handleAcknowledgedStatusChanged = (status: string) => {
+    updateSearchParams(searchParams, setSearchParams, status, 'event_acknowledged_status');
+  };
+
+  const handleResolvedStatusChanged = (status: string) => {
+    updateSearchParams(searchParams, setSearchParams, status, 'event_resolved_status');
   };
 
   useEffect(() => {
@@ -175,7 +187,7 @@ const TaskEventsTab = (props: InnerProps) => {
     descending,
     rowsPerPage,
     currentPage
-  } = transformSearchParams(searchParams, true);
+  } = transformSearchParams(searchParams, true, 'event_');
 
   const finalSortBy = (sortBy ?? 'event_at');
   const finalDescending = descending ?? true;
@@ -188,14 +200,19 @@ const TaskEventsTab = (props: InnerProps) => {
     handleQueryChanged,
     q,
     showFilters: true,
-    minSeverity: searchParams.get('min_severity') ?? undefined,
-    maxSeverity: searchParams.get('max_severity') ?? undefined,
+    minSeverity: searchParams.get('event_min_severity') ?? undefined,
+    maxSeverity: searchParams.get('event_max_severity') ?? undefined,
     handleMinSeverityChanged,
     handleMaxSeverityChanged,
     eventTypes: (searchParams.get('event_type') ?? undefined) ? (searchParams.get('event_type') || '').split(',').filter(Boolean) : undefined,
     handleEventTypesChanged,
+    acknowledgedStatus: searchParams.get('event_acknowledged_status') ?? undefined,
+    resolvedStatus: searchParams.get('event_resolved_status') ?? undefined,
+    handleAcknowledgedStatusChanged,
+    handleResolvedStatusChanged,
     showRunEnvironmentColumn: false,
     showTaskWorkflowColumn: false,
+    showExecutionColumn: true,
     sortBy: finalSortBy,
     descending: finalDescending,
     currentPage,

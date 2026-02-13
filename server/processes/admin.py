@@ -30,7 +30,9 @@ from .models.task_execution_status_change_event import TaskExecutionStatusChange
 from .models.workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 from .models.missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
 from .models.missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
+from .models.delayed_task_execution_start_event import DelayedTaskExecutionStartEvent
 from .models.notification_profile import NotificationProfile
+from .models.notification_delivery_method import NotificationDeliveryMethod
 from .models.email_notification_delivery_method import EmailNotificationDeliveryMethod
 from .models.pagerduty_notification_delivery_method import PagerDutyNotificationDeliveryMethod
 from .models.notification import Notification
@@ -117,14 +119,10 @@ class PagerDutyProfileAdmin(admin.ModelAdmin):
 class EmailNotificationProfileAdmin(admin.ModelAdmin):
     list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
+
 # End Legacy
 
-
-class EventAdmin(TypedModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('uuid',)
-
-class EmailNotificationDeliveryMethodAdmin(TypedModelAdmin):
+class NotificationDeliveryMethodAdmin(TypedModelAdmin):
     list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
 
@@ -139,31 +137,27 @@ class NotificationProfileAdmin(admin.ModelAdmin):
     list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
 
-
-class PagerDutyNotificationDeliveryMethodAdmin(TypedModelAdmin):
+class EventAdmin(TypedModelAdmin):
     list_filter = ["created_by_group"]
-    search_fields = ('name', 'uuid',)
+    search_fields = ('uuid', 'grouping_key',)
 
+class TaskEventAdmin(EventAdmin):
+    search_fields = EventAdmin.search_fields + ('task__name', 'task__uuid',)
 
-class TaskExecutionEventAdmin(TypedModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('uuid',)
+class TaskExecutionEventAdmin(TaskEventAdmin):
+    search_fields = TaskEventAdmin.search_fields + ('task_execution__uuid',)
 
-class MissingHeartbeatDetectionEventAdmin(TypedModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('uuid',)
+class TaskExecutionStatusChangeEventAdmin(TaskExecutionEventAdmin):
+    list_filter = ["created_by_group", 'status',]
 
-class TaskExecutionStatusChangeEventAdmin(TypedModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('uuid',)
+class WorkflowEventAdmin(EventAdmin):
+    search_fields = EventAdmin.search_fields + ('workflow__name', 'workflow__uuid',)
 
-class WorkflowExecutionEventAdmin(TypedModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('uuid',)
+class WorkflowExecutionEventAdmin(WorkflowEventAdmin):
+    search_fields = WorkflowEventAdmin.search_fields + ('workflow_execution__uuid',)
 
-class WorkflowExecutionStatusChangeEventAdmin(TypedModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('uuid',)
+class WorkflowExecutionStatusChangeEventAdmin(WorkflowExecutionEventAdmin):
+    list_filter = ["created_by_group", 'status',]
 
 admin.site.unregister(TokenProxy)
 admin.site.register(UserGroupAccessLevel, UserGroupAccessLevelAdmin)
@@ -184,14 +178,16 @@ admin.site.register(InsufficientServiceInstancesAlert)
 
 # Modern
 admin.site.register(Event, EventAdmin)
-admin.site.register(MissingHeartbeatDetectionEvent, MissingHeartbeatDetectionEventAdmin)
+admin.site.register(MissingHeartbeatDetectionEvent, TaskExecutionEventAdmin)
 admin.site.register(TaskExecutionStatusChangeEvent, TaskExecutionStatusChangeEventAdmin)
 admin.site.register(WorkflowExecutionStatusChangeEvent, WorkflowExecutionStatusChangeEventAdmin)
-admin.site.register(MissingScheduledTaskExecutionEvent)
-admin.site.register(MissingScheduledWorkflowExecutionEvent)
+admin.site.register(MissingScheduledTaskExecutionEvent, TaskEventAdmin)
+admin.site.register(MissingScheduledWorkflowExecutionEvent, WorkflowEventAdmin)
+admin.site.register(DelayedTaskExecutionStartEvent, TaskExecutionEventAdmin)
 admin.site.register(NotificationProfile, NotificationProfileAdmin)
-admin.site.register(EmailNotificationDeliveryMethod, EmailNotificationDeliveryMethodAdmin)
-admin.site.register(PagerDutyNotificationDeliveryMethod, PagerDutyNotificationDeliveryMethodAdmin)
+admin.site.register(NotificationDeliveryMethod, NotificationDeliveryMethodAdmin)
+admin.site.register(EmailNotificationDeliveryMethod, NotificationDeliveryMethodAdmin)
+admin.site.register(PagerDutyNotificationDeliveryMethod, NotificationDeliveryMethodAdmin)
 admin.site.register(Notification, NotificationAdmin)
 
 admin.site.register(Task, TaskAdmin)

@@ -41,7 +41,7 @@ def test_basic_event_serialization_deserialization(
     assert response.status_code == 200
     
     # Verify event_type
-    assert response.data['event_type'] == 'basic_event'
+    assert response.data['event_type'] == 'basic'
     
     # Verify basic fields
     assert response.data['uuid'] == str(basic_event.uuid)
