@@ -152,11 +152,11 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
       const fetchedPage = await fetchEvents({
         taskExecutionUuid: taskExecution.uuid,
         q: eventFilterState.eventQuery,
-        minSeverity: eventFilterState.minSeverity,
-        maxSeverity: eventFilterState.maxSeverity,
+        minSeverity: eventFilterState.minSeverity ?? undefined,
+        maxSeverity: eventFilterState.maxSeverity ?? undefined,
         eventTypes: eventFilterState.eventTypes,
-        acknowledgedStatus: eventFilterState.acknowledgedStatus,
-        resolvedStatus: eventFilterState.resolvedStatus,
+        acknowledgedStatus: eventFilterState.acknowledgedStatus ?? undefined,
+        resolvedStatus: eventFilterState.resolvedStatus ?? undefined,
         offset: eventFilterState.currentEventPage * eventFilterState.rowsPerPage,
         maxResults: eventFilterState.rowsPerPage,
         sortBy: sortBy
@@ -227,7 +227,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
   const te = taskExecution;
   const tem = te.execution_method_details;
   // General tab rows
-  let generalRows: NameValuePair[] = [
+  const generalRows: NameValuePair[] = [
     pair('Status', te.status),
     pair('Started by', te.started_by),
     pair('Started at', formatTime(te.started_at)),
@@ -262,7 +262,7 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
   ];
 
   // Wrapper tab rows
-  let wrapperRows: NameValuePair[] = [
+  const wrapperRows: NameValuePair[] = [
     pair('Hostname', te.hostname),
     pair('Wrapper version', te.wrapper_version),
     pair('Embedded mode', formatBoolean(te.embedded_mode)),
@@ -531,14 +531,14 @@ const TaskExecutionDetails = ({ taskExecution, task, runEnvironment }: Props) =>
             handleSortChanged={handleEventSortChanged}
             q={eventFilterState.eventQuery}
             handleQueryChanged={handleEventQueryChanged}
-            minSeverity={eventFilterState.minSeverity}
-            maxSeverity={eventFilterState.maxSeverity}
+            minSeverity={eventFilterState.minSeverity ?? undefined}
+            maxSeverity={eventFilterState.maxSeverity ?? undefined}
             handleMinSeverityChanged={handleMinSeverityChanged}
             handleMaxSeverityChanged={handleMaxSeverityChanged}
             eventTypes={eventFilterState.eventTypes}
             handleEventTypesChanged={handleEventTypesChanged}
-            acknowledgedStatus={eventFilterState.acknowledgedStatus}
-            resolvedStatus={eventFilterState.resolvedStatus}
+            acknowledgedStatus={eventFilterState.acknowledgedStatus ?? undefined}
+            resolvedStatus={eventFilterState.resolvedStatus ?? undefined}
             handleAcknowledgedStatusChanged={handleAcknowledgedStatusChanged}
             handleResolvedStatusChanged={handleResolvedStatusChanged}
           />
