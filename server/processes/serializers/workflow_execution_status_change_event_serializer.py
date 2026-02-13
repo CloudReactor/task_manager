@@ -29,7 +29,7 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
 
     @override
     def to_internal_value(self, data):
-        """Convert nested workflow and workflow_execution data to actual instances."""        
+        """Convert nested workflow and workflow_execution data to actual instances."""
         from ..models import RunEnvironment, Workflow, WorkflowExecution
 
         request = self.context.get('request')
@@ -45,13 +45,13 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
         workflow_execution: WorkflowExecution | None = None
         if workflow_execution_data:
             workflow_execution = WorkflowExecution.find_by_uuid(workflow_execution_data,
-                required_group=group, required_run_environment=run_environment)                                                            
-            
+                required_group=group, required_run_environment=run_environment)
+
         if workflow_execution is None:
             if self.instance:
                 workflow_execution = self.instance.workflow_execution
 
-            if workflow_execution is None:    
+            if workflow_execution is None:
                 raise UnprocessableEntity({
                     'workflow_execution': [ErrorDetail('No Workflow Execution was found for the provided identifier', code='not_found')]
                 })
@@ -60,7 +60,7 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
                 raise UnprocessableEntity({
                     'workflow': [ErrorDetail('The specified Workflow Execution does not match the Workflow associated with the provided Event', code='mismatch')]
                 })
-                    
+
         validated['workflow_execution'] = workflow_execution
 
         workflow: Workflow | None = None
@@ -68,14 +68,15 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
             workflow = Workflow.find_by_uuid_or_name(workflow_data,
                 required_group=group,
                 required_run_environment=run_environment)
-            
+
             if workflow:
                 if workflow.pk != workflow_execution.workflow.pk:
                     raise UnprocessableEntity({
                         'workflow': [ErrorDetail('The specified Workflow does not match the Workflow associated with the provided Workflow Execution', code='mismatch')]
                     })
-            else:
-                workflow = workflow_execution.workflow
+
+        if workflow is None:
+            workflow = workflow_execution.workflow
 
         if run_environment and (workflow.run_environment.pk != run_environment.pk):
             raise UnprocessableEntity({

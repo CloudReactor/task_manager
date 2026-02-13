@@ -28,16 +28,18 @@ class WorkflowExecutionStatusChangeEvent(ExecutionStatusChangeEvent, WorkflowExe
         self.failed_status = WorkflowExecution.Status.FAILED
         self.terminated_status = WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT
 
-        notification_generator = NotificationGenerator()
+        # Only generate error_summary if workflow_execution is set
+        if self.workflow_execution:
+            notification_generator = NotificationGenerator()
 
-        template_params = notification_generator.make_template_params(
-                workflow_execution=self.workflow_execution,
-                severity=self.severity_label)
+            template_params = notification_generator.make_template_params(
+                    workflow_execution=self.workflow_execution,
+                    severity=self.severity_label)
 
-        self.error_summary = notification_generator.generate_text(
-                template_params=template_params,
-                template=self.ERROR_SUMMARY_TEMPLATE,
-                workflow_execution=self.workflow_execution)
+            self.error_summary = notification_generator.generate_text(
+                    template_params=template_params,
+                    template=self.ERROR_SUMMARY_TEMPLATE,
+                    workflow_execution=self.workflow_execution)
 
 
     def get_schedulable(self) -> Optional[Schedulable]:
