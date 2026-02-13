@@ -79,30 +79,6 @@ const Profile = lazy(() =>
   import('./Profile/ProfileEditor')
 );
 
-const EmailNotificationProfileList = lazy(() =>
-  import('./EmailNotificationProfile')
-);
-
-const EmailNotificationProfileDetail = lazy(() =>
-  import('./EmailNotificationProfileDetail')
-);
-
-const PagerDutyProfileList = lazy(() =>
-  import('./PagerDutyProfile')
-);
-
-const PagerDutyProfileDetail = lazy(() =>
-  import('./PagerDutyProfileDetail')
-);
-
-const NotificationMethodList = lazy(() =>
-  import('./NotificationMethod')
-);
-
-const NotificationMethodDetail = lazy(() =>
-  import('./NotificationMethodDetail')
-);
-
 const NotificationDeliveryMethodList = lazy(() =>
   import('./NotificationDeliveryMethod')
 );
@@ -153,12 +129,6 @@ const Dashboard = (p: Props) => {
             <Route path={path.EVENT} element={ <EventDetail /> } />
             <Route path={path.GROUPS} element={ <GroupList /> } />
             <Route path={path.GROUP} element={ <GroupEditor /> } />
-            <Route path={path.EMAIL_NOTIFICATION_PROFILES} element={ <EmailNotificationProfileList /> } />
-            <Route path={path.EMAIL_NOTIFICATION_PROFILE} element={ <EmailNotificationProfileDetail /> } />
-            <Route path={path.PAGERDUTY_PROFILES} element={ <PagerDutyProfileList /> } />
-            <Route path={path.PAGERDUTY_PROFILE} element={ <PagerDutyProfileDetail /> } />
-            <Route path={path.NOTIFICATION_METHODS} element={ <NotificationMethodList /> } />
-            <Route path={path.NOTIFICATION_METHOD} element={ <NotificationMethodDetail /> } />
             <Route path={path.NOTIFICATION_DELIVERY_METHODS} element={ <NotificationDeliveryMethodList /> } />
             <Route path={path.NOTIFICATION_DELIVERY_METHOD} element={ <NotificationDeliveryMethodDetail /> } />
             <Route path={path.NOTIFICATION_PROFILES} element={ <NotificationProfileList /> } />

@@ -23,7 +23,6 @@ import { BootstrapVariant } from '../../../types/ui_types';
 
 import WorkflowExecutionsTab from './WorkflowExecutionsTab';
 import ScheduleSelector from '../../../components/ScheduleSelector/ScheduleSelector';
-import WorkflowNotificationMethodsTab from './WorkflowNotificationMethodsTab';
 import WorkflowNotificationProfilesTab from './WorkflowNotificationProfilesTab';
 import WorkflowGraphTab from './WorkflowGraphTab';
 import WorkflowSettingsTab from './WorkflowSettingsTab';
@@ -181,10 +180,6 @@ const WorkflowEditor: React.FC<React.PropsWithChildren<Props>> = (props) => {
                 <Tab eventKey="notification_profiles" title="Notification Profiles"
                  className={styles.tabContainer}>
                   <WorkflowNotificationProfilesTab formikProps={formikProps} />
-                </Tab>
-                <Tab eventKey="notification_methods" title="Notification Methods (legacy)"
-                 className={styles.tabContainer}>
-                  <WorkflowNotificationMethodsTab formikProps={formikProps} />
                 </Tab>
                 <Tab eventKey="events" title="Events"
                  className={styles.tabContainer}>

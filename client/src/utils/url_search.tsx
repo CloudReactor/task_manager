@@ -14,9 +14,10 @@ interface PageFetchOptions {
 
 export const transformSearchParams = (searchParams: URLSearchParams,
     forWorkflows: boolean = false,
-    forExecutions: boolean = false): PageFetchOptions => {
-  const descendingStr = searchParams.get('descending');
-  const sortBy = searchParams.get('sort_by');
+    forExecutions: boolean = false,
+    paramPrefix: string = ''): PageFetchOptions => {
+  const descendingStr = searchParams.get(paramPrefix + 'descending');
+  const sortBy = searchParams.get(paramPrefix + 'sort_by');
 
   const descending = descendingStr ? (descendingStr === 'true') :
     (sortBy ? false : undefined);
@@ -27,7 +28,7 @@ export const transformSearchParams = (searchParams: URLSearchParams,
     statusParamName = 'latest_' + (forWorkflows ? 'workflow' : 'task') + '_execution__' + statusParamName;
   }
 
-  const selectedStatusesParamValue = searchParams.get(statusParamName);
+  const selectedStatusesParamValue = searchParams.get(paramPrefix + statusParamName);
 
   let selectedStatuses: string[] | undefined;
 
@@ -37,20 +38,20 @@ export const transformSearchParams = (searchParams: URLSearchParams,
 
   let selectedRunEnvironmentUuids: string[] | undefined;
 
-  const selectedRunEnvironmentUuidsParamValue = searchParams.get('run_environment__uuid');
+  const selectedRunEnvironmentUuidsParamValue = searchParams.get(paramPrefix + 'run_environment__uuid');
 
   if (selectedRunEnvironmentUuidsParamValue) {
     selectedRunEnvironmentUuids = selectedRunEnvironmentUuidsParamValue.split(',');
   }
 
   return {
-    q: searchParams.get('events_q') ?? searchParams.get('q') ?? undefined,
-    sortBy: searchParams.get('sort_by') ?? undefined,
+    q: searchParams.get(paramPrefix + 'q') ?? undefined,
+    sortBy: searchParams.get(paramPrefix + 'sort_by') ?? undefined,
     descending,
     selectedRunEnvironmentUuids,
     selectedStatuses,
-    rowsPerPage: Number(searchParams.get('rows_per_page')) || UIC.DEFAULT_PAGE_SIZE,
-    currentPage: Number(searchParams.get('page') || 1) - 1
+    rowsPerPage: Number(searchParams.get(paramPrefix + 'rows_per_page')) || UIC.DEFAULT_PAGE_SIZE,
+    currentPage: Number(searchParams.get(paramPrefix + 'page') || 1) - 1
   };
 }
 
@@ -59,47 +60,52 @@ export const updateSearchParams = (
   setSearchParams: (searchParams: URLSearchParams, options: any) => void,
   value: any,
   changeParam: string,
+  prefix: string = ''
 ) => {
+  const paramName = `${prefix}${changeParam}`;
+
   if (changeParam === 'sort_by') {
-    if (value === params.get('sort_by')) {
+    const currentSortBy = params.get(paramName);
+    if (value === currentSortBy) {
       // user is clicking on the column that's already sorted. So, toggle the sort order
-      const isDescending = (params.get('descending') === 'true');
+      const descendingParamName = `${prefix}descending`;
+      const isDescending = (params.get(descendingParamName) === 'true');
 
       if (isDescending) {
-        params.delete('descending');
+        params.delete(descendingParamName);
       } else {
-        params.set('descending', 'true');
+        params.set(descendingParamName, 'true');
       }
     } else {
-      params.set(changeParam, value);
-      params.delete('descending');
+      params.set(paramName, value);
+      params.delete(`${prefix}descending`);
     }
   } else if (changeParam === 'page') {
     if (value > 1) {
-      params.set(changeParam, value);
+      params.set(paramName, value);
     } else {
-      params.delete('page');
+      params.delete(paramName);
     }
   } else if (changeParam === 'descending') {
     if (value) {
-      params.set(changeParam, 'true')
+      params.set(paramName, 'true')
     } else {
-      params.delete(changeParam);
+      params.delete(paramName);
     }
   } else {
     if (_.isArray(value)) {
-      params.set(changeParam, value.join(','));
+      params.set(paramName, value.join(','));
     } else if (value) {
-      params.set(changeParam, value);
+      params.set(paramName, value);
     } else {
-      params.delete(changeParam);
+      params.delete(paramName);
     }
 
-    params.delete('descending');
+    params.delete(`${prefix}descending`);
   }
 
   if ((changeParam !== 'page') || (value === 1)) {
-    params.delete('page');
+    params.delete(`${prefix}page`);
   }
 
   setSearchParams(params, { replace: true });

@@ -5,7 +5,7 @@ import React, { Fragment, useState } from 'react';
 
 import * as Yup from 'yup';
 
-import { Task, NotificationMethod, NotificationProfile } from "../../types/domain_types";
+import { Task, NotificationProfile } from "../../types/domain_types";
 
 import {
   Form, FormCheck, FormControl, FormGroup, FormLabel, FormText,
@@ -18,7 +18,6 @@ import {
   FieldArray
 } from 'formik';
 
-import NotificationMethodSelector from '../common/NotificationMethodSelector';
 import NotificationProfileSelector from '../common/NotificationProfileSelector';
 import CustomButton from '../common/Button/CustomButton';
 import styles from './TaskNotificationsTab.module.scss';
@@ -84,7 +83,6 @@ const TaskNotificationsTab = ({
             'max_postponed_timeout_count',
             'postponed_timeout_before_success_seconds',
             'required_success_count_to_clear_timeout',
-            'alert_methods',
             'notification_profiles'));
         }}
       >
@@ -515,36 +513,6 @@ const TaskNotificationsTab = ({
                                   } while (removed);
                                   notificationProfiles.forEach(np => {
                                     arrayHelpers.push({uuid: np.uuid});
-                                  });
-                                }}
-                              />
-                            );
-                          }} />
-                        </FormGroup>
-                      </Col>
-                    </Row>
-                  </fieldset>
-
-
-                  <fieldset>
-                    <legend>Notification Methods (legacy)</legend>
-                    <Row>
-                      <Col>
-                        <FormGroup>
-                          <FieldArray name="alert_methods" render={arrayHelpers => {
-                            return (
-                              <NotificationMethodSelector
-                                key={values.uuid || 'new'}
-                                entityTypeLabel="Task"
-                                runEnvironmentUuid={task.run_environment?.uuid}
-                                selectedNotificationMethodUuids={values.alert_methods.map(am => am.uuid)}
-                                onSelectedNotificationMethodsChanged={(alertMethods: NotificationMethod[]) => {
-                                  let removed: (NotificationMethod | undefined);
-                                  do {
-                                    removed = arrayHelpers.remove(0);
-                                  } while (removed);
-                                  alertMethods.forEach(am => {
-                                    arrayHelpers.push({uuid: am.uuid});
                                   });
                                 }}
                               />

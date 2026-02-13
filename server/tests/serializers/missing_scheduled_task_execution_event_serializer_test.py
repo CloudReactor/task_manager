@@ -47,7 +47,7 @@ def test_missing_scheduled_task_execution_event_serialization_deserialization(
     assert response.status_code == 200
     
     # Verify event_type
-    assert response.data['event_type'] == 'missing_scheduled_task_execution
+    assert response.data['event_type'] == 'missing_scheduled_task_execution'
     
     # Verify scheduled task execution-specific fields
     assert 'task' in response.data
