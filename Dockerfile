@@ -37,7 +37,7 @@ ENV UV_COMPILE_BYTECODE=1
 ENV UV_SYSTEM_PYTHON=1
 
 # Install uv for package management
-RUN pip install --no-cache-dir --disable-pip-version-check uv==0.5.11
+RUN pip install --no-cache-dir --disable-pip-version-check uv==0.10.2
 
 # Install Python dependencies as root before switching to non-root user
 # Using export->install instead of sync for better Docker layer caching
