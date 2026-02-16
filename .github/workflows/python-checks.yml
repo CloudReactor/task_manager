@@ -64,11 +64,6 @@ jobs:
         IN_PYTEST: TRUE
       run: |
         uv run pytest --cov=processes --cov-report=xml --cov-report=term-missing -v
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Run pylint
       working-directory: ./server
