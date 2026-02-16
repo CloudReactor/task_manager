@@ -1,0 +1,84 @@
+name: Python Checks
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install uv
+      run: |
+        pip install --no-cache-dir uv==0.10.2
+
+    - name: Install dependencies
+      working-directory: ./server
+      env:
+        UV_SYSTEM_PYTHON: 1
+      run: |
+        uv sync --frozen
+
+    - name: Run pytest
+      working-directory: ./server
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        DJANGO_SETTINGS_MODULE: task_manager.settings
+        SECRET_KEY: test-secret-key-for-ci
+        IN_PYTEST: TRUE
+      run: |
+        pytest --cov=processes --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./server/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Run pylint
+      working-directory: ./server
+      run: |
+        pylint processes/ --exit-zero --rcfile=.pylintrc || true
+      continue-on-error: true
+
+    - name: Run mypy
+      working-directory: ./server
+      run: |
+        mypy processes/ --config-file=mypy_django.ini
+      continue-on-error: true
+
+    - name: Run mypy (strict)
+      working-directory: ./server
+      run: |
+        mypy processes/ --config-file=mypy.ini || true
+      continue-on-error: true
