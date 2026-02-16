@@ -45,6 +45,16 @@ jobs:
       run: |
         uv sync --frozen
 
+    - name: Verify pytest installation
+      working-directory: ./server
+      run: |
+        echo "Python location: $(which python)"
+        echo "Python version: $(python --version)"
+        echo "Pytest location: $(which pytest || echo 'pytest not found in PATH')"
+        echo "PATH: $PATH"
+        python -m pip list | grep pytest || echo "pytest not in pip list"
+        ls -la
+
     - name: Run pytest
       working-directory: ./server
       env:
@@ -53,7 +63,7 @@ jobs:
         SECRET_KEY: test-secret-key-for-ci
         IN_PYTEST: TRUE
       run: |
-        pytest --cov=processes --cov-report=xml --cov-report=term-missing
+        python -m pytest --cov=processes --cov-report=xml --cov-report=term-missing -v
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
