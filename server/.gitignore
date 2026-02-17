@@ -76,3 +76,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+
+# Dev scripts
+share_public_api.sh
+

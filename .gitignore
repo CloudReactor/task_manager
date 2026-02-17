@@ -15,3 +15,4 @@ deploy.*.env
 
 # User-specific deployment configuration
 custom_deploy.sh
+edit_deployment_secret.sh
