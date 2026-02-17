@@ -26,13 +26,19 @@ jobs:
           --health-retries 5
 
     steps:
+    - name: Set up test database and user
+      run: |
+        PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE USER web WITH PASSWORD 'webpass';"
+        PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE cloudreactor_task_manager_test OWNER web;"
+        PGPASSWORD=postgres psql -h localhost -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE cloudreactor_task_manager_test TO web;"
+
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.12
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.12.12'
 
     - name: Install uv
       run: |
@@ -43,15 +49,16 @@ jobs:
       run: |
         uv sync --frozen --extra dev
 
-    - name: Verify pytest installation
+    - name: Run pytest
       working-directory: ./server
+      env:
+        DATABASE_HOST: localhost
+        DATABASE_PORT: 5432
+        DJANGO_SETTINGS_MODULE: task_manager.settings
+        SECRET_KEY: test-secret-key-for-ci
+        IN_PYTEST: TRUE
       run: |
-        echo "Python location: $(which python)"
-        echo "Python version: $(python --version)"
-        echo "Virtual environment check:"
-        ls -la .venv 2>/dev/null || echo "No .venv directory"
-        echo "Packages in uv environment:"
-        uv pip list | grep -E "(pytest|pylint|mypy)" || echo "packages not found"
+        uv run pytest -v
 
     - name: Run pylint
       working-directory: ./server
@@ -70,17 +77,3 @@ jobs:
       run: |
         uv run mypy processes/ --config-file=mypy.ini || true
       continue-on-error: true
-
-    - name: Run pytest
-      working-directory: ./server
-      env:
-        DATABASE_HOST: localhost
-        DATABASE_PORT: 5432
-        DATABASE_NAME: test_db
-        DATABASE_USER: postgres
-        DATABASE_PASSWORD: postgres
-        DJANGO_SETTINGS_MODULE: task_manager.settings
-        SECRET_KEY: test-secret-key-for-ci
-        IN_PYTEST: TRUE
-      run: |
-        uv run pytest -v
