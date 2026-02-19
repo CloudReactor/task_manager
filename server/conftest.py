@@ -1240,7 +1240,7 @@ def validate_serialized_workflow_execution_summary(
         'created_at', 'updated_at'
     ])
 
-    assert body_workflow_execution['status'] == WorkflowExecution.Status(
+    assert body_workflow_execution['status'] == Execution.Status(
             model_workflow_execution.status).name
 
     if body_workflow_execution['run_reason'] is None:

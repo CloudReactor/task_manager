@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 import logging
 
-from typing import Optional
+from typing import TYPE_CHECKING
 
-from .execution import Execution
-from .schedulable import Schedulable
 from .execution_status_change_event import ExecutionStatusChangeEvent
-from .workflow_execution import WorkflowExecution
 from .workflow_execution_event import WorkflowExecutionEvent
+
+if TYPE_CHECKING:
+    from .workflow import Workflow
+    from .workflow_execution import WorkflowExecution
+
 
 
 logger = logging.getLogger(__name__)
@@ -24,10 +28,6 @@ class WorkflowExecutionStatusChangeEvent(ExecutionStatusChangeEvent, WorkflowExe
 
         super().__init__(*args, **kwargs)
 
-        self.successful_status = WorkflowExecution.Status.SUCCEEDED
-        self.failed_status = WorkflowExecution.Status.FAILED
-        self.terminated_status = WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT
-
         # Only generate error_summary if workflow_execution is set
         if self.workflow_execution:
             notification_generator = NotificationGenerator()
@@ -42,7 +42,7 @@ class WorkflowExecutionStatusChangeEvent(ExecutionStatusChangeEvent, WorkflowExe
                     workflow_execution=self.workflow_execution)
 
 
-    def get_schedulable(self) -> Optional[Schedulable]:
+    def get_schedulable(self) -> Workflow | None:
         if self.workflow:
             return self.workflow
 
@@ -51,5 +51,5 @@ class WorkflowExecutionStatusChangeEvent(ExecutionStatusChangeEvent, WorkflowExe
 
         return None
 
-    def get_execution(self) -> Optional[Execution]:
+    def get_execution(self) -> WorkflowExecution | None:
         return self.workflow_execution

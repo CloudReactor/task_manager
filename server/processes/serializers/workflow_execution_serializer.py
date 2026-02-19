@@ -6,7 +6,7 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
 from drf_spectacular.utils import extend_schema_field
 
-from ..models import WorkflowExecution
+from ..models import Execution, WorkflowExecution
 
 from .serializer_helpers import SerializerHelpers
 from .embedded_workflow_serializer import EmbeddedWorkflowSerializer
@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema_field(serializers.ChoiceField(choices=[
-        status.name for status in list(WorkflowExecution.Status)]),
+        status.name for status in list(Execution.Status)]),
         component_name='WorkflowExecutionStatus')
 class WorkflowExecutionStatusSerializer(serializers.BaseSerializer):
     def to_representation(self, instance):
-        return WorkflowExecution.Status(instance).name
+        return Execution.Status(instance).name
 
     def to_internal_value(self, data):
-        return WorkflowExecution.Status[data.upper()].value
+        return Execution.Status[data.upper()].value
 
 
 @extend_schema_field(serializers.ChoiceField(choices=[
@@ -147,24 +147,24 @@ class WorkflowExecutionSerializer(EmbeddedWorkflowSerializer):
     def to_internal_value(self, data):
         if 'status' not in data:
             if self.instance:
-                data['status'] = WorkflowExecution.Status(self.instance.status).name
+                data['status'] = Execution.Status(self.instance.status).name
             else:
-                data['status'] = WorkflowExecution.Status.MANUALLY_STARTED.name
+                data['status'] = Execution.Status.MANUALLY_STARTED.name
 
         validated = super().to_internal_value(data)
         validated['started_by'] = self.get_request_user()
         return validated
 
     def update(self, instance, validated):
-        request_status = WorkflowExecution.Status(validated.get(
-            'status', WorkflowExecution.Status.RUNNING.value))
-        existing_status = WorkflowExecution.Status(instance.status)
+        request_status = Execution.Status(validated.get(
+            'status', Execution.Status.RUNNING.value))
+        existing_status = Execution.Status(instance.status)
 
-        if request_status == WorkflowExecution.Status.RUNNING:
-            if existing_status != WorkflowExecution.Status.RUNNING:
+        if request_status == Execution.Status.RUNNING:
+            if existing_status != Execution.Status.RUNNING:
                 raise serializers.ValidationError(
                     {'status': f"Status cannot be set to {request_status.name} after {existing_status.name}"})
-        elif request_status == WorkflowExecution.Status.STOPPING:
+        elif request_status == Execution.Status.STOPPING:
             pass
         else:
             raise serializers.ValidationError(

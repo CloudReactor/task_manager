@@ -4,7 +4,8 @@ import pytest
 from processes.models import (
     TaskExecution,
     DelayedTaskExecutionStartEvent,
-    MissingHeartbeatDetectionEvent
+    MissingHeartbeatDetectionEvent,
+    Execution
 )
 from processes.services.task_execution_checker import TaskExecutionChecker
 
@@ -19,7 +20,7 @@ class TestTaskExecutionChecker:
         task = task_factory(max_manual_start_delay_before_alert_seconds=60)
         te = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.MANUALLY_STARTED,
+            status=Execution.Status.MANUALLY_STARTED,
             started_at=utc_now - timedelta(seconds=70),
             created_at=utc_now - timedelta(seconds=80)
         )
@@ -27,7 +28,7 @@ class TestTaskExecutionChecker:
         checker.check_task_execution(te)
 
         te.refresh_from_db()
-        assert te.status == TaskExecution.Status.MANUALLY_STARTED
+        assert te.status == Execution.Status.MANUALLY_STARTED
         assert DelayedTaskExecutionStartEvent.objects.filter(task_execution=te).count() == 1
 
     def test_check_started_on_time_abandoned(self, checker, task_factory, task_execution_factory):
@@ -35,7 +36,7 @@ class TestTaskExecutionChecker:
         task = task_factory(max_manual_start_delay_before_abandonment_seconds=120)
         te = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.MANUALLY_STARTED,
+            status=Execution.Status.MANUALLY_STARTED,
             started_at=utc_now - timedelta(seconds=130),
             created_at=utc_now - timedelta(seconds=140)
         )
@@ -43,7 +44,7 @@ class TestTaskExecutionChecker:
         checker.check_task_execution(te)
 
         te.refresh_from_db()
-        assert te.status == TaskExecution.Status.ABANDONED
+        assert te.status == Execution.Status.ABANDONED
         assert te.stop_reason == TaskExecution.StopReason.FAILED_TO_START
         assert te.marked_done_at is not None
 
@@ -52,14 +53,14 @@ class TestTaskExecutionChecker:
         task = task_factory(max_age_seconds=300)
         te = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.RUNNING,
+            status=Execution.Status.RUNNING,
             started_at=utc_now - timedelta(seconds=310)
         )
 
         checker.check_task_execution(te)
 
         te.refresh_from_db()
-        assert te.status == TaskExecution.Status.STOPPING
+        assert te.status == Execution.Status.STOPPING
         assert te.stop_reason == TaskExecution.StopReason.MAX_EXECUTION_TIME_EXCEEDED
         assert te.marked_done_at is not None
         assert te.finished_at is None  # Should be set by the task later
@@ -69,14 +70,14 @@ class TestTaskExecutionChecker:
         task = task_factory()
         te = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.STOPPING,
+            status=Execution.Status.STOPPING,
             started_at=utc_now - timedelta(seconds=checker.MAX_STOPPING_DURATION_SECONDS + 10)
         )
 
         checker.check_task_execution(te)
 
         te.refresh_from_db()
-        assert te.status == TaskExecution.Status.ABANDONED
+        assert te.status == Execution.Status.ABANDONED
         assert te.marked_done_at is not None
         assert te.finished_at is not None
 
@@ -85,7 +86,7 @@ class TestTaskExecutionChecker:
         task = task_factory(max_heartbeat_lateness_before_alert_seconds=30)
         te = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.RUNNING,
+            status=Execution.Status.RUNNING,
             started_at=utc_now - timedelta(seconds=200),
             heartbeat_interval_seconds=60,
             last_heartbeat_at=utc_now - timedelta(seconds=100)  # 100 > 60 + 30
@@ -94,7 +95,7 @@ class TestTaskExecutionChecker:
         checker.check_task_execution(te)
 
         te.refresh_from_db()
-        assert te.status == TaskExecution.Status.RUNNING
+        assert te.status == Execution.Status.RUNNING
         assert MissingHeartbeatDetectionEvent.objects.filter(task_execution=te).count() == 1
 
     def test_check_missing_heartbeat_abandoned(self, checker, task_factory, task_execution_factory):
@@ -102,7 +103,7 @@ class TestTaskExecutionChecker:
         task = task_factory(max_heartbeat_lateness_before_abandonment_seconds=120)
         te = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.RUNNING,
+            status=Execution.Status.RUNNING,
             started_at=utc_now - timedelta(seconds=300),
             heartbeat_interval_seconds=60,
             last_heartbeat_at=utc_now - timedelta(seconds=200)  # 200 > 60 + 120
@@ -111,7 +112,7 @@ class TestTaskExecutionChecker:
         checker.check_task_execution(te)
 
         te.refresh_from_db()
-        assert te.status == TaskExecution.Status.ABANDONED
+        assert te.status == Execution.Status.ABANDONED
         assert te.stop_reason == TaskExecution.StopReason.MISSING_HEARTBEAT
         assert te.marked_done_at is not None
         assert te.finished_at is not None
@@ -125,7 +126,7 @@ class TestTaskExecutionChecker:
         )
         te = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.RUNNING,
+            status=Execution.Status.RUNNING,
             started_at=utc_now - timedelta(seconds=100), # started before service updated
             heartbeat_interval_seconds=30,
             last_heartbeat_at=utc_now - timedelta(seconds=80) 
@@ -135,7 +136,7 @@ class TestTaskExecutionChecker:
 
         te.refresh_from_db()
         # Should still be abandoned because of missing heartbeat, but skip_alert should be True
-        assert te.status == TaskExecution.Status.ABANDONED
+        assert te.status == Execution.Status.ABANDONED
         assert te.skip_alert is True
 
     def test_check_missing_heartbeat_expected_at_shifted_by_service_update(self, checker, task_factory, task_execution_factory):
@@ -150,7 +151,7 @@ class TestTaskExecutionChecker:
         )
         te = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.RUNNING,
+            status=Execution.Status.RUNNING,
             started_at=utc_now - timedelta(seconds=200),
             heartbeat_interval_seconds=60,
             last_heartbeat_at=last_heartbeat_at
@@ -163,7 +164,7 @@ class TestTaskExecutionChecker:
         checker.check_task_execution(te)
     
         te.refresh_from_db()
-        assert te.status == TaskExecution.Status.ABANDONED
+        assert te.status == Execution.Status.ABANDONED
         assert te.stop_reason == TaskExecution.StopReason.MISSING_HEARTBEAT
         assert MissingHeartbeatDetectionEvent.objects.filter(task_execution=te).count() == 0
 
@@ -172,21 +173,21 @@ class TestTaskExecutionChecker:
         task = task_factory(max_age_seconds=100)
         te1 = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.RUNNING,
+            status=Execution.Status.RUNNING,
             started_at=utc_now - timedelta(seconds=150)
         )
         
         # Should be checked
         te2 = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.MANUALLY_STARTED,
+            status=Execution.Status.MANUALLY_STARTED,
             started_at=utc_now - timedelta(seconds=150)
         )
         
         # Should NOT be checked (already finished)
         te3 = task_execution_factory(
             task=task,
-            status=TaskExecution.Status.SUCCEEDED,
+            status=Execution.Status.SUCCEEDED,
             started_at=utc_now - timedelta(seconds=150),
             finished_at=utc_now - timedelta(seconds=50)
         )
@@ -197,6 +198,6 @@ class TestTaskExecutionChecker:
         te2.refresh_from_db()
         te3.refresh_from_db()
 
-        assert te1.status == TaskExecution.Status.STOPPING
-        assert te2.status == TaskExecution.Status.STOPPING # It also checks timeout after started_on_time
-        assert te3.status == TaskExecution.Status.SUCCEEDED
+        assert te1.status == Execution.Status.STOPPING
+        assert te2.status == Execution.Status.STOPPING # It also checks timeout after started_on_time
+        assert te3.status == Execution.Status.SUCCEEDED

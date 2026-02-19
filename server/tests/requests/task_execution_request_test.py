@@ -13,7 +13,7 @@ from processes.execution_methods.unknown_execution_method import UnknownExecutio
 
 from processes.models import (
     UserGroupAccessLevel, Subscription, RunEnvironment,
-    Task, TaskExecution
+    Task, TaskExecution, Execution
 )
 
 import pytest
@@ -795,7 +795,7 @@ def test_task_execution_with_unknown_method_auto_creation(
         task_dict['execution_method_type'] = 'Unknown'
 
     request_dict: dict[str, Any] = {
-        'status': TaskExecution.Status.RUNNING.name,
+        'status': Execution.Status.RUNNING.name,
         'task': {
             'name': 'Auto Unknown Method Task',
             'run_environment': {
@@ -851,13 +851,13 @@ def test_task_execution_with_unknown_method_auto_creation(
     status,
     status_code, validation_error_attribute, error_code,
 """, [
-    (TaskExecution.Status.MANUALLY_STARTED.name,
+    (Execution.Status.MANUALLY_STARTED.name,
      400, 'status', 'invalid'),
-    (TaskExecution.Status.RUNNING.name,
+    (Execution.Status.RUNNING.name,
      201, None, None),
-    (TaskExecution.Status.SUCCEEDED.name,
+    (Execution.Status.SUCCEEDED.name,
      201, None, None),
-    (TaskExecution.Status.FAILED.name,
+    (Execution.Status.FAILED.name,
      201, None, None),
 ])
 @mock_aws
@@ -1320,16 +1320,16 @@ def test_task_execution_update_conflict(skip_response_body: bool,
 
     assert task_execution is not None
 
-    task_execution.status = TaskExecution.Status.STOPPING
+    task_execution.status = Execution.Status.STOPPING
     task_execution.save()
 
     response = client.patch(url, {
-      'status': TaskExecution.Status.RUNNING.name
+      'status': Execution.Status.RUNNING.name
     })
 
     assert response.status_code == 409
     response_dict = cast(dict[str, Any], response.data)
-    assert response_dict['status'] == TaskExecution.Status.STOPPED.name
+    assert response_dict['status'] == Execution.Status.STOPPED.name
 
 
 @pytest.mark.django_db
@@ -1367,13 +1367,13 @@ def test_task_execution_update_unmodifiable_properties(
     task_execution.killed_by = user
     task_execution.marked_done_at = finished_at
     task_execution.marked_done_by = user
-    task_execution.status = TaskExecution.Status.STOPPING
+    task_execution.status = Execution.Status.STOPPING
     task_execution.save()
 
     user_2 = user_factory()
 
     response = client.patch(url, {
-      'status': TaskExecution.Status.STOPPED.name,
+      'status': Execution.Status.STOPPED.name,
       'started_at': '2020-09-01T00:00:00Z',
       'started_by': user_2.username,
       'finished_at': '2020-09-01T00:20:00Z',
@@ -1386,7 +1386,7 @@ def test_task_execution_update_unmodifiable_properties(
 
     assert response.status_code == 200
     response_dict = cast(dict[str, Any], response.data)
-    assert response_dict['status'] == TaskExecution.Status.STOPPED.name
+    assert response_dict['status'] == Execution.Status.STOPPED.name
     assert response_dict['started_by'] == user.username
     assert response_dict['started_at'] == iso8601_with_z(started_at)
     assert response_dict['finished_at'] == iso8601_with_z(finished_at)

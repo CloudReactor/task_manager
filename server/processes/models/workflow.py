@@ -80,7 +80,7 @@ class Workflow(Schedulable):
     def running_executions_queryset(self):
         from .workflow_execution import WorkflowExecution
         return self.workflowexecution_set.filter(
-            status=WorkflowExecution.Status.RUNNING
+            status=Execution.Status.RUNNING
         )
 
     @override
@@ -354,7 +354,7 @@ class Workflow(Schedulable):
             'workflow': {
                 'uuid': str(self.uuid)
             },
-            'status': WorkflowExecution.Status.MANUALLY_STARTED.name,
+            'status': Execution.Status.MANUALLY_STARTED.name,
             'run_reason': WorkflowExecution.RunReason.SCHEDULED_START.name,
         }
 

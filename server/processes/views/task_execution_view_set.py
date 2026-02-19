@@ -19,7 +19,7 @@ from django_filters import rest_framework as filters
 from ..permissions import IsCreatedByGroup
 
 from ..models import (
-    TaskExecution, Task, RunEnvironment, UserGroupAccessLevel
+    TaskExecution, Task, RunEnvironment, UserGroupAccessLevel, Execution
 )
 from ..serializers import TaskExecutionSerializer
 
@@ -173,7 +173,7 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
 
         saved = serializer.save()
 
-        if saved.status == TaskExecution.Status.MANUALLY_STARTED:
+        if saved.status == Execution.Status.MANUALLY_STARTED:
             saved.manually_start()
 
         headers = self.get_success_headers(serializer.data)
@@ -192,7 +192,7 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
 
         was_conflict = False
         request_status_name = request.data.get('status')
-        if request_status_name and (request_status_name == TaskExecution.Status.RUNNING.name):
+        if request_status_name and (request_status_name == Execution.Status.RUNNING.name):
             actual_status_name = response.data['status']
             if actual_status_name != request_status_name:
                 setattr(response, 'status_code', status.HTTP_409_CONFLICT)

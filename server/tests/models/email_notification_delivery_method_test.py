@@ -12,8 +12,8 @@ from moto import mock_aws
 from processes.common.request_helpers import context_with_request
 from processes.exception import NotificationRateLimitExceededException
 from processes.models import (
-   Event, NotificationDeliveryMethod, RunEnvironment, TaskExecution, TaskExecutionStatusChangeEvent,
-   WorkflowExecution, WorkflowExecutionStatusChangeEvent,
+   Event, NotificationDeliveryMethod, RunEnvironment, Execution, TaskExecutionStatusChangeEvent,
+   WorkflowExecutionStatusChangeEvent
 )
 from processes.serializers import (
     TaskExecutionSerializer, WorkflowExecutionSerializer
@@ -29,7 +29,7 @@ def test_send_task_execution_event(run_environment: RunEnvironment,
         email_to_addresses=['to@example.com'])
 
     task = task_factory(run_environment=run_environment)
-    te = task_execution_factory(task=task, status=TaskExecution.Status.FAILED.value)
+    te = task_execution_factory(task=task, status=Execution.Status.FAILED.value)
     event = TaskExecutionStatusChangeEvent(task_execution=te)
 
     context = context_with_request()
@@ -61,7 +61,7 @@ def test_send_workflow_execution_event(run_environment: RunEnvironment,
 
     workflow = workflow_factory()
     we = workflow_execution_factory(workflow=workflow,
-            status=WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT.value)
+            status=Execution.Status.TERMINATED_AFTER_TIME_OUT.value)
     event = WorkflowExecutionStatusChangeEvent(workflow_execution=we)
 
     context = context_with_request()

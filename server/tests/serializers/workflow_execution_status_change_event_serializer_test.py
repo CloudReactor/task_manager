@@ -1,7 +1,6 @@
 from processes.models import (
     Event,
-    WorkflowExecution,
-    WorkflowExecutionStatusChangeEvent,
+    Execution,
     UserGroupAccessLevel
 )
 
@@ -27,14 +26,14 @@ def test_workflow_execution_status_change_event_serialization_deserialization(
     # Create a Workflow and WorkflowExecution
     workflow = workflow_factory(created_by_group=group)
     workflow_execution = workflow_execution_factory(workflow=workflow, 
-            status=WorkflowExecution.Status.SUCCEEDED)
+            status=Execution.Status.SUCCEEDED)
 
     # Create a WorkflowExecutionStatusChangeEvent using factory
     status_event = workflow_execution_status_change_event_factory(
         created_by_group=group,
         workflow=workflow,
         workflow_execution=workflow_execution,
-        status=WorkflowExecution.Status.SUCCEEDED,
+        status=Execution.Status.SUCCEEDED,
         severity=Event.Severity.INFO.value
     )
 

@@ -9,8 +9,8 @@ from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from processes.models import Workflow, WorkflowExecution
-from processes.serializers import WorkflowSerializer, WorkflowSummarySerializer
+from ..models import Execution, Workflow, WorkflowExecution
+from ..serializers import WorkflowSerializer, WorkflowSummarySerializer
 
 from .base_view_set import BaseViewSet
 from .atomic_viewsets import AtomicCreateModelMixin, AtomicUpdateModelMixin, AtomicDestroyModelMixin
@@ -35,7 +35,7 @@ class WorkflowFilter(filters.FilterSet):
 
         if status_list_str:
             status_strings = status_list_str.split(',')
-            statuses = [WorkflowExecution.Status[s.upper()].value for s in status_strings]
+            statuses = [Execution.Status[s.upper()].value for s in status_strings]
             rv = rv.filter(latest_workflow_execution__status__in=statuses)
 
         return rv

@@ -1,4 +1,4 @@
-from processes.models import TaskExecution, TaskExecutionStatusChangeEvent
+from processes.models import TaskExecution, TaskExecutionStatusChangeEvent, Execution
 
 import factory
 from pytest_factoryboy import register
@@ -16,4 +16,4 @@ class TaskExecutionStatusChangeEventFactory(EventFactory):
     task = factory.SubFactory(TaskFactory)
     task_execution = factory.SubFactory(TaskExecutionFactory)
 
-    status = TaskExecution.Status.FAILED
+    status = Execution.Status.FAILED

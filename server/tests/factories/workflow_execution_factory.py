@@ -1,4 +1,4 @@
-from processes.models import WorkflowExecution
+from processes.models import Execution, WorkflowExecution
 
 import factory
 
@@ -11,5 +11,5 @@ class WorkflowExecutionFactory(ExecutionFactory):
         model = WorkflowExecution
 
     workflow = factory.SubFactory(WorkflowFactory)
-    status = WorkflowExecution.Status.RUNNING.value
+    status = Execution.Status.RUNNING.value
     run_reason = 0

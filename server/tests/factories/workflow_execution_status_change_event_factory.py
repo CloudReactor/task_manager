@@ -1,4 +1,4 @@
-from processes.models import WorkflowExecution, WorkflowExecutionStatusChangeEvent
+from processes.models import Execution, WorkflowExecutionStatusChangeEvent
 
 import factory
 from pytest_factoryboy import register
@@ -16,4 +16,4 @@ class WorkflowExecutionStatusChangeEventFactory(EventFactory):
     workflow = factory.SubFactory(WorkflowFactory)
     workflow_execution = factory.SubFactory(WorkflowExecutionFactory)
 
-    status = WorkflowExecution.Status.FAILED
+    status = Execution.Status.FAILED

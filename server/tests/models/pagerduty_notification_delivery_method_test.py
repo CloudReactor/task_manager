@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from processes.models import (
-   Event, RunEnvironment, TaskExecution, TaskExecutionStatusChangeEvent,
-   WorkflowExecution, WorkflowExecutionStatusChangeEvent,
+   Event, RunEnvironment, TaskExecutionStatusChangeEvent,
+   WorkflowExecution, WorkflowExecutionStatusChangeEvent, Execution,
 )
 
 
@@ -18,7 +18,7 @@ def test_send_task_execution_event(run_environment: RunEnvironment,
         pagerduty_api_key='test_api_key_12345')
 
     task = task_factory(run_environment=run_environment)
-    te = task_execution_factory(task=task, status=TaskExecution.Status.FAILED.value)
+    te = task_execution_factory(task=task, status=Execution.Status.FAILED.value)
     event = TaskExecutionStatusChangeEvent(task_execution=te)
     event.error_summary = 'Test error summary'
     event.grouping_key = 'test-grouping-key'
@@ -66,7 +66,7 @@ def test_send_workflow_execution_event(run_environment: RunEnvironment,
 
     workflow = workflow_factory()
     we = workflow_execution_factory(workflow=workflow,
-            status=WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT.value)
+            status=Execution.Status.TERMINATED_AFTER_TIME_OUT.value)
     event = WorkflowExecutionStatusChangeEvent(workflow_execution=we)
     event.error_summary = 'Workflow timeout error'
     event.grouping_key = 'workflow-grouping-key'
@@ -106,7 +106,7 @@ def test_send_resolution_event(run_environment: RunEnvironment,
         pagerduty_api_key='test_api_key_resolve')
 
     task = task_factory(run_environment=run_environment)
-    te = task_execution_factory(task=task, status=TaskExecution.Status.SUCCEEDED.value)
+    te = task_execution_factory(task=task, status=Execution.Status.SUCCEEDED.value)
 
     # Create a resolved event by setting resolved_event (is_resolution is read-only property)
     from processes.models import BasicEvent

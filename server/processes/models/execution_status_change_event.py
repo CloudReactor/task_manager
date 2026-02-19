@@ -11,10 +11,10 @@ from django.utils import timezone
 
 from .event import Event
 
-
 if TYPE_CHECKING:
     from .schedulable import Schedulable
     from .execution import Execution
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,24 +27,20 @@ class ExecutionStatusChangeEvent(Event):
     triggered_at = models.DateTimeField(null=True, blank=True)
 
     def __init__(self, *args, **kwargs):
-        from .task_execution import TaskExecution
-
         super().__init__(*args, **kwargs)
 
-        self.successful_status: enum.IntEnum = TaskExecution.Status.SUCCEEDED
-        self.failed_status: enum.IntEnum = TaskExecution.Status.FAILED
-        self.terminated_status: enum.IntEnum = TaskExecution.Status.TERMINATED_AFTER_TIME_OUT
-
     def maybe_postpone(self, schedulable: Schedulable) -> bool:
+        from .execution import Execution
+
         should_postpone = False
-        if (self.status == self.failed_status) and \
+        if (self.status == Execution.Status.FAILED) and \
                 ((schedulable.max_postponed_failure_count or 0) > 0) and \
                 schedulable.postponed_failure_before_success_seconds and \
                 (schedulable.postponed_failure_before_success_seconds > 0):
             logger.info(f"ExecutionStatusChangeEvent.maybe_postpone called, postponing failed event {self.uuid}")
             should_postpone = True
             self.postponed_until = timezone.now() + timedelta(seconds=schedulable.postponed_failure_before_success_seconds)
-        elif (self.status == self.terminated_status) and \
+        elif (self.status == Execution.Status.TERMINATED_AFTER_TIME_OUT) and \
                 ((schedulable.max_postponed_timeout_count or 0) > 0) and \
                 schedulable.postponed_timeout_before_success_seconds and \
                 (schedulable.postponed_timeout_before_success_seconds > 0):
@@ -60,6 +56,9 @@ class ExecutionStatusChangeEvent(Event):
         return should_postpone
 
     def update_after_postponed(self, status: enum.IntEnum, utc_now: datetime) -> bool:
+        from .execution import Execution
+
+
         if not self.postponed_until:
             logger.info("ExecutionStatusChangeEvent.update_after_postponed called but event not postponed")
             return False
@@ -78,7 +77,7 @@ class ExecutionStatusChangeEvent(Event):
             logger.warning("ExecutionStatusChangeEvent.update_after_postponed called Schedulable is missing")
         elif not schedulable.enabled:
             logger.info("ExecutionStatusChangeEvent.update_after_postponed called on disabled Schedulable")
-        elif status == self.successful_status:
+        elif status == Execution.Status.SUCCEEDED:
             success_count = (self.count_with_success_status_after_postponement or 0) + 1
             self.count_with_success_status_after_postponement = success_count
 
@@ -96,9 +95,9 @@ class ExecutionStatusChangeEvent(Event):
 
             threshold_count: int | None = None
 
-            if status == self.failed_status:
+            if status == Execution.Status.FAILED:
                 threshold_count = schedulable.max_postponed_failure_count or 0
-            elif status == self.terminated_status:
+            elif status == Execution.Status.TERMINATED_AFTER_TIME_OUT:
                 threshold_count = schedulable.max_postponed_timeout_count or 0
 
             if (threshold_count is not None) and \

@@ -19,7 +19,8 @@ from processes.models import (
     InsufficientServiceTaskExecutionsEvent,
     DelayedTaskExecutionStartEvent,
     RunEnvironment,
-    UserGroupAccessLevel
+    UserGroupAccessLevel,
+    Execution
 )
 
 import pytest
@@ -369,7 +370,7 @@ def test_event_create_access_control(
     if event_type == 'task_execution_status_change_event':
         task = task_factory(created_by_group=group, run_environment=run_environment)
         task_execution = task_execution_factory(task=task)
-        request_data['status'] = TaskExecution.Status.FAILED.name
+        request_data['status'] = Execution.Status.FAILED.name
         request_data['task'] = {
             'uuid': str(task.uuid)
         }
@@ -379,7 +380,7 @@ def test_event_create_access_control(
     elif event_type == 'workflow_execution_status_change_event':
         workflow = workflow_factory(created_by_group=group, run_environment=run_environment)
         workflow_execution = workflow_execution_factory(workflow=workflow)
-        request_data['status'] = WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT.name
+        request_data['status'] = Execution.Status.TERMINATED_AFTER_TIME_OUT.name
         request_data['workflow'] = {
             'uuid': str(workflow.uuid)
         }

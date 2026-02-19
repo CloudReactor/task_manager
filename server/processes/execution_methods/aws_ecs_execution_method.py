@@ -1310,8 +1310,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             }
 
         if not success:
-            from ..models import TaskExecution
-            task_execution.status = TaskExecution.Status.FAILED
+            from ..models import Execution, TaskExecution
+            task_execution.status = Execution.Status.FAILED
             task_execution.stop_reason = TaskExecution.StopReason.FAILED_TO_START
             task_execution.finished_at = timezone.now()
 

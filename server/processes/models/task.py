@@ -194,8 +194,8 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         return self.taskexecution_set.filter(status__in=TaskExecution.IN_PROGRESS_STATUSES)
 
     def running_executions_queryset(self):
-        from .task_execution import TaskExecution
-        return self.taskexecution_set.filter(status=TaskExecution.Status.RUNNING)
+        from .execution import Execution
+        return self.taskexecution_set.filter(status=Execution.Status.RUNNING)
 
     @override
     def concurrency_at(self, dt: datetime) -> int:

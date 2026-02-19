@@ -11,6 +11,7 @@ from moto import mock_aws
 from processes.models import (
     Subscription,
     SubscriptionPlan,
+    Execution,
     WorkflowExecution
 )
 
@@ -45,7 +46,7 @@ def test_purge_history(max_executions: int, reservation_count: int,
 
     another_workflow = workflow_factory(created_by_group=workflow.created_by_group)
     another_workflow_execution = workflow_execution_factory(workflow=another_workflow,
-            status=WorkflowExecution.Status.SUCCEEDED)
+            status=Execution.Status.SUCCEEDED)
 
     completed_workflow_execution_ids: List[int] = []
 

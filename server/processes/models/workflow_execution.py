@@ -29,39 +29,29 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class WorkflowExecution(Execution):
+class WorkflowExecution(Execution):    
     """
     A WorkflowExecution holds data on a specific execution (run) of a Workflow.
     """
 
-    @enum.unique
-    class Status(enum.IntEnum):
-        RUNNING = 0
-        SUCCEEDED = 1
-        FAILED = 2
-        TERMINATED_AFTER_TIME_OUT = 3
-        STOPPING = 6
-        STOPPED = 7
-        MANUALLY_STARTED = 8
-
     IN_PROGRESS_STATUSES = [
-        Status.MANUALLY_STARTED,
-        Status.RUNNING,
+        Execution.Status.MANUALLY_STARTED,
+        Execution.Status.RUNNING,
      ]
 
     COMPLETED_STATUSES = [
-        Status.SUCCEEDED,
-        Status.FAILED,
-        Status.TERMINATED_AFTER_TIME_OUT,
-        Status.STOPPING,
-        Status.STOPPED,
+        Execution.Status.SUCCEEDED,
+        Execution.Status.FAILED,
+        Execution.Status.TERMINATED_AFTER_TIME_OUT,
+        Execution.Status.STOPPING,
+        Execution.Status.STOPPED,
     ]
 
     STATUSES_WITHOUT_MANUAL_INTERVENTION = [
-        Status.MANUALLY_STARTED,
-        Status.RUNNING,
-        Status.SUCCEEDED,
-        Status.FAILED
+        Execution.Status.MANUALLY_STARTED,
+        Execution.Status.RUNNING,
+        Execution.Status.SUCCEEDED,
+        Execution.Status.FAILED
     ]
 
     @enum.unique
@@ -111,7 +101,7 @@ class WorkflowExecution(Execution):
 
         logger.info(f"Manually starting workflow execution with UUID = {self.uuid} ...")
 
-        if self.status != WorkflowExecution.Status.MANUALLY_STARTED:
+        if self.status != Execution.Status.MANUALLY_STARTED:
             msg = f"Workflow execution has status {self.status}, can't manually start"
             logger.warning(msg)
             raise UnprocessableEntity(detail=msg)
@@ -128,7 +118,7 @@ class WorkflowExecution(Execution):
 
             logger.info(f"Manually starting workflow with UUID = {workflow.uuid}, name = '{workflow.name}' ...")
 
-            self.status = WorkflowExecution.Status.RUNNING
+            self.status = Execution.Status.RUNNING
             # TODO: allows this to be SCHEDULED_START depending on parameter
             self.run_reason = WorkflowExecution.RunReason.EXPLICIT_START
             self.started_at = timezone.now()
@@ -145,7 +135,7 @@ class WorkflowExecution(Execution):
             self.check_if_complete()
         except Exception:
             logger.exception(f"Failed to start Workflow {self.workflow.uuid}")
-            self.status = WorkflowExecution.Status.FAILED
+            self.status = Execution.Status.FAILED
             self.finished_at = timezone.now()
             self.save()
 
@@ -171,12 +161,12 @@ class WorkflowExecution(Execution):
 
             wpti_uuids = WorkflowTaskInstanceExecution.objects.select_related('workflow_task_instance',
                 'task_execution').filter(workflow_execution=self, is_latest=True).exclude(
-                task_execution__status=TaskExecution.Status.SUCCEEDED).values_list(
+                task_execution__status=Execution.Status.SUCCEEDED).values_list(
                 'workflow_task_instance__uuid', flat=True)
 
             self.invalidate_reachable_task_instance_executions(wpti_uuids)
 
-            self.status = WorkflowExecution.Status.RUNNING
+            self.status = Execution.Status.RUNNING
             self.run_reason = WorkflowExecution.RunReason.EXPLICIT_RETRY
             self.stop_reason = None
             self.started_at = now
@@ -190,7 +180,7 @@ class WorkflowExecution(Execution):
                 root.retry_if_unsuccessful(workflow_execution=self)
         except Exception:
             logger.exception(f"Failed to retry workflow {self.workflow.uuid}")
-            self.status = WorkflowExecution.Status.FAILED
+            self.status = Execution.Status.FAILED
             self.finished_at = timezone.now()
         finally:
             # In case there are no root processes
@@ -203,7 +193,7 @@ class WorkflowExecution(Execution):
         skipped=False, retry_mode=False) -> None:
         from .workflow_transition_evaluation import WorkflowTransitionEvaluation
 
-        if self.status in [WorkflowExecution.Status.STOPPING, WorkflowExecution.Status.STOPPED]:
+        if self.status in [Execution.Status.STOPPING, Execution.Status.STOPPED]:
             logger.info(f"Ignoring task instance execution finished since workflow execution is already {self.status}")
             return
 
@@ -220,7 +210,7 @@ class WorkflowExecution(Execution):
                 if skipped:
                     # CHECKME: should we use the last Task Execution's properties?
                     should_activate = transition.should_activate(
-                        task_execution_status=TaskExecution.Status.SUCCEEDED,
+                        task_execution_status=Execution.Status.SUCCEEDED,
                         exit_code=0)
                 else:
                     should_activate = transition.should_activate_from(wptie)
@@ -238,7 +228,7 @@ class WorkflowExecution(Execution):
 
             self.check_if_complete(is_pending_transition_activation=len(activated_transitions) > 0)
 
-            if self.status == TaskExecution.Status.RUNNING:
+            if self.status == Execution.Status.RUNNING:
                 first_ex = None
                 for pair in activated_transitions:
                     transition = pair[0]
@@ -254,7 +244,7 @@ class WorkflowExecution(Execution):
                     raise first_ex
         except Exception:
             logger.exception(f"Failed to execute workflow {self.workflow.uuid} after wpti {wptie.workflow_task_instance.uuid} finished")
-            self.status = WorkflowExecution.Status.FAILED
+            self.status = Execution.Status.FAILED
             self.finished_at = timezone.now()
             self.save()
 
@@ -275,7 +265,7 @@ class WorkflowExecution(Execution):
 
         self.invalidate_alerts()
 
-        self.status = WorkflowExecution.Status.RUNNING
+        self.status = Execution.Status.RUNNING
         self.save()
 
         self.invalidate_reachable_task_instance_executions(wti_uuids)
@@ -315,9 +305,9 @@ class WorkflowExecution(Execution):
                 if not self.finished_at:
                     self.finished_at = timezone.now()
 
-                if updated_status == WorkflowExecution.Status.FAILED:
+                if updated_status == Execution.Status.FAILED:
                     self.failed_attempts += 1
-                elif updated_status == WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT:
+                elif updated_status == Execution.Status.TERMINATED_AFTER_TIME_OUT:
                     self.timed_out_attempts += 1
 
                 self.save()
@@ -335,14 +325,14 @@ class WorkflowExecution(Execution):
         from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
         from .workflow_transition_evaluation import WorkflowTransitionEvaluation
 
-        if self.status != WorkflowExecution.Status.RUNNING:
+        if self.status != Execution.Status.RUNNING:
             return self.status
 
         current_executions = list(WorkflowTaskInstanceExecution.objects.filter(
             workflow_execution=self, is_latest=True).prefetch_related('task_execution').
-            exclude(task_execution__status=TaskExecution.Status.SUCCEEDED))
+            exclude(task_execution__status=Execution.Status.SUCCEEDED))
 
-        updated_status_if_not_running = WorkflowExecution.Status.SUCCEEDED
+        updated_status_if_not_running = Execution.Status.SUCCEEDED
         running_task_execution: Optional[TaskExecution] = None
 
         for wtie in current_executions:
@@ -363,7 +353,7 @@ class WorkflowExecution(Execution):
                 logger.info(f"wti {wti.uuid} status {tes} was_handled = {was_handled}")
 
                 # TERMINATED_AFTER_TIME_OUT is first since UNSUCCESSFUL_STATUSES contains it
-                if tes == TaskExecution.Status.TERMINATED_AFTER_TIME_OUT:
+                if tes == Execution.Status.TERMINATED_AFTER_TIME_OUT:
                     if (wti.timeout_behavior == WorkflowTaskInstance.TIMEOUT_BEHAVIOR_IGNORE) or (
                             was_handled and
                             ((wti.timeout_behavior == WorkflowTaskInstance.TIMEOUT_BEHAVIOR_FAIL_WORKFLOW_IF_UNHANDLED) or \
@@ -372,43 +362,43 @@ class WorkflowExecution(Execution):
                     else:
                         if (wti.timeout_behavior == WorkflowTaskInstance.TIMEOUT_BEHAVIOR_FAIL_WORKFLOW_ALWAYS) or \
                             (wti.timeout_behavior == WorkflowTaskInstance.TIMEOUT_BEHAVIOR_FAIL_WORKFLOW_IF_UNHANDLED):
-                            updated_status_if_not_running = WorkflowExecution.Status.FAILED
+                            updated_status_if_not_running = Execution.Status.FAILED
                         elif (wti.timeout_behavior == WorkflowTaskInstance.TIMEOUT_BEHAVIOR_TIMEOUT_WORKFLOW_ALWAYS) or \
                             (wti.timeout_behavior == WorkflowTaskInstance.TIMEOUT_BEHAVIOR_TIMEOUT_WORKFLOW_IF_UNHANDLED):
 
                             # FAILED takes precedence over TERMINATED so don't override and don't return immediately
-                            if updated_status_if_not_running == WorkflowExecution.Status.RUNNING:
-                                updated_status_if_not_running = WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT
+                            if updated_status_if_not_running == Execution.Status.RUNNING:
+                                updated_status_if_not_running = Execution.Status.TERMINATED_AFTER_TIME_OUT
 
                 elif tes in TaskExecution.UNSUCCESSFUL_STATUSES:
                     if (wti.failure_behavior == WorkflowTaskInstance.FAILURE_BEHAVIOR_IGNORE) or (
                             (wti.failure_behavior == WorkflowTaskInstance.FAILURE_BEHAVIOR_FAIL_WORKFLOW_IF_UNHANDLED) and was_handled):
                         logger.debug(f"Ignoring failure in wti {wti.uuid} since it is ignored or handled")
                     else:
-                        updated_status_if_not_running = WorkflowExecution.Status.FAILED
+                        updated_status_if_not_running = Execution.Status.FAILED
 
                         if wti.allow_workflow_execution_after_failure:
                             logger.info(f"Allowing workflow execution after failure in wti {wti.uuid}")
                         else:
                             logger.info(
                                 f"Task execution {task_execution.uuid} of wtie {wtie.uuid}, wti {wti.uuid} failed, failing workflow immediately")
-                            return WorkflowExecution.Status.FAILED
+                            return Execution.Status.FAILED
 
-                if updated_status_if_not_running == WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT:
+                if updated_status_if_not_running == Execution.Status.TERMINATED_AFTER_TIME_OUT:
                     if wti.allow_workflow_execution_after_timeout:
                         logger.info(f"Allowing workflow execution after timeout in wti {wti.uuid}")
                     else:
                         logger.info(
                             f"Task execution {task_execution.uuid} of wtie {wtie.uuid}, wti {wti.uuid} timed out, timing out immediately")
-                        return WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT
+                        return Execution.Status.TERMINATED_AFTER_TIME_OUT
 
         if is_pending_transition_activation:
             logger.info('is_pending_transition_activation = True, so updated status is RUNNING')
-            return WorkflowExecution.Status.RUNNING
+            return Execution.Status.RUNNING
 
         if running_task_execution:
             logger.info(f"Task execution {running_task_execution.uuid} is still running, keeping status as RUNNING")
-            return WorkflowExecution.Status.RUNNING
+            return Execution.Status.RUNNING
 
         logger.info(f"compute_updated_status(): returning {updated_status_if_not_running=}")
         return updated_status_if_not_running
@@ -446,7 +436,7 @@ class WorkflowExecution(Execution):
     def handle_stop_requested(self):
         now = timezone.now()
 
-        self.status = WorkflowExecution.Status.STOPPED
+        self.status = Execution.Status.STOPPED
         self.finished_at = now
 
         current_user = None
@@ -471,13 +461,13 @@ class WorkflowExecution(Execution):
 
         alert_methods = workflow.alert_methods.filter(enabled=True)
 
-        severity = DEFAULT_NOTIFICATION_SUCCESS_SEVERITY if (self.status == TaskExecution.Status.SUCCEEDED) else \
+        severity = DEFAULT_NOTIFICATION_SUCCESS_SEVERITY if (self.status == Execution.Status.SUCCEEDED) else \
             DEFAULT_NOTIFICATION_ERROR_SEVERITY
 
         for am in alert_methods:
-            should_send = (am.notify_on_success and (self.status == WorkflowExecution.Status.SUCCEEDED)) or \
-                (am.notify_on_failure and (self.status == WorkflowExecution.Status.FAILED)) or \
-                (am.notify_on_timeout and (self.status == WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT))
+            should_send = (am.notify_on_success and (self.status == Execution.Status.SUCCEEDED)) or \
+                (am.notify_on_failure and (self.status == Execution.Status.FAILED)) or \
+                (am.notify_on_timeout and (self.status == Execution.Status.TERMINATED_AFTER_TIME_OUT))
 
             if should_send:
                 should_send = not WorkflowExecutionAlert.objects.filter(workflow_execution=self,
@@ -527,7 +517,7 @@ class WorkflowExecution(Execution):
         else:
             logger.info(f"Stopping workflow after {self.workflow.default_max_retries} retries")
             utc_now = timezone.now()
-            self.status = WorkflowExecution.Status.TERMINATED_AFTER_TIME_OUT
+            self.status = Execution.Status.TERMINATED_AFTER_TIME_OUT
             self.marked_done_at = utc_now
             self.finished_at = utc_now
             self.save()
@@ -552,7 +542,7 @@ class WorkflowExecution(Execution):
         count = 0
         for te in TaskExecution.objects.filter(uuid__in=task_execution_uuids):
             try:
-                te.status = TaskExecution.Status.STOPPING
+                te.status = Execution.Status.STOPPING
                 te.stop_reason = stop_reason
                 te.kill_started_at = now
                 te.killed_by = current_user
@@ -567,8 +557,8 @@ class WorkflowExecution(Execution):
 def pre_save_workflow_execution(sender: Type[WorkflowExecution], **kwargs) -> None:
     instance = kwargs['instance']
 
-    # if (instance.status == TaskExecution.Status.FAILED or \
-    #     instance.status == TaskExecution.Status.TERMINATED_AFTER_TIME_OUT) and \
+    # if (instance.status == Execution.Status.FAILED or \
+    #     instance.status == Execution.Status.TERMINATED_AFTER_TIME_OUT) and \
     #     (instance.pagerduty_event_sent_at is None):
     #     try:
     #         instance.notify_error()
@@ -582,8 +572,8 @@ def pre_save_workflow_execution(sender: Type[WorkflowExecution], **kwargs) -> No
 
     else:
         old_instance = WorkflowExecution.objects.filter(id=instance.id).first()
-        if old_instance and (old_instance.status == WorkflowExecution.Status.RUNNING) and \
-            (instance.status == WorkflowExecution.Status.STOPPING):
+        if old_instance and (old_instance.status == Execution.Status.RUNNING) and \
+            (instance.status == Execution.Status.STOPPING):
             instance.handle_stop_requested()
 
 

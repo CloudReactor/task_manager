@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import logging
 
-from typing import Optional, override
+from typing import TYPE_CHECKING, override
 
-from .task import Task
-from .task_execution import TaskExecution
 from .execution_status_change_event import ExecutionStatusChangeEvent
 from .task_execution_event import TaskExecutionEvent
+
+
+if TYPE_CHECKING:
+    from .task_execution import TaskExecution
+    from .task import Task
 
 
 logger = logging.getLogger(__name__)
@@ -18,14 +23,10 @@ class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEv
     ERROR_MESSAGE_TEMPLATE = \
         """Execution {{task_execution.uuid}} of Task '{{task.name}}' finished with status {{task_execution.status}}"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):        
         from ..services.notification_generator import NotificationGenerator
 
         super().__init__(*args, **kwargs)
-
-        self.successful_status = TaskExecution.Status.SUCCEEDED
-        self.failed_status = TaskExecution.Status.FAILED
-        self.terminated_status = TaskExecution.Status.TERMINATED_AFTER_TIME_OUT
 
         # Only generate error_summary if task_execution is set
         if self.task_execution:
@@ -42,7 +43,7 @@ class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEv
 
 
     @override
-    def get_schedulable(self) -> Optional['Task']:
+    def get_schedulable(self) -> Task | None:
         if self.task:
             return self.task
 
@@ -52,5 +53,5 @@ class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEv
         return None
 
     @override
-    def get_execution(self) -> Optional['TaskExecution']:
+    def get_execution(self) -> TaskExecution | None:
         return self.task_execution

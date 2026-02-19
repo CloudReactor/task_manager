@@ -15,7 +15,7 @@ from drf_spectacular.utils import extend_schema_field
 
 from ..models import (
     Task, TaskExecution, UserGroupAccessLevel,
-    WorkflowTaskInstanceExecution
+    WorkflowTaskInstanceExecution, Execution
 )
 
 from ..common import (
@@ -41,14 +41,14 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema_field(field=serializers.ChoiceField(choices=[
-        status.name for status in list(TaskExecution.Status)]),
+        status.name for status in list(Execution.Status)]),
         component_name='TaskExecutionStatus')
 class TaskExecutionStatusSerializer(serializers.BaseSerializer):
-    def to_representation(self, instance: TaskExecution.Status) -> str:
-        return TaskExecution.Status(instance).name
+    def to_representation(self, instance: Execution.Status) -> str:
+        return Execution.Status(instance).name
 
     def to_internal_value(self, data: str) -> int:
-        return TaskExecution.Status[data.upper()].value
+        return Execution.Status[data.upper()].value
 
 
 @extend_schema_field(serializers.ChoiceField(choices=[
@@ -148,7 +148,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         status = attrs.get('status')
 
-        if status == TaskExecution.Status.MANUALLY_STARTED:
+        if status == Execution.Status.MANUALLY_STARTED:
             data_task = attrs.get('task')
 
             if data_task is None:
@@ -362,18 +362,18 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
     def create(self, validated_data: dict[str, Any]):
         now = timezone.now()
 
-        request_status = TaskExecution.Status(validated_data.get(
-            'status', TaskExecution.Status.RUNNING))
+        request_status = Execution.Status(validated_data.get(
+            'status', Execution.Status.RUNNING))
 
         logger.info(f"create: request status = {request_status.name}")
 
-        if request_status == TaskExecution.Status.RUNNING:
+        if request_status == Execution.Status.RUNNING:
             if not validated_data.get('last_heartbeat_at'):
                 validated_data['last_heartbeat_at'] = now
-        elif request_status in [TaskExecution.Status.SUCCEEDED,
-                TaskExecution.Status.FAILED, TaskExecution.Status.ABORTED,
-                TaskExecution.Status.TERMINATED_AFTER_TIME_OUT,
-                TaskExecution.Status.EXITED_AFTER_MARKED_DONE]:
+        elif request_status in [Execution.Status.SUCCEEDED,
+                Execution.Status.FAILED, Execution.Status.ABORTED,
+                Execution.Status.TERMINATED_AFTER_TIME_OUT,
+                Execution.Status.EXITED_AFTER_MARKED_DONE]:
             if 'finished_at' not in validated_data:
                 validated_data['finished_at'] = now
 
@@ -405,17 +405,17 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
             validated_data['task'] = validated_task
 
-        request_status = TaskExecution.Status(validated_data.get(
-                'status', TaskExecution.Status.RUNNING))
-        existing_status = TaskExecution.Status(instance.status)
+        request_status = Execution.Status(validated_data.get(
+                'status', Execution.Status.RUNNING))
+        existing_status = Execution.Status(instance.status)
 
-        if request_status == TaskExecution.Status.RUNNING:
-            if existing_status == TaskExecution.Status.STOPPING:
+        if request_status == Execution.Status.RUNNING:
+            if existing_status == Execution.Status.STOPPING:
                 # We'll be returning a 409 status code. Assume the Task will stop. In the future,
                 # implement a handshake for wrapper scripts. For those versions that implement
                 # the handshake we'll leave the status STOPPING until the script sends
                 # acknowledgment with a EXITED_AFTER_MARKED_DONE status, or something similar.
-                validated_data['status'] = TaskExecution.Status.STOPPED
+                validated_data['status'] = Execution.Status.STOPPED
                 validated_data['finished_at'] = now
             elif existing_status not in TaskExecution.IN_PROGRESS_STATUSES:
                 validation_error = serializers.ValidationError(
@@ -425,26 +425,26 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
             if 'last_heartbeat_at' not in validated_data:
                 validated_data['last_heartbeat_at'] = now
-        elif request_status in (TaskExecution.Status.SUCCEEDED,
-                TaskExecution.Status.FAILED,
-                TaskExecution.Status.TERMINATED_AFTER_TIME_OUT,
-                TaskExecution.Status.ABORTED):
+        elif request_status in (Execution.Status.SUCCEEDED,
+                Execution.Status.FAILED,
+                Execution.Status.TERMINATED_AFTER_TIME_OUT,
+                Execution.Status.ABORTED):
             logger.info(f"old status = {existing_status.name}")
 
             if existing_status not in (request_status,
-                    TaskExecution.Status.RUNNING,
-                    TaskExecution.Status.MANUALLY_STARTED,
-                    TaskExecution.Status.STOPPING):
+                    Execution.Status.RUNNING,
+                    Execution.Status.MANUALLY_STARTED,
+                    Execution.Status.STOPPING):
                 validation_error = serializers.ValidationError(
                     {'status': f"Status cannot be set to {request_status.name} after {existing_status.name}"})
                 validation_error.status_code = rfstatus.HTTP_409_CONFLICT
                 raise validation_error
 
-            if (request_status in (TaskExecution.Status.FAILED,
-                    TaskExecution.Status.ABORTED)) \
-                    and (existing_status == TaskExecution.Status.STOPPING):
+            if (request_status in (Execution.Status.FAILED,
+                    Execution.Status.ABORTED)) \
+                    and (existing_status == Execution.Status.STOPPING):
                 logger.info(f"Overriding status from {request_status.name} to STOPPED since existing status was STOPPING")
-                validated_data['status'] = TaskExecution.Status.STOPPED
+                validated_data['status'] = Execution.Status.STOPPED
 
             if ('finished_at' not in validated_data) and (not instance.finished_at):
                 validated_data['finished_at'] = now
@@ -529,7 +529,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         if (status is None) and existing_task_execution:
             status = existing_task_execution.status
 
-        if status != TaskExecution.Status.MANUALLY_STARTED:
+        if status != Execution.Status.MANUALLY_STARTED:
             return
 
         escalate = False

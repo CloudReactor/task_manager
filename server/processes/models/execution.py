@@ -90,6 +90,60 @@ class Execution(UuidModel, ExecutionProbabilities):
 
         return None
 
+    def should_create_status_change_event(self) -> bool:
+        executable = self.get_schedulable()
+
+        if not executable:
+            logger.info("Skipping status change event creation since Schedulable is missing")
+            return False
+
+        if not executable.enabled:
+            logger.info(f"Skipping status change event creation since Schedulable {executable.uuid} is disabled")
+            return False
+
+        if self.status_change_event_queryset_for_execution().filter(status=self.status).exists():
+            logger.info(f"Skipping status change event creation for Execution {self.uuid} since it already has a status change event")
+            return False
+                
+        return True
+
+    def update_postponed_events(self) -> int:
+        executable = self.get_schedulable()
+
+        if not executable:
+            logger.warning("Skipping updating postponed notifications since Schedulable is missing")
+            return 0
+
+        if not executable.enabled:
+            logger.info("Skipping updating postponed notifications since Schedulable is disabled")
+            return 0
+
+
+        status = self.status
+        utc_now = timezone.now()
+        events = self.status_change_event_queryset_for_executable().filter(
+                postponed_until__isnull=False, postponed_until__gt=utc_now,
+                resolved_at__isnull=True, triggered_at__isnull=True)
+
+        if not events.exists():
+            return 0
+
+        updated_count = 0
+
+        for event in events.all():
+            if event.update_after_postponed(status=status, utc_now=utc_now):
+                updated_count += 1
+
+        return updated_count
+
+
+    def status_change_event_queryset_for_execution(self) -> models.QuerySet:
+        raise NotImplementedError()
+
+
+    def status_change_event_queryset_for_executable(self) -> models.QuerySet:
+        raise NotImplementedError()
+
 
     def send_event_notifications(self, event: Event) -> int:
         # TODO: use Execution specific notification profiles

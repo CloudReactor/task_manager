@@ -71,7 +71,7 @@ class WorkflowExecutionFilter(filters.FilterSet):
 
         if status_list_str:
             status_strings = status_list_str.split(',')
-            statuses = [WorkflowExecution.Status[s.upper()].value for s in status_strings]
+            statuses = [Execution.Status[s.upper()].value for s in status_strings]
             rv = rv.filter(status__in=statuses)
 
         return rv
@@ -171,7 +171,7 @@ class WorkflowExecutionViewSet(AtomicCreateModelMixin,
 
         requested_status = validated_data.get('status')
 
-        if (requested_status is not None) and (requested_status != WorkflowExecution.Status.MANUALLY_STARTED):
+        if (requested_status is not None) and (requested_status != Execution.Status.MANUALLY_STARTED):
             raise serializers.ValidationError({
                 'status': [ErrorDetail('Can only create WorkflowExecution with status MANUALLY_STARTED', code='invalid')]
             })
@@ -204,7 +204,7 @@ class WorkflowExecutionViewSet(AtomicCreateModelMixin,
 
         saved = serializer.save()
 
-        if saved.status == WorkflowExecution.Status.MANUALLY_STARTED:
+        if saved.status == Execution.Status.MANUALLY_STARTED:
             saved.manually_start()
 
         requested_workflow.latest_workflow_execution = saved

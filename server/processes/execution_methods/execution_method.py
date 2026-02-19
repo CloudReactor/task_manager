@@ -207,7 +207,7 @@ class ExecutionMethod:
 
             # {
             #     'workflow': workflow_info,
-            #     'status': WorkflowExecution.Status(workflow_execution.status).name,
+            #     'status': Execution.Status(workflow_execution.status).name,
             #     'run_reason': we_run_reason,
             #     'started_at': workflow_execution.started_at.replace(microsecond=0).isoformat(),
             #     'failed_attempts': workflow_execution.failed_attempts,

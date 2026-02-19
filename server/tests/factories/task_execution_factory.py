@@ -1,4 +1,4 @@
-from processes.models import TaskExecution
+from processes.models import Execution, TaskExecution
 from processes.models.convert_legacy_em_and_infra import populate_task_execution_em_and_infra
 
 import factory
@@ -16,7 +16,7 @@ class TaskExecutionFactory(ExecutionFactory):
         model = TaskExecution
 
     task = factory.SubFactory(TaskFactory)
-    status = TaskExecution.Status.RUNNING.value
+    status = Execution.Status.RUNNING.value
     run_reason = TaskExecution.RunReason.EXPLICIT_START.value
     stop_reason = None
 

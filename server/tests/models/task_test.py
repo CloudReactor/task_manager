@@ -11,7 +11,8 @@ from moto import mock_aws
 from processes.models import (
     Subscription,
     SubscriptionPlan,
-    TaskExecution
+    TaskExecution,
+    Execution
 )
 
 
@@ -46,7 +47,7 @@ def test_purge_history(max_executions: int, reservation_count: int,
 
     another_task = task_factory(created_by_group=task.created_by_group)
     another_task_execution = task_execution_factory(task=another_task,
-            status=TaskExecution.Status.SUCCEEDED)
+            status=Execution.Status.SUCCEEDED)
 
     completed_task_execution_ids: List[int] = []
 

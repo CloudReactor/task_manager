@@ -10,6 +10,7 @@ from django.db import models
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
+from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
 
@@ -43,20 +44,6 @@ logger = logging.getLogger(__name__)
 
 class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
     @enum.unique
-    class Status(enum.IntEnum):
-        RUNNING = 0
-        SUCCEEDED = 1
-        FAILED = 2
-        TERMINATED_AFTER_TIME_OUT = 3
-        MARKED_DONE = 4
-        EXITED_AFTER_MARKED_DONE = 5
-        STOPPING = 6
-        STOPPED = 7
-        ABANDONED = 8
-        MANUALLY_STARTED = 9
-        ABORTED = 10
-
-    @enum.unique
     class RunReason(enum.IntEnum):
         EXPLICIT_START = 0
         SCHEDULED_START = 1
@@ -72,14 +59,14 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         WORKFLOW_EXECUTION_RETRIED = 101
         WORKFLOW_EXECUTION_TIMED_OUT = 102
 
-    IN_PROGRESS_STATUSES = [Status.MANUALLY_STARTED, Status.RUNNING]
+    IN_PROGRESS_STATUSES = [Execution.Status.MANUALLY_STARTED, Execution.Status.RUNNING]
     UNSUCCESSFUL_STATUSES = [
-        Status.FAILED, Status.TERMINATED_AFTER_TIME_OUT, Status.MARKED_DONE,
-        Status.EXITED_AFTER_MARKED_DONE, Status.STOPPING, Status.STOPPED,
-        Status.ABANDONED, Status.ABORTED
+        Execution.Status.FAILED, Execution.Status.TERMINATED_AFTER_TIME_OUT, Execution.Status.MARKED_DONE,
+        Execution.Status.EXITED_AFTER_MARKED_DONE, Execution.Status.STOPPING, Execution.Status.STOPPED,
+        Execution.Status.ABANDONED, Execution.Status.ABORTED
     ]
-    COMPLETED_STATUSES = [Status.SUCCEEDED] + UNSUCCESSFUL_STATUSES
-    AWAITING_UPDATE_STATUSES = IN_PROGRESS_STATUSES + [Status.STOPPING]
+    COMPLETED_STATUSES = [Execution.Status.SUCCEEDED] + UNSUCCESSFUL_STATUSES
+    AWAITING_UPDATE_STATUSES = IN_PROGRESS_STATUSES + [Execution.Status.STOPPING]
 
     FOUND_HEARTBEAT_EVENT_SUMMARY_TEMPLATE = \
         """Task '{{task_execution.task.name}}' has sent a heartbeat after being late"""
@@ -221,7 +208,7 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         return self.status in TaskExecution.IN_PROGRESS_STATUSES
 
     def is_successful(self) -> bool:
-        return self.status == TaskExecution.Status.SUCCEEDED
+        return self.status == Execution.Status.SUCCEEDED
 
     # FIXME: this works for GitHub and GitLab, not sure about other providers
     @property
@@ -234,7 +221,7 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
     def manually_start(self) -> None:
         logger.info("TaskExecution.manually_start()")
 
-        if self.status != TaskExecution.Status.MANUALLY_STARTED:
+        if self.status != Execution.Status.MANUALLY_STARTED:
             raise ValidationError(
                     detail=f"Task execution has status {self.status}, can't manually start")
 
@@ -391,67 +378,39 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
                             env[name] = str(value)
         return env
 
-    def should_create_status_change_event(self) -> bool:
-        from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
 
+    @override
+    def should_create_status_change_event(self) -> bool:
         if self.skip_alert:
             logger.info("Skipping status change event creation since skip_alert = True")
             return False
 
-        task = self.task
+        if self.status == Execution.Status.ABORTED:                    
+            task = self.task
 
-        if not task:
-            logger.info("Skipping status change event creation since Task is missing")
-            return False
-
-        if not task.enabled:
-            logger.info(f"Skipping status change event creation since Task {task.uuid} is disabled")
-            return False
-
-        if self.status == TaskExecution.Status.ABORTED:
+            if not task:
+                logger.info("Skipping status change event creation since Task is missing")
+                return False
+            
             # TODO: keep track of service updated_at for generic services
             if task.aws_ecs_service_updated_at and \
                     (task.aws_ecs_service_updated_at > self.started_at):
                 logger.info(f"Skipping status change event creation for Task Execution {self.uuid} started after service updated")
                 return False
 
-        if TaskExecutionStatusChangeEvent.objects.filter(task_execution=self, status=self.status).exists():
-            logger.info(f"Skipping status change event creation for Task Execution {self.uuid} since it already has a status change event")
-            return False
-
-        return True
+        return super().should_create_status_change_event()
 
 
-    def update_postponed_events(self) -> int:
+    @override
+    def status_change_event_queryset_for_execution(self) -> models.QuerySet:
         from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
+        return TaskExecutionStatusChangeEvent.objects.filter(task_execution=self)
 
-        task = self.task
+    @override
+    def status_change_event_queryset_for_executable(self) -> models.QuerySet:
+        from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
+        return TaskExecutionStatusChangeEvent.objects.filter(task=self.task)
 
-        if not task:
-            logger.warning("Skipping updating postponed notifications since Task is missing")
-            return 0
-
-        if not task.enabled:
-            logger.info("Skipping updating postponed notifications since Task is disabled")
-            return 0
-
-
-        status = self.status
-        utc_now = timezone.now()
-        events = TaskExecutionStatusChangeEvent.objects.filter(task=self.task,
-                postponed_until__isnull=False, postponed_until__gt=utc_now,
-                resolved_at__isnull=True, triggered_at__isnull=True)
-
-        if not events.exists():
-            return 0
-
-        updated_count = 0
-
-        for event in events.all():
-            if event.update_after_postponed(status=status, utc_now=utc_now):
-                updated_count += 1
-
-        return updated_count
 
     def maybe_create_and_send_status_change_event(self) -> Optional['TaskExecutionStatusChangeEvent']:
         from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
@@ -483,11 +442,11 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 
         severity: Optional[int] = Event.Severity.ERROR
 
-        if self.status == TaskExecution.Status.SUCCEEDED:
+        if self.status == Execution.Status.SUCCEEDED:
             severity = task.notification_event_severity_on_success
-        elif self.status == TaskExecution.Status.FAILED:
+        elif self.status == Execution.Status.FAILED:
             severity = task.notification_event_severity_on_failure
-        elif self.status == TaskExecution.Status.TERMINATED_AFTER_TIME_OUT:
+        elif self.status == Execution.Status.TERMINATED_AFTER_TIME_OUT:
             severity = task.notification_event_severity_on_timeout
 
         # TODO: default to Run Environment's severities, override with TaskExecution severities
@@ -519,40 +478,6 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         return status_change_event
 
 
-    # def clear_delayed_task_start_alerts(self, dpsde):
-    #     from .alert import Alert
-    #     from .delayed_process_start_alert import DelayedProcessStartAlert
-    #     from processes.serializers import DelayedTaskStartDetectionEventSerializer
-
-    #     details = DelayedTaskStartDetectionEventSerializer(dpsde,
-    #         context=context_with_request()).data
-
-    #     details['max_manual_start_delay_before_alert_seconds'] = self.task.max_manual_start_delay_before_alert_seconds
-
-    #     for am in self.task.alert_methods.filter(
-    #             enabled=True).exclude(error_severity_on_missing_execution='').all():
-    #         dpsa = DelayedProcessStartAlert(delayed_process_start_detection_event=dpsde,
-    #                                         alert_method=am)
-    #         dpsa.save()
-
-    #         try:
-    #             # task_execution is already in details
-    #             result = am.send(details=details,
-    #                              summary_template=self.CLEARED_DELAYED_PROCESS_START_EVENT_SUMMARY_TEMPLATE,
-    #                              grouping_key=f"delayed_task_start-{self.uuid}",
-    #                              is_resolution=True)
-    #             dpsa.send_result = result or ''
-    #             dpsa.send_status = NotificationSendStatus.SUCCEEDED
-    #             dpsa.completed_at = timezone.now()
-    #         except Exception as ex:
-    #             logger.exception(
-    #                 f"Failed to clear alert for delayed start of Task Execution {dpsde.task_execution.uuid}")
-    #             dpsa.send_result = ''
-    #             dpsa.send_status = NotificationSendStatus.FAILED
-    #             dpsa.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
-
-    #         dpsa.save()
-
 @receiver(pre_save, sender=TaskExecution)
 def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
     instance = cast(TaskExecution, kwargs['instance'])
@@ -564,11 +489,11 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
         num_removed = instance.task.purge_history(reservation_count=1, max_to_purge=50)
         logger.info(f'Purged {num_removed} Task Executions')
 
-    if instance.status != TaskExecution.Status.MANUALLY_STARTED:
+    if instance.status != Execution.Status.MANUALLY_STARTED:
         from .delayed_task_execution_start_event import DelayedTaskExecutionStartEvent
         DelayedTaskExecutionStartEvent.resolve_existing_for_task_execution(task_execution=instance)
 
-    current_user = None
+    current_user: User | None = None
 
     req = get_request()
 
@@ -577,13 +502,13 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
 
     now = timezone.now()
 
-    if instance.status == TaskExecution.Status.STOPPING:
+    if instance.status == Execution.Status.STOPPING:
         if not instance.killed_by:
             instance.killed_by = current_user
 
         if not instance.kill_started_at:
             instance.kill_started_at = now
-    elif instance.status == TaskExecution.Status.STOPPED:
+    elif instance.status == Execution.Status.STOPPED:
         if not instance.kill_finished_at:
             instance.kill_finished_at = now
 

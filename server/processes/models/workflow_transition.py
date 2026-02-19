@@ -8,6 +8,7 @@ from django.contrib.postgres.fields import ArrayField
 
 from rest_framework.exceptions import APIException
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -117,7 +118,7 @@ class WorkflowTransition(models.Model):
                 exit_code=task_execution.exit_code)
 
     def should_activate(self, task_execution_status, exit_code: Optional[int]) -> bool:
-        from .task_execution import TaskExecution
+        from .execution import Execution
 
         pes = task_execution_status
         rt = self.rule_type
@@ -125,11 +126,11 @@ class WorkflowTransition(models.Model):
         if rt == self.RULE_TYPE_ALWAYS:
             return True
         elif rt == self.RULE_TYPE_ON_SUCCESS:
-            return pes == TaskExecution.Status.SUCCEEDED
+            return pes == Execution.Status.SUCCEEDED
         elif rt == self.RULE_TYPE_ON_FAILURE:
-            return pes == TaskExecution.Status.FAILED
+            return pes == Execution.Status.FAILED
         elif rt == self.RULE_TYPE_ON_TIMEOUT:
-            return pes == TaskExecution.Status.TERMINATED_AFTER_TIME_OUT
+            return pes == Execution.Status.TERMINATED_AFTER_TIME_OUT
         elif rt == self.RULE_TYPE_ON_EXIT_CODE:
             return (self.exit_codes is not None) and (exit_code in self.exit_codes)
         else:

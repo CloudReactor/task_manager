@@ -13,6 +13,7 @@ from ..exception import UnprocessableEntity
 from .uuid_model import UuidModel
 from .run_environment import RunEnvironment
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -157,14 +158,15 @@ class WorkflowTaskInstance(UuidModel):
         return (self.name or 'Unnamed') + ' / ' + str(self.uuid)
 
     def start(self, workflow_execution):
-        logger.info(f"Starting Workflow Task Instance with UUID = {self.uuid}, name = {self.name} ...")
-
+        from .execution import Execution
         from .task_execution import TaskExecution
         from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
+        logger.info(f"Starting Workflow Task Instance with UUID = {self.uuid}, name = {self.name} ...")
+
         task_execution = TaskExecution(
           task=self.task,
-          status=TaskExecution.Status.MANUALLY_STARTED,
+          status=Execution.Status.MANUALLY_STARTED,
         )
 
         logger.info(f"wti: new task execution emt = {task_execution.execution_method_type}")

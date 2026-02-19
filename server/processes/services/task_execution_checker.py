@@ -46,7 +46,7 @@ class TaskExecutionChecker:
                     return
 
     def check_started_on_time(self, te: TaskExecution) -> bool:
-        if te.status != TaskExecution.Status.MANUALLY_STARTED:
+        if te.status != Execution.Status.MANUALLY_STARTED:
             return True
 
         utc_now = timezone.now()
@@ -81,7 +81,7 @@ class TaskExecutionChecker:
         if (max_delay_seconds is not None) and (run_duration > max_delay_seconds):
             on_time = False
             logger.info(f"Task Execution {te.uuid} has been manually started for {run_duration} seconds which exceeds the max manual start delay before abandonment of {max_delay_seconds} seconds")
-            te.status = TaskExecution.Status.ABANDONED
+            te.status = Execution.Status.ABANDONED
             te.stop_reason = TaskExecution.StopReason.FAILED_TO_START
             te.marked_done_at = utc_now
             te.save()
@@ -94,11 +94,11 @@ class TaskExecutionChecker:
         run_duration = (utc_now - (te.started_at or te.created_at)).total_seconds()
         logger.info(f"Run duration of Task Execution {te.uuid} is {run_duration} seconds")
 
-        if te.status == TaskExecution.Status.STOPPING:
+        if te.status == Execution.Status.STOPPING:
             if run_duration >= self.MAX_STOPPING_DURATION_SECONDS:
                 logger.info(
                     f"Run duration of Task Execution {te.uuid} {run_duration} seconds > max stopping duration {task.max_age_seconds} seconds, abandoning")
-                te.status = TaskExecution.Status.ABANDONED
+                te.status = Execution.Status.ABANDONED
 
                 if not te.marked_done_at:
                     te.marked_done_at = utc_now
@@ -110,7 +110,7 @@ class TaskExecutionChecker:
             if run_duration > task.max_age_seconds:
                 logger.info(
                     f"Run duration of Task Execution {te.uuid} {run_duration} seconds > max age {task.max_age_seconds} seconds, stopping")
-                te.status = TaskExecution.Status.STOPPING
+                te.status = Execution.Status.STOPPING
                 te.marked_done_at = utc_now
                 te.stop_reason = TaskExecution.StopReason.MAX_EXECUTION_TIME_EXCEEDED
 
@@ -126,7 +126,7 @@ class TaskExecutionChecker:
         return False
 
     def check_missing_heartbeat(self, te: TaskExecution) -> bool:
-        if te.status != TaskExecution.Status.RUNNING:
+        if te.status != Execution.Status.RUNNING:
             logger.debug(f"Task Execution {te.uuid} is not running, not checking heartbeats")
             return False
 
@@ -159,7 +159,7 @@ class TaskExecutionChecker:
                     (last_heartbeat_seconds_ago > heartbeat_interval_seconds + task.max_heartbeat_lateness_before_abandonment_seconds) and \
                     (expected_heartbeat_at + timedelta(seconds=task.max_heartbeat_lateness_before_abandonment_seconds) < utc_now):
                 logger.info(f"Last heartbeat of Task Execution {te.uuid} was {last_heartbeat_seconds_ago} seconds ago > max = {task.max_heartbeat_lateness_before_abandonment_seconds}")
-                te.status = TaskExecution.Status.ABANDONED
+                te.status = Execution.Status.ABANDONED
                 te.stop_reason = TaskExecution.StopReason.MISSING_HEARTBEAT
                 te.marked_done_at = utc_now
                 te.finished_at = utc_now

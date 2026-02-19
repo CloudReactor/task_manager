@@ -2,7 +2,8 @@ from processes.models import (
     Event,
     TaskExecution,
     TaskExecutionStatusChangeEvent,
-    UserGroupAccessLevel
+    UserGroupAccessLevel,
+    Execution
 )
 
 import pytest
@@ -26,14 +27,14 @@ def test_task_execution_status_change_event_serialization_deserialization(
 
     # Create a Task and TaskExecution
     task = task_factory(created_by_group=group)
-    task_execution = task_execution_factory(task=task, status=TaskExecution.Status.SUCCEEDED)
+    task_execution = task_execution_factory(task=task, status=Execution.Status.SUCCEEDED)
 
     # Create a TaskExecutionStatusChangeEvent using factory
     status_event = task_execution_status_change_event_factory(
         created_by_group=group,
         task=task,
         task_execution=task_execution,
-        status=TaskExecution.Status.SUCCEEDED,
+        status=Execution.Status.SUCCEEDED,
         severity=Event.Severity.INFO.value
     )
 
