@@ -7,19 +7,14 @@ from .schedulable_instance_event import SchedulableInstanceEvent
 
 
 class MissingScheduledExecutionEvent(SchedulableInstanceEvent):
+    class Meta:
+        ordering = ['event_at', 'detected_at']
+
     MISSING_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE = \
         """{{type_label}} '{{instance.name}}' did not execute as scheduled at {{expected_execution_at}}"""
 
     FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE = \
         """{{type_label}} '{{instance.name}}' has started after being late according to its schedule"""
-
-    class Meta:
-        ordering = ['event_at', 'detected_at']
-
-    expected_execution_at = models.DateTimeField(null=True, blank=True)
-    schedule = models.CharField(null=True, blank=True, max_length=1000)
-    missing_execution_count = models.PositiveIntegerField(default=0, null=True, blank=True)
-
 
     def __init__(self, *args, **kwargs):
         from ..services.notification_generator import NotificationGenerator

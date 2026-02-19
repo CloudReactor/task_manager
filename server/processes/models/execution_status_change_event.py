@@ -20,12 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class ExecutionStatusChangeEvent(Event):
-    status = models.IntegerField(null=True, blank=True)
-    postponed_until = models.DateTimeField(null=True, blank=True)
-    count_with_same_status_after_postponement = models.IntegerField(null=True, blank=True)
-    count_with_success_status_after_postponement = models.IntegerField(null=True, blank=True)
-    triggered_at = models.DateTimeField(null=True, blank=True)
-
     def __init__(self, *args, **kwargs):
         from .task_execution import TaskExecution
 

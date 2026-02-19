@@ -7,8 +7,6 @@ from .schedulable_instance_event import SchedulableInstanceEvent
 from .workflow import Workflow
 
 class WorkflowEvent(SchedulableInstanceEvent):
-    workflow = models.ForeignKey(Workflow, null=True, blank=True, on_delete=models.CASCADE)
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
