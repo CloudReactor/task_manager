@@ -4,7 +4,6 @@ from .workflow_event import WorkflowEvent
 from .workflow_execution import WorkflowExecution
 
 class WorkflowExecutionEvent(WorkflowEvent):
-    workflow_execution = models.ForeignKey(WorkflowExecution, null=True, blank=True, on_delete=models.CASCADE)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

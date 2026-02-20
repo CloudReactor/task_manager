@@ -86,7 +86,42 @@ class ProcessesConfig(AppConfig):
     name = 'processes'
 
     def ready(self):
+        # Patch django-typed-models for Django 4.2+ compatibility
+        # The declared_fields attribute was removed in Django 4.2, but typedmodels still tries to access it
+        self._patch_typedmodels_compatibility()
+
         # This is needed to load the signal handlers for this app.
         import processes.signal_handlers # pylint: disable=unused-import
         from django.db.models.signals import pre_save
         pre_save.connect(pre_save_user, sender='auth.User')
+
+    @staticmethod
+    def _patch_typedmodels_compatibility():
+        """Patch typedmodels._model_has_field to handle Django 4.2+ where declared_fields was removed."""
+        try:
+            from typedmodels.models import TypedModelMetaclass
+
+            original_model_has_field = TypedModelMetaclass._model_has_field
+
+            @staticmethod
+            def patched_model_has_field(cls, base_class, field_name):
+                if field_name in base_class._meta._typedmodels_original_many_to_many:
+                    return True
+                if field_name in base_class._meta._typedmodels_original_fields:
+                    return True
+                if any(f.name == field_name for f in base_class._meta.private_fields):
+                    return True
+                for ancestor in cls.mro():
+                    if issubclass(ancestor, base_class) and ancestor != base_class:
+                        # declared_fields was removed in Django 4.2+
+                        if hasattr(ancestor._meta, 'declared_fields') and field_name in ancestor._meta.declared_fields.keys():
+                            return True
+
+                if field_name in cls._meta.fields_map:
+                    # Crazy case where a reverse M2M from another typedmodels proxy points to this proxy
+                    return True
+                return False
+
+            TypedModelMetaclass._model_has_field = patched_model_has_field
+        except ImportError:
+            pass  # typedmodels not installed

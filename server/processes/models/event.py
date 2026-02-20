@@ -69,6 +69,39 @@ class Event(TypedModel):
     run_environment = models.ForeignKey('RunEnvironment',
         related_name='+', on_delete=models.CASCADE, blank=True, null=True)
 
+    # Fields added for specific event types but stored on base Event table
+    task = models.ForeignKey('Task', null=True, blank=True, on_delete=models.CASCADE)
+    workflow = models.ForeignKey('Workflow', null=True, blank=True, on_delete=models.CASCADE)
+    task_execution = models.ForeignKey('TaskExecution', null=True, blank=True, on_delete=models.CASCADE)
+    workflow_execution = models.ForeignKey('WorkflowExecution', null=True, blank=True, on_delete=models.CASCADE)
+
+    # Heartbeat fields (for MissingHeartbeatDetectionEvent)
+    last_heartbeat_at = models.DateTimeField(null=True, blank=True)
+    expected_heartbeat_at = models.DateTimeField(null=True, blank=True)
+    heartbeat_interval_seconds = models.IntegerField(null=True, blank=True)
+
+    # Status change fields (for ExecutionStatusChangeEvent)
+    status = models.IntegerField(null=True, blank=True)
+    postponed_until = models.DateTimeField(null=True, blank=True)
+    count_with_same_status_after_postponement = models.IntegerField(null=True, blank=True)
+    count_with_success_status_after_postponement = models.IntegerField(null=True, blank=True)
+    triggered_at = models.DateTimeField(null=True, blank=True)
+
+    # Scheduled execution fields (for MissingScheduledExecutionEvent)
+    expected_execution_at = models.DateTimeField(null=True, blank=True)
+    schedule = models.CharField(max_length=1000, null=True, blank=True)
+    missing_execution_count = models.PositiveIntegerField(default=0, null=True, blank=True)
+
+    # Delayed start fields (for DelayedTaskExecutionStartEvent)
+    desired_start_at = models.DateTimeField(null=True, blank=True)
+    expected_start_by_deadline = models.DateTimeField(null=True, blank=True)
+
+    # Insufficient service fields (for InsufficientServiceTaskExecutionsEvent)
+    interval_start_at = models.DateTimeField(null=True, blank=True)
+    interval_end_at = models.DateTimeField(null=True, blank=True)
+    detected_concurrency = models.IntegerField(null=True, blank=True)
+    required_concurrency = models.IntegerField(null=True, blank=True)
+
     class Meta:
         indexes = [
             models.Index(fields=['created_by_group', 'event_at']),
