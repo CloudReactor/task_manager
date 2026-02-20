@@ -37,7 +37,7 @@ class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEv
 
             self.error_summary = notification_generator.generate_text(
                     template_params=template_params,
-                    template=self.ERROR_SUMMARY_TEMPLATE,
+                    template=__class__.ERROR_SUMMARY_TEMPLATE,
                     task_execution=self.task_execution)
 
 

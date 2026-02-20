@@ -6,10 +6,7 @@ from .execution import Execution
 from .schedulable_instance_event import SchedulableInstanceEvent
 
 
-class MissingScheduledExecutionEvent(SchedulableInstanceEvent):
-    class Meta:
-        ordering = ['event_at', 'detected_at']
-
+class MissingScheduledExecutionEvent:
     MISSING_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE = \
         """{{type_label}} '{{instance.name}}' did not execute as scheduled at {{expected_execution_at}}"""
 
@@ -19,7 +16,9 @@ class MissingScheduledExecutionEvent(SchedulableInstanceEvent):
     def __init__(self, *args, **kwargs):
         from ..services.notification_generator import NotificationGenerator
 
-        super().__init__(*args, **kwargs)
+        # Note: Don't call super().__init__() here since this is a mixin class
+        # and both parent classes are already initialized by the concrete class
+        # that uses this mixin. We only set fields specific to missing execution events.
 
         self.event_at = self.expected_execution_at
 

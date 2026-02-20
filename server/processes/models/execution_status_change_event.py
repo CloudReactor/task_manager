@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ExecutionStatusChangeEvent(Event):
+class ExecutionStatusChangeEvent:
     def __init__(self, *args, **kwargs):
         from .task_execution import TaskExecution
 
