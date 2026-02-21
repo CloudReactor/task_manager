@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Optional, Type, TYPE_CHECKING, cast, override
+from typing import Type, TYPE_CHECKING, cast, override
 
+import copy
 import enum
 import json
 import logging
@@ -35,8 +36,7 @@ from .aws_tagged_entity import AwsTaggedEntity
 if TYPE_CHECKING:
     from .task_execution_status_change_event import (
         TaskExecutionStatusChangeEvent
-    )
-    from .delayed_task_execution_start_event import DelayedTaskExecutionStartEvent
+    )    
 
 
 logger = logging.getLogger(__name__)
@@ -59,12 +59,14 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         WORKFLOW_EXECUTION_RETRIED = 101
         WORKFLOW_EXECUTION_TIMED_OUT = 102
 
-    IN_PROGRESS_STATUSES = [Execution.Status.MANUALLY_STARTED, Execution.Status.RUNNING]
+    IN_PROGRESS_STATUSES = Execution.IN_PROGRESS_STATUSES
+
     UNSUCCESSFUL_STATUSES = [
         Execution.Status.FAILED, Execution.Status.TERMINATED_AFTER_TIME_OUT, Execution.Status.MARKED_DONE,
         Execution.Status.EXITED_AFTER_MARKED_DONE, Execution.Status.STOPPING, Execution.Status.STOPPED,
         Execution.Status.ABANDONED, Execution.Status.ABORTED
     ]
+    
     COMPLETED_STATUSES = [Execution.Status.SUCCEEDED] + UNSUCCESSFUL_STATUSES
     AWAITING_UPDATE_STATUSES = IN_PROGRESS_STATUSES + [Execution.Status.STOPPING]
 
@@ -185,9 +187,6 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
     aws_ecs_task_role = models.CharField(max_length=1000, blank=True)
     aws_ecs_platform_version = models.CharField(max_length=10, blank=True)
 
-    # Transient properties
-    skip_alert = False
-
     class Meta:
         db_table = 'processes_processexecution'
         ordering = ['started_at']
@@ -196,7 +195,7 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         return self.task.name + ' / ' + str(self.uuid)
 
     @override
-    def get_schedulable(self) -> Optional[Schedulable]:
+    def get_schedulable(self) -> Schedulable | None:
         return self.task
 
     @override
@@ -204,15 +203,9 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
     def dashboard_path(self) -> str:
         return 'task_executions'
 
-    def is_in_progress(self) -> bool:
-        return self.status in TaskExecution.IN_PROGRESS_STATUSES
-
-    def is_successful(self) -> bool:
-        return self.status == Execution.Status.SUCCEEDED
-
     # FIXME: this works for GitHub and GitLab, not sure about other providers
     @property
-    def commit_url(self) -> Optional[str]:
+    def commit_url(self) -> str | None:
         if self.task.project_url and self.task_version_signature:
             return self.task.project_url.rstrip('/') + '/commit/' + self.task_version_signature
         return None
@@ -381,10 +374,6 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 
     @override
     def should_create_status_change_event(self) -> bool:
-        if self.skip_alert:
-            logger.info("Skipping status change event creation since skip_alert = True")
-            return False
-
         if self.status == Execution.Status.ABORTED:                    
             task = self.task
 
@@ -412,84 +401,34 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         return TaskExecutionStatusChangeEvent.objects.filter(task=self.task)
 
 
-    def maybe_create_and_send_status_change_event(self) -> Optional['TaskExecutionStatusChangeEvent']:
+    @override
+    def create_status_change_event(self, severity: Event.Severity) -> TaskExecutionStatusChangeEvent:
         from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
-
-        if self.skip_alert:
-            logger.info("Skipping status change event creation since skip_alert = True")
-            return None
-
-        task = self.task
-
-        if task is None:
-            logger.info("Skipping status change event creation since Task is missing")
-            return None
-
-        if not task.enabled:
-            logger.info(f"Skipping status change event creation since Task {task.uuid} is disabled")
-            return None
-
-        utc_now = timezone.now()
-
-        if self.finished_at and \
-            ((utc_now - self.finished_at).total_seconds() > self.MAX_STATUS_ALERT_AGE_SECONDS):
-            logger.info(f"Skipping status change event creation since finished_at={self.finished_at} is too long ago")
-            return None
-
-        if not self.should_create_status_change_event():
-            logger.info(f"Skipping status change event creation since Task {task.uuid} should not create status change event")
-            return None
-
-        severity: Optional[int] = Event.Severity.ERROR
-
-        if self.status == Execution.Status.SUCCEEDED:
-            severity = task.notification_event_severity_on_success
-        elif self.status == Execution.Status.FAILED:
-            severity = task.notification_event_severity_on_failure
-        elif self.status == Execution.Status.TERMINATED_AFTER_TIME_OUT:
-            severity = task.notification_event_severity_on_timeout
-
-        # TODO: default to Run Environment's severities, override with TaskExecution severities
-
-        if (severity is None) or (severity == Event.Severity.NONE):
-            logger.info(f"Skipping notifications since Task {task.uuid} has no severity set for status {self.status}")
-            return None
-
-        status_change_event = TaskExecutionStatusChangeEvent(
+        return TaskExecutionStatusChangeEvent(
             severity=severity,
             task=self.task,
             task_execution=self,
             status=self.status,
-            details={
-
-            },
+            details={},
             count_with_same_status_after_postponement=0,
             count_with_success_status_after_postponement=0
         )
 
-        status_change_event.save()
-
-        if status_change_event.maybe_postpone(schedulable=task):
-            logger.info(f"Postponing notifications on Task {task.uuid} after execution status = {self.status}")
-        else:
-            logger.info(f"Not postponing notifications on Task {task.uuid} after execution status = {self.status}")
-            self.send_event_notifications(event=status_change_event)
-
-        return status_change_event
-
 
 @receiver(pre_save, sender=TaskExecution)
-def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
-    instance = cast(TaskExecution, kwargs['instance'])
-
+def pre_save_task_execution(sender: Type[TaskExecution], instance: TaskExecution, **kwargs):
     logger.info(f"Before Pre-Saved Task Execution {instance.uuid} settings, started_at = {instance.started_at}")
+
+    old_instance: TaskExecution | None = None
 
     if instance.pk is None:
         logger.info('Purging Task Execution history before saving new Execution ...')
         num_removed = instance.task.purge_history(reservation_count=1, max_to_purge=50)
         logger.info(f'Purged {num_removed} Task Executions')
+    else:
+        old_instance = cast(TaskExecution, instance._loaded_copy)
 
-    if instance.status != Execution.Status.MANUALLY_STARTED:
+    if instance.started_at and ((old_instance is None) or (old_instance.started_at is None)):
         from .delayed_task_execution_start_event import DelayedTaskExecutionStartEvent
         DelayedTaskExecutionStartEvent.resolve_existing_for_task_execution(task_execution=instance)
 
@@ -522,13 +461,15 @@ def pre_save_task_execution(sender: Type[TaskExecution], **kwargs):
 
 
 @receiver(post_save, sender=TaskExecution)
-def post_save_task_execution(sender: Type[TaskExecution], **kwargs):
+def post_save_task_execution(sender: Type[TaskExecution], instance: TaskExecution, created: bool, **kwargs):
     from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
-
-    instance = cast(TaskExecution, kwargs['instance'])
 
     logger.info(f"Before Post-Saved Task Execution {instance.uuid} settings, started_at = {instance.started_at}")
 
+    old_instance = instance._loaded_copy
+    instance._loaded_copy = copy.copy(instance)
+
+    was_in_progress = (old_instance is None) or old_instance.is_in_progress()
     in_progress = instance.is_in_progress()
     task = instance.task
 
@@ -539,8 +480,8 @@ def post_save_task_execution(sender: Type[TaskExecution], **kwargs):
         task.save_without_sync(update_fields=['latest_task_execution', 'updated_at'])
 
 
-    # CHECKME: only do this when state changes to in_progress or started_at is set?
-    instance.resolve_missing_scheduled_execution_events()
+    if instance.started_at and ((not old_instance) or (not old_instance.started_at)):
+         instance.resolve_missing_scheduled_execution_events()
 
     heartbeat_interval_seconds = task.heartbeat_interval_seconds
     max_heartbeat_lateness_before_alert_seconds = task.max_heartbeat_lateness_before_alert_seconds
@@ -576,22 +517,22 @@ def post_save_task_execution(sender: Type[TaskExecution], **kwargs):
 
                 instance.send_event_notifications(event=resolving_event)
 
-    wtie = WorkflowTaskInstanceExecution.objects.filter(
-        task_execution=instance).first()
+    wtie = WorkflowTaskInstanceExecution.objects.filter(task_execution=instance).first()
 
     # TODO: use snapshot
-    if not in_progress:
-        try:
-            instance.update_postponed_events()
-        except Exception:
-            logger.exception(f"Can't update postponed event after error: {instance}")
-
-
+    if was_in_progress and (not in_progress):
         if (wtie is None) or wtie.workflow_task_instance.use_task_notification_profiles:
+
+            try:
+                instance.update_postponed_status_change_events()
+            except Exception:
+                logger.exception(f"Can't update postponed event after error: {instance}")
+
+
             try:
                 instance.maybe_create_and_send_status_change_event()
             except Exception:
-                logger.exception(f"Can't send notifications after error: {instance}")
+                logger.exception(f"maybe_create_and_send_status_change_event() failed after error: {instance}")
 
     if wtie:
         workflow_execution = wtie.workflow_execution
@@ -603,7 +544,7 @@ def post_save_task_execution(sender: Type[TaskExecution], **kwargs):
 
         if not in_progress:
             if instance.stop_reason in [TaskExecution.StopReason.WORKFLOW_EXECUTION_STOPPED, TaskExecution.StopReason.WORKFLOW_EXECUTION_RETRIED]:
-                logger.info('Task Execution was stopped due to workflow stop/retry, not updating workflow')
+                logger.info('Task Execution was stopped due to Workflow stop/retry, not updating workflow')
             elif workflow_execution.is_execution_continuation_allowed():
                 logger.info(f"Workflow Execution {workflow_execution.uuid} is allowed to continue")
                 logger.info(f"Task {instance.uuid} is a node in Workflow {wtie.workflow_task_instance.workflow.uuid}, handling completion ...")

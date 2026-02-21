@@ -135,9 +135,9 @@ class TestTaskExecutionChecker:
         checker.check_task_execution(te)
 
         te.refresh_from_db()
-        # Should still be abandoned because of missing heartbeat, but skip_alert should be True
+        # Should still be abandoned because of missing heartbeat, but skip_event_generation should be True
         assert te.status == Execution.Status.ABANDONED
-        assert te.skip_alert is True
+        assert te.skip_event_generation is True
 
     def test_check_missing_heartbeat_expected_at_shifted_by_service_update(self, checker, task_factory, task_execution_factory):
         utc_now = timezone.now()

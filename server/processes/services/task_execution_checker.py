@@ -152,7 +152,7 @@ class TaskExecutionChecker:
 
             # Don't alert on missing heartbeats on processes started before the service was updated
             # TODO: generalize to all service types
-            alert_eligible = (task.aws_ecs_service_updated_at is None) or \
+            event_eligible = (task.aws_ecs_service_updated_at is None) or \
                      (te.started_at > task.aws_ecs_service_updated_at)
 
             if (task.max_heartbeat_lateness_before_abandonment_seconds is not None) and \
@@ -163,14 +163,14 @@ class TaskExecutionChecker:
                 te.stop_reason = TaskExecution.StopReason.MISSING_HEARTBEAT
                 te.marked_done_at = utc_now
                 te.finished_at = utc_now
-                te.skip_alert = not alert_eligible
+                te.skip_event_generation = not event_eligible
                 te.save()
                 is_missing = True
             elif (task.max_heartbeat_lateness_before_alert_seconds is not None) and \
                     (last_heartbeat_seconds_ago > heartbeat_interval_seconds + task.max_heartbeat_lateness_before_alert_seconds) and \
                     (expected_heartbeat_at + timedelta(
                         seconds=task.max_heartbeat_lateness_before_alert_seconds) < utc_now) and \
-                    alert_eligible:
+                    event_eligible:
                 is_missing = True
                 logger.info(f"Last heartbeat of Task Execution {te.uuid}: missing heartbeat eligible for warning")
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence, Any, Type
+from typing_extensions import Self
 
+import copy
 import enum
 import logging
 
@@ -11,11 +13,12 @@ from django.utils import timezone
 
 from .uuid_model import UuidModel
 from .execution_probabilities import ExecutionProbabilities
+from .event import Event
 from .schedulable import Schedulable
 
 if TYPE_CHECKING:
-    from .event import Event
     from .run_environment import RunEnvironment
+    from .execution_status_change_event import ExecutionStatusChangeEvent
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +41,19 @@ class Execution(UuidModel, ExecutionProbabilities):
         ABANDONED = 8
         MANUALLY_STARTED = 9
         ABORTED = 10
+
+    IN_PROGRESS_STATUSES = [
+        Status.MANUALLY_STARTED,
+        Status.RUNNING,
+    ]
+
+    COMPLETED_STATUSES = [
+        Status.SUCCEEDED,
+        Status.FAILED,
+        Status.TERMINATED_AFTER_TIME_OUT,
+        Status.STOPPING,
+        Status.STOPPED,
+    ]
 
     input_value = models.JSONField(null=True, blank=True)
     output_value = models.JSONField(null=True, blank=True)
@@ -68,8 +84,25 @@ class Execution(UuidModel, ExecutionProbabilities):
     other_instance_metadata = models.JSONField(null=True, blank=True)
     other_runtime_metadata = models.JSONField(null=True, blank=True)
 
+    # Transient properties
+    skip_event_generation = False
+    _loaded_copy: Execution | None = None
+
+
+    @classmethod
+    def from_db(cls: Type[Self], db: str, field_names: Sequence[str], values: Sequence[Any]):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_copy = copy.copy(instance)
+        return instance
+
     def get_schedulable(self) -> Schedulable | None:
         raise NotImplementedError()
+
+    def is_in_progress(self) -> bool:
+        return self.status in Execution.IN_PROGRESS_STATUSES
+
+    def is_successful(self) -> bool:
+        return self.status == Execution.Status.SUCCEEDED
 
     @property
     def run_environment(self) -> RunEnvironment | None:
@@ -90,7 +123,65 @@ class Execution(UuidModel, ExecutionProbabilities):
 
         return None
 
+
+    def maybe_create_and_send_status_change_event(self) -> ExecutionStatusChangeEvent | None:
+        if self.skip_event_generation:
+            logger.info("Skipping status change event creation since skip_event_generation = True")
+            return None
+
+        executable = self.get_schedulable()
+
+        if executable is None:
+            logger.info("Skipping status change event creation since Schedulable is missing")
+            return None
+
+        if not executable.enabled:
+            logger.info(f"Skipping status change event creation since Schedulable {executable.uuid} is disabled")
+            return None
+
+        utc_now = timezone.now()
+
+        if self.finished_at and \
+            ((utc_now - self.finished_at).total_seconds() > self.MAX_STATUS_ALERT_AGE_SECONDS):
+            logger.info(f"Skipping status change event creation since finished_at={self.finished_at} is too long ago")
+            return None
+
+        if not self.should_create_status_change_event():
+            logger.info(f"Skipping status change event creation since Task {executable.uuid} should not create status change event")
+            return None
+
+        severity: int | None = Event.Severity.ERROR
+
+        if self.status == Execution.Status.SUCCEEDED:
+            severity = executable.notification_event_severity_on_success
+        elif self.status == Execution.Status.FAILED:
+            severity = executable.notification_event_severity_on_failure
+        elif self.status == Execution.Status.TERMINATED_AFTER_TIME_OUT:
+            severity = executable.notification_event_severity_on_timeout
+
+        # TODO: default to Run Environment's severities, override with TaskExecution severities
+
+        if (severity is None) or (severity == Event.Severity.NONE):
+            logger.info(f"Skipping notifications since Schedulable {executable.uuid} has no severity set for status {self.status}")
+            return None
+
+        status_change_event = self.create_status_change_event(severity=severity)
+        status_change_event.save()
+
+        if status_change_event.maybe_postpone(schedulable=executable):
+            logger.info(f"Postponing notifications on Task {executable.uuid} after execution status = {self.status}")
+        else:
+            logger.info(f"Not postponing notifications on Task {executable.uuid} after execution status = {self.status}")
+            self.send_event_notifications(event=status_change_event)
+
+        return status_change_event
+
+
     def should_create_status_change_event(self) -> bool:
+        if self.skip_event_generation:        
+            logger.info("Skipping status change event creation since skip_event_generation = True")
+            return False
+
         executable = self.get_schedulable()
 
         if not executable:
@@ -107,7 +198,11 @@ class Execution(UuidModel, ExecutionProbabilities):
                 
         return True
 
-    def update_postponed_events(self) -> int:
+    def create_status_change_event(self, severity: Event.Severity) -> ExecutionStatusChangeEvent:
+        raise NotImplementedError()
+    
+
+    def update_postponed_status_change_events(self) -> int:
         executable = self.get_schedulable()
 
         if not executable:

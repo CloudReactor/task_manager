@@ -1,5 +1,8 @@
-from typing import Optional, Type, TYPE_CHECKING, cast, override
+from __future__ import annotations
 
+from typing import Type, TYPE_CHECKING, cast, override
+
+import copy
 import enum
 import logging
 
@@ -13,9 +16,9 @@ from django.contrib.auth.models import User
 
 from django_middleware_global_request.middleware import get_request
 
-from processes.common.notification import *
-from processes.common.request_helpers import context_with_request
-from processes.exception.unprocessable_entity import UnprocessableEntity
+from ..common.notification import *
+from ..common.request_helpers import context_with_request
+from ..exception.unprocessable_entity import UnprocessableEntity
 
 from .execution import Execution
 from .schedulable import Schedulable
@@ -23,7 +26,9 @@ from .task_execution import TaskExecution
 from .workflow import Workflow
 
 if TYPE_CHECKING:
+    from .event import Event
     from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
+    from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 
 
 logger = logging.getLogger(__name__)
@@ -34,18 +39,9 @@ class WorkflowExecution(Execution):
     A WorkflowExecution holds data on a specific execution (run) of a Workflow.
     """
 
-    IN_PROGRESS_STATUSES = [
-        Execution.Status.MANUALLY_STARTED,
-        Execution.Status.RUNNING,
-     ]
+    IN_PROGRESS_STATUSES = Execution.IN_PROGRESS_STATUSES
 
-    COMPLETED_STATUSES = [
-        Execution.Status.SUCCEEDED,
-        Execution.Status.FAILED,
-        Execution.Status.TERMINATED_AFTER_TIME_OUT,
-        Execution.Status.STOPPING,
-        Execution.Status.STOPPED,
-    ]
+    COMPLETED_STATUSES = Execution.COMPLETED_STATUSES
 
     STATUSES_WITHOUT_MANUAL_INTERVENTION = [
         Execution.Status.MANUALLY_STARTED,
@@ -71,11 +67,35 @@ class WorkflowExecution(Execution):
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
     workflow_snapshot = models.JSONField(null=True, blank=True)
 
+    @override
     def __str__(self) -> str:
         return self.workflow.name + ' / ' + str(self.uuid)
 
-    def get_schedulable(self) -> Optional[Schedulable]:
+    @override
+    def get_schedulable(self) -> Schedulable:
         return self.workflow
+
+    @override
+    def status_change_event_queryset_for_execution(self) -> models.QuerySet:
+        from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
+        return WorkflowExecutionStatusChangeEvent.objects.filter(workflow_execution=self)
+
+    @override
+    def status_change_event_queryset_for_executable(self) -> models.QuerySet:
+        from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
+        return WorkflowExecutionStatusChangeEvent.objects.filter(workflow_execution=self)
+
+    @override
+    def create_status_change_event(self, severity: Event.Severity) -> WorkflowExecutionStatusChangeEvent:
+        from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
+        return WorkflowExecutionStatusChangeEvent(
+            severity=severity,
+            workflow_execution=self,
+            status=self.status,
+            details={},
+            count_with_same_status_after_postponement=0,
+            count_with_success_status_after_postponement=0
+        )
 
     def workflow_task_instance_executions(self):
         from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
@@ -144,9 +164,9 @@ class WorkflowExecution(Execution):
 
         logger.info(f"Retrying Workflow Execution with UUID = {self.uuid} ...")
 
-        self.invalidate_alerts()
+        self.resolve_status_change_events(reason='retrying')
 
-        current_user: Optional[User] = None
+        current_user: User | None = None
         request = get_request()
 
         if request:
@@ -179,7 +199,7 @@ class WorkflowExecution(Execution):
                 logger.info(f"Retrying if unsuccessful root wpti uuid = {root.uuid}, name = {root.name}")
                 root.retry_if_unsuccessful(workflow_execution=self)
         except Exception:
-            logger.exception(f"Failed to retry workflow {self.workflow.uuid}")
+            logger.exception(f"Failed to retry Workflow {self.workflow.uuid}")
             self.status = Execution.Status.FAILED
             self.finished_at = timezone.now()
         finally:
@@ -188,6 +208,29 @@ class WorkflowExecution(Execution):
 
         self.save()
         return self
+
+    def resolve_status_change_events(self, reason: str) -> None:
+        from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent        
+
+        for event in WorkflowExecutionStatusChangeEvent.objects.filter(workflow_execution=self,
+                resolved_at__isnull=True).all():
+            logger.info(f"Resolving WorkflowExecutionStatusChangeEvent {event.uuid} for workflow execution {self.uuid}")
+
+            resolving_event = WorkflowExecutionStatusChangeEvent(
+                grouping_key=event.grouping_key,
+                severity=Event.Severity.INFO,
+                error_summary=f"Resolved Event after {reason} Workflow Execution {self.uuid}",
+                workflow_execution=self,
+                status=self.status,
+                resolved_event = event,
+                resolved_at = timezone.now()
+            )
+            resolving_event.save()
+
+            event.resolved_at = timezone.now()
+            event.save()
+
+            self.send_event_notifications(event=resolving_event)
 
     def handle_workflow_task_instance_execution_finished(self, wptie: 'WorkflowTaskInstanceExecution',
         skipped=False, retry_mode=False) -> None:
@@ -248,7 +291,7 @@ class WorkflowExecution(Execution):
             self.finished_at = timezone.now()
             self.save()
 
-            self.send_alerts_if_necessary()
+            # self.send_alerts_if_necessary()
         finally:
             if self.status not in WorkflowExecution.IN_PROGRESS_STATUSES:
                 # TODO
@@ -263,7 +306,7 @@ class WorkflowExecution(Execution):
             raise UnprocessableEntity(
                   detail='Invalid workflow_task_instance UUID.')
 
-        self.invalidate_alerts()
+        self.resolve_status_change_events(reason='starting')
 
         self.status = Execution.Status.RUNNING
         self.save()
@@ -313,8 +356,6 @@ class WorkflowExecution(Execution):
                 self.save()
                 logger.info(f"Completed workflow execution {self.uuid} with status {updated_status}")
 
-                self.send_alerts_if_necessary()
-
                 return True
                 # TODO: handle retry
 
@@ -333,7 +374,7 @@ class WorkflowExecution(Execution):
             exclude(task_execution__status=Execution.Status.SUCCEEDED))
 
         updated_status_if_not_running = Execution.Status.SUCCEEDED
-        running_task_execution: Optional[TaskExecution] = None
+        running_task_execution: TaskExecution | None = None
 
         for wtie in current_executions:
             task_execution = wtie.task_execution
@@ -449,64 +490,6 @@ class WorkflowExecution(Execution):
         self.stop_running_task_executions(
             TaskExecution.StopReason.WORKFLOW_EXECUTION_STOPPED, current_user)
 
-    # TODO: Implement update_postponed_events(),
-    # maybe_create_and_send_status_change_event(), and
-    # send_event_notifications like TaskExecution
-    def send_alerts_if_necessary(self):
-        from .notification_send_status import NotificationSendStatus
-        from .alert import Alert
-        from .workflow_execution_alert import WorkflowExecutionAlert
-
-        workflow = self.workflow
-
-        alert_methods = workflow.alert_methods.filter(enabled=True)
-
-        severity = DEFAULT_NOTIFICATION_SUCCESS_SEVERITY if (self.status == Execution.Status.SUCCEEDED) else \
-            DEFAULT_NOTIFICATION_ERROR_SEVERITY
-
-        for am in alert_methods:
-            should_send = (am.notify_on_success and (self.status == Execution.Status.SUCCEEDED)) or \
-                (am.notify_on_failure and (self.status == Execution.Status.FAILED)) or \
-                (am.notify_on_timeout and (self.status == Execution.Status.TERMINATED_AFTER_TIME_OUT))
-
-            if should_send:
-                should_send = not WorkflowExecutionAlert.objects.filter(workflow_execution=self,
-                    alert_method=am, send_status=NotificationSendStatus.SUCCEEDED,
-                    for_latest_execution=True).exists()
-
-            if should_send:
-                wea = WorkflowExecutionAlert(workflow_execution=self, alert_method=am)
-                wea.save()
-
-                # TODO: put the sending in a job queue to allow for retries
-                try:
-                    logger.info(f"Sending alert for Workflow {workflow.uuid} with status {self.status} ...")
-
-                    wea.send_result = am.send(severity=severity, workflow_execution=self) or ''
-
-                    if wea.send_result:
-                        wea.send_result = wea.send_result[:Alert.MAX_SEND_RESULT_LENGTH]
-
-                    logger.info(f"Done sending alert for Workflow {workflow.uuid} with status {self.status}")
-
-                    wea.send_status = NotificationSendStatus.SUCCEEDED
-                    wea.completed_at = timezone.now()
-
-                except Exception as ex:
-                    logger.exception(f"Can't send using Alert Method {am.uuid} / {am.name} for Workflow Execution Alert {self.uuid}")
-
-                    wea.send_status = NotificationSendStatus.FAILED
-                    wea.error_message = str(ex)[:Alert.MAX_ERROR_MESSAGE_LENGTH]
-
-                wea.save()
-            else:
-                logger.debug(f"Skipping alert method {am.uuid} / {am.name}")
-
-    def invalidate_alerts(self) -> None:
-        from .workflow_execution_alert import WorkflowExecutionAlert
-        WorkflowExecutionAlert.objects.filter(workflow_execution=self).update(
-            for_latest_execution=False)
-
 
     def handle_timeout(self) -> None:
         self.timed_out_attempts += 1
@@ -527,10 +510,10 @@ class WorkflowExecution(Execution):
 
         self.stop_reason = WorkflowExecution.StopReason.MAX_EXECUTION_TIME_EXCEEDED
 
-        # This will send alerts if configured by the workflow
+        # This will create events if configured by the Workflow
         self.save()
 
-    def stop_running_task_executions(self, stop_reason, current_user: Optional[User]) -> int:
+    def stop_running_task_executions(self, stop_reason, current_user: User | None) -> int:
         from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
         task_execution_uuids = WorkflowTaskInstanceExecution.objects.select_related(
             'task_execution').filter(workflow_execution=self, is_latest=True,
@@ -549,35 +532,45 @@ class WorkflowExecution(Execution):
                 te.save()
                 count += 1
             except Exception:
-                logger.exception("Can't save stopping task execution")
+                logger.exception("Can't save stopping Task Execution")
 
         return count
 
 @receiver(pre_save, sender=WorkflowExecution)
-def pre_save_workflow_execution(sender: Type[WorkflowExecution], **kwargs) -> None:
-    instance = kwargs['instance']
-
-    # if (instance.status == Execution.Status.FAILED or \
-    #     instance.status == Execution.Status.TERMINATED_AFTER_TIME_OUT) and \
-    #     (instance.pagerduty_event_sent_at is None):
-    #     try:
-    #         instance.notify_error()
-    #     except Exception as ex:
-    #         logger.exception(f"Can't notify after error: {instance}")
+def pre_save_workflow_execution(sender: Type[WorkflowExecution], instance: WorkflowExecution, **kwargs) -> None:
+    old_instance: WorkflowExecution | None = None
 
     if instance.pk is None:
-        logger.info('Purging Workflow Execution history before saving new execution ...')
+        logger.info('Purging Workflow Execution history before saving new Workflow Execution ...')
         num_removed = instance.workflow.purge_history(reservation_count=1)
         logger.info(f'Purged {num_removed} Workflow Executions')
-
     else:
-        old_instance = WorkflowExecution.objects.filter(id=instance.id).first()
+        old_instance = cast(WorkflowExecution, instance._loaded_copy)
         if old_instance and (old_instance.status == Execution.Status.RUNNING) and \
-            (instance.status == Execution.Status.STOPPING):
+                (instance.status == Execution.Status.STOPPING):
             instance.handle_stop_requested()
 
 
 @receiver(post_save, sender=WorkflowExecution)
-def post_save_workflow_execution(sender: Type[WorkflowExecution], **kwargs) -> None:
-    instance = cast(WorkflowExecution, kwargs['instance'])
-    instance.resolve_missing_scheduled_execution_events()
+def post_save_workflow_execution(sender: Type[WorkflowExecution], instance: WorkflowExecution, 
+        created: bool, **kwargs) -> None:
+    old_instance = cast(WorkflowExecution, instance._loaded_copy)
+    instance._loaded_copy = copy.copy(instance)
+
+    in_progress = instance.is_in_progress()
+
+    if instance.started_at and ((old_instance is None) or (old_instance.started_at is None)):
+        instance.resolve_missing_scheduled_execution_events()
+
+    was_in_progress = (old_instance is None) or old_instance.is_in_progress()
+
+    if was_in_progress and (not in_progress):
+        try:
+            instance.update_postponed_status_change_events()
+        except Exception:
+            logger.exception(f"Can't update postponed event after error: {instance}")
+
+        try:
+            instance.maybe_create_and_send_status_change_event()
+        except Exception:
+            logger.exception(f"maybe_create_and_send_status_change_event() failed after error: {instance}")
