@@ -15,14 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class DelayedTaskExecutionStartEvent(TaskExecutionEvent):
+
     SUMMARY_TEMPLATE = \
         "Execution {task_execution.task.uuid} of Task '{task_execution.task.name}' was initiated at {task_execution.started_at} but not started yet after {delay_before_event_seconds} seconds"
 
     RESOLUTION_SUMMARY_TEMPLATE = \
         "Task '{task_execution.task.name}' has started after being manually started and being late to start"
-
-    desired_start_at = models.DateTimeField(null=True, blank=True)    
-    expected_start_by_deadline = models.DateTimeField(null=True, blank=True)
 
     @classmethod
     def resolve_existing_for_task_execution(cls, task_execution: TaskExecution) -> DelayedTaskExecutionStartEvent | None:
@@ -90,4 +88,3 @@ class DelayedTaskExecutionStartEvent(TaskExecutionEvent):
         self.send_event_notifications(resolving_event)
 
         return resolving_event
-

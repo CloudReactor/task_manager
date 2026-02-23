@@ -38,7 +38,7 @@ class WorkflowExecutionStatusChangeEvent(ExecutionStatusChangeEvent, WorkflowExe
         
             self.error_summary = notification_generator.generate_text(
                     template_params=template_params,
-                    template=self.ERROR_SUMMARY_TEMPLATE,
+                    template=__class__.ERROR_SUMMARY_TEMPLATE,
                     workflow_execution=self.workflow_execution)
 
             if not self.error_details_message:

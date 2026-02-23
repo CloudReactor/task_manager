@@ -353,7 +353,7 @@ requires-dist = [
     { name = "django-rest-typed-models", specifier = ">=0.1.0" },
     { name = "django-stubs", marker = "extra == 'dev'", specifier = "==4.2.7" },
     { name = "django-templated-email", specifier = ">=3.0.1,<4.0.0" },
-    { name = "django-typed-models", specifier = ">=0.14.0" },
+    { name = "django-typed-models", specifier = ">=0.15.0" },
     { name = "djangorestframework", specifier = ">=3.15.2,<4.0.0" },
     { name = "djangorestframework-simplejwt", specifier = ">=5.3.1,<6.0.0" },
     { name = "djangorestframework-stubs", marker = "extra == 'dev'", specifier = "==3.14.5" },
@@ -721,11 +721,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/20/53/b83f08603fbaa8a6a
 
 [[package]]
 name = "django-typed-models"
-version = "0.14.0"
+version = "0.15.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/32/1a/f231998a68f5357c0bfcc5f94247bef3c69acc63517e2cd24a33910b75ba/django-typed-models-0.14.0.tar.gz", hash = "sha256:1d374f9fc3c7aedcfbaada9200c0b489c3d2262c275a499141c2dcfc7472a5b7", size = 12542, upload-time = "2023-10-24T22:10:35.296Z" }
+dependencies = [
+    { name = "django-stubs-ext" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b8/54/b74a6ec836abbffc5e173847b4a7882b9a26b53505ca9a12db37a167932b/django_typed_models-0.15.2.tar.gz", hash = "sha256:4b3b3de58928946d8eaafc107576302ef07cba6dd309f241bccbeec45ab27127", size = 20059, upload-time = "2026-01-14T03:26:53.007Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/78/47/51c2d6ea1157e24a8a70aeec49e65cc915045dd905890595853a293382ab/django_typed_models-0.14.0-py3-none-any.whl", hash = "sha256:efb51da12e51492b95c32798c0c9ac2b4caa05b0138391b676bc3e8b9ca2e5dd", size = 13299, upload-time = "2023-10-24T22:10:33.047Z" },
+    { url = "https://files.pythonhosted.org/packages/92/29/5a3ab11631d943b77db1858e68c4a0975b83229936d122104228cc01e5ec/django_typed_models-0.15.2-py3-none-any.whl", hash = "sha256:9eadcb09ae6eb5d86802509cd9db76e94a4239aed1cf24176945be5989b620f6", size = 14710, upload-time = "2026-01-14T03:26:52.043Z" },
 ]
 
 [[package]]

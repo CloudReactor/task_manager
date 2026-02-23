@@ -47,10 +47,7 @@ class Migration(migrations.Migration):
                         "processes.missingheartbeatdetectionevent",
                         "missing heartbeat detection event",
                     ),
-                    (
-                        "processes.missingscheduledexecutionevent",
-                        "missing scheduled execution event",
-                    ),
+
                     (
                         "processes.missingscheduledtaskexecutionevent",
                         "missing scheduled task execution event",
@@ -80,17 +77,7 @@ class Migration(migrations.Migration):
                 max_length=255,
             ),
         ),
-        migrations.CreateModel(
-            name="MissingScheduledExecutionEvent",
-            fields=[],
-            options={
-                "ordering": ["event_at", "detected_at"],
-                "proxy": True,
-                "indexes": [],
-                "constraints": [],
-            },
-            bases=("processes.schedulableinstanceevent",),
-        ),
+
         migrations.CreateModel(
             name="WorkflowEvent",
             fields=[],
@@ -109,10 +96,7 @@ class Migration(migrations.Migration):
                 "indexes": [],
                 "constraints": [],
             },
-            bases=(
-                "processes.taskexecutionevent",
-                "processes.missingscheduledexecutionevent",
-            ),
+            bases=("processes.taskexecutionevent",),
         ),
         migrations.CreateModel(
             name="MissingScheduledWorkflowExecutionEvent",
@@ -122,9 +106,6 @@ class Migration(migrations.Migration):
                 "indexes": [],
                 "constraints": [],
             },
-            bases=(
-                "processes.workflowexecutionevent",
-                "processes.missingscheduledexecutionevent",
-            ),
+            bases=("processes.workflowexecutionevent",),
         ),
     ]

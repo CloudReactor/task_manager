@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 
 
 class TaskEvent(SchedulableInstanceEvent):
-    task = models.ForeignKey('Task', null=True, blank=True, on_delete=models.CASCADE)
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
