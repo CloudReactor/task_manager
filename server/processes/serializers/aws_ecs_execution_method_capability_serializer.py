@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.fields import empty
 
-from ..models import RunEnvironment, AwsEcsServiceLoadBalancerDetails
+from ..models import RunEnvironment
 from ..models.convert_legacy_em_and_infra import convert_empty_to_none_values
 from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from ..execution_methods.aws_ecs_execution_method import (

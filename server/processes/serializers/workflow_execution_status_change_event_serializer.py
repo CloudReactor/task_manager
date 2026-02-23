@@ -30,7 +30,7 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
     @override
     def to_internal_value(self, data):
         """Convert nested workflow and workflow_execution data to actual instances."""
-        from ..models import RunEnvironment, Workflow, WorkflowExecution
+        from ..models import Workflow, WorkflowExecution
 
         request = self.context.get('request')
 

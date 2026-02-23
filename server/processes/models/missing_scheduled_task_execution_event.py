@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
 
-from ..common.utils import strip_prefix_before_last_dot
-
 from .task_event import TaskEvent
 from .task_execution_event import TaskExecutionEvent
 from .missing_scheduled_execution_event import MissingScheduledExecutionEvent

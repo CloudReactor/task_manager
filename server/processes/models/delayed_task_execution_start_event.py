@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-from django.db import models
 from django.utils import timezone
 
 from processes.models.task_execution import TaskExecution

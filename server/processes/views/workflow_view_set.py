@@ -9,7 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from ..models import Execution, Workflow, WorkflowExecution
+from ..models import Execution, Workflow
 from ..serializers import WorkflowSerializer, WorkflowSummarySerializer
 
 from .base_view_set import BaseViewSet

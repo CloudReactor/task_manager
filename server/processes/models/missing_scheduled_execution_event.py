@@ -1,9 +1,6 @@
 from typing import Optional
 
-from django.db import models
-
 from .execution import Execution
-from .schedulable_instance_event import SchedulableInstanceEvent
 
 
 class MissingScheduledExecutionEvent:

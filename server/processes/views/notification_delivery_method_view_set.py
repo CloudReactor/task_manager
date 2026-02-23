@@ -4,7 +4,7 @@ from django_filters import CharFilter
 from django_filters import rest_framework as filters
 from django_filters.filters import NumberFilter
 
-from ..common.utils import model_class_to_type_string
+# model_class_to_type_string not used here
 
 from ..models import (
     NotificationDeliveryMethod,

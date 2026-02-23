@@ -1,4 +1,4 @@
-from django.db import models
+# django models import not needed here
 
 from .task_execution_event import TaskExecutionEvent
 

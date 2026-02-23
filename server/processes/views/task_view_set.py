@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 
 from django_filters import rest_framework as filters
 
-from processes.models import Task, TaskExecution, RunEnvironment, NotificationProfile, AlertMethod
+from processes.models import Task, TaskExecution, RunEnvironment, NotificationProfile
 from processes.serializers import TaskSerializer
 
 from .base_view_set import BaseViewSet

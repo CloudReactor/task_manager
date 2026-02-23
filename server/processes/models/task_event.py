@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
 
-from django.db import models
-
 from ..common.utils import strip_prefix_before_last_dot
 from .schedulable_instance_event import SchedulableInstanceEvent
 

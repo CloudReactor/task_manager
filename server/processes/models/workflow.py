@@ -78,7 +78,6 @@ class Workflow(Schedulable):
                 status__in=WorkflowExecution.IN_PROGRESS_STATUSES)
 
     def running_executions_queryset(self):
-        from .workflow_execution import WorkflowExecution
         return self.workflowexecution_set.filter(
             status=Execution.Status.RUNNING
         )

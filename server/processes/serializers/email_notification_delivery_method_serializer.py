@@ -1,5 +1,3 @@
-from rest_framework import serializers
-
 from ..models import EmailNotificationDeliveryMethod
 from .notification_delivery_method_serializer import NotificationDeliveryMethodSerializer
 

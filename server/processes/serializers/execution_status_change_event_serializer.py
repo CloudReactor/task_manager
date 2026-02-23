@@ -1,5 +1,3 @@
-from rest_framework import serializers
-
 from .event_serializer import EventSerializer
 
 

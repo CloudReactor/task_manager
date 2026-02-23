@@ -22,7 +22,7 @@ from ..models import (
 from ..exception import UnprocessableEntity
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
-from .optional_modification_timestamp_serializer_mixin import OptionalModificationTimestampSerializerMixin
+# OptionalModificationTimestampSerializerMixin not used here
 from .embedded_workflow_serializer import EmbeddedWorkflowSerializer
 
 logger = logging.getLogger(__name__)

@@ -6,10 +6,7 @@ from datetime import datetime, timedelta
 import enum
 import logging
 
-from django.db import models
 from django.utils import timezone
-
-from .event import Event
 
 if TYPE_CHECKING:
     from .schedulable import Schedulable

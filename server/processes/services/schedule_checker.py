@@ -15,7 +15,7 @@ from django.db.models import Manager, Q
 from django.utils import timezone
 
 from ..models import MissingScheduledExecutionEvent, Schedulable, Execution
-from ..models.schedulable import SCHEDULE_TYPE_CRON, SCHEDULE_TYPE_RATE
+from ..models.schedulable import SCHEDULE_TYPE_CRON
 
 
 MIN_DELAY_BETWEEN_EXPECTED_AND_ACTUAL_SECONDS = 300

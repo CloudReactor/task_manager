@@ -1,4 +1,4 @@
-from django.db import models
+# django models import not needed here
 
 from ..common.utils import strip_prefix_before_last_dot
 from .task_event import TaskEvent

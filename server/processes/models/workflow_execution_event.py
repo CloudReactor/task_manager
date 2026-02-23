@@ -1,9 +1,6 @@
 from typing import override
 
-from django.db import models
-
 from .workflow_event import WorkflowEvent
-from .workflow_execution import WorkflowExecution
 
 class WorkflowExecutionEvent(WorkflowEvent):
 

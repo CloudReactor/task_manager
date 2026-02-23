@@ -1,7 +1,5 @@
 from typing import override
 
-from django.db import models
-
 from ..common.utils import strip_prefix_before_last_dot
 from .schedulable_instance_event import SchedulableInstanceEvent
 from .workflow import Workflow

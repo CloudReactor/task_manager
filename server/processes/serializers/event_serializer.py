@@ -1,7 +1,6 @@
 import logging
 from typing import Any, override
 
-from django.utils.text import camel_case_to_spaces
 
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
@@ -12,7 +11,7 @@ from ..common.utils import model_class_to_type_string
 
 from .embedded_id_validating_serializer_mixin import EmbeddedIdValidatingSerializerMixin
 from .name_and_uuid_serializer import NameAndUuidSerializer
-from .group_serializer import GroupSerializer
+# camel_case_to_spaces and GroupSerializer not required here
 from .group_setting_serializer_mixin import GroupSettingSerializerMixin
 from .serializer_helpers import SerializerHelpers
 

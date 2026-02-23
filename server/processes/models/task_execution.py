@@ -20,7 +20,7 @@ from django_middleware_global_request.middleware import get_request
 from rest_framework.exceptions import ValidationError
 
 from ..common.aws import *
-from ..common.request_helpers import context_with_request
+# context_with_request not used in this module
 from ..common.pagerduty import *
 from ..common.utils import coalesce, val_to_str
 from ..execution_methods import ExecutionMethod

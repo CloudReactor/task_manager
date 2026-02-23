@@ -2,7 +2,7 @@ import logging
 from typing import override
 from urllib.request import Request
 
-from django.db.models import Q, F, Value
+from django.db.models import F, Value
 from django.db.models.functions import Coalesce
 from django.views import View
 
@@ -11,17 +11,11 @@ from django_filters.filters import NumberFilter, CharFilter
 
 from rest_framework import permissions
 
-from processes.common.request_helpers import required_user_and_group_from_request
 from processes.models.user_group_access_level import UserGroupAccessLevel
 
-from ..permissions import IsCreatedByGroup
-
 from ..common.utils import model_class_to_type_string
-
-from ..models import (
-    Event,
-    RunEnvironment,
-)
+from ..models import Event
+from ..permissions import IsCreatedByGroup
 from ..serializers import EventSerializer
 
 from .base_view_set import BaseViewSet

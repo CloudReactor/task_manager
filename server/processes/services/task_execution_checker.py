@@ -4,7 +4,6 @@ import logging
 from django.db import transaction
 from django.utils import timezone
 
-from ..common.request_helpers import context_with_request
 from ..models import *
 
 
