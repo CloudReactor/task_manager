@@ -414,7 +414,6 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
             count_with_success_status_after_postponement=0
         )
 
-
 @receiver(pre_save, sender=TaskExecution)
 def pre_save_task_execution(sender: Type[TaskExecution], instance: TaskExecution, **kwargs):
     logger.info(f"Before Pre-Saved Task Execution {instance.uuid} settings, started_at = {instance.started_at}")

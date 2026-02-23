@@ -42,41 +42,6 @@ class SerializerHelpers(serializers.BaseSerializer):
                 logger.warning('get_request_group(): user has multiple groups, returning None')
         return group
 
-    # Legacy
-    def set_validated_alert_methods(self,
-            data: Mapping[str, Any],
-            validated: dict[str, Any],
-            run_environment: Optional[RunEnvironment],
-            property_name: str = 'alert_methods',
-            allow_any_run_environment: bool = False):
-        from processes.models import AlertMethod
-
-        group = validated['created_by_group']
-
-        body_alert_methods = data.get(property_name)
-
-        if body_alert_methods is not None:
-            updated_alert_methods = []
-
-            for body_alert_method in body_alert_methods:
-                try:
-                    am = AlertMethod.find_by_uuid_or_name(body_alert_method,
-                            required_group=group,
-                            allowed_run_environment=run_environment,
-                            allow_any_run_environment=allow_any_run_environment)
-                except serializers.ValidationError as validation_error:
-                    self.handle_to_internal_value_exception(validation_error, field_name='alert_methods')
-                except NotFound as nfe:
-                    raise UnprocessableEntity({
-                        property_name: [
-                            ErrorDetail('Alert method not found', code='invalid')
-                        ]
-                    }) from nfe
-
-                updated_alert_methods.append(am)
-
-            validated[property_name] = updated_alert_methods
-
 
     def set_validated_notification_profiles(self,
             data: Mapping[str, Any],

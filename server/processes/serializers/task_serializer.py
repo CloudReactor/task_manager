@@ -490,9 +490,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 })
             validated['scheduled_instance_count'] = None
 
-        # Legacy
-        self.set_validated_alert_methods(data=data, validated=validated,
-            run_environment=run_environment)
 
         self.set_validated_notification_profiles(data=data, validated=validated,
                 run_environment=run_environment)
@@ -558,9 +555,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
         is_service_defined = (is_service and service_instance_count) or (is_service is False)
 
         load_balancer_details_list = defaults.pop('aws_ecs_load_balancer_details_set', None)
-
-        # Legacy
-        alert_methods = defaults.pop('alert_methods', None)
 
         notification_profiles = defaults.pop('notification_profiles', None)
 
@@ -644,10 +638,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
             task.synchronize_with_run_environment(old_self=old_self, is_saving=True)
             task.should_skip_synchronize_with_run_environment = False
-
-        # Legacy
-        if alert_methods is not None:
-            task.alert_methods.set(alert_methods)
 
         if notification_profiles is not None:
             task.notification_profiles.set(notification_profiles)

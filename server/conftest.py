@@ -35,9 +35,6 @@ from processes.models import *
 from processes.serializers import *
 
 from tests.factories import (
-    # Legacy
-    AlertMethodFactory,
-
     GroupFactory,
     GroupInfoFactory,
     UserFactory,
@@ -53,8 +50,6 @@ from tests.factories import (
     WorkflowTransitionFactory,
     WorkflowExecutionFactory,
     WorkflowTaskInstanceExecutionFactory,
-    PagerDutyProfileFactory,
-    EmailNotificationProfileFactory,
     BasicEventFactory,
     TaskExecutionStatusChangeEventFactory,
     WorkflowExecutionStatusChangeEventFactory,
@@ -114,11 +109,6 @@ register(NotificationProfileFactory)
 register(EmailNotificationDeliveryMethodFactory)
 register(PagerDutyNotificationDeliveryMethodFactory)
 register(NotificationFactory)
-
-# Legacy
-register(AlertMethodFactory)
-register(PagerDutyProfileFactory)
-register(EmailNotificationProfileFactory)
 
 
 @pytest.fixture(autouse=True)
