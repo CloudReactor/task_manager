@@ -17,4 +17,3 @@ class MissingScheduledWorkflowExecutionEventSerializer(EventSerializer):
             'schedule',
             'expected_execution_at',
         ]
-

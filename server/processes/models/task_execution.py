@@ -36,7 +36,7 @@ from .aws_tagged_entity import AwsTaggedEntity
 if TYPE_CHECKING:
     from .task_execution_status_change_event import (
         TaskExecutionStatusChangeEvent
-    )    
+    )
 
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         Execution.Status.EXITED_AFTER_MARKED_DONE, Execution.Status.STOPPING, Execution.Status.STOPPED,
         Execution.Status.ABANDONED, Execution.Status.ABORTED
     ]
-    
+
     COMPLETED_STATUSES = [Execution.Status.SUCCEEDED] + UNSUCCESSFUL_STATUSES
     AWAITING_UPDATE_STATUSES = IN_PROGRESS_STATUSES + [Execution.Status.STOPPING]
 
@@ -374,13 +374,13 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 
     @override
     def should_create_status_change_event(self) -> bool:
-        if self.status == Execution.Status.ABORTED:                    
+        if self.status == Execution.Status.ABORTED:
             task = self.task
 
             if not task:
                 logger.info("Skipping status change event creation since Task is missing")
                 return False
-            
+
             # TODO: keep track of service updated_at for generic services
             if task.aws_ecs_service_updated_at and \
                     (task.aws_ecs_service_updated_at > self.started_at):
@@ -481,7 +481,7 @@ def post_save_task_execution(sender: Type[TaskExecution], instance: TaskExecutio
 
 
     if instance.started_at and ((not old_instance) or (not old_instance.started_at)):
-         instance.resolve_missing_scheduled_execution_events()
+        instance.resolve_missing_scheduled_execution_events()
 
     heartbeat_interval_seconds = task.heartbeat_interval_seconds
     max_heartbeat_lateness_before_alert_seconds = task.max_heartbeat_lateness_before_alert_seconds

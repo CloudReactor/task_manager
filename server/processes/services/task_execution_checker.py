@@ -72,7 +72,7 @@ class TaskExecutionChecker:
                     logger.debug(f"Found existing delayed Task start event {existing_dtese.uuid}, not creating another")
                 else:
                     dtese = DelayedTaskExecutionStartEvent(task_execution=te)
-                    dtese.save()                    
+                    dtese.save()
                     te.send_event_notifications(event=dtese)
 
 

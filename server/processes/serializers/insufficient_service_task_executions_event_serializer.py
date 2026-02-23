@@ -50,19 +50,19 @@ class InsufficientServiceTaskExecutionsEventSerializer(EventSerializer):
             task = Task.find_by_uuid_or_name(task_data,
                 required_group=group,
                 required_run_environment=run_environment)
-            
+
         if task is None:
             if self.instance:
                 task = self.instance.task
-            else:                    
+            else:
                 raise UnprocessableEntity({
                     'task': [ErrorDetail('No Task was found for the provided identifier', code='not_found')]
                 })
-        elif self.instance:            
+        elif self.instance:
             if task.pk != self.instance.task.pk:
                 raise UnprocessableEntity({
                     'task': [ErrorDetail('The specified Task does not match the Task associated with the provided Event', code='mismatch')]
-                })    
+                })
 
         if run_environment and (task.run_environment.pk != run_environment.pk):
             raise UnprocessableEntity({

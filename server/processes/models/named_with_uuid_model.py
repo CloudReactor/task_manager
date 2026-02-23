@@ -29,7 +29,7 @@ class NamedWithUuidModel(UuidModel):
             check_conflict: bool = True,
             allowed_run_environment: RunEnvironment | None = None,
             allow_any_run_environment: bool | None = None):
-        
+
         return cls.find_by_uuid_or_name_core(
             obj_dict,
             required_group=required_group,

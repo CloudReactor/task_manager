@@ -15,7 +15,7 @@ class TaskExecutionEvent(TaskEvent):
                 self.run_environment = self.task_execution.run_environment
 
             if not self.created_by_group:
-                self.created_by_group = self.task_execution.created_by_group    
+                self.created_by_group = self.task_execution.created_by_group
 
         if self.task:
             if not self.created_by_group:

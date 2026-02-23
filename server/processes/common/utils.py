@@ -137,17 +137,17 @@ def to_camel(string: str) -> str:
 
 
 def strip_prefix_before_last_dot(text):
-  """
-  Strips the prefix of a string up to and including the last '.' character.
+    """
+    Strips the prefix of a string up to and including the last '.' character.
 
-  Args:
-    text: The input string.
+    Args:
+        text: The input string.
 
-  Returns:
-    The substring after the last '.', or the original string if no '.' is found.
-  """
-  parts = text.rsplit('.', 1)
-  if len(parts) > 1:
-    return parts[1]
-  else:
-    return parts[0] # No dot found, return the original string
+    Returns:
+        The substring after the last '.', or the original string if no '.' is found.
+    """
+    parts = text.rsplit('.', 1)
+    if len(parts) > 1:
+        return parts[1]
+    else:
+        return parts[0]  # No dot found, return the original string

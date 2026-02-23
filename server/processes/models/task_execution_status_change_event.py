@@ -23,7 +23,7 @@ class TaskExecutionStatusChangeEvent(ExecutionStatusChangeEvent, TaskExecutionEv
     ERROR_MESSAGE_TEMPLATE = \
         """Execution {{task_execution.uuid}} of Task '{{task.name}}' finished with status {{task_execution.status}}"""
 
-    def __init__(self, *args, **kwargs):        
+    def __init__(self, *args, **kwargs):
         from ..services.notification_generator import NotificationGenerator
 
         super().__init__(*args, **kwargs)

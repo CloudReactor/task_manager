@@ -28,7 +28,7 @@ class TaskExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSeriali
 
     @override
     def to_internal_value(self, data):
-        """Convert nested task and task_execution data to actual instances."""        
+        """Convert nested task and task_execution data to actual instances."""
         from ..models import Task, TaskExecution
 
         task_data = data.pop('task', None)
@@ -42,9 +42,9 @@ class TaskExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSeriali
         task_execution: TaskExecution | None = None
         if task_execution_data:
             task_execution = TaskExecution.find_by_uuid(task_execution_data,
-                required_group=group, required_run_environment=run_environment)                                                               
-            
-        if task_execution is None:        
+                required_group=group, required_run_environment=run_environment)
+
+        if task_execution is None:
             if self.instance:
                 task_execution = self.instance.task_execution
         elif self.instance and self.instance.task_execution:
@@ -52,7 +52,7 @@ class TaskExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSeriali
                 raise UnprocessableEntity({
                     'task': [ErrorDetail('The specified Task Execution does not match the Task associated with the provided Event', code='mismatch')]
                 })
-        
+
         if task_execution is None:
             raise UnprocessableEntity({
                 'task_execution': [ErrorDetail('No Task Execution was found for the provided identifier', code='not_found')]
@@ -65,14 +65,14 @@ class TaskExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSeriali
             task = Task.find_by_uuid_or_name(task_data,
                 required_group=group,
                 required_run_environment=run_environment)
-                        
+
             if task:
                 if task.pk != task_execution.task.pk:
                     raise UnprocessableEntity({
                         'task': [ErrorDetail('The specified Task does not match the Task associated with the provided Task Execution', code='mismatch')]
                     })
-                
-        if task is None:                
+
+        if task is None:
             task = task_execution.task
 
         if task:
@@ -84,7 +84,7 @@ class TaskExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSeriali
             else:
                 run_environment = task.run_environment
                 validated['run_environment'] = run_environment
-                                
-        validated['task'] = task        
+
+        validated['task'] = task
 
         return validated

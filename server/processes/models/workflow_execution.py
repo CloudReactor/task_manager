@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class WorkflowExecution(Execution):    
+class WorkflowExecution(Execution):
     """
     A WorkflowExecution holds data on a specific execution (run) of a Workflow.
     """
@@ -210,7 +210,7 @@ class WorkflowExecution(Execution):
         return self
 
     def resolve_status_change_events(self, reason: str) -> None:
-        from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent        
+        from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 
         for event in WorkflowExecutionStatusChangeEvent.objects.filter(workflow_execution=self,
                 resolved_at__isnull=True).all():
@@ -552,7 +552,7 @@ def pre_save_workflow_execution(sender: Type[WorkflowExecution], instance: Workf
 
 
 @receiver(post_save, sender=WorkflowExecution)
-def post_save_workflow_execution(sender: Type[WorkflowExecution], instance: WorkflowExecution, 
+def post_save_workflow_execution(sender: Type[WorkflowExecution], instance: WorkflowExecution,
         created: bool, **kwargs) -> None:
     old_instance = cast(WorkflowExecution, instance._loaded_copy)
     instance._loaded_copy = copy.copy(instance)

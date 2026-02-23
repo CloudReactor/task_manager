@@ -38,7 +38,7 @@ class UuidModel(models.Model):
             required_run_environment: RunEnvironment | None = None,
             check_conflict: bool = False,
             allowed_run_environment: RunEnvironment | None = None,
-            allow_any_run_environment: bool | None = None):        
+            allow_any_run_environment: bool | None = None):
         return cls.find_by_uuid_or_name_core(
             obj_dict,
             required_group=required_group,
@@ -56,7 +56,7 @@ class UuidModel(models.Model):
             check_conflict: bool,
             allowed_run_environment: RunEnvironment | None,
             allow_any_run_environment: bool | None,
-            use_name: bool):       
+            use_name: bool):
         uuid = obj_dict.get('uuid')
         name = obj_dict.get('name') if use_name else None
 
@@ -69,11 +69,11 @@ class UuidModel(models.Model):
         elif use_name:
             if name is None:
                 raise serializers.ValidationError('Neither uuid or name found in request')
-            
+
             entity = cls.objects.get(name=name, created_by_group=required_group)
         else:
             raise serializers.ValidationError('uuid not found in request')
-        
+
         if required_group and (entity.created_by_group != required_group):
             raise NotFound()
 
@@ -100,7 +100,7 @@ class UuidModel(models.Model):
                 raise NotFound()
 
         return entity
-    
+
     @property
     def dashboard_url(self) -> str:
         return settings.EXTERNAL_BASE_URL + self.dashboard_path \

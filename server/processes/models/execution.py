@@ -109,9 +109,9 @@ class Execution(UuidModel, ExecutionProbabilities):
         schedulable = self.get_schedulable()
         if schedulable:
             return schedulable.run_environment
-        
+
         return None
-    
+
     @property
     def created_by_group(self) -> Group | None:
         schedulable = self.get_schedulable()
@@ -178,7 +178,7 @@ class Execution(UuidModel, ExecutionProbabilities):
 
 
     def should_create_status_change_event(self) -> bool:
-        if self.skip_event_generation:        
+        if self.skip_event_generation:
             logger.info("Skipping status change event creation since skip_event_generation = True")
             return False
 
@@ -195,12 +195,12 @@ class Execution(UuidModel, ExecutionProbabilities):
         if self.status_change_event_queryset_for_execution().filter(status=self.status).exists():
             logger.info(f"Skipping status change event creation for Execution {self.uuid} since it already has a status change event")
             return False
-                
+
         return True
 
     def create_status_change_event(self, severity: Event.Severity) -> ExecutionStatusChangeEvent:
         raise NotImplementedError()
-    
+
 
     def update_postponed_status_change_events(self) -> int:
         executable = self.get_schedulable()

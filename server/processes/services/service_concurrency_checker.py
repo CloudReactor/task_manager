@@ -149,7 +149,7 @@ class ServiceConcurrencyChecker:
                 event.save()
 
                 resolving_event = InsufficientServiceTaskExecutionsEvent(
-                    severity=service.notification_event_severity_on_sufficient_instances_restored,                    
+                    severity=service.notification_event_severity_on_sufficient_instances_restored,
                     created_by_group=service.created_by_group,
                     run_environment=service.run_environment,
                     task=service,

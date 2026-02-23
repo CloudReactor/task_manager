@@ -17,7 +17,7 @@ class WorkflowExecutionEvent(WorkflowEvent):
                 self.run_environment = self.workflow_execution.run_environment
 
             if not self.created_by_group:
-                self.created_by_group = self.workflow_execution.created_by_group    
+                self.created_by_group = self.workflow_execution.created_by_group
 
         if self.workflow:
             if not self.created_by_group:

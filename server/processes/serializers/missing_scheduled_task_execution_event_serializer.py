@@ -17,4 +17,3 @@ class MissingScheduledTaskExecutionEventSerializer(EventSerializer):
             'schedule',
             'expected_execution_at',
         ]
-

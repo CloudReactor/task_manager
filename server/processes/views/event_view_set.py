@@ -197,7 +197,7 @@ class EventFilter(filters.FilterSet):
             'task__uuid': ['exact'],
             'workflow__uuid': ['exact'],
             'task_execution__uuid': ['exact'],
-            'workflow_execution__uuid': ['exact'],            
+            'workflow_execution__uuid': ['exact'],
         }
 
 
@@ -234,13 +234,13 @@ class EventViewSet(AtomicModelViewSet, BaseViewSet):
     def get_queryset(self):
         """Override to annotate executable__name using COALESCE of task__name and workflow__name."""
         queryset = super().get_queryset()
-        
+
         # Annotate the queryset with executable__name that coalesces task__name and workflow__name
         # This allows ordering by either task or workflow name using a single field
         queryset = queryset.annotate(
             executable__name=Coalesce(F('task__name'), F('workflow__name'), Value(''))
         )
-        
+
         return queryset
 
     # CHECKME: is this needed?

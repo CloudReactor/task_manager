@@ -53,11 +53,11 @@ class NotificationProfileViewSet(AtomicModelViewSet, CloningMixin, BaseViewSet):
     def make_clone(self, request: Request, entity: Any) -> Any:
         # Save the ManyToMany relationships before cloning
         notification_delivery_methods = list(entity.notification_delivery_methods.all())
-        
+
         # Clone the entity using the parent implementation
         cloned_entity = super().make_clone(request=request, entity=entity)
-        
+
         # Restore the ManyToMany relationships
         cloned_entity.notification_delivery_methods.set(notification_delivery_methods)
-        
+
         return cloned_entity

@@ -82,7 +82,7 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
     severity = EventSeveritySerializer()
     event_type = serializers.SerializerMethodField()
     acknowledged_by_user = serializers.ReadOnlyField(source='acknowledged_by_user.username', allow_null=True)
-    resolved_event = NameAndUuidSerializer(view_name='events-detail', required=False)        
+    resolved_event = NameAndUuidSerializer(view_name='events-detail', required=False)
     resolved_by_user = serializers.ReadOnlyField(source='resolved_by_user.username', allow_null=True)
 
     class Meta:
@@ -188,8 +188,8 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
             if validated_data.get('acknowledged_at'):
                 instance.acknowledged_by_user = user
             else:
-                instance.acknowledged_by_user = None    
-        
+                instance.acknowledged_by_user = None
+
         if 'resolved_at' in validated_data:
             if validated_data.get('resolved_at'):
                 instance.resolved_by_user = user
