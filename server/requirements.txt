@@ -200,9 +200,9 @@ charset-normalizer==3.4.1 \
     --hash=sha256:fd4ec41f914fa74ad1b8304bbc634b3de73d2a0889bd32076342a573e0779e00 \
     --hash=sha256:ffc9202a29ab3920fa812879e95a9e78b2465fd10be7fcbd042899695d75e616
     # via requests
-cloudreactor-procwrapper[allextras]==6.0.0 \
-    --hash=sha256:d2fa84671765703db9cfac76d6f0505d8cb9c5cb17964ef21cd0ce72e10106c8 \
-    --hash=sha256:d5f876fca159688dad8aec6c9be4a64c33a8f1dafa48370ed9f85ca6f73d25f3
+cloudreactor-procwrapper==6.0.2 \
+    --hash=sha256:801ba102066775ddf4cff9568aa66373d47f122a0ac7ce021ea9c98738b34311 \
+    --hash=sha256:8b2c507ba43a7db81de3964f1e7803a9fca465a55809da0ae3ad01689373b390
     # via -r requirements.in
 crontab==1.0.1 \
     --hash=sha256:89477e3f93c81365e738d5ee2659509e6373bb2846de13922663e79aa74c6b91
@@ -264,7 +264,7 @@ django==4.2.20 \
     #   djoser
     #   drf-spectacular
     #   social-auth-app-django
-django-anymail[amazon-ses]==10.3 \
+django-anymail==10.3 \
     --hash=sha256:1e72f059e96930d3675d35fe4c61f82b138ae4a7fcb0337be39dcb4823f94a4f \
     --hash=sha256:35d8ec20b06000af3c1638492e32f416fd1a584f0a572cded03f1bc570169ed0
     # via -r requirements.in
@@ -471,7 +471,7 @@ ply==3.11 \
     --hash=sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3 \
     --hash=sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce
     # via jsonpath-ng
-psycopg[binary,pool]==3.2.6 \
+psycopg==3.2.6 \
     --hash=sha256:16fa094efa2698f260f2af74f3710f781e4a6f226efe9d1fd0c37f384639ed8a \
     --hash=sha256:f3ff5488525890abb0566c429146add66b329e20d6d4835662b920cbbf90ac58
     # via -r requirements.in
@@ -845,9 +845,9 @@ soupsieve==2.6 \
     --hash=sha256:e2e68417777af359ec65daac1057404a3c8a5455bb8abc36f1a9866ab1a51abb \
     --hash=sha256:e72c4ff06e4fb6e4b5a9f0f55fe6e81514581fca1515028625d0f299c602ccc9
     # via beautifulsoup4
-sqlparse==0.5.3 \
-    --hash=sha256:09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272 \
-    --hash=sha256:cf2196ed3418f3ba5de6af7e82c694a9fbdbfecccdfc72e281548517081f16ca
+sqlparse==0.5.4 \
+    --hash=sha256:4396a7d3cf1cd679c1be976cf3dc6e0a51d0111e87787e7a8d780e7d5a998f9e \
+    --hash=sha256:99a9f0314977b76d776a0fcb8554de91b9bb8a18560631d6bc48721d07023dcb
     # via
     #   -r requirements.in
     #   django
