@@ -27,7 +27,7 @@ default_task_config:
     # See https://aws.amazon.com/fargate/pricing/
     # for supported combinations.
     cpu_units: 256
-    memory_mb: 512
+    memory_mb: 1024
     # # See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html
     # # for supported platform versions. Can also be set to "LATEST".
     platform_version: "1.4.0"
