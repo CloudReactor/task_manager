@@ -92,8 +92,10 @@ default_task_config:
 
     # # Top-level .env secret locations. The values in later locations take
     # # precedence over those in earlier locations.
-    env_locations:
-      - arn:aws:secretsmanager:{{aws_region}}:{{ aws.account_id }}:secret:CloudReactor/task_manager/{{env}}/config.json
+    env_locations: >-
+      {{ ['arn:aws:secretsmanager:' ~ aws_region ~ ':' ~ aws.account_id ~ ':secret:CloudReactor/task_manager/' ~ env ~ '/config.json'] +
+         (['arn:aws:secretsmanager:' ~ aws_region ~ ':' ~ aws.account_id ~ ':secret:CloudReactor/task_manager/' ~ env ~ '/migrate_db_config.json']
+          if (env == 'super') else []) }}
 
     # # proc_wrapper can also load a configuration dictionary, merged from
     # # the sources below.
@@ -232,7 +234,6 @@ task_name_to_config:
     wrapper:
       env_locations:
         - arn:aws:secretsmanager:{{aws_region}}:{{ aws.account_id }}:secret:CloudReactor/task_manager/{{env}}/config.json
-        - arn:aws:secretsmanager:{{aws_region}}:{{ aws.account_id }}:secret:CloudReactor/task_manager/{{env}}/migrate_db_config.json
 
   web:
     description: "Web Server"
