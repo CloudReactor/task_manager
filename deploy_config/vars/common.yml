@@ -30,7 +30,7 @@ default_task_config:
     memory_mb: 512
     # # See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html
     # # for supported platform versions. Can also be set to "LATEST".
-    # platform_version: "LATEST"
+    platform_version: "1.4.0"
 
     # # Required when deploying a scheduled task without CloudReactor
     # execution_role_arn: arn:aws:iam::{{ aws.account_id }}:role/ecsEventsRole
