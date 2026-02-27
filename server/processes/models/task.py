@@ -129,9 +129,6 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
     service_provider_type = models.CharField(max_length=100, blank=True)
     service_settings = models.JSONField(null=True, blank=True)
 
-    # Deprecated
-    alert_methods = models.ManyToManyField('AlertMethod', blank=True)
-
     latest_task_execution = models.OneToOneField('TaskExecution',
         # Don't backreference, since TaskExecutions already point to Tasks
         related_name='+',

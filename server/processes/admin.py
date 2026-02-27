@@ -17,13 +17,6 @@ from .models.workflow_execution import WorkflowExecution
 from .models.workflow_transition import WorkflowTransition
 from .models.workflow_task_instance_execution import WorkflowTaskInstanceExecution
 from .models.workflow_transition_evaluation import WorkflowTransitionEvaluation
-from .models.alert_method import AlertMethod
-from .models.pagerduty_profile import PagerDutyProfile
-from .models.email_notification_profile import EmailNotificationProfile
-from .models.delayed_process_start_detection_event import DelayedProcessStartDetectionEvent
-from .models.delayed_process_start_alert import DelayedProcessStartAlert
-from .models.legacy_insufficient_service_instances_event import LegacyInsufficientServiceInstancesEvent
-from .models.insufficient_service_instances_alert import InsufficientServiceInstancesAlert
 from .models.event import Event
 from .models.missing_heartbeat_detection_event import MissingHeartbeatDetectionEvent
 from .models.task_execution_status_change_event import TaskExecutionStatusChangeEvent
@@ -105,23 +98,6 @@ class WorkflowTransitionEvaluationAdmin(admin.ModelAdmin):
                        'workflow_execution',
                       )
 
-# Legacy
-class AlertMethodAdmin(admin.ModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('name', 'uuid',)
-
-
-class PagerDutyProfileAdmin(admin.ModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('name', 'uuid',)
-
-
-class EmailNotificationProfileAdmin(admin.ModelAdmin):
-    list_filter = ["created_by_group"]
-    search_fields = ('name', 'uuid',)
-
-# End Legacy
-
 class NotificationDeliveryMethodAdmin(TypedModelAdmin):
     list_filter = ["created_by_group"]
     search_fields = ('name', 'uuid',)
@@ -165,18 +141,6 @@ admin.site.register(SubscriptionPlan)
 admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(SaasToken, SaasTokenAdmin)
 admin.site.register(RunEnvironment, RunEnvironmentAdmin)
-
-
-# Legacy
-admin.site.register(AlertMethod, AlertMethodAdmin)
-admin.site.register(PagerDutyProfile, PagerDutyProfileAdmin)
-admin.site.register(EmailNotificationProfile, EmailNotificationProfileAdmin)
-admin.site.register(DelayedProcessStartDetectionEvent)
-admin.site.register(DelayedProcessStartAlert)
-admin.site.register(LegacyInsufficientServiceInstancesEvent)
-admin.site.register(InsufficientServiceInstancesAlert)
-
-# Modern
 admin.site.register(Event, EventAdmin)
 admin.site.register(MissingHeartbeatDetectionEvent, TaskExecutionEventAdmin)
 admin.site.register(TaskExecutionStatusChangeEvent, TaskExecutionStatusChangeEventAdmin)

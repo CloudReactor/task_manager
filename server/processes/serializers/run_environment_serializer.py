@@ -57,9 +57,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
             'aws_account_id',
             'aws_default_region',
 
-            # Legacy
-            'default_alert_methods',
-
             'notification_profiles',
             'execution_method_capabilities',
             'execution_method_settings',
@@ -88,10 +85,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
 
     execution_method_settings = serializers.SerializerMethodField()
 
-    # Legacy
-    default_alert_methods = NameAndUuidSerializer(include_name=True,
-            view_name='alert_methods-detail', required=False, many=True)
-
     notification_profiles = NameAndUuidSerializer(include_name=True,
             view_name='notification_profiles-detail', required=False, many=True)
 
@@ -99,10 +92,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
         'url', 'uuid', 'name', 'description', 'dashboard_url',
         'created_by_user', 'created_by_group',
         'created_at', 'updated_at',
-
-        # Legacy
-        'default_alert_methods',
-
         'notification_profiles',
     ])
 
@@ -257,11 +246,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
                     })
 
 
-        # Deprecated
-        self.set_validated_alert_methods(data=data, validated=validated,
-            run_environment=cast(Optional[RunEnvironment], self.instance),
-            property_name='default_alert_methods')
-
         self.set_validated_notification_profiles(data=data, validated=validated,
             run_environment=cast(Optional[RunEnvironment], self.instance),
             property_name='notification_profiles')
@@ -271,9 +255,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
     def create(self, validated_data):
         logger.info(f"create: validated_data = {validated_data}")
         request = self.context.get('request')
-
-        # Deprecated
-        alert_methods = validated_data.pop('default_alert_methods', None)
 
         notification_profiles = validated_data.pop('notification_profiles', None)
 
@@ -301,10 +282,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
 
         run_environment = RunEnvironment.objects.create(**validated_data)
 
-        # Deprecated
-        if alert_methods is not None:
-            run_environment.default_alert_methods.set(alert_methods)
-
         if notification_profiles is not None:
             run_environment.notification_profiles.set(notification_profiles)
             run_environment.save()
@@ -313,9 +290,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
 
     def update(self, instance: RunEnvironment, validated_data: dict[str, Any]):
         request = self.context.get('request')
-
-        # Legacy
-        alert_methods = validated_data.pop('default_alert_methods', None)
 
         notification_profiles = validated_data.pop('notification_profiles', None)
 
@@ -346,10 +320,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
             setattr(instance, attr, value)
 
         instance.save()
-
-        # Legacy
-        if alert_methods is not None:
-            instance.default_alert_methods.set(alert_methods)
 
         if notification_profiles is not None:
             instance.notification_profiles.set(notification_profiles)

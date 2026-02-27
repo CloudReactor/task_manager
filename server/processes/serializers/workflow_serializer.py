@@ -121,11 +121,6 @@ class WorkflowSerializer(
         run_environment = validated.get('run_environment',
           workflow.run_environment if workflow else None)
 
-        # Deprecated
-        self.set_validated_alert_methods(data=data, validated=validated,
-                run_environment=run_environment,
-                allow_any_run_environment=(run_environment is None))
-
         self.set_validated_notification_profiles(data=data, validated=validated,
                 run_environment=run_environment,
                 allow_any_run_environment=(run_environment is None))
@@ -141,9 +136,6 @@ class WorkflowSerializer(
     def create_or_update(self, instance, validated_data):
         defaults = validated_data
 
-        # Deprecated
-        alert_methods = defaults.pop('alert_methods', None)
-
         notification_profiles = defaults.pop('notification_profiles', None)
         wtis = defaults.pop('workflow_task_instances', None)
         wts = defaults.pop('workflow_transitions', None)
@@ -155,10 +147,6 @@ class WorkflowSerializer(
             defaults.pop('uuid', None)
             workflow = Workflow(**defaults)
             workflow.save()
-
-        # Legacy
-        if alert_methods is not None:
-            workflow.alert_methods.set(alert_methods)
 
         if notification_profiles is not None:
             workflow.notification_profiles.set(notification_profiles)

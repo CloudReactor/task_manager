@@ -8,11 +8,6 @@ from .task_factory import TaskFactory, UnknownTaskFactory
 from .unknown_execution_method_task_factory import UnknownExecutionMethodTaskFactory
 from .task_execution_factory import TaskExecutionFactory
 
-# Legacy
-from .alert_method_factory import AlertMethodFactory
-from .email_notification_profile_factory import EmailNotificationProfileFactory
-from .pagerduty_profile_factory import PagerDutyProfileFactory
-
 from .basic_event_factory import BasicEventFactory
 from .task_execution_status_change_event_factory import TaskExecutionStatusChangeEventFactory
 from .workflow_execution_status_change_event_factory import WorkflowExecutionStatusChangeEventFactory
