@@ -1,302 +1,55 @@
-schema_version: 4
+project_name: "cloudreactor_task_manager"
+project_version_text: 1.0.0
+# Optionally, provide a steadily increasing whole number to indicate which
+# build is more updated than another.
+# project_version_number: 1
+project_url: "https://github.com/CloudReactor/task_manager"
 
-project_metadata:
-  name: "cloudreactor_task_manager"
-  version_text: 1.1.0
-
-  # Optionally, provide a steadily increasing whole number to indicate which
-  # build is more updated than another.
-  # version_number: 1
-  source_repository_url: "https://github.com/CloudReactor/task_manager"
-
-project_build_options:
-  # # Override to use a non-default ECR account and/or region
-  # ecr_aws_account_id: "1234556789013"
-  # ecr_aws_region: "us-east-2"
-
-  ecr_scan_on_push: false
-
-  # Tags to apply to the ECR repository. Note that existing tags are not removed.
-  aws_ecr_tags:
-    Application: "{{ project_name }}"
-    Uploader: CloudReactor AWS ECS Deployer
-
-
-  # # Uncomment and change container_repository to use ECR Public.
-  # # Repositories can be created with Terraform, see:
-  # # https://github.com/CloudReactor/example_aws_infrastructure_terraform/tree/master/public-ecr
-  # container_registry_host: public.ecr.aws
-  # container_repository: "deadbeef/aws-ecs-cloudreactor-deployer-samples"
-
-  # # These are used to set the image name and tag on the machine running
-  # # the deployer.
-  # source_docker_image_name_without_tag: "{{project_name}}"
-  # source_docker_image_tag: "{{env}}_{{task_version_signature}}"
-
-  # # These are used to set the image name and tag in the repository in the
-  # # container registry.
-  # target_docker_image_name_without_tag: "1234556789012.dkr.ecr.us-east-1.amazonaws.com/{{project_name}}"
-  # target_docker_image_tag: "{{env}}_{{task_version_signature}}"
-
+default_build_options:
   dockerfile_path: Dockerfile
 
-  # # Options passed after "docker" to all docker commands
-  # docker_common_general_options: ""
-
-  # # Options passed after "docker" and "build"
-  # docker_build_general_options: "--debug"
-
-  # # Additional options passed after "docker build"
-  extra_docker_build_args: ""
-
-  # # Options passed between "docker" and "tag"
-  # docker_tag_general_options: ""
-
-  # # Additional options passed after "docker tag"
-  # extra_docker_tag_args: ""
-
-  # # Options passed between "docker" and "push"
-  # docker_push_general_options: ""
-
-  # # Additional options passed after "docker push"
-  # extra_docker_push_args: ""
-
-project_deployment:
-  # # Credentials used to pull an image from the container repository before
-  # # a Task is run by ECS. These default to container_registry_username
-  # # and container_registry_password in project_build_options or
-  # # env_build_options.
-  # container_registry_pull_username:
-  # container_registry_pull_password:
-
-  # # Uncomment to set the path in Secrets Manager to that has a JSON value
-  # # consisting of the "username" and "password" property, that can be read
-  # # by the Task Execution role to authenticate with the container registry.
-  # # For images in AWS ECR (public or private), this is not needed, as
-  # # the Task Execution role be granted permissions via IAM.
-  # # For GitHub Container Registry, the username should be a GitHub username
-  # # that has the read:packages scope and the password should be a personal
-  # # access token (classic).
-  # # For more more information on the using a personal access token to
-  # # authenticate, see https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
-  # # For other repositories, for example Docker Hub, use a username and
-  # # password for an account that has read access to the repository.
-  # #
-  # # The Task Execution role (execution_role_arn in ECS settings)
-  # # must have permission to read secrets from this path.
-  # container_registry_credentials_secret_path: "CloudReactor/{{env}}/common/ghcr.json"
-
-  # Set to true to store the container registry pull credentials in Secrets
-  # Manager during deployment.
-  store_container_registry_credentials_in_secrets_manager: false
-
-  # # Uncomment and override to set the path in Secrets Manager that has a
-  # # string value in the dotenv format, containing environment variables read
-  # # by Tasks at runtime. proc_wrapper will read them during runtime and
-  # # inject them in the process environment of your Tasks.
-  # task_runtime_env_secret_path: "{{ project_name | replace('-', '_') }}/{{env}}/tasks/env"
-
-  # # Set to true to store the environment variables in Secrets Manager during
-  # # deployment.
-  store_task_runtime_env_in_secrets_manager: false
-
-
-project_cloudreactor:
-  # # Base URL of API server. Can be overridden if you're running your own
-  # # instance of the CloudReactor Task Manager.
-  # api_base_url: https://api.cloudreactor.io
-
+default_cloudreactor:
   # Set to false to disable monitoring and management in CloudReactor
   enabled: true
 
-# # AWS settings for all Tasks. Required if not using CloudReactor.
-# # Will be overridden by Run Environment settings, per-environment settings,
-# # and per-Task settings.
-project_aws:
-  # account_id: 123456789012
-  # region: "us-west-2"
-  # network:
-  #   security_groups:
-  #     - sg-1
-  #     - sg-2
-  #   subnets:
-  #     - subnet-private-1
-  #     - subnet-private-2
-  #   # Set this to true if your subnets don't have access to a NAT gateway,
-  #   # for example public subnets.
-  #   # If you are running on private subnets, this must be false.
-  #   assign_public_ip: false
-  # # To use AWS Logs driver with common options:
-  # logging:
-  #   awslogs:
-  #     create_group: true
-  #     group: "/aws/fargate/{{ project_name }}-{{ env }}-{{ task_name_safe }}"
-  #     stream_prefix: "{{ project_name }}-{{ env }}"
-  #     region: "us-west-1"
-  #
-  # # Otherwise, provide a LogConfiguration object as described in
-  # # https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html
-  # log_configuration:
-  #   logDriver: awsfirelens
-  #   options:
-  #     Name: firehose
-  #     region: "us-west-1"
-  #     delivery_stream: my-stream
-  #     log-driver-buffer-limit: "2097152"
-  #   secretOptions:
-  #     - name: Token
-  #       value: SECRET_TOKEN
-  tags:
-    ManagedBy: CloudReactor
-    Environment: "{{env}}"
-    Application: "{{ project_name }}"
-
-
-# # ECS settings for all Tasks.
-# # Will be overridden by Run Environment settings, per-environment settings,
-# # and per-Task settings.
-project_ecs:
-  # # Uncomment and change the value to deploy a pre-built Docker image
-  # docker_image_name: "123456789012.dkr.ecr.us-east-1.amazonaws.com/aws-ecs-cloudreactor-deployer-sample:deadbeef"
-
-  # # Uncomment and change the value to deploy an existing ECS Task Definition
-  # task_definition_arn: "arn:aws:ecs:{{ aws_region }}:{{ task_indep_aws.account_id }}:task-definition/aws-ecs-cloudreactor-deployer-sample_web_server_windows-dev:14"
-
-
-  # # Required when deploying a scheduled task without CloudReactor. Can be ARN
-  # # or just a simple name.
-  # # By default, run on the ECS cluster specified by the Run Environment.
-  # # You can override this to run on a per-application/environment cluster, for example.
-  # cluster_arn: "{{ env }}"  
-  # cluster_arn: "{{ 'arn:aws:ecs:' + aws_region + ':' + task_indep_aws.account_id + ':cluster/' + project_name + '-' env }}"
-
-  # # Required when deploying a scheduled task without CloudReactor
-  # execution_role_arn: arn:aws:iam::123456789012:role/ecsEventsRole
-
-  # # Results in an empty string if task_role_arn is null, but that's ok.
-  task_role_arn: "{{project_name}}_{{env}}"
-
-  # # See https://aws.amazon.com/fargate/pricing/ for supported combinations.
-  cpu_units: 256
-  memory_mb: 512
-
-  # # See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html
-  # # for supported platform versions. Can also be set to "LATEST".
-  platform_version: "1.4.0"
-
-  # # By default, the entrypoint is run with the tinit init process so that
-  # # commands in shell form (like calling proc_wrapper) pass on SIGTERM to
-  # # the underlying commands. This is so AWS ECS can gracefully shutdown a
-  # # container, if the command handles the SIGTERM signal.
-  # # To enable tinit, we set the containerDefinitions[0].linuxParameters
-  # # property to { "initProcessEnabled" true }. However, if you need to set
-  # # other linuxParameter properties, you can set
-  # # use_default_linux_parameters to false and pass them in via
-  # # extra_main_container_properties.
-  # use_default_linux_parameters: true
-
-  # enabled_ecs_managed_tags: true
-  # propagate_tags: TASK_DEFINITION # or "SERVICE" or "NONE"
-  # enabled_execute_command: true
-  # task_group: "{{ (project_name + '_' +  task_name + '_' + env) }}"
-
-  # # Uncomment to add properties to the main container:
-  # extra_main_container_properties
-  #   secrets:
-  #     - name: environment_variable_name
-  #       valueFrom: arn:aws:secretsmanager:[aws_region]:[aws_account_id]:secret:[secret_name]
-
-  # # Uncomment to add properties to the top-level ECS task definition
-  # # (see https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html)
-  # # for the description of all properties):
-  # extra_task_definition_properties:
-  #   volumes:
-  #     - name: "database_scratch"
-  #       host: {}
-
-  # # To add extra containers to the Task:
-  # # Extra CPU/memory allocated to the extra containers,
-  # # will be taken away from the total cpu_units and memory_mb
-  # # allocated for the entire task.
-  # extra_container_cpu_units: 32
-  # extra_container_memory_mb: 128
-  # # Each definition has the properties for containers in an AWS ECS task
-  # # definition. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions
-  # # The following example uses nginx as a reverse proxy. It assumed that a Docker image
-  # # based on nginx, with configuration, is available in ECR already.
-  # # See https://medium.com/@stefanofrancavilla/deploy-web-apps-nginx-to-ecs-with-docker-580c6af827e8
-  # # except the ECS cluster configuration is not needed since we're using Fargate.
-  # # additional_container_definitions:
-  #  - name: Some Container Name
-  #    image: XXXXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/configured-nginx
-  #    cpu: 256
-  #    memory: 1024
-  #    essential: true
-  #    portMappings:
-  #      - containerPort: 80 # nginx default port is 80
-  #        hostPort: 8000    # port of the target group
-  #        protocol: tcp
-
-  #  # This block within project_ecs can be uncommented to uses the CloudReactor
-  #  # variant of the AWS OTEL collector as a a sidecar. Then, the main
-  #  # container does not need to run proc_wrapper.
-  #  # The original AWS OTEL collector is wrapped with proc_wrapper so it reports
-  #  # CloudReactor whenever the Task Execution starts and exits.
-  #  extra_main_container_properties:
-  #    # Override proc_wrapper invocation
-  #    entryPoint:
-  #      - "sh"
-  #      - "-c"
-  #      - "./write_file.sh"
-  #    dependsOn:
-  #      - containerName: collector
-  #        condition: HEALTHY
-  #  # The name of the single container that runs the process wrapper
-  #  monitor_container_name: collector
-  #  extra_container_cpu_units: 32
-  #  extra_container_memory_mb: 128
-  #  extra_container_definitions:
-  #    - name: collector
-  #      image: public.ecr.aws/cloudreactor/cloudreactor-aws-otel-collector:0.1.3
-  #      cpu: 32
-  #      memory: 128
-  #      essential: true
-  #      portMappings:
-  #        # health check
-  #        - containerPort: 13133
-  #          hostPort: 13133
-  #          protocol: tcp
-  #      healthCheck:
-  #        command:
-  #          - "CMD-SHELL"
-  #          - "wget -nv --tries=1 --spider http://localhost:13133/ || exit 1"
-  #        timeout: 30
-  #        retries: 5
-  #        startPeriod: 60
-  #  # End of AWS OTEL sidecar configuration
-
-# These settings will apply by default to all Tasks and in all deployments.
+# These settings will apply by default to all tasks and in all deployments.
 # They override the settings in your Run Environment.
 # To manage a setting in the CloudReactor UI, omit the property name and value.
-# To clear a property name and value, using the default value in the
-# Run Environment, set the property value to null.
-# See https://apidocs.cloudreactor.io/#operation/tasks_create for a list of all
-# properties.
-# These properties can also be applied to project_task_name_to_config[task_name] and
-# env_task_config[task_name], which will override those set here.
-project_task_config:
-  # # Environment variables to set in the process environment
-  env:
-    DEPLOYMENT: "{{env | to_yaml}}"
-
-
-
-
+# To clear a property name and value, using the default value in the Run Environment,
+# set the property value to null.
+default_task_config:
   # enabled: true
   # max_concurrency: 1 # null for no concurrency limit
   # max_age_seconds: 7200
   # max_manual_start_delay_seconds: 60
   # max_heartbeat_lateness_seconds: 120
+  ecs: &default_task_ecs
+    # See https://aws.amazon.com/fargate/pricing/
+    # for supported combinations.
+    cpu_units: 256
+    memory_mb: 1024
+    # # See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html
+    # # for supported platform versions. Can also be set to "LATEST".
+    platform_version: "1.4.0"
+
+    # # Required when deploying a scheduled task without CloudReactor
+    # execution_role_arn: arn:aws:iam::{{ aws.account_id }}:role/ecsEventsRole
+
+    # enable_ecs_managed_tags: True
+
+    task:
+      # network:
+      #   subnets:
+      #     - subnet_1
+      #     - subnet_2
+      #   security_groups:
+      #     - sg_1
+      #     - sg_2
+      #   assign_public_ip: True
+      role_arn: "arn:aws:iam::{{ aws.account_id }}:role/cloudreactor_task_manager_{{env}}"
+      tags:
+        ManagedBy: CloudReactor
+        Application: CloudReactor API server
 
     # # Uncomment to add properties to the main container:
     # extra_main_container_properties
@@ -339,8 +92,10 @@ project_task_config:
 
     # # Top-level .env secret locations. The values in later locations take
     # # precedence over those in earlier locations.
-    env_locations:
-      - arn:aws:secretsmanager:{{aws_region}}:{{ aws.account_id }}:secret:CloudReactor/task_manager/{{env}}/config.json
+    env_locations: >-
+      {{ ['arn:aws:secretsmanager:' ~ aws_region ~ ':' ~ aws.account_id ~ ':secret:CloudReactor/task_manager/' ~ env ~ '/config.json'] +
+         (['arn:aws:secretsmanager:' ~ aws_region ~ ':' ~ aws.account_id ~ ':secret:CloudReactor/task_manager/' ~ env ~ '/migrate_db_config.json']
+          if (env == 'super') else []) }}
 
     # # proc_wrapper can also load a configuration dictionary, merged from
     # # the sources below.
