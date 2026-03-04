@@ -552,8 +552,7 @@ def pre_save_workflow_execution(sender: Type[WorkflowExecution], instance: Workf
 
 
 @receiver(post_save, sender=WorkflowExecution)
-def post_save_workflow_execution(sender: Type[WorkflowExecution], instance: WorkflowExecution,
-        created: bool, **kwargs) -> None:
+def post_save_workflow_execution(sender: Type[WorkflowExecution], instance: WorkflowExecution, **kwargs) -> None:
     old_instance = cast(WorkflowExecution, instance._loaded_copy)
     instance._loaded_copy = copy.copy(instance)
 

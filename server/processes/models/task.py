@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, Type, TYPE_CHECKING, cast, override
 
+import copy
 from datetime import datetime
 import logging
 from urllib.parse import quote
@@ -9,7 +10,7 @@ from urllib.parse import quote
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Manager
-from django.db.models.signals import pre_save, pre_delete
+from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -492,9 +493,8 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
 
 
 @receiver(pre_save, sender=Task)
-def pre_save_task(sender: Type[Task], **kwargs):
-    instance = kwargs['instance']
-    logger.info(f"pre_save_task with Task {instance}")
+def pre_save_task(sender: Type[Task], instance: Task, raw: bool, using: str, update_fields: set[str], **kwargs) -> None :
+    logger.info(f"pre_save_task with Task {instance}, {update_fields=} ...")
 
     if instance.pk is None:
         usage_limits = Subscription.compute_usage_limits(instance.created_by_group)
@@ -509,12 +509,7 @@ def pre_save_task(sender: Type[Task], **kwargs):
     if instance.should_skip_synchronize_with_run_environment:
         logger.info(f"skipping synchronize_with_run_environment with Task {instance}")
     else:
-        old_self: Optional[Task] = None
-
-        if instance.id:
-            old_self = Task.objects.filter(id=instance.id).first()
-
-        instance.synchronize_with_run_environment(old_self=old_self,
+        instance.synchronize_with_run_environment(old_self=instance._loaded_copy,
                 is_saving=False)
 
     try:
@@ -522,10 +517,17 @@ def pre_save_task(sender: Type[Task], **kwargs):
     except Exception as ex:
         logger.warning(f"Failed to enrich Task {instance.uuid} settings", exc_info=ex)
 
+    logger.info(f"Done with pre_save_task for Task {instance}, ss = {instance.scheduling_settings}")
+
+@receiver(post_save, sender=Task)
+def post_save_task(sender: Type[Task], instance: Task, **kwargs) -> None :
+    logger.info(f"post_save_task with Task {instance} ...")
+    instance._loaded_copy = copy.copy(instance)
+
 @receiver(pre_delete, sender=Task)
-def pre_delete_task(sender: Type[Task], **kwargs) -> None:
-    task = cast(Task, kwargs['instance'])
-    logger.info(f"pre-save with instance {task}")
+def pre_delete_task(sender: Type[Task], instance: Task, **kwargs) -> None:
+    task = instance
+    logger.info(f"pre-delete with instance {task}")
 
     if task.enabled and (not task.passive):
         execution_method = task.execution_method()

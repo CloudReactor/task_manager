@@ -46,7 +46,7 @@ from ..common.request_helpers import (
 from ..execution_methods import *
 from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from ..models import *
-from ..common.utils import deepmerge
+from ..common.utils import coalesce, deepmerge
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
 from .embedded_id_validating_serializer_mixin import (
@@ -219,7 +219,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
         request = self.context.get('request')
         user, group = required_user_and_group_from_request(request)
 
-        task: Optional[Task] = cast(Task, self.instance) if self.instance else None
+        task: Task | None = cast(Task, self.instance)
 
         if task is None:
             name = data.get('name')
@@ -251,14 +251,140 @@ class TaskSerializer(GroupSettingSerializerMixin,
         is_service = validated.pop('is_service', data.get('is_service'))
         service_instance_count = validated.get('service_instance_count')
         min_service_instance_count = validated.get('min_service_instance_count')
+        is_service_managed = validated.get('is_service_managed')
+
         schedule = validated.get('schedule')
+        scheduled_instance_count = validated.get('scheduled_instance_count')
+        is_scheduling_managed = validated.get('is_scheduling_managed')
 
         if (service_instance_count is not None) and (service_instance_count > 0):
             if is_service is False:
                 raise serializers.ValidationError({
-                    'service_instance_count': ['Must be null for services']
+                    'service_instance_count': ['Must be 0 or null for non-services']
                 })
             is_service = True
+
+        if (min_service_instance_count is not None) and (min_service_instance_count > 0):
+            if is_service is False:
+                raise serializers.ValidationError({
+                    'service_instance_count': ['Must be 0 or null for non-services']
+                })
+            is_service = True
+
+        if is_service_managed:
+            if is_service is False:
+                raise serializers.ValidationError({
+                    'is_service_managed': ['Must be null or false for non-services']
+                })
+            is_service = True
+
+        if (scheduled_instance_count is not None):
+            if scheduled_instance_count > 0:                
+                if is_service:
+                    raise serializers.ValidationError({
+                        'scheduled_instance_count': ['Must be 0 or null for services']
+                    })
+                is_service = False
+
+        if is_scheduling_managed:
+            if is_service:
+                raise serializers.ValidationError({
+                    'is_scheduling_managed': ['Must be null or false for services']
+                })
+            
+            is_service = False
+                                                              
+        if task:
+            if (is_service is None) and (schedule is None):                
+                is_service = task.is_service
+                logger.info(f"is_service and schedule are both None, inferring {is_service=} from Task ...")
+
+                if not is_service:
+                    schedule = task.schedule
+                    logger.info(f"schedule is None, inferring {schedule=} from Task ...")
+
+            if is_service and (is_service_managed is None) and (task.is_service_managed is not None):
+                is_service_managed = task.is_service_managed
+
+            if schedule and (is_scheduling_managed is None) and (task.is_scheduling_managed is not None):
+                is_scheduling_managed = task.is_scheduling_managed
+
+        schedule = schedule or ''
+        is_service = is_service or False
+                
+        if is_service:
+            # Possibly in the future allow Tasks to be both scheduled and services, but for now if schedule is set then is_service must be False
+            if schedule:
+                raise serializers.ValidationError({
+                    'schedule': ['Must be blank for services']
+                })
+
+            task_service_instance_count: int | None = None
+            task_min_service_instance_count: int | None = None
+
+            if task:
+                task_service_instance_count = task.service_instance_count
+                task_min_service_instance_count = task.min_service_instance_count
+
+            if service_instance_count is None:
+                service_instance_count = max(coalesce(task_service_instance_count, min_service_instance_count, 1), 1)
+            elif service_instance_count < 0:
+                raise serializers.ValidationError({
+                    'service_instance_count': ['Must be greater than or equal to 0 for services']
+                })
+
+            if min_service_instance_count is None:
+                min_service_instance_count = max(coalesce(task_min_service_instance_count, 0), 0)
+            elif min_service_instance_count < 0:
+                raise serializers.ValidationError({
+                    'min_service_instance_count': ['Must be greater than or equal to 0 for services']
+                })
+
+            if min_service_instance_count > service_instance_count:
+                raise serializers.ValidationError({
+                    'min_service_instance_count': ['Must be less than or equal to service_instance_count']
+                })                    
+        else:
+            if is_service_managed:
+                raise serializers.ValidationError({
+                    'is_service_managed': ['Must be null or false for non-services']
+                })
+
+            service_instance_count = None
+            min_service_instance_count = None
+            is_service_managed = None
+
+            # Legacy
+            validated['aws_ecs_service_load_balancer_health_check_grace_period_seconds'] = None
+        
+        validated['service_instance_count'] = service_instance_count
+        validated['min_service_instance_count'] = min_service_instance_count
+        validated['is_service_managed'] = is_service_managed
+                            
+        if schedule:
+            task_scheduled_instance_count: int | None = None
+
+            if task:
+                task_scheduled_instance_count = task.scheduled_instance_count
+
+            if scheduled_instance_count is None:
+                scheduled_instance_count = max(coalesce(task_scheduled_instance_count, 1), 1)
+            elif scheduled_instance_count < 0:
+                raise serializers.ValidationError({
+                    'scheduled_instance_count': ['Must be greater than or equal to 0 for scheduled Tasks']
+                })            
+        else:
+            if is_scheduling_managed:
+                raise serializers.ValidationError({
+                    'is_scheduling_managed': ['Must be null or false for unscheduled Tasks']
+                })
+
+            is_scheduling_managed = None
+            scheduled_instance_count = None
+                    
+        validated['schedule'] = schedule
+        validated['scheduled_instance_count'] = scheduled_instance_count
+        validated['is_scheduling_managed'] = is_scheduling_managed
 
         emcd = validated.get('execution_method_capability_details')
         execution_method_dict = emcd
@@ -271,7 +397,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         logger.debug(f"{execution_method_dict=}")
 
-        execution_method_type: Optional[str] = None
+        execution_method_type: str | None = None
 
         if task:
             execution_method_type = task.execution_method_type
@@ -320,10 +446,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             logger.info(f"{em_validated=}")
 
             validated |= em_validated
-
-            # Execution method serializer may set is_service if it was None
-            if 'is_service' in validated:
-                is_service = validated['is_service']
 
         infrastructure_type = validated.get('infrastructure_type')
         infrastructure_settings = validated.get('infrastructure_settings')
@@ -390,107 +512,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
         else:
             logger.info("to_internal_value(): skipping all merging because Task does not exist")
 
-        if (is_service is None) and schedule:
-            is_service = False
-
-        if (is_service is None) and task:
-            is_service = task.is_service
-
-        if (min_service_instance_count is not None) \
-                and (min_service_instance_count > 0):
-            if is_service is False:
-                raise serializers.ValidationError({
-                    'min_service_instance_count': ['Must null for services']
-                })
-
-            is_service = True
-
-        validated['is_service'] = is_service
-
-        if is_service:
-            if service_instance_count is None:
-                if task:
-                    service_instance_count = task.service_instance_count
-
-                if service_instance_count is None:
-                    service_instance_count = min_service_instance_count or 1
-
-            if service_instance_count <= 0:
-                raise serializers.ValidationError({
-                    'service_instance_count': ['Must be positive for services']
-                })
-
-            if min_service_instance_count is None:
-                if task:
-                    min_service_instance_count = task.min_service_instance_count
-
-                if min_service_instance_count is None:
-                    min_service_instance_count = service_instance_count
-
-            if min_service_instance_count < 0:
-                raise serializers.ValidationError({
-                    'min_service_instance_count': ['Must be greater than or equal to 0']
-                })
-
-            if min_service_instance_count > service_instance_count:
-                raise serializers.ValidationError({
-                    'min_service_instance_count': ['Must be less than or equal to service_instance_count']
-                })
-
-            if schedule:
-                raise serializers.ValidationError({
-                    'schedule': ['Must be blank for services']
-                })
-
-            validated['schedule'] = ''
-            validated['min_service_instance_count'] = min_service_instance_count
-            validated['service_instance_count'] = service_instance_count
-
-            if ('is_service_managed' not in validated) and \
-                ((task is None) or (task.is_service_managed is None)):
-                validated['is_service_managed'] = True
-        else:
-            if service_instance_count and (service_instance_count > 0):
-                raise serializers.ValidationError({
-                    'service_instance_count': ['Must be null or zero for non-services']
-                })
-
-            if min_service_instance_count and (min_service_instance_count > 0):
-                raise serializers.ValidationError({
-                    'min_service_instance_count': ['Must be non-positive if service_instance_count is negative']
-                })
-
-            if validated.get('is_service_managed'):
-                raise serializers.ValidationError({
-                    'is_service_managed': ['Cannot be true for non-services']
-                })
-
-            validated['service_instance_count'] = None
-            validated['min_service_instance_count'] = None
-            validated['is_service_managed'] = None
-
-        if schedule:
-            if ('is_scheduling_managed' not in validated) and \
-                ((task is None) or (task.is_scheduling_managed is None)):
-                validated['is_scheduling_managed'] = True
-
-            if ('scheduled_instance_count' not in validated) and \
-                ((task is None) or (task.scheduled_instance_count is None)):
-                validated['scheduled_instance_count'] = 1
-        else:
-            if validated.get('is_scheduling_managed'):
-                raise serializers.ValidationError({
-                    'is_scheduling_managed': ['Cannot be true for unscheduled Tasks']
-                })
-
-            # TODO: allow this to be non-zero, in case scheduling settings set without schedule
-            if validated.get('scheduled_instance_count'):
-                raise serializers.ValidationError({
-                    'scheduled_instance_count': ['Cannot be non-zero for unscheduled Tasks']
-                })
-            validated['scheduled_instance_count'] = None
-
-
         self.set_validated_notification_profiles(data=data, validated=validated,
                 run_environment=run_environment)
 
@@ -541,103 +562,45 @@ class TaskSerializer(GroupSettingSerializerMixin,
         instance = validated_data.pop('__existing_instance__', instance)
         defaults = validated_data
 
-        logger.info(f"Task create_or_update(), validated_data = {defaults}, {instance=}")
+        logger.info(f"Task create_or_update(), {validated_data=}, {instance=}")
 
         if instance:
             uuid = instance.uuid
         else:
             uuid = defaults.pop('uuid', None)
 
-        is_service = defaults.pop('is_service', None)
-        service_instance_count = defaults.get('service_instance_count')
-        min_service_instance_count = defaults.get('min_service_instance_count')
-
-        is_service_defined = (is_service and service_instance_count) or (is_service is False)
-
-        load_balancer_details_list = defaults.pop('aws_ecs_load_balancer_details_set', None)
-
         notification_profiles = defaults.pop('notification_profiles', None)
 
-        task_links = defaults.pop('task_links', None)
+        task_links = validated_data.pop('task_links', None)
 
-        group = validated_data.get('created_by_group')
-        task: Optional[Task] = None
+        # Legacy?
+        load_balancer_details_list = validated_data.pop('aws_ecs_load_balancer_details_set', None)
 
-        if is_service_defined and (load_balancer_details_list is None):
-            logger.info(f"Task update or create with {defaults}, {uuid=}")
+        task: Task | None = instance
+        
+        old_self: Task | None = None
+        if task is None:
+            task = Task(**validated_data)
+            task.should_skip_synchronize_with_run_environment = True
 
-            if not is_service:
-                defaults['service_instance_count'] = None
-                defaults['min_service_instance_count'] = None
+            if instance is None:
+                task.created_by_user = user
 
-            if uuid:
-                task, _created = Task.objects.update_or_create(
-                    uuid=uuid, created_by_group=group,
-                    defaults=defaults)
-
-                logger.info(f"Done Task update or create with {defaults}")
-            else:
-                name = defaults.pop('name')
-                defaults['created_by_user'] = user
-                task, _created = Task.objects.update_or_create(
-                    name=name, created_by_group=group,
-                    defaults=defaults)
+            task.save()
         else:
-            if instance:
-                task = instance
+            old_self = copy.copy(task)
+            old_self.id = None
 
-            old_self = None
-            if task is None:
-                if is_service:
-                    if service_instance_count is None:
-                        defaults['service_instance_count'] = 1
+            task.should_skip_synchronize_with_run_environment = True
+            for attr, value in validated_data.items():
+                setattr(task, attr, value)
 
-                    if min_service_instance_count is None:
-                        defaults['min_service_instance_count'] = 1
-                else:
-                    # If no service attributes were set until now, assume it's not a service
-                    defaults['service_instance_count'] = None
-                    defaults['min_service_instance_count'] = None
+        task.save()
+        self.update_aws_ecs_service_load_balancer_details_set(
+                task, load_balancer_details_list)
 
-                task = Task(**defaults)
-                task.should_skip_synchronize_with_run_environment = True
-
-                if instance is None:
-                    task.created_by_user = user
-
-                task.save()
-                self.update_aws_ecs_service_load_balancer_details_set(task,
-                        load_balancer_details_list)
-            else:
-                old_self = copy.copy(task)
-                old_self.id = None
-
-                task.should_skip_synchronize_with_run_environment = True
-                for attr, value in defaults.items():
-                    setattr(task, attr, value)
-
-                if is_service is None:
-                    is_service = task.is_service
-
-                if is_service:
-                    task.schedule = ''
-
-                    if (task.service_instance_count is None) and (defaults.get('service_instance_count') is None):
-                        task.service_instance_count = 1
-
-                    if (task.min_service_instance_count is None) and (defaults.get('min_service_instance_count') is None):
-                        task.min_service_instance_count = 1
-                else:
-                    task.service_instance_count = None
-                    task.min_service_instance_count = None
-                    task.aws_ecs_service_load_balancer_health_check_grace_period_seconds = None
-
-                task.save()
-                self.update_aws_ecs_service_load_balancer_details_set(
-                        task, load_balancer_details_list)
-
-            task.synchronize_with_run_environment(old_self=old_self, is_saving=True)
-            task.should_skip_synchronize_with_run_environment = False
+        task.synchronize_with_run_environment(old_self=old_self, is_saving=True)
+        task.should_skip_synchronize_with_run_environment = False
 
         if notification_profiles is not None:
             task.notification_profiles.set(notification_profiles)
@@ -686,6 +649,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
             return GenericExecutionMethodCapabilityStopgapSerializer(task,
                         required=False)
 
+
+    # Legacy
     def update_aws_ecs_service_load_balancer_details_set(self, task: Task,
             load_balancer_details_list: Optional[list[AwsEcsServiceLoadBalancerDetails]]):
         if load_balancer_details_list is None:

@@ -6,7 +6,7 @@ class TaskExecutionConfiguration(InfrastructureConfiguration):
     class Meta:
         abstract = True
 
-    process_command = models.CharField(max_length=5000, null=True)
+    process_command = models.CharField(max_length=5000, null=True, blank=True)
     allocated_cpu_units = models.PositiveIntegerField(null=True, blank=True)
     allocated_memory_mb = models.PositiveIntegerField(null=True, blank=True)
 

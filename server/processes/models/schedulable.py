@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence, Any, Type
+from typing_extensions import Self
+
+import copy
 from datetime import datetime
 import logging
 import re
@@ -88,6 +91,15 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
     notification_event_severity_on_sufficient_instances_restored = models.PositiveIntegerField(
         null=True, blank=True, default=Event.Severity.INFO)
 
+    # Transient properties
+    _loaded_copy: Schedulable | None = None
+
+
+    @classmethod
+    def from_db(cls: Type[Self], db: str, field_names: Sequence[str], values: Sequence[Any]):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_copy = copy.copy(instance)
+        return instance
 
     @property
     def kind_label(self) -> str:
