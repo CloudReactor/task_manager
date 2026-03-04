@@ -12,6 +12,12 @@ from django.contrib.auth.models import User
 from processes.execution_methods import (
     AwsEcsExecutionMethod, UnknownExecutionMethod
 )
+
+from processes.execution_methods.aws_cloudwatch_scheduling_settings import (
+    SCHEDULING_TYPE_AWS_CLOUDWATCH,
+    AwsCloudwatchSchedulingSettings
+)
+
 from processes.models import (
   UserGroupAccessLevel, Subscription,
   Task, RunEnvironment
@@ -521,6 +527,10 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
 
     assert api_key_run_environment is not None
 
+    aws_settings = setup_aws()
+    api_key_run_environment.aws_settings = aws_settings.dict()
+    api_key_run_environment.save()
+    
     aws_ecs_setup = setup_aws_ecs(run_environment=api_key_run_environment)
 
     schedule = ''
@@ -554,6 +564,21 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
             api_key_run_environment=api_key_run_environment)
 
     validate_saved_task(body_task=request_data, model_task=created_task)
+
+    if is_scheduled:
+        assert created_task.scheduling_provider_type == SCHEDULING_TYPE_AWS_CLOUDWATCH
+        assert created_task.scheduled_instance_count == 1
+        assert created_task.schedule_updated_at is not None
+    
+        ss_dict = created_task.scheduling_settings
+
+        assert ss_dict is not None
+        ss = AwsCloudwatchSchedulingSettings.parse_obj(ss_dict)
+
+        assert ss.event_rule_arn is not None
+        assert ss.event_rule_arn.startswith('arn:aws:events:')
+        assert ss.event_target_id is not None
+        assert ss.event_target_rule_name is not None
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
@@ -1399,6 +1424,145 @@ def test_task_update_access_control(
                 api_key_run_environment=api_key_run_environment)
     else:
         check_validation_error(response, validation_error_attribute)
+
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("""
+  was_service, is_service, was_scheduled, is_scheduled
+""", [
+  (False, False, False, False),
+  (False, False, False, True),
+  (False, False, True, False),
+  (False, True, False, False),
+  (True, False, False, False),
+])
+@mock_aws
+def test_task_update_aws_ecs_task(
+        was_service: bool, is_service: bool, was_scheduled: bool, is_scheduled: bool,
+        user_factory, group_factory,
+        run_environment_factory, task_factory,
+        api_client) -> None:
+    """
+    Test Task created with AWS ECS execution method.
+    """
+
+    user = user_factory()
+
+    task, api_key_run_environment, client, url = common_setup(
+            is_authenticated=True,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_scope_type=SCOPE_TYPE_CORRECT,
+            uuid_send_type=SEND_ID_CORRECT,
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory,
+            api_client=api_client)
+
+    assert api_key_run_environment is not None
+
+    aws_settings = setup_aws()
+    api_key_run_environment.aws_settings = aws_settings
+    api_key_run_environment.save()
+    
+    aws_ecs_setup = setup_aws_ecs(run_environment=api_key_run_environment)
+
+    task.execution_method_type = AwsEcsExecutionMethod.NAME
+    task.execution_method_capability_details = aws_ecs_setup.make_execution_method_settings()
+    task.infrastructure_type = INFRASTRUCTURE_TYPE_AWS
+    task.infrastructure_settings = aws_settings
+    task.save()
+    
+    schedule = 'cron(9 0 * * ? *)'
+    if was_scheduled:
+        task.schedule = schedule
+        task.scheduling_provider_type = SCHEDULING_TYPE_AWS_CLOUDWATCH
+        task.scheduled_instance_count = 1
+        task.save()
+    else:
+        assert task.schedule == ''
+        assert task.scheduling_provider_type == ''
+        assert task.scheduled_instance_count is None
+
+    if was_service:
+        task.service_provider_type = SERVICE_PROVIDER_AWS_ECS
+        task.service_instance_count = 1
+        task.save()
+
+    request_data = {}
+
+    if is_scheduled:
+        request_data['schedule'] = schedule
+    elif was_scheduled:
+        request_data['schedule'] = ''
+
+    if is_service:
+        request_data['is_service'] = True
+        request_data['service_provider_type'] = SERVICE_PROVIDER_AWS_ECS
+        
+    elif was_service:
+        request_data['is_service'] = False
+
+    old_count = Task.objects.count()
+
+    print('Request data:', request_data)
+
+    response = client.patch(url, data=request_data)
+
+    assert response.status_code == 200
+
+    new_count = Task.objects.count()
+
+    assert new_count == old_count
+
+    response_task = cast(dict[str, Any], response.data)
+    task_uuid = response_task['uuid']
+    updated_task = Task.objects.get(uuid=task_uuid)
+
+    ensure_serialized_task_valid(response_task=response_task,
+            task=updated_task, user=user,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=api_key_run_environment)
+
+    validate_saved_task(body_task=request_data, model_task=updated_task)
+
+    if is_scheduled:        
+        ss_dict = updated_task.scheduling_settings
+
+        assert ss_dict is not None
+        ss = AwsCloudwatchSchedulingSettings.parse_obj(ss_dict)
+
+        assert ss.event_rule_arn is not None
+        assert ss.event_rule_arn.startswith('arn:aws:events:')
+        assert ss.event_target_id is not None
+        assert ss.event_target_rule_name is not None
+    else:
+        assert updated_task.schedule == ''
+
+    if is_scheduled:
+        assert updated_task.scheduled_instance_count == 1
+    else:
+        assert updated_task.scheduled_instance_count is None
+
+    if is_scheduled or was_scheduled:
+        assert updated_task.scheduling_provider_type == SCHEDULING_TYPE_AWS_CLOUDWATCH        
+        assert updated_task.schedule_updated_at is not None
+
+    if is_service:
+        assert updated_task.service_provider_type == SERVICE_PROVIDER_AWS_ECS
+        assert updated_task.service_instance_count == 1
+        assert updated_task.aws_ecs_service_updated_at is not None    
+        svc_dict = updated_task.service_settings
+
+        assert svc_dict is not None
+        svc = AwsEcsServiceSettings.parse_obj(svc_dict)
+        assert svc.service_arn is not None
+    else:
+        assert updated_task.service_instance_count is None
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""

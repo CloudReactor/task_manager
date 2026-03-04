@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Type, TYPE_CHECKING, cast, override
 
+import copy
 from datetime import datetime
 import json
 import logging
@@ -11,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Manager
-from django.db.models.signals import pre_save, pre_delete
+from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -497,13 +498,11 @@ class Workflow(Schedulable):
 
 
 @receiver(pre_save, sender=Workflow)
-def pre_save_workflow(sender: Type[Workflow], **kwargs) -> None:
-    instance = kwargs['instance']
+def pre_save_workflow(sender: Type[Workflow], instance: Workflow, **kwargs) -> None:
     logger.info(f"pre_save_workflow with Workflow {instance}")
 
-    old_instance: Optional[Workflow] = None
+    old_instance: Workflow | None = None
     if instance.pk is None:
-        old_instance = None
         usage_limits = Subscription.compute_usage_limits(instance.created_by_group)
         max_workflows = usage_limits.max_workflows
 
@@ -513,7 +512,7 @@ def pre_save_workflow(sender: Type[Workflow], **kwargs) -> None:
         if (max_workflows is not None) and (existing_count >= max_workflows):
             raise UnprocessableEntity(detail='Workflow limit exceeded', code='limit_exceeded')
     else:
-        old_instance = Workflow.objects.filter(id=instance.id).first()
+        old_instance = instance._loaded_copy        
 
     should_update_schedule = bool(instance.schedule)
 
@@ -533,6 +532,7 @@ def pre_save_workflow(sender: Type[Workflow], **kwargs) -> None:
                 (instance.enabled != old_instance.enabled) or run_env_for_scheduling_changed
 
         if not should_update_schedule:
+            # TODO: use scheduling settings
             for attr in Workflow.AWS_SCHEDULE_ATTRIBUTES:
                 new_value = getattr(instance, attr)
                 old_value = getattr(old_instance, attr)
@@ -580,11 +580,15 @@ def pre_save_workflow(sender: Type[Workflow], **kwargs) -> None:
     else:
         logger.info("Not updating schedule params")
 
+@receiver(post_save, sender=Workflow)
+def post_save_workflow(sender: Type[Workflow], instance: Workflow, **kwargs) -> None :
+    logger.info(f"post_save_workflow with Workflow {instance} ...")
+    instance._loaded_copy = copy.copy(instance)
+
 
 @receiver(pre_delete, sender=Workflow)
-def pre_delete_workflow(sender: Type[Workflow], **kwargs) -> None:
-    instance = kwargs['instance']
-    logger.info(f"pre_delete_workflow with workflow {instance}")
+def pre_delete_workflow(sender: Type[Workflow], instance, **kwargs) -> None:
+    logger.info(f"pre_delete_workflow with Workflow {instance}")
 
     if instance.schedule:
         instance.teardown_scheduled_execution()

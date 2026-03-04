@@ -874,10 +874,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if not task:
             raise RuntimeError("No Task found")
 
-        ss = self.service_settings
+        if self.service_settings is None:
+            self.service_settings = AwsEcsServiceSettings()
 
-        if not ss:
-            raise RuntimeError("No service settings found")
+        ss = self.service_settings
 
         logger.info(f"setup_service() for Task {task.name}, {force_creation=}, {teardown_result=} ...")
 

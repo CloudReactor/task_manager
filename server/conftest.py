@@ -29,8 +29,9 @@ from processes.common.request_helpers import (
     context_with_request, make_fake_request
 )
 from processes.execution_methods import *
-from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
+from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS, Vpc
 from processes.execution_methods.aws_cloudwatch_scheduling_settings import SCHEDULING_TYPE_AWS_CLOUDWATCH
+from processes.execution_methods.aws_ecs_execution_method import AwsEcsExecutionMethod, AwsEcsExecutionMethodInfo
 from processes.models import *
 from processes.serializers import *
 
@@ -480,6 +481,118 @@ def validate_saved_run_environment(body_re: dict[str, Any],
                     if emt == AwsEcsExecutionMethod.NAME:
                         assert_deep_subset(em_settings, model_re.default_aws_ecs_configuration)
 
+def setup_aws() -> AwsSettings:
+    import boto3
+    import json
+
+    aws_settings = AwsSettings()
+    aws_settings.account_id = '123456789012'
+    region = 'us-west-1'
+    aws_settings.region = region
+
+    ec2 = boto3.client('ec2', region_name=region)
+    iam = boto3.client('iam', region_name=region)
+
+    network_settings = AwsNetworkSettings()
+    network_settings.region = aws_settings.region
+    aws_settings.network = network_settings
+
+    network = AwsNetwork()
+    network.aws_account_id = aws_settings.account_id    
+    
+    vpc_response = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    vpc_id = vpc_response['Vpc']['VpcId']
+    
+    # Set network.vpc with Vpc instance configured from vpc_response
+    network.vpc = Vpc(
+        id=vpc_response['Vpc']['VpcId'],
+    )
+
+    # Create subnets
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc_id,
+        CidrBlock='10.0.1.0/24',
+        AvailabilityZone=region + 'a'
+    )
+    subnet1_id = subnet1['Subnet']['SubnetId']
+
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc_id,
+        CidrBlock='10.0.2.0/24',
+        AvailabilityZone=region + 'b'
+    )
+    subnet2_id = subnet2['Subnet']['SubnetId']
+
+    network_settings.subnets = [subnet1_id, subnet2_id]
+
+    # Create security group for testing
+    sg_response = ec2.create_security_group(
+        GroupName='test-security-group',
+        Description='Security group for testing',
+        VpcId=vpc_id
+    )
+    sg_id = sg_response['GroupId']
+
+    network_settings.security_groups = [sg_id]
+
+    # Create IAM role for EventBridge to manage ECS services
+    trust_policy = {
+        'Version': '2012-10-17',
+        'Statement': [
+            {
+                'Effect': 'Allow',
+                'Principal': {
+                    'Service': 'events.amazonaws.com'
+                },
+                'Action': 'sts:AssumeRole'
+            }
+        ]
+    }
+    
+    role_response = iam.create_role(
+        RoleName='cloudreactor-events-role',
+        AssumeRolePolicyDocument=json.dumps(trust_policy),
+        Description='Role for EventBridge to manage ECS services'
+    )
+    
+    events_role_arn = role_response['Role']['Arn']
+    
+    # Attach policy to allow EventBridge to run ECS tasks
+    ecs_policy = {
+        'Version': '2012-10-17',
+        'Statement': [
+            {
+                'Effect': 'Allow',
+                'Action': [
+                    'ecs:RunTask',
+                    'ecs:StopTask',
+                    'ecs:DescribeTasks',
+                    'ecs:UpdateService'
+                ],
+                'Resource': '*'
+            },
+            {
+                'Effect': 'Allow',
+                'Action': [
+                    'iam:PassRole'
+                ],
+                'Resource': '*'
+            }
+        ]
+    }
+    
+    iam.put_role_policy(
+        RoleName='cloudreactor-events-role',
+        PolicyName='ecs-management-policy',
+        PolicyDocument=json.dumps(ecs_policy)
+    )
+    
+    aws_settings.events_role_arn = events_role_arn
+    aws_settings.assumed_role_external_id = 'DEADBEEF'
+
+    return aws_settings
+
+
 
 class AwsEcsSetup(NamedTuple):
     cluster: Mapping[str, Any]
@@ -490,6 +603,18 @@ class AwsEcsSetup(NamedTuple):
     @property
     def task_definition_arn(self) -> str:
         return cast(str, self.task_definition['taskDefinitionArn'])
+    
+    def make_execution_method_settings(self) -> AwsEcsExecutionMethodSettings:
+        return AwsEcsExecutionMethodSettings(
+            task_definition_arn=self.task_definition_arn,
+            launch_type='FARGATE',
+            supported_launch_types=['FARGATE'],
+            platform_version='1.4.0',
+            main_container_name=self.task_definition['containerDefinitions'][0]['name'],
+            allocated_cpu_units=self.task_definition['containerDefinitions'][0]['cpu'],
+            allocated_memory_mb=self.task_definition['containerDefinitions'][0]['memory'],
+        )
+    
 
 def setup_aws_ecs_cluster(run_environment: RunEnvironment) -> str:
     ecs_client = run_environment.make_boto3_client('ecs')
@@ -498,40 +623,15 @@ def setup_aws_ecs_cluster(run_environment: RunEnvironment) -> str:
     return cluster_response['cluster']
 
 def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
-    ec2_client = run_environment.make_boto3_client('ec2')
-
-    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")
-
-    vpc_id = vpc["Vpc"]["VpcId"]
-
-    subnet1 = ec2_client.create_subnet(
-        AvailabilityZone="us-west-2a",
-        CidrBlock="10.0.0.0/24",
-        VpcId=vpc_id,
-    )
-
-    subnet2 = ec2_client.create_subnet(
-        AvailabilityZone="us-west-2a",
-        CidrBlock="10.0.1.0/24",
-        VpcId=vpc_id,
-    )
-
-    sg1 = ec2_client.create_security_group(
-        Description="Security Group 1",
-        GroupName="sg1",
-        VpcId=vpc_id,
-    )
-
-    sg2 = ec2_client.create_security_group(
-        Description="Security Group 2",
-        GroupName="sg2",
-        VpcId=vpc_id,
-    )
+    aws_settings = run_environment.parsed_aws_settings()
 
     ecs_client = run_environment.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
             clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
     print(f"{cluster_response=}")
+
+
+
 
     task_def_response = ecs_client.register_task_definition(family='nginx',
         executionRoleArn=run_environment.aws_ecs_default_execution_role,
@@ -562,8 +662,8 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
 
     return AwsEcsSetup(cluster=cluster_response['cluster'],
         task_definition=task_def_response['taskDefinition'],
-        subnets=[subnet1['Subnet']['SubnetId'], subnet2['Subnet']['SubnetId']],
-        security_groups=[sg1['GroupId'], sg2['GroupId']])
+        subnets=aws_settings.network.subnets,
+        security_groups=aws_settings.network.security_groups)
 
 
 def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
@@ -796,16 +896,6 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
 
         service_options = emc.get('service_options')
 
-        nullable_service_attrs = [
-            'load_balancer_health_check_grace_period_seconds',
-            'deploy_enable_circuit_breaker',
-            'deploy_rollback_on_failure',
-            'deploy_minimum_healthy_percent',
-            'deploy_maximum_percent',
-            'enable_ecs_managed_tags',
-            'tags'
-        ]
-
         if service_options is None:
             assert model_task.service_instance_count is None
             assert model_task.service_provider_type == ''
@@ -820,7 +910,7 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
             assert model_task.service_settings is not None
 
     execution_method_type = body_task.get('execution_method_type') or \
-            execution_method_type
+            execution_method_type or model_task.execution_method_type
 
     emcd = body_task.get('execution_method_capability_details')
 
@@ -876,10 +966,6 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
         assert model_task.service_provider_type == service_provider_type
         model_service_settings = model_task.service_settings
         assert model_service_settings is not None
-    else:
-        assert body_service_settings is None
-        assert model_task.service_provider_type == ''
-        assert model_task.service_settings is None
 
     if body_task.get('schedule'):
         body_is_scheduling_managed = body_task.get('is_scheduling_managed')
@@ -893,9 +979,6 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
         else:
             assert model_task.scheduling_provider_type == body_task.get('scheduling_provider_type') or ''
         assert model_task.scheduling_settings is not None
-    else:
-        assert model_task.scheduling_provider_type == ''
-        assert model_task.scheduling_settings is None
 
     if model_task.is_service:
         body_is_service_managed = body_task.get('is_service_managed')

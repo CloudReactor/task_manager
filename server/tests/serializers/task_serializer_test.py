@@ -76,6 +76,10 @@ def test_aws_ecs_task_deserialization(is_legacy_schema: bool,
         api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
         api_key_run_environment=run_environment)
 
+    aws_settings = setup_aws()
+    run_environment.aws_settings = aws_settings.dict()
+    run_environment.save()
+
     aws_ecs_setup = setup_aws_ecs(run_environment=run_environment)
 
     schedule = ''
