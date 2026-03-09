@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence, Any, Type
+from typing import TYPE_CHECKING, Sequence, Any, Final, Type, cast
 from typing_extensions import Self
 
 import copy
@@ -54,6 +54,8 @@ class Execution(UuidModel, ExecutionProbabilities):
         Status.STOPPING,
         Status.STOPPED,
     ]
+
+    MAX_STATUS_CHANGE_AGE_SECONDS: Final[int] = 7 * 24 * 3600
 
     input_value = models.JSONField(null=True, blank=True)
     output_value = models.JSONField(null=True, blank=True)
@@ -124,32 +126,17 @@ class Execution(UuidModel, ExecutionProbabilities):
         return None
 
 
-    def maybe_create_and_send_status_change_event(self) -> ExecutionStatusChangeEvent | None:
-        if self.skip_event_generation:
-            logger.info("Skipping status change event creation since skip_event_generation = True")
-            return None
-
+    def maybe_create_and_send_status_change_event(self) -> ExecutionStatusChangeEvent | None:                
         executable = self.get_schedulable()
 
-        if executable is None:
+        if not executable:
             logger.info("Skipping status change event creation since Schedulable is missing")
             return None
-
-        if not executable.enabled:
-            logger.info(f"Skipping status change event creation since Schedulable {executable.uuid} is disabled")
-            return None
-
-        utc_now = timezone.now()
-
-        if self.finished_at and \
-            ((utc_now - self.finished_at).total_seconds() > self.MAX_STATUS_ALERT_AGE_SECONDS):
-            logger.info(f"Skipping status change event creation since finished_at={self.finished_at} is too long ago")
-            return None
-
+        
         if not self.should_create_status_change_event():
             logger.info(f"Skipping status change event creation since Task {executable.uuid} should not create status change event")
             return None
-
+    
         severity: int | None = Event.Severity.ERROR
 
         if self.status == Execution.Status.SUCCEEDED:
@@ -181,6 +168,13 @@ class Execution(UuidModel, ExecutionProbabilities):
         if self.skip_event_generation:
             logger.info("Skipping status change event creation since skip_event_generation = True")
             return False
+
+        utc_now = timezone.now()
+
+        if self.finished_at and \
+            ((utc_now - self.finished_at).total_seconds() > self.MAX_STATUS_CHANGE_AGE_SECONDS):
+            logger.info(f"Skipping status change event creation since finished_at={self.finished_at} is too long ago")
+            return None
 
         executable = self.get_schedulable()
 
