@@ -123,7 +123,7 @@ class WorkflowSerializer(
 
         self.set_validated_notification_profiles(data=data, validated=validated,
                 run_environment=run_environment,
-                allow_any_run_environment=(run_environment is None))
+                allow_any_run_environment=run_environment is None)
 
         return validated
 

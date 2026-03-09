@@ -1,4 +1,4 @@
-from typing import Optional, Type, TYPE_CHECKING, override
+from typing import Optional, Type, override
 
 import logging
 

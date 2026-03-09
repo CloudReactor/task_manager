@@ -278,8 +278,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 })
             is_service = True
 
-        if (scheduled_instance_count is not None):
-            if scheduled_instance_count > 0:                
+        if scheduled_instance_count is not None:
+            if scheduled_instance_count > 0:
                 if is_service:
                     raise serializers.ValidationError({
                         'scheduled_instance_count': ['Must be 0 or null for services']
@@ -291,11 +291,11 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 raise serializers.ValidationError({
                     'is_scheduling_managed': ['Must be null or false for services']
                 })
-            
+
             is_service = False
-                                                              
+
         if task:
-            if (is_service is None) and (schedule is None):                
+            if (is_service is None) and (schedule is None):
                 is_service = task.is_service
                 logger.info(f"is_service and schedule are both None, inferring {is_service=} from Task ...")
 
@@ -311,7 +311,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         schedule = schedule or ''
         is_service = is_service or False
-                
+
         if is_service:
             # Possibly in the future allow Tasks to be both scheduled and services, but for now if schedule is set then is_service must be False
             if schedule:
@@ -343,7 +343,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             if min_service_instance_count > service_instance_count:
                 raise serializers.ValidationError({
                     'min_service_instance_count': ['Must be less than or equal to service_instance_count']
-                })                    
+                })
         else:
             if is_service_managed:
                 raise serializers.ValidationError({
@@ -356,11 +356,11 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
             # Legacy
             validated['aws_ecs_service_load_balancer_health_check_grace_period_seconds'] = None
-        
+
         validated['service_instance_count'] = service_instance_count
         validated['min_service_instance_count'] = min_service_instance_count
         validated['is_service_managed'] = is_service_managed
-                            
+
         if schedule:
             task_scheduled_instance_count: int | None = None
 
@@ -372,7 +372,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             elif scheduled_instance_count < 0:
                 raise serializers.ValidationError({
                     'scheduled_instance_count': ['Must be greater than or equal to 0 for scheduled Tasks']
-                })            
+                })
         else:
             if is_scheduling_managed:
                 raise serializers.ValidationError({
@@ -381,7 +381,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
             is_scheduling_managed = None
             scheduled_instance_count = None
-                    
+
         validated['schedule'] = schedule
         validated['scheduled_instance_count'] = scheduled_instance_count
         validated['is_scheduling_managed'] = is_scheduling_managed
@@ -564,10 +564,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         logger.info(f"Task create_or_update(), {validated_data=}, {instance=}")
 
-        if instance:
-            uuid = instance.uuid
-        else:
-            uuid = defaults.pop('uuid', None)
+        defaults.pop('uuid', None)
 
         notification_profiles = defaults.pop('notification_profiles', None)
 

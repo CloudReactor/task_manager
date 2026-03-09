@@ -27,16 +27,16 @@ from ..exception import CommittableException, UnprocessableEntity
 from .aws_ecs_configuration import AwsEcsConfiguration
 from .run_environment import RunEnvironment
 from .schedulable import Schedulable
-from .execution import Execution
 from .subscription import Subscription
 from .task_execution_configuration import TaskExecutionConfiguration
 
 
 if TYPE_CHECKING:
+    from .execution import Execution
+    from .task_execution import TaskExecution
     from .missing_scheduled_execution_event import MissingScheduledExecutionEvent
     from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
-    from .task_execution import TaskExecution
-
+    
 
 logger = logging.getLogger(__name__)
 

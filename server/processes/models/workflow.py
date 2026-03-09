@@ -511,7 +511,7 @@ def pre_save_workflow(sender: Type[Workflow], instance: Workflow, **kwargs) -> N
         if (max_workflows is not None) and (existing_count >= max_workflows):
             raise UnprocessableEntity(detail='Workflow limit exceeded', code='limit_exceeded')
     else:
-        old_instance = instance._loaded_copy        
+        old_instance = instance._loaded_copy
 
     should_update_schedule = bool(instance.schedule)
 
