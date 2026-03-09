@@ -30,7 +30,10 @@ from processes.common.request_helpers import (
 )
 from processes.execution_methods import *
 from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS, Vpc
-from processes.execution_methods.aws_cloudwatch_scheduling_settings import SCHEDULING_TYPE_AWS_CLOUDWATCH
+from processes.execution_methods.aws_cloudwatch_scheduling_settings import (
+    SCHEDULING_TYPE_AWS_CLOUDWATCH, 
+    AwsCloudwatchSchedulingSettings
+)
 from processes.execution_methods.aws_ecs_execution_method import AwsEcsExecutionMethod, AwsEcsExecutionMethodInfo
 from processes.models import *
 from processes.serializers import *
@@ -595,8 +598,10 @@ def setup_aws() -> AwsSettings:
 
 
 class AwsEcsSetup(NamedTuple):
-    cluster: Mapping[str, Any]
+    cluster_name: str
+    cluster_arn: str
     task_definition: Mapping[str, Any]
+    execution_role_arn: str
     subnets: list[str]
     security_groups: list[str]
 
@@ -607,8 +612,10 @@ class AwsEcsSetup(NamedTuple):
     def make_execution_method_settings(self) -> AwsEcsExecutionMethodSettings:
         return AwsEcsExecutionMethodSettings(
             task_definition_arn=self.task_definition_arn,
+            cluster_arn=self.cluster_arn,
             launch_type='FARGATE',
             supported_launch_types=['FARGATE'],
+            execution_role_arn=self.execution_role_arn,
             platform_version='1.4.0',
             main_container_name=self.task_definition['containerDefinitions'][0]['name'],
             allocated_cpu_units=self.task_definition['containerDefinitions'][0]['cpu'],
@@ -628,11 +635,6 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     ecs_client = run_environment.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
             clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
-    print(f"{cluster_response=}")
-
-
-
-
     task_def_response = ecs_client.register_task_definition(family='nginx',
         executionRoleArn=run_environment.aws_ecs_default_execution_role,
         networkMode='awsvpc',
@@ -658,10 +660,10 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
             }
         }])
 
-    print(f"{task_def_response=}")
-
-    return AwsEcsSetup(cluster=cluster_response['cluster'],
+    return AwsEcsSetup(cluster_name=cluster_response['cluster']['clusterName'],
+        cluster_arn=cluster_response['cluster']['clusterArn'],
         task_definition=task_def_response['taskDefinition'],
+        execution_role_arn=run_environment.default_aws_ecs_configuration['execution_role_arn'],
         subnets=aws_settings.network.subnets,
         security_groups=aws_settings.network.security_groups)
 
@@ -848,7 +850,7 @@ def validate_serialized_task(body_task: dict[str, Any], model_task: Task,
 
 
 def validate_saved_task(body_task: dict[str, Any], model_task: Task,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     ensure_attributes_match(body_task, model_task, COPIED_TASK_ATTRIBUTES,
@@ -983,9 +985,98 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
     if model_task.is_service:
         body_is_service_managed = body_task.get('is_service_managed')
         if body_is_service_managed is None:
-            assert model_task.is_service_managed
+            if model_task.enabled:
+                assert model_task.is_service_managed
+            else:
+                assert not model_task.is_service_managed
         else:
             assert model_task.is_service_managed == body_is_service_managed
+
+
+def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
+        aws_ecs_setup: AwsEcsSetup) -> None:    
+    assert model_task.execution_method_type == 'AWS ECS'
+
+    run_environment = model_task.run_environment
+
+    re_emc = AwsEcsExecutionMethodSettings.parse_obj(
+            run_environment.default_aws_ecs_configuration)
+
+    emcd = model_task.execution_method_capability_details
+    assert emcd is not None
+    assert emcd['task_definition_arn'] == aws_ecs_setup.task_definition_arn
+    assert emcd['execution_role_arn'] == re_emc.execution_role_arn
+
+    region = aws_settings.region
+    account_id = aws_settings.account_id
+    task_uuid = model_task.uuid
+
+    if model_task.is_service:
+        assert model_task.service_provider_type == SERVICE_PROVIDER_AWS_ECS
+
+        ecs_client = model_task.run_environment.make_boto3_client('ecs')
+
+        if model_task.enabled:
+            assert model_task.service_settings is not None
+            assert model_task.service_instance_count >= 1
+            assert model_task.min_service_instance_count >= 0
+
+            ss_dict = model_task.service_settings
+            ss = AwsEcsServiceSettings.parse_obj(ss_dict)
+            assert ss.service_arn.startswith(f"arn:aws:ecs:{region}:{account_id}:service/{aws_ecs_setup.cluster_name}/CR_{task_uuid}")
+
+            services_response = ecs_client.describe_services(
+                cluster=aws_ecs_setup.cluster_arn,
+                services=[ss.service_arn]
+            )
+            active_services = [s for s in services_response['services']
+                               if s['status'] == 'ACTIVE']
+            assert len(active_services) == 1, \
+                f"Expected 1 ACTIVE ECS service for Task {task_uuid}, found: {[s['status'] for s in services_response['services']]}"
+        else:
+            # Service should be deleted (INACTIVE or absent) when the task is disabled
+            service_name = f"CR_{task_uuid}"
+            services_response = ecs_client.describe_services(
+                cluster=aws_ecs_setup.cluster_arn,
+                services=[service_name]
+            )
+            active_services = [s for s in services_response['services']
+                               if s['status'] == 'ACTIVE']
+            assert len(active_services) == 0, \
+                f"Expected no ACTIVE ECS service for disabled Task {task_uuid}, but found: {active_services}"
+
+    else:
+        assert model_task.service_instance_count is None
+
+    if model_task.is_scheduling_managed:
+        assert model_task.scheduling_provider_type == SCHEDULING_TYPE_AWS_CLOUDWATCH
+
+        if model_task.enabled:
+            assert model_task.scheduling_settings is not None
+            ss_dict = model_task.scheduling_settings
+            ss = AwsCloudwatchSchedulingSettings.parse_obj(ss_dict)
+            assert ss.event_rule_arn == f"arn:aws:events:{region}:{account_id}:rule/CR_{task_uuid}"
+            assert ss.execution_rule_name == f"CR_{task_uuid}"
+            assert ss.event_target_id == f"CR_{task_uuid}"
+            assert ss.event_target_rule_name == f"CR_{task_uuid}"
+
+            events_client = aws_settings.make_events_client()
+            rule_response = events_client.describe_rule(Name=f"CR_{task_uuid}")
+            assert rule_response['Arn'] == ss.event_rule_arn
+            assert rule_response['State'] == 'ENABLED'
+        else:
+            rule_name = f"CR_{task_uuid}"
+            events_client = aws_settings.make_events_client()
+
+            try:
+                targets_response = events_client.list_targets_by_rule(Rule=rule_name)
+                assert targets_response['Targets'] == [], \
+                    f"Expected no event targets on rule {rule_name} for disabled Task {task_uuid}, but found: {targets_response['Targets']}"
+            except events_client.exceptions.ResourceNotFoundException:
+                pass  # Rule doesn't exist at all, which is also acceptable
+
+
+
 
 
 def make_task_execution_request_body(uuid_send_type: Optional[str],
@@ -1252,7 +1343,7 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
             elif 'name' in body_task:
                 assert body_task['name'] == str(model_task.name)
             else:
-                assert False, "uuid or name must be present in task object"
+                assert False, "uuid or name must be present in Task object"
         else:
             assert 'uuid' in body_task_execution
             assert body_task_execution['uuid'] == str(model_task_execution.uuid)
