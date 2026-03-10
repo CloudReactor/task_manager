@@ -971,13 +971,13 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             args = self.add_creation_args(self.make_common_service_args(
                     include_launch_type=True))
 
-            new_service_name = ''
+            new_service_name: str | None = None
 
-            if existing_service_info:
+            if service_name is None:
+                new_service_name = self.make_aws_ecs_service_name()
+            elif existing_service_info:
                 new_service_name = self.make_aws_ecs_service_name(
                         index=existing_service_info.next_service_name_suffix or 0)
-            else:
-                new_service_name = self.make_aws_ecs_service_name()
 
             logger.info(f"setup_service() for Task {task.name} creating service with {new_service_name=} ...")
 
