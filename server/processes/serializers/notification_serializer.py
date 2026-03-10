@@ -13,7 +13,8 @@ from .group_serializer import GroupSerializer
 @extend_schema_field(field=serializers.ChoiceField(choices=[
         status.name for status in list(NotificationSendStatus)
     ]), component_name='NotificationSendStatus')
-class NotificationSendStatusSerializer(serializers.BaseSerializer):
+class NotificationSendStatusSerializer(serializers.BaseSerializer):  # pylint: disable=abstract-method
+    # Enum-to-string serializer only; create/update are intentionally not implemented
     @override
     def to_representation(self, instance) -> str | None:
         if instance is None:

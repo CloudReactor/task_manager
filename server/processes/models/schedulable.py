@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence, Any, Type
-from typing_extensions import Self
 
 import copy
 from datetime import datetime
 import logging
 import re
+
+from typing_extensions import Self
 
 from django.db import models
 from django.db.models import Manager

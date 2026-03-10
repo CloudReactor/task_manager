@@ -57,15 +57,15 @@ class UuidModel(models.Model):
             allowed_run_environment: RunEnvironment | None,
             allow_any_run_environment: bool | None,
             use_name: bool):
-        uuid = obj_dict.get('uuid')
+        model_uuid = obj_dict.get('uuid')
         name = obj_dict.get('name') if use_name else None
 
-        if uuid is not None:
-            entity = cls.objects.get(uuid=uuid)
+        if model_uuid is not None:
+            entity = cls.objects.get(uuid=model_uuid)
 
             if check_conflict and (name is not None) and (entity.name != name):
                 raise UnprocessableEntity(
-                        f"{cls.__name__} {uuid} is named '{entity.name}', not '{name}'")
+                        f"{cls.__name__} {model_uuid} is named '{entity.name}', not '{name}'")
         elif use_name:
             if name is None:
                 raise serializers.ValidationError('Neither uuid or name found in request')

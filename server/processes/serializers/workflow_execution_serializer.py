@@ -1,4 +1,5 @@
 import logging
+from typing import Any, override
 
 from rest_framework import serializers
 
@@ -19,11 +20,14 @@ logger = logging.getLogger(__name__)
 @extend_schema_field(serializers.ChoiceField(choices=[
         status.name for status in list(Execution.Status)]),
         component_name='WorkflowExecutionStatus')
-class WorkflowExecutionStatusSerializer(serializers.BaseSerializer):
-    def to_representation(self, instance):
+class WorkflowExecutionStatusSerializer(serializers.BaseSerializer):  # pylint: disable=abstract-method
+    # Enum-to-string serializer only; create/update are intentionally not implemented
+    @override
+    def to_representation(self, instance: int) -> str:
         return Execution.Status(instance).name
 
-    def to_internal_value(self, data):
+    @override
+    def to_internal_value(self, data: str) -> int:
         return Execution.Status[data.upper()].value
 
 
@@ -31,11 +35,14 @@ class WorkflowExecutionStatusSerializer(serializers.BaseSerializer):
         reason.name for reason in list(WorkflowExecution.RunReason)],
         required=False),
         component_name='WorkflowExecutionRunReason')
-class WorkflowExecutionRunReasonSerializer(serializers.BaseSerializer):
-    def to_representation(self, instance):
+class WorkflowExecutionRunReasonSerializer(serializers.BaseSerializer):  # pylint: disable=abstract-method
+    # Enum-to-string serializer only; create/update are intentionally not implemented
+    @override
+    def to_representation(self, instance: int) -> str:
         return WorkflowExecution.RunReason(instance).name
 
-    def to_internal_value(self, data):
+    @override
+    def to_internal_value(self, data: str) -> int:
         return WorkflowExecution.RunReason[data.upper()].value
 
 
@@ -43,14 +50,17 @@ class WorkflowExecutionRunReasonSerializer(serializers.BaseSerializer):
         reason.name for reason in list(WorkflowExecution.StopReason)],
         required=False, allow_blank=True),
         component_name='WorkflowExecutionStopReason')
-class WorkflowExecutionStopReasonSerializer(serializers.BaseSerializer):
-    def to_representation(self, instance):
+class WorkflowExecutionStopReasonSerializer(serializers.BaseSerializer):  # pylint: disable=abstract-method
+    # Enum-to-string serializer only; create/update are intentionally not implemented
+    @override
+    def to_representation(self, instance: int | None) -> str | None:
         if not instance:
             return None
 
         return WorkflowExecution.StopReason(instance).name
 
-    def to_internal_value(self, data):
+    @override
+    def to_internal_value(self, data: str | None) -> int | None:
         if not data:
             return None
 
@@ -144,7 +154,8 @@ class WorkflowExecutionSerializer(EmbeddedWorkflowSerializer):
     workflow_task_instance_executions = WorkflowTaskInstanceExecutionSerializer(many=True, read_only=True)
     workflow_transition_evaluations = WorkflowTransitionEvaluationSerializer(many=True, read_only=True)
 
-    def to_internal_value(self, data):
+    @override
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         if 'status' not in data:
             if self.instance:
                 data['status'] = Execution.Status(self.instance.status).name
@@ -155,8 +166,9 @@ class WorkflowExecutionSerializer(EmbeddedWorkflowSerializer):
         validated['started_by'] = self.get_request_user()
         return validated
 
-    def update(self, instance, validated):
-        request_status = Execution.Status(validated.get(
+    @override
+    def update(self, instance: WorkflowExecution, validated_data: dict[str, Any]) -> WorkflowExecution:
+        request_status = Execution.Status(validated_data.get(
             'status', Execution.Status.RUNNING.value))
         existing_status = Execution.Status(instance.status)
 
@@ -170,4 +182,4 @@ class WorkflowExecutionSerializer(EmbeddedWorkflowSerializer):
             raise serializers.ValidationError(
                 {'status': f"Status cannot be set to {request_status.name} after {existing_status.name}"})
 
-        return super().update(instance, validated)
+        return super().update(instance, validated_data)

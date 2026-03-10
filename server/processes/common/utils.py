@@ -41,8 +41,8 @@ def deepmerge_with_lists_pair(dest: Any, src: Any,
     if isinstance(dest, str): # because string is iterable
         if src is None:
             return dest
-        else:
-            return src
+
+        return src
 
     if isinstance(dest, abc.MutableMapping):
         if (not isinstance(src, str)) and isinstance(src, abc.Mapping):

@@ -48,7 +48,8 @@ def convert_event_severity_value(data: Any) -> int:
 @extend_schema_field(field=serializers.ChoiceField(choices=[
         sev.name.lower() for sev in list(Event.Severity)
     ]), component_name='EventSeverity')
-class EventSeveritySerializer(serializers.BaseSerializer):
+class EventSeveritySerializer(serializers.BaseSerializer):  # pylint: disable=abstract-method
+    # Enum-to-string serializer only; create/update are intentionally not implemented
     @override
     def to_representation(self, instance) -> str | None:
         if instance is None:

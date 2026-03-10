@@ -106,7 +106,7 @@ class WorkflowTransition(models.Model):
     def workflow(self):
         wti = self.from_workflow_task_instance or \
                 self.to_workflow_task_instance
-        return wti.workflow
+        return wti.workflow  # type: ignore[no-member]
 
     def __str__(self) -> str:
         return (self.workflow.name or 'Unnamed') \

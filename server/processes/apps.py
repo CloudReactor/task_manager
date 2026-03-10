@@ -101,8 +101,6 @@ class ProcessesConfig(AppConfig):
         try:
             from typedmodels.models import TypedModelMetaclass
 
-            original_model_has_field = TypedModelMetaclass._model_has_field
-
             @staticmethod
             def patched_model_has_field(cls, base_class, field_name):
                 if field_name in base_class._meta._typedmodels_original_many_to_many:

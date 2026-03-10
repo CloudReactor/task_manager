@@ -132,11 +132,11 @@ def find_group_by_id_or_name(obj_dict: Optional[dict[str, Any]],
 
         return None
 
-    id = obj_dict.get('id')
+    obj_id = obj_dict.get('id')
     name = obj_dict.get('name')
 
-    if id is not None:
-        group = Group.objects.get(pk=id)
+    if obj_id is not None:
+        group = Group.objects.get(pk=obj_id)
 
         if check_conflict and (name is not None) and (group.name != name):
             raise serializers.ValidationError({

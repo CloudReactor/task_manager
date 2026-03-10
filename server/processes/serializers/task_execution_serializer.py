@@ -43,7 +43,8 @@ logger = logging.getLogger(__name__)
 @extend_schema_field(field=serializers.ChoiceField(choices=[
         status.name for status in list(Execution.Status)]),
         component_name='TaskExecutionStatus')
-class TaskExecutionStatusSerializer(serializers.BaseSerializer):
+class TaskExecutionStatusSerializer(serializers.BaseSerializer):  # pylint: disable=abstract-method
+    # Enum-to-string serializer only; create/update are intentionally not implemented
     def to_representation(self, instance: Execution.Status) -> str:
         return Execution.Status(instance).name
 
@@ -53,7 +54,8 @@ class TaskExecutionStatusSerializer(serializers.BaseSerializer):
 
 @extend_schema_field(serializers.ChoiceField(choices=[
         reason.name for reason in list(TaskExecution.StopReason)]))
-class TaskExecutionStopReasonSerializer(serializers.BaseSerializer):
+class TaskExecutionStopReasonSerializer(serializers.BaseSerializer):  # pylint: disable=abstract-method
+    # Enum-to-string serializer only; create/update are intentionally not implemented
     def to_representation(self, instance: TaskExecution.StopReason) -> str:
         return TaskExecution.StopReason(instance).name
 

@@ -89,3 +89,7 @@ env = [
     "DJANGO_SETTINGS_MODULE=task_manager.settings",
     "IN_PYTEST=TRUE"
 ]
+
+[tool.pylint.VARIABLES]
+# sender is for Django signal handlers
+ignored-argument-names = "sender|_.*"

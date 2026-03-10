@@ -18,7 +18,16 @@ from ..exception import UnprocessableEntity
 logger = logging.getLogger(__name__)
 
 
-class SerializerHelpers(serializers.BaseSerializer):
+class SerializerHelpers:
+    """
+    Mixin providing helper methods for serializer classes.
+    Does not inherit from BaseSerializer — concrete subclasses supply
+    BaseSerializer (and therefore self.context) via their own MRO.
+    """
+    # Declared here so type checkers understand self.context in mixin methods;
+    # the value is provided at runtime by the concrete BaseSerializer subclass.
+    context: dict[str, Any]
+
     # Context key to prevent infinite recursion in polymorphic serializers
     SKIP_POLYMORPHIC_DELEGATION = '_skip_polymorphic_delegation'
 

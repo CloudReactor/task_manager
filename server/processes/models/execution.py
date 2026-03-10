@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence, Any, Final, Type, cast
-from typing_extensions import Self
 
 import copy
 import enum
 import logging
+
+from typing_extensions import Self
 
 from django.contrib.auth.models import Group, User
 from django.db import models, transaction

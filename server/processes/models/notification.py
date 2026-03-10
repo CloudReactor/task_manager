@@ -66,13 +66,13 @@ class Notification(UuidModel):
                     diff = existing_notification_count - max_notification_count + 1
                     for notification in Notification.objects.filter(created_by_group=group) \
                             .order_by('attempted_at')[:diff].iterator():
-                        id = notification.uuid
-                        logger.info(f"Deleting Notification {id} because {group=} has reached the limit of {max_notification_count}")
+                        notification_uuid = notification.uuid
+                        logger.info(f"Deleting Notification {notification_uuid} because {group=} has reached the limit of {max_notification_count}")
                         try:
                             notification.delete()
-                            logger.info(f"Deleted Notification {id} successfully")
+                            logger.info(f"Deleted Notification {notification_uuid} successfully")
                         except Exception:
-                            logger.warning(f"Failed to delete Notification {id}", exc_info=True)
+                            logger.warning(f"Failed to delete Notification {notification_uuid}", exc_info=True)
         else:
             logger.info('Updating an existing Notification')
 

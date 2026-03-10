@@ -137,14 +137,14 @@ class Event(TypedModel):
                     for event in Event.objects.filter(created_by_group=group) \
                             .order_by('event_at').all()[:diff].iterator():
 
-                        id = event.uuid
-                        logger.info(f"Deleting Event {id} because {group=} has reached the limit of {max_events}")
+                        event_uuid = event.uuid
+                        logger.info(f"Deleting Event {event_uuid} because {group=} has reached the limit of {max_events}")
 
                         try:
                             event.delete()
-                            logger.info(f"Deleted Event {id} successfully")
+                            logger.info(f"Deleted Event {event_uuid} successfully")
                         except Exception:
-                            logger.warning(f"Failed to delete Event {id}", exc_info=True)
+                            logger.warning(f"Failed to delete Event {event_uuid}", exc_info=True)
         else:
             logger.info('Updating an existing Event')
 
