@@ -158,11 +158,11 @@ class InvitationViewSet(AtomicCreateModelMixin,
                     logger.info(f"Created new UserGroupAccessLevel for {invited_user.username=}")
                 else:
                     if ugal.access_level < access_level:
-                        logger.info('Upgrading access level from {ugal.access_level} to {access_level}')
+                        logger.info(f"Upgrading access level from {ugal.access_level} to {access_level}")
                         ugal.access_level = access_level
                         ugal.save()
                     else:
-                        logger.info('Not downgrading access level from {ugal.access_level} to {access_level}')
+                        logger.info(f"Not downgrading access level from {ugal.access_level} to {access_level}")
 
             # TODO: maybe send mail indicating access is upgraded
 
