@@ -1,16 +1,24 @@
 FROM cloudreactor-task-manager
 
+USER root
+
 WORKDIR /tmp
 
-COPY server/dev-requirements.in .
+# Install Python dependencies as root before switching to non-root user
+# Using export->install instead of sync for better Docker layer caching
+COPY server/pyproject.toml server/uv.lock /tmp/
+RUN cd /tmp && \
+    uv export --frozen --extra dev -o dev-requirements.txt && \
+    uv pip install --no-cache -r dev-requirements.txt && \
+    rm -rf /tmp/*
 
-RUN pip-compile --allow-unsafe --generate-hashes \
-  dev-requirements.in --output-file dev-requirements.txt
+USER appuser
 
-RUN pip install --no-input -r requirements.txt -r dev-requirements.txt
+ENV UV_SYSTEM_PYTHON=1 \
+    UV_IGNORE_DOT_VENV=1
 
-WORKDIR /usr/src/app
+WORKDIR /home/appuser/src
 
-COPY server/.env.test ./src/
+COPY server/.env.test ./
 
 CMD ["pytest"]

@@ -11,6 +11,8 @@ x-service-base: &service-base
     - server/.env
   environment:
     PYTHONWARNINGS: always
+    UV_IGNORE_DOT_VENV: "1"
+    UV_SYSTEM_PYTHON: 1
   depends_on:
     - db
   profiles: ["tools"]
@@ -23,8 +25,11 @@ x-dev-base: &dev-base
     dockerfile: Dockerfile-dev
   working_dir: /home/appuser/src
   volumes:
-    - ./server:/home/appuser/src
-    #- ./deploy/files/.env.dev:/home/appuser/.env
+    - ./server:/home/appuser/src:cached
+  environment:
+    PYTHONWARNINGS: always
+    UV_IGNORE_DOT_VENV: "1"
+    UV_SYSTEM_PYTHON: 1
   depends_on: []
 
 x-client-base: &client-base
@@ -63,11 +68,6 @@ services:
     <<: *service-base
     container_name: task_manager_checker
     command: task_schedule_checker
-
-
-  alert-method-to-np-migrator:
-    <<: *service-base
-    command: notification_method_migrator
 
   db:
     container_name: db
@@ -146,14 +146,6 @@ services:
     container_name: client-npm
     entrypoint: npm
     command: install
-
-  pip-compile:
-    <<: *service-base
-    entrypoint: pip-compile --allow-unsafe --generate-hashes requirements.in --output-file requirements.txt
-
-  pip-compile-dev:
-    <<: *dev-base
-    entrypoint: pip-compile --allow-unsafe --generate-hashes dev-requirements.in --output-file dev-requirements.txt
 
   # Check your Dockerfile against best-practices:
   # See https://github.com/hadolint/hadolint
