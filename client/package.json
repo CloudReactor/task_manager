@@ -101,5 +101,8 @@
     "vite-plugin-checker": "^0.8.0",
     "vite-plugin-svgr": "^4.3.0",
     "vite-tsconfig-paths": "^5.1.2"
+  },
+  "overrides": {
+    "underscore": "1.13.8"
   }
 }
