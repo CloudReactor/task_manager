@@ -395,7 +395,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
                             force_creation=should_force_create_scheduled_execution,
                             teardown_result=schedule_teardown_result)
                 except Exception as ex:
-                    logger.exception("Failed to setup scheduled_execution for Task {self.uuid}")
+                    logger.exception(f"Failed to setup scheduled_execution for Task {self.uuid}")
 
                     # FIXME: due to AtomicUpdateModelMixin all changes will
                     # probably be rolled back.

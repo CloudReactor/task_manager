@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence, Any, Type
+from typing import TYPE_CHECKING, Collection, Any, Type
 
 import copy
 from datetime import datetime
@@ -97,7 +97,7 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
 
 
     @classmethod
-    def from_db(cls: Type[Self], db: str, field_names: Sequence[str], values: Sequence[Any]):
+    def from_db(cls: Type[Self], db: str | None, field_names: Collection[str], values: Collection[Any]) -> Self:
         instance = super().from_db(db, field_names, values)
         instance._loaded_copy = copy.copy(instance)
         return instance

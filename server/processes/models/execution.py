@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence, Any, Final, Type, cast
+from typing import TYPE_CHECKING, Collection, Any, Final, Type
 
 import copy
 import enum
@@ -93,7 +93,7 @@ class Execution(UuidModel, ExecutionProbabilities):
 
 
     @classmethod
-    def from_db(cls: Type[Self], db: str, field_names: Sequence[str], values: Sequence[Any]):
+    def from_db(cls: Type[Self], db: str | None, field_names: Collection[str], values: Collection[Any]) -> Self:
         instance = super().from_db(db, field_names, values)
         instance._loaded_copy = copy.copy(instance)
         return instance
