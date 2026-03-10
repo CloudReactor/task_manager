@@ -272,7 +272,6 @@ class Workflow(Schedulable):
         logger.info(f"Removed {num_in_progress_deleted=} in-progress Workflow Execution history items")
         return num_completed_deleted + num_in_progress_deleted
 
-    @override
     def setup_scheduled_execution(self, run_environment: RunEnvironment) -> None:
         from .workflow_execution import WorkflowExecution
 
@@ -409,7 +408,6 @@ class Workflow(Schedulable):
         self.scheduling_run_environment = run_environment
 
 
-    @override
     def teardown_scheduled_execution(self, run_environment: Optional[RunEnvironment] = None) -> None:
         run_environment = run_environment or self.run_environment_for_scheduling(fallback_to_tasks=False)
 
