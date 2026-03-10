@@ -327,7 +327,7 @@ def make_request_body(uuid_send_type: Optional[str],
    SEND_ID_CORRECT, True,
    200),
 
-  # Developer with API Key succeeds with unscoped Alert Method
+  # Developer with API Key succeeds with unscoped Notification Profile
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, False,
@@ -377,7 +377,7 @@ def make_request_body(uuid_send_type: Optional[str],
    404),
 
   # Developer with developer API key scoped to Run Environment,
-  # fetching Alert Method without Run Environment gets 404
+  # fetching Notification Profile without Run Environment gets 404
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, False,
@@ -468,7 +468,7 @@ def test_notification_profile_fetch(
    SEND_ID_NONE, None,
    201, None),
 
-  # uuid of existing Alert Method is present in request body
+  # uuid of existing Notification Profile is present in request body
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN,
    UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None,
    SEND_ID_WRONG, SEND_ID_NONE,
@@ -481,7 +481,7 @@ def test_notification_profile_fetch(
    SEND_ID_NONE, SEND_ID_IN_WRONG_GROUP,
    422, 'run_environment'),
 
-   # Developer with scoped API Key succeeds when Alert Method is scoped
+   # Developer with scoped API Key succeeds when Notification Profile is scoped
    # with the same Run Environment
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
@@ -494,14 +494,14 @@ def test_notification_profile_fetch(
    SEND_ID_NONE, None,
    201, None),
 
-   # Developer with scoped API Key cannot update Alert Method with no
+   # Developer with scoped API Key cannot update Notification Profile with no
    # Run Environment
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_NONE, SEND_ID_NONE,
    403, None),
 
-   # Developer with scoped API Key cannot create Alert Method with a different
+   # Developer with scoped API Key cannot create Notification Profile with a different
    # Run Environment
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
@@ -647,7 +647,7 @@ def test_notification_profile_create_access_control(
    SEND_ID_NONE, True,
    200, None),
 
-  # Developer with unscoped API Key succeeds in updating unscoped Alert Method
+  # Developer with unscoped API Key succeeds in updating unscoped Notification Profile
   # when Run Environment is not specified
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
@@ -677,14 +677,14 @@ def test_notification_profile_create_access_control(
    SEND_ID_IN_WRONG_GROUP, False,
    422, 'run_environment'),
 
-  # Support user with API Key fails with 403 on scoped Alert Method
+  # Support user with API Key fails with 403 on scoped Notification Profile
   (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT,
    UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT, None,
    SEND_ID_CORRECT, None,
    None, True,
    403, None),
 
-  # Support user with JWT token fails with 403 on unscoped Alert Method
+  # Support user with JWT token fails with 403 on unscoped Notification Profile
   (True, UserGroupAccessLevel.ACCESS_LEVEL_SUPPORT,
    None, None,
    SEND_ID_CORRECT, None,
@@ -880,7 +880,7 @@ def test_notification_profile_update_access_control(
    SEND_ID_CORRECT, True,
    204),
 
-  # Developer with unscoped API Key can deleted unscoped Alert Method
+  # Developer with unscoped API Key can deleted unscoped Notification Profile
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, None,
    SEND_ID_CORRECT, False,
@@ -904,14 +904,14 @@ def test_notification_profile_update_access_control(
    SEND_ID_CORRECT, True,
    204),
 
-  # Developer with JWT token succeeds deleting Alert Method scoped to
+  # Developer with JWT token succeeds deleting Notification Profile scoped to
   # Run Environment
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    None, None,
    SEND_ID_CORRECT, True,
    204),
 
-  # Developer with JWT token succeeds deleting unscoped Alert Method
+  # Developer with JWT token succeeds deleting unscoped Notification Profile
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    None, None,
    SEND_ID_CORRECT, False,
@@ -930,7 +930,7 @@ def test_notification_profile_update_access_control(
    204),
 
   # Developer with developer API key scoped to Run Environment
-  # cannot delete unscoped Alert Method
+  # cannot delete unscoped Notification Profile
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, False,

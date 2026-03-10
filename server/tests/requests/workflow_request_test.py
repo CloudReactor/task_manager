@@ -512,7 +512,7 @@ def test_workflow_fetch(
    SEND_ID_NONE, SEND_ID_IN_WRONG_GROUP,
    422, 'run_environment'),
 
-   # Developer with scoped API Key succeeds when Alert Method is scoped
+   # Developer with scoped API Key succeeds when Notification Profile is scoped
    # with the same Run Environment
   (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
    UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
@@ -725,21 +725,21 @@ def test_task_create_workflow_limit(max_workflows: int,
   status_code, validation_error_attribute
 """, [
   # Developer authenticated with JWT succeeds with scoped Run Environment
-  # where Alert Method is also scoped
+  # where Notification Profile is also scoped
   (None, None,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    False,
    201, None),
 
   # Developer authenticated with JWT succeeds with no Run Environment
-  # where Alert Method is also unscoped
+  # where Notification Profile is also unscoped
   (None, None,
    SEND_ID_NONE, SEND_ID_CORRECT,
    False,
    201, None),
 
   # Developer authenticated with JWT succeeds with no Run Environment
-  # where Alert Method is scoped to another Run Environment.
+  # where Notification Profile is scoped to another Run Environment.
   # Existing is unscoped.
   (None, None,
    SEND_ID_NONE, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
@@ -747,41 +747,41 @@ def test_task_create_workflow_limit(max_workflows: int,
    201, None),
 
   # Developer authenticated with JWT succeeds with a specific Run Environment
-  # where Alert Method is scoped correctly
+  # where Notification Profile is scoped correctly
   (None, None,
    SEND_ID_OTHER, SEND_ID_CORRECT,
    True,
    201, None),
   # Developer authenticated with JWT gets 422 with a specific Run Environment
-  # where Alert Method is scoped to a different run environment
+  # where Notification Profile is scoped to a different run environment
   (None, None,
    SEND_ID_CORRECT, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    True,
    422, 'notification_profiles'),
 
   # Developer authenticated with JWT gets 422 with a specific Run Environment
-  # where Alert Method is unscoped
+  # where Notification Profile is unscoped
   (None, None,
    SEND_ID_OTHER, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    True,
    201, None),
 
   # Developer with unscoped API Key succeeds
-  # where Workflow and Alert Method are both unscoped
+  # where Workflow and Notification Profile are both unscoped
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    False,
    201, None),
 
   # Developer with unscoped API Key succeeds
-  # where Workflow is scoped but Alert Method is unscoped
+  # where Workflow is scoped but Notification Profile is unscoped
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    True,
    201, None),
 
   # Developer with unscoped API Key succeeds
-  # where Run Environment is omitted and Alert Method is unscoped.
+  # where Run Environment is omitted and Notification Profile is unscoped.
   # Existing is unscoped.
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    None, SEND_ID_CORRECT,
@@ -789,42 +789,42 @@ def test_task_create_workflow_limit(max_workflows: int,
    201, None),
 
   # Developer with unscoped API Key succeeds
-  # where Run Environment is omitted and Alert Method is unscoped.
+  # where Run Environment is omitted and Notification Profile is unscoped.
   # Existing is scoped.
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    None, SEND_ID_CORRECT,
    True,
    201, None),
 
- # Developer with unscoped API Key succeeds when Alert Method Run Environment
- # matches Alert Method Run Environment
+ # Developer with unscoped API Key succeeds when Notification Profile Run Environment
+ # matches Notification Profile Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_OTHER, SEND_ID_OTHER,
    True,
    201, None),
  # Developer with unscoped API Key fails when Workflow Run Environment
- # does not match Alert Method Run Environment
+ # does not match Notification Profile Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_NONE,
    SEND_ID_OTHER, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    True,
    422, 'notification_profiles'),
 
   # Developer with scoped API Key succeeds with correct Run Environment
-  # and an Alert Method that scoped to the same Run Environment
+  # and an Notification Profile that scoped to the same Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_CORRECT,
    True,
    201, None),
 
   # Developer with scoped API Key succeeds with no explicit Run Environment
-  # and an Alert Method that scoped to the API Key's Run Environment
+  # and an Notification Profile that scoped to the API Key's Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_CORRECT,
    True,
    201, None),
 
   # Developer with scoped API Key fails using with Workflow Run Environment and
-  # Alert Method with different Run Environment.
+  # Notification Profile with different Run Environment.
   # Existing Workflow is scoped.
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
@@ -832,21 +832,21 @@ def test_task_create_workflow_limit(max_workflows: int,
    422, 'notification_profiles'),
 
   # Developer with scoped API Key fails using with no explicit Run Environment
-  # Alert Method with different Run Environment
+  # Notification Profile with different Run Environment
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITH_OTHER_RUN_ENVIRONMENT,
    True,
    422, 'notification_profiles'),
 
   # Developer with scoped API Key fails using matching Run Environment
-  # but unscoped Alert Method
+  # but unscoped Notification Profile
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    SEND_ID_CORRECT, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    True,
    201, None),
 
   # Developer with scoped API Key fails using no explicit Run Environment
-  # but unscoped Alert Method
+  # but unscoped Notification Profile
   (UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
    None, SEND_ID_WITHOUT_RUN_ENVIRONMENT,
    True,
@@ -862,7 +862,7 @@ def test_workflow_set_notification_profiles(
         workflow_factory, notification_profile_factory,
         api_client) -> None:
     """
-    Tests for setting Alert Methods.
+    Tests for setting Notification Profiles.
     """
     group_access_level = UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
 
