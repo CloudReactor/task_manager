@@ -56,9 +56,8 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
         if time_range is None:
             return None
 
-        with transaction.atomic():
-            mse = self.check_executions(schedulable, expected_datetime=time_range[0],
-                    from_datetime=time_range[1], to_datetime=time_range[2], utc_now=utc_now)
+        mse = self.check_executions(schedulable, expected_datetime=time_range[0],
+                from_datetime=time_range[1], to_datetime=time_range[2], utc_now=utc_now)
 
         if mse:
             schedulable.send_event_notifications(event=mse)
