@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 
-class LinkSerializer(serializers.Serializer):
+class LinkSerializer(serializers.Serializer): # pylint: disable=abstract-method
     """
     Links represent a URL and associated metadata.
     """

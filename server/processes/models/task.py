@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from .task_execution import TaskExecution
     from .missing_scheduled_execution_event import MissingScheduledExecutionEvent
     from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
-    
+
 
 logger = logging.getLogger(__name__)
 

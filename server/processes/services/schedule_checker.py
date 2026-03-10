@@ -211,7 +211,7 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
                     expected_execution_at=expected_datetime, missing_execution_count=missing_execution_count)
                 mse.save()
 
-                return mse
+        return mse
 
     @staticmethod
     def parse_rate_schedule(schedule: str) -> Optional[relativedelta]:

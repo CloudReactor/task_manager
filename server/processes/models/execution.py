@@ -127,17 +127,17 @@ class Execution(UuidModel, ExecutionProbabilities):
         return None
 
 
-    def maybe_create_and_send_status_change_event(self) -> ExecutionStatusChangeEvent | None:                
+    def maybe_create_and_send_status_change_event(self) -> ExecutionStatusChangeEvent | None:
         executable = self.get_schedulable()
 
         if not executable:
             logger.info("Skipping status change event creation since Schedulable is missing")
             return None
-        
+
         if not self.should_create_status_change_event():
             logger.info(f"Skipping status change event creation since Task {executable.uuid} should not create status change event")
             return None
-    
+
         severity: int | None = Event.Severity.ERROR
 
         if self.status == Execution.Status.SUCCEEDED:

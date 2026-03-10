@@ -1,5 +1,5 @@
 from typing import (
-    Any, Mapping, Optional,
+    Any, Mapping,
     # Type, Union,
     cast
 )
@@ -175,7 +175,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
         return [c.name for c in task.execution_method().capabilities()]
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
-        task: Optional[Task] = None
+        task: Task | None = None
         if self.instance:
             task = cast(Task, self.instance)
 
@@ -230,7 +230,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         validated['__existing_instance__'] = task
 
-        run_environment = cast(Optional[RunEnvironment], validated.get('run_environment',
+        run_environment = cast(RunEnvironment | None, validated.get('run_environment',
             task.run_environment if task else None))
 
         if run_environment is None:
@@ -574,7 +574,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
         load_balancer_details_list = validated_data.pop('aws_ecs_load_balancer_details_set', None)
 
         task: Task | None = instance
-        
+
         old_self: Task | None = None
         if task is None:
             task = Task(**validated_data)
@@ -615,8 +615,8 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
     def execution_method_capability_serializer_for_type(self,
             method_name: str,
-            task: Optional[Task] = None, is_service: Optional[bool] = None,
-            run_environment: Optional[RunEnvironment] = None,
+            task: Task | None = None, is_service: bool | None = None,
+            run_environment: RunEnvironment | None = None,
             is_legacy_schema: bool = False) \
             -> serializers.Serializer:
         #print(f"request = {self.context['request']}")
@@ -649,7 +649,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
     # Legacy
     def update_aws_ecs_service_load_balancer_details_set(self, task: Task,
-            load_balancer_details_list: Optional[list[AwsEcsServiceLoadBalancerDetails]]):
+            load_balancer_details_list: list[AwsEcsServiceLoadBalancerDetails] | None):
         if load_balancer_details_list is None:
             return False
 

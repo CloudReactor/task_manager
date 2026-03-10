@@ -140,7 +140,8 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
                             ErrorDetail('Workflow not found', code='missing')
                         ]
                     })
-                elif is_to:
+                
+                if is_to:
                     workflow = wts.to_workflow_task_instance.workflow
                 else:
                     workflow = wts.from_workflow_task_instance.workflow

@@ -136,7 +136,7 @@ class EventFilter(filters.FilterSet):
             return queryset
 
         # Support comma-separated lists
-        event_types = [v for v in value.split(',')] if ',' in value else [value]
+        event_types = value.split(',')
 
         type_names = ["processes." + value.strip().replace("_", "") + "event" for value in event_types]
 

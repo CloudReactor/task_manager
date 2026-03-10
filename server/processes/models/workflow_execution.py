@@ -210,6 +210,7 @@ class WorkflowExecution(Execution):
         return self
 
     def resolve_status_change_events(self, reason: str) -> None:
+        from .event import Event
         from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 
         for event in WorkflowExecutionStatusChangeEvent.objects.filter(workflow_execution=self,

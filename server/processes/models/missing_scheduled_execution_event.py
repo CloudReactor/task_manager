@@ -6,7 +6,7 @@ from .execution import Execution
 class MissingScheduledExecutionEvent:
     MISSING_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE: Final[str] = \
         """{{type_label}} '{{instance.name}}' did not execute as scheduled at {{expected_execution_at}}"""
-    
+
     FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE: Final[str] = \
         """{{type_label}} '{{instance.name}}' has started after being late according to its schedule"""
 

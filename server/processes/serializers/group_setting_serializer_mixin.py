@@ -1,4 +1,4 @@
-from typing import cast, Optional
+from typing import cast, override
 
 import logging
 
@@ -38,6 +38,7 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
     run_environment = NameAndUuidSerializer(required=False, allow_null=True,
             view_name='run_environments-detail')
 
+    @override
     def to_internal_value(self, data):
         group_dict = data.pop('created_by_group', None)
         data_has_run_environment_key = 'run_environment' in data
@@ -45,7 +46,7 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
 
         validated = super().to_internal_value(data)
 
-        group: Optional[Group] = None
+        group: Group | None = None
         authenticated_group = self.get_request_group()
         if group_dict:
             group = find_group_by_id_or_name(obj_dict=group_dict)
@@ -73,7 +74,7 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
             })
 
         authenticated_run_environment = extract_authenticated_run_environment()
-        run_environment: Optional[RunEnvironment] = None
+        run_environment: RunEnvironment | None = None
 
         if run_environment_dict:
             logger.info(f"Found {run_environment_dict=}")

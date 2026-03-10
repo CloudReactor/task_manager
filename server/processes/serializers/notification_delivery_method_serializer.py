@@ -25,7 +25,7 @@ RATE_LIMIT_TIER_FIELDS = [
 ]
 
 
-class RateLimitTierSerializer(serializers.Serializer):
+class RateLimitTierSerializer(serializers.Serializer): # pylint: disable=abstract-method
     max_requests_per_period = serializers.IntegerField(allow_null=True)
     request_period_seconds = serializers.IntegerField(allow_null=True)
     max_severity = EventSeveritySerializer(allow_null=True)
