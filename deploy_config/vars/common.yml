@@ -27,7 +27,7 @@ default_task_config:
     # See https://aws.amazon.com/fargate/pricing/
     # for supported combinations.
     cpu_units: 256
-    memory_mb: 2048
+    memory_mb: 512
     # # See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html
     # # for supported platform versions. Can also be set to "LATEST".
     platform_version: "1.4.0"
@@ -242,6 +242,8 @@ task_name_to_config:
     service_instance_count: 1
     max_concurrency: null
     ecs:
+      cpu_units: 1024
+      memory_mb: 2048    
       service:
         deployment_configuration:
           # force_new_deployment: False
@@ -262,9 +264,6 @@ task_name_to_config:
     command: "python manage.py createsuperuser --noinput"
     max_concurrency: 1
     max_age_seconds: 60000
-    ecs:
-      cpu_units: 1024
-      memory_mb: 2048
     wrapper:
       process_timeout_seconds: 60000
 
@@ -283,9 +282,6 @@ task_name_to_config:
     command: "python manage.py usage_limit_enforcer"
     max_concurrency: 1
     schedule: rate(1 hour)
-    ecs:
-      cpu_units: 1024
-      memory_mb: 2048
     wrapper:
       process_timeout_seconds: 600
       enable_status_update_listener: true
