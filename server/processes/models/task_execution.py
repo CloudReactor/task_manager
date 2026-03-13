@@ -190,6 +190,11 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
     class Meta:
         db_table = 'processes_processexecution'
         ordering = ['started_at']
+        indexes = [
+            models.Index(fields=['task', 'started_at'],
+                    name='taskexec_task_started_at_idx'),
+        ]
+
 
     def __str__(self) -> str:
         return self.task.name + ' / ' + str(self.uuid)
