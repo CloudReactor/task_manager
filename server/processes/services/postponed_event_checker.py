@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Final
+
 import logging
 
 from django.db import transaction
@@ -9,19 +13,27 @@ logger = logging.getLogger(__name__)
 
 
 class PostponedEventChecker:
+    MAX_POSTPONED_AGE_SECONDS: Final[int] = 7 * 24 * 60 * 60
+
     def check_all(self) -> int:
+        logger.info("Checking for postponed events that should be triggered ...")
+
         utc_now = timezone.now()
 
         triggered_count = 0
         for event in TaskExecutionStatusChangeEvent.objects.filter(
-                postponed_until__lte=utc_now, triggered_at__isnull=True,
-                resolved_at__isnull=True):
+                postponed_until__gte=utc_now - timezone.timedelta(seconds=self.MAX_POSTPONED_AGE_SECONDS),
+                postponed_until__lte=utc_now, 
+                triggered_at__isnull=True, resolved_event__isnull=True, 
+                resolved_at__isnull=True).iterator():
             with transaction.atomic():
                 try:
                     if self.check_event(event):
                         triggered_count += 1
                 except Exception:
                     logger.exception(f"Exception checking event {event.uuid}")
+
+        logger.info(f"Done checking for postponed events, triggered {triggered_count} events")
 
         return triggered_count
 

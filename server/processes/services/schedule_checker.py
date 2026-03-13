@@ -30,15 +30,21 @@ BoundExecution = TypeVar('BoundExecution', bound=Execution)
 class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMeta):
     def check_all(self) -> None:
         model_name = self.model_name()
+
+        logger.info(f"Checking all {model_name} schedules ...")
+
         for schedulable in self.manager().filter(enabled=True,
                 notification_event_severity_on_missing_execution__isnull=False).filter(
                     Q(managed_probability__gte=1.0) |
-                    Q(managed_probability__isnull=True)).exclude(schedule='').all():
+                    Q(managed_probability__isnull=True)).exclude(schedule='').iterator():
             logger.info(f"Found {model_name} {schedulable.uuid} with schedule {schedulable.schedule}")
             try:
                 self.check_execution_on_time(schedulable)
             except Exception:
                 logger.exception(f"check_all() failed on {model_name} {schedulable.uuid}")
+
+        logger.info(f"Done checking all {model_name} schedules")
+
 
     def check_execution_on_time(self, schedulable: BoundSchedulable) \
             -> Optional[MissingScheduledExecutionEvent]:

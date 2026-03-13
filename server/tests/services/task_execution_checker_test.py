@@ -201,3 +201,17 @@ class TestTaskExecutionChecker:
         assert te1.status == Execution.Status.STOPPING
         assert te2.status == Execution.Status.STOPPING # It also checks timeout after started_on_time
         assert te3.status == Execution.Status.SUCCEEDED
+
+    def test_check_all_skips_disabled_task(self, checker, task_factory, task_execution_factory):
+        utc_now = timezone.now()
+        task = task_factory(max_age_seconds=100, enabled=False)
+        te = task_execution_factory(
+            task=task,
+            status=Execution.Status.RUNNING,
+            started_at=utc_now - timedelta(seconds=150)
+        )
+
+        checker.check_all()
+
+        te.refresh_from_db()
+        assert te.status == Execution.Status.RUNNING

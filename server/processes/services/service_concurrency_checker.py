@@ -24,13 +24,17 @@ class ServiceConcurrencyChecker:
         """Service '{{task.name}}' now has a sufficient instance count of at least {{required_concurrency}}"""
 
     def check_all(self):
+        logger.info("Checking for services with insufficient concurrency ...")
+
         for service in Task.objects.filter(enabled=True, min_service_instance_count__gt=0,
-                notification_event_severity_on_insufficient_instances__isnull=False):
+                notification_event_severity_on_insufficient_instances__isnull=False).iterator():
             with transaction.atomic():
                 try:
                     self.check_service(service)
                 except Exception:
                     logger.exception(f"Exception checking service {service.uuid}")
+
+        logger.info("Done checking for services with insufficient concurrency")
 
     def check_service(self, service: Task):
         logger.info(f"Found service {service.uuid} named '{service.name}'")

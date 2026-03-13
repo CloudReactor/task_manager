@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from datetime import timedelta
 import logging
 
@@ -11,38 +15,49 @@ logger = logging.getLogger(__name__)
 
 
 class TaskExecutionChecker:
-    HEARTBEAT_DETECTION_INTERVAL_SECONDS = 60 * 60
-    MAX_STOPPING_DURATION_SECONDS = 10 * 60
-    MAX_DELAYED_START_DETECTION_TASK_AGE_SECONDS = 30 * 24 * 60 * 60
+    HEARTBEAT_DETECTION_INTERVAL_SECONDS: Final[int] = 60 * 60
+    MAX_STOPPING_DURATION_SECONDS: Final[int] = 10 * 60
+    MAX_DELAYED_START_DETECTION_TASK_AGE_SECONDS: Final[int] = 30 * 24 * 60 * 60
 
-    MISSING_HEARTBEAT_EVENT_SUMMARY_TEMPLATE = \
+    MISSING_HEARTBEAT_EVENT_SUMMARY_TEMPLATE: Final[str] = \
         """Execution {{task_execution.task.uuid}} of Task '{{task_execution.task.name}}' has not sent a heartbeat for more than {{heartbeat_interval_seconds}} seconds after the previous heartbeat at {{last_heartbeat_at}}"""
 
     def check_all(self):
         # TODO: optimize query to only fetch problematic executions
         for te in TaskExecution.objects.select_related(
-                'task').filter(status__in=TaskExecution.AWAITING_UPDATE_STATUSES):
+                'task').filter(status__in=TaskExecution.AWAITING_UPDATE_STATUSES, 
+                finished_at__isnull=True, task__enabled=True).iterator():
             try:
                 self.check_task_execution(te)
             except Exception:
                 logger.exception(f"Failed checking Task Execution {te.uuid} of Task {te.task}")
 
     def check_task_execution(self, te: TaskExecution):
-        if te.finished_at:
-            logger.error(f"Task Execution {te.uuid} has an in progress status but finished_at is not NULL")
-            return
-
         with transaction.atomic():
             te.refresh_from_db()
-            if te.status in TaskExecution.AWAITING_UPDATE_STATUSES:
-                if not self.check_started_on_time(te):
-                    return
 
-                if self.check_timeout(te):
-                    return
+            if te.task is None:
+                logger.error(f"Task Execution {te.uuid} has no Task associated with it")
+                return
 
-                if self.check_missing_heartbeat(te):
-                    return
+            if not te.task.enabled:
+                logger.error(f"Task Execution {te.uuid} has a disabled Task associated with it")
+                return
+
+            if te.finished_at:
+                logger.error(f"Task Execution {te.uuid} has an in progress status but finished_at is not NULL")
+                return
+
+            if te.status not in TaskExecution.AWAITING_UPDATE_STATUSES:
+                logger.error(f"Task Execution {te.uuid} has status {te.status} which is not in AWAITING_UPDATE_STATUSES")
+
+            if not self.check_started_on_time(te):
+                return
+
+            if self.check_timeout(te):
+                return
+
+            self.check_missing_heartbeat(te)
 
     def check_started_on_time(self, te: TaskExecution) -> bool:
         if te.status != Execution.Status.MANUALLY_STARTED:
