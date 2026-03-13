@@ -101,7 +101,8 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
                     workflow_execution=workflow_execution).strip()
 
             pd_severity = self.pagerduty_severity_from_event_severity(event.severity)
-            event_url = settings.EXTERNAL_BASE_URL + 'events/' + str(event.uuid)
+            base_url = settings.EXTERNAL_BASE_URL.rstrip('/')
+            event_url = f"{base_url}/events/{event.uuid}"
             dedup_key = events_client.trigger(summary=event.error_summary,
                 source=source,
                 severity=pd_severity,
