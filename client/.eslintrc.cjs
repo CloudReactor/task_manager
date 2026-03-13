@@ -38,4 +38,18 @@ module.exports = {
     // For development
     "no-debugger": ["off"],
   },
+  overrides: [
+    {
+      // vite.config.ts imports @vitejs/plugin-react whose CJS dist uses
+      // `export { x as "module.exports" }` — a string-literal export name
+      // that @typescript-eslint/parser rejects. Disable the import rules
+      // that trigger deep node_modules parsing for this file.
+      files: ["vite.config.ts"],
+      rules: {
+        "import/namespace": "off",
+        "import/default": "off",
+        "import/no-named-as-default": "off",
+      },
+    },
+  ],
 };
