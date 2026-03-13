@@ -25,9 +25,10 @@ def test_send_task_execution_event(run_environment: RunEnvironment,
     event.source = 'test-source'
     event.severity = Event.Severity.ERROR
 
-    # Mock pdpyras.EventsAPISession
-    with patch('processes.models.pagerduty_notification_delivery_method.pdpyras.EventsAPISession') as mock_session_class:
+    # Mock pagerduty.EventsApiV2Client
+    with patch('processes.models.pagerduty_notification_delivery_method.pagerduty.EventsApiV2Client') as mock_session_class:
         mock_session = MagicMock()
+        mock_session.__enter__.return_value = mock_session
         mock_session.trigger.return_value = 'test-dedup-key-123'
         mock_session_class.return_value = mock_session
 
@@ -73,9 +74,10 @@ def test_send_workflow_execution_event(run_environment: RunEnvironment,
     event.source = 'workflow-source'
     event.severity = Event.Severity.WARNING
 
-    # Mock pdpyras.EventsAPISession
-    with patch('processes.models.pagerduty_notification_delivery_method.pdpyras.EventsAPISession') as mock_session_class:
+    # Mock pagerduty.EventsApiV2Client
+    with patch('processes.models.pagerduty_notification_delivery_method.pagerduty.EventsApiV2Client') as mock_session_class:
         mock_session = MagicMock()
+        mock_session.__enter__.return_value = mock_session
         mock_session.trigger.return_value = 'workflow-dedup-key-456'
         mock_session_class.return_value = mock_session
 
@@ -114,9 +116,10 @@ def test_send_resolution_event(run_environment: RunEnvironment,
     event = TaskExecutionStatusChangeEvent(task_execution=te, resolved_event=resolved_event)
     event.grouping_key = 'resolve-grouping-key'
 
-    # Mock pdpyras.EventsAPISession
-    with patch('processes.models.pagerduty_notification_delivery_method.pdpyras.EventsAPISession') as mock_session_class:
+    # Mock pagerduty.EventsApiV2Client
+    with patch('processes.models.pagerduty_notification_delivery_method.pagerduty.EventsApiV2Client') as mock_session_class:
         mock_session = MagicMock()
+        mock_session.__enter__.return_value = mock_session
         mock_session.resolve.return_value = 'resolved-successfully'
         mock_session_class.return_value = mock_session
 

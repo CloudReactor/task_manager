@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import logging
 
+from django.conf import settings
 from django.db import models
 
-import pdpyras
+import pagerduty
 
 from ..common.notification import *
 from .event import Event
@@ -25,14 +26,16 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
     def pagerduty_severity_from_event_severity(severity: int) -> str:
         if severity >= Event.Severity.CRITICAL:
             return 'critical'
-        elif severity >= Event.Severity.ERROR:
+        
+        if severity >= Event.Severity.ERROR:
             return 'error'
-        elif severity >= Event.Severity.WARNING:
+        
+        if severity >= Event.Severity.WARNING:
             return 'warning'
-        else:
-            return 'info'
+        
+        return 'info'
 
-    def send(self, event: Event) -> Optional[dict[str, Any]]:
+    def send(self, event: Event) -> dict[str, Any] | None:
         from .task_execution import TaskExecution
         from .workflow_execution import WorkflowExecution
         from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
@@ -44,8 +47,8 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
         if event.is_resolution:
             severity = DEFAULT_NOTIFICATION_RESOLUTION_SEVERITY
 
-        task_execution: Optional[TaskExecution] = None
-        workflow_execution: Optional[WorkflowExecution] = None
+        task_execution: TaskExecution | None = None
+        workflow_execution: WorkflowExecution | None = None
 
         if isinstance(event, TaskExecutionStatusChangeEvent):
             task_execution = cast(TaskExecutionStatusChangeEvent, event).task_execution
@@ -66,47 +69,50 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
         if event.details:
             template_params.update(event.details)
 
-        events_session = pdpyras.EventsAPISession(self.pagerduty_api_key,
-                debug=False)
+        with pagerduty.EventsApiV2Client(self.pagerduty_api_key,
+                debug=False) as events_client:
 
-        if event.is_resolution:
+            if event.is_resolution:
+                return {
+                    'resolve_return_value': events_client.resolve(dedup_key=event.grouping_key)
+                }
+
+            payload: dict[str, Any] = {}
+
+            if self.pagerduty_event_class_template:
+                payload['class'] = notification_generator.generate_text(
+                    template_params=template_params,
+                    template=self.pagerduty_event_class_template,
+                    task_execution=task_execution,
+                    workflow_execution=workflow_execution).strip()
+
+            if self.pagerduty_event_component_template:
+                payload['component'] = notification_generator.generate_text(
+                    template_params=template_params,
+                    template=self.pagerduty_event_component_template,
+                    task_execution=task_execution,
+                    workflow_execution=workflow_execution).strip()
+
+            if self.pagerduty_event_group_template:
+                payload['group'] = notification_generator.generate_text(
+                    template_params=template_params,
+                    template=self.pagerduty_event_group_template,
+                    task_execution=task_execution,
+                    workflow_execution=workflow_execution).strip()
+
+            pd_severity = self.pagerduty_severity_from_event_severity(event.severity)
+            base_url = settings.EXTERNAL_BASE_URL.rstrip('/')
+            event_url = f"{base_url}/events/{event.uuid}"
+            dedup_key = events_client.trigger(summary=event.error_summary,
+                source=source,
+                severity=pd_severity,
+                dedup_key=event.grouping_key,
+                payload=payload,
+                custom_details=template_params,
+                links=[{'href': event_url, 'text': 'View Event in CloudReactor'}])
+
+            logger.info(f"Done triggering PagerDuty event, {dedup_key=}")
+
             return {
-                'resolve_return_value': events_session.resolve(dedup_key=event.grouping_key)
+                'dedup_key': dedup_key
             }
-
-        payload: dict[str, Any] = {}
-
-        if self.pagerduty_event_class_template:
-            payload['class'] = notification_generator.generate_text(
-                template_params=template_params,
-                template=self.pagerduty_event_class_template,
-                task_execution=task_execution,
-                workflow_execution=workflow_execution).strip()
-
-        if self.pagerduty_event_component_template:
-            payload['component'] = notification_generator.generate_text(
-                template_params=template_params,
-                template=self.pagerduty_event_component_template,
-                task_execution=task_execution,
-                workflow_execution=workflow_execution).strip()
-
-        if self.pagerduty_event_group_template:
-            payload['group'] = notification_generator.generate_text(
-                template_params=template_params,
-                template=self.pagerduty_event_group_template,
-                task_execution=task_execution,
-                workflow_execution=workflow_execution).strip()
-
-        pd_severity = self.pagerduty_severity_from_event_severity(event.severity)
-        dedup_key = events_session.trigger(summary=event.error_summary,
-            source=source,
-            severity=pd_severity,
-            dedup_key=event.grouping_key,
-            payload=payload,
-            custom_details=template_params)
-
-        logger.info(f"Done triggering PagerDuty event, {dedup_key=}")
-
-        return {
-          'dedup_key': dedup_key
-        }
