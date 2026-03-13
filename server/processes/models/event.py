@@ -106,6 +106,7 @@ class Event(TypedModel):
         indexes = [
             models.Index(fields=['created_by_group', 'event_at']),
             models.Index(fields=['run_environment', 'event_at']),
+            models.Index(fields=['postponed_until']),
         ]
 
     def __init__(self, *args, **kwargs) -> None:
