@@ -114,5 +114,5 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
             logger.info(f"Done triggering PagerDuty event, {dedup_key=}")
 
             return {
-              'dedup_key': dedup_key
+                'dedup_key': dedup_key
             }
