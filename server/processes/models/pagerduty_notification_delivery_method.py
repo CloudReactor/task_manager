@@ -26,13 +26,13 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
     def pagerduty_severity_from_event_severity(severity: int) -> str:
         if severity >= Event.Severity.CRITICAL:
             return 'critical'
-        
+
         if severity >= Event.Severity.ERROR:
             return 'error'
-        
+
         if severity >= Event.Severity.WARNING:
             return 'warning'
-        
+
         return 'info'
 
     def send(self, event: Event) -> dict[str, Any] | None:

@@ -10,7 +10,6 @@ from crontab import CronTab
 
 from dateutil.relativedelta import *
 
-from django.db import transaction
 from django.db.models import Manager, Q
 from django.utils import timezone
 

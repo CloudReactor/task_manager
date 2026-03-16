@@ -23,8 +23,8 @@ class PostponedEventChecker:
         triggered_count = 0
         for event in TaskExecutionStatusChangeEvent.objects.filter(
                 postponed_until__gte=utc_now - timezone.timedelta(seconds=self.MAX_POSTPONED_AGE_SECONDS),
-                postponed_until__lte=utc_now, 
-                triggered_at__isnull=True, resolved_event__isnull=True, 
+                postponed_until__lte=utc_now,
+                triggered_at__isnull=True, resolved_event__isnull=True,
                 resolved_at__isnull=True).iterator():
             with transaction.atomic():
                 try:
