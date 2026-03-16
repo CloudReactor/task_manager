@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, cast
+from typing import Any, List, Tuple, cast
 
 from datetime import timedelta
 import uuid
@@ -28,8 +28,8 @@ from conftest import *
 def ensure_serialized_workflow_valid(response_workflow: dict[str, Any],
         workflow: Workflow, user: User,
         group_access_level: int,
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None,
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None,
         summary_only: bool = False) -> None:
     context = context_with_authenticated_request(user=user,
             group=workflow.created_by_group,
@@ -162,8 +162,8 @@ def ensure_serialized_workflow_valid(response_workflow: dict[str, Any],
   # TODO: check filtering, non-default ordering
 ])
 def test_workflow_list(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         user_has_another_group: bool, send_group_id_type: str,
         status_code: int, expected_indices: List[int],
         user_factory, group_factory, run_environment_factory,
@@ -235,12 +235,12 @@ def test_workflow_list(
                     summary_only=True)
 
 
-def common_setup(is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+def common_setup(is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str, existing_has_run_environment: bool,
         user, group_factory, run_environment_factory, workflow_factory,
-        api_client, existing_api_key_run_environment: Optional[RunEnvironment] = None) \
-        -> Tuple[Workflow, Optional[RunEnvironment], APIClient, str]:
+        api_client, existing_api_key_run_environment: RunEnvironment | None = None) \
+        -> Tuple[Workflow, RunEnvironment | None, APIClient, str]:
     group = user.groups.first()
 
     if group_access_level is not None:
@@ -286,13 +286,13 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 
     return (workflow, api_key_run_environment, client, url)
 
-def make_request_body(uuid_send_type: Optional[str],
-        run_environment_send_type: Optional[str],
+def make_request_body(uuid_send_type: str | None,
+        run_environment_send_type: str | None,
         user: User,
-        api_key_run_environment: Optional[RunEnvironment],
+        api_key_run_environment: RunEnvironment | None,
         workflow: Workflow,
         group_factory, run_environment_factory,
-        workflow_factory) -> Tuple[dict[str, Any], Optional[RunEnvironment]]:
+        workflow_factory) -> Tuple[dict[str, Any], RunEnvironment | None]:
     request_data: dict[str, Any] = {
       'name': 'Some Workflow',
     }
@@ -306,7 +306,7 @@ def make_request_body(uuid_send_type: Optional[str],
                 run_environment=workflow.run_environment)
         request_data['uuid'] = str(another_workflow.uuid)
 
-    run_environment: Optional[RunEnvironment] = None
+    run_environment: RunEnvironment | None = None
     if run_environment_send_type is None:
         run_environment = workflow.run_environment
     else:
@@ -433,8 +433,8 @@ def make_request_body(uuid_send_type: Optional[str],
    401),
 ])
 def test_workflow_fetch(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         api_key_scope_type: str,
         uuid_send_type: str, existing_has_run_environment: bool,
         status_code: int,
@@ -577,10 +577,10 @@ def test_workflow_fetch(
 ])
 @mock_aws
 def test_workflow_create_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         body_uuid_type: str, run_environment_send_type: str,
-        status_code: int, validation_error_attribute: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         workflow_factory, api_client) -> None:
     """
@@ -853,11 +853,11 @@ def test_task_create_workflow_limit(max_workflows: int,
    201, None),
 ])
 def test_workflow_set_notification_profiles(
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        run_environment_send_type: Optional[str],
-        notification_profile_send_type: Optional[str],
+        api_key_access_level: int | None, api_key_scope_type: str,
+        run_environment_send_type: str | None,
+        notification_profile_send_type: str | None,
         existing_has_run_environment: bool,
-        status_code: int, validation_error_attribute: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         workflow_factory, notification_profile_factory,
         api_client) -> None:
@@ -1174,11 +1174,11 @@ def test_workflow_set_notification_profiles(
 ])
 @mock_aws
 def test_workflow_update_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        request_uuid_send_type: str, body_uuid_send_type: Optional[str],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
+        request_uuid_send_type: str, body_uuid_send_type: str | None,
         run_environment_send_type: str, existing_has_run_environment: bool,
-        status_code: int, validation_error_attribute: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         workflow_factory, api_client) -> None:
     """
@@ -1352,10 +1352,10 @@ def test_workflow_update_access_control(
 ])
 @mock_aws
 def test_workflow_set_task_instances(
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        run_environment_send_type: Optional[str], wti_send_type: Optional[str],
+        api_key_access_level: int | None, api_key_scope_type: str,
+        run_environment_send_type: str | None, wti_send_type: str | None,
         existing_has_run_environment: bool,
-        status_code: int, validation_error_attribute: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         workflow_factory, task_factory,
         api_client) -> None:
@@ -1367,14 +1367,14 @@ def test_workflow_set_task_instances(
     user = user_factory()
 
     reuse_last_workflow = False
-    workflow_uuid: Optional[str] = None
-    wti_uuid: Optional[str] = None
-    previous_run_environment: Optional[RunEnvironment] = None
+    workflow_uuid: str | None = None
+    wti_uuid: str | None = None
+    previous_run_environment: RunEnvironment | None = None
 
     for is_post in [True, False, False]:
         uuid_send_type = SEND_ID_NONE if is_post else SEND_ID_CORRECT
 
-        existing_api_key_run_environment: Optional[RunEnvironment] = None
+        existing_api_key_run_environment: RunEnvironment | None = None
 
         if (not is_post) and reuse_last_workflow:
             existing_api_key_run_environment = previous_run_environment
@@ -1601,8 +1601,8 @@ def test_workflow_set_task_instances(
 ])
 @mock_aws
 def test_workflow_delete(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str, existing_has_run_environment: bool,
         status_code: int,
         user_factory, group_factory, run_environment_factory,

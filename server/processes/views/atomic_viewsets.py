@@ -1,7 +1,7 @@
 # From https://gist.github.com/prudnikov/3a968a1ee1cf9b02730cc40bc1d3d9f2
 import logging
 
-from typing import Any, Optional
+from typing import Any
 from django.db import transaction
 
 from rest_framework import mixins
@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 class AtomicContextManager:
     def __init__(self):
-        self.saved_rv: Optional[Any] = None
-        self.saved_ex: Optional[Exception] = None
-        self.atomic: Optional[Any] = None
+        self.saved_rv: Any | None = None
+        self.saved_ex: Exception | None = None
+        self.atomic: Any | None = None
 
     def __enter__(self):
         self.atomic = transaction.atomic()
@@ -35,7 +35,7 @@ class AtomicContextManager:
         return self
 
 
-    def __exit__(self, exc_type: Optional[Any], exc_value: Optional[Exception],
+    def __exit__(self, exc_type: Any | None, exc_value: Exception | None,
             traceback: Any):
         if self.atomic is None:
             raise exc_value or APIException("Can't commit transaction")

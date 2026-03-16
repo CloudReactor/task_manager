@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 import logging
 
@@ -33,7 +33,7 @@ class Subscription(models.Model):
                 .filter(Q(group=group), Q(active=True), Q(start_at__lte=utc_now),
                 Q(end_at__gte=utc_now) | Q(end_at__isnull=True)).all()
 
-        usage_limits: Optional[UsageLimits] = None
+        usage_limits: UsageLimits | None = None
 
         for subscription in subscriptions:
             plan = subscription.subscription_plan

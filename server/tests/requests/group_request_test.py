@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 from django.contrib.auth.models import Group
 
@@ -32,7 +32,7 @@ from conftest import *
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, True, 401, 0),
 ])
 def test_group_list(is_authenticated: bool,
-        group_access_level: Optional[int], use_api_key: bool,
+        group_access_level: int | None, use_api_key: bool,
         status_code: int, expected_group_count: int,
         user_factory, group_factory, api_client):
     user = user_factory()
@@ -108,7 +108,7 @@ def test_group_list(is_authenticated: bool,
    SEND_ID_CORRECT, 401),
 ])
 def test_group_fetch(is_authenticated: bool,
-        group_access_level: Optional[int], use_api_key: bool,
+        group_access_level: int | None, use_api_key: bool,
         send_id_type: str, status_code: int,
         user_factory, group_factory, api_client):
     user = user_factory()
@@ -167,7 +167,7 @@ def test_group_fetch(is_authenticated: bool,
    True, True, 409),
 ])
 def test_group_update(is_authenticated: bool,
-        group_access_level: Optional[int], use_api_key: bool,
+        group_access_level: int | None, use_api_key: bool,
         is_group_existing: bool, is_name_conflict: bool, status_code: int,
         user_factory, api_client):
     user = user_factory()
@@ -276,8 +276,8 @@ def test_group_creation(is_authenticated: bool, use_api_key: bool,
   (True, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, None, False, 404),
 ])
 def test_group_removal(is_authenticated: bool,
-        group_access_level: Optional[int],
-        api_key_access_level: Optional[int], is_group_existing: bool,
+        group_access_level: int | None,
+        api_key_access_level: int | None, is_group_existing: bool,
         status_code: int, user_factory, api_client):
     user = user_factory()
     group = user.groups.first()

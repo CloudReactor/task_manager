@@ -1,4 +1,6 @@
-from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast, override
+from __future__ import annotations
+
+from typing import Any, FrozenSet, TYPE_CHECKING, cast, override
 from collections import abc
 
 import logging
@@ -27,19 +29,19 @@ logger = logging.getLogger(__name__)
 
 
 class AwsCodeBuildCache(BaseModel):
-    type: Optional[str] = None
-    location: Optional[str] = None
-    modes: Optional[list[str]] = None
+    type: str | None = None
+    location: str | None = None
+    modes: list[str] | None = None
 
 
 class AwsCodeBuildArtifact(BaseModel):
-    location: Optional[str] = None
-    sha256_sum: Optional[str] = None
-    md5_sum: Optional[str] = None
-    override_artifact_name: Optional[str] = None
-    encryption_disabled: Optional[bool] = None
-    artifact_identifier: Optional[str] = None
-    bucket_owner_access: Optional[str] = None
+    location: str | None = None
+    sha256_sum: str | None = None
+    md5_sum: str | None = None
+    override_artifact_name: str | None = None
+    encryption_disabled: bool | None = None
+    artifact_identifier: str | None = None
+    bucket_owner_access: str | None = None
 
     class Config:
         alias_generator = to_camel
@@ -49,31 +51,31 @@ class AwsCodeBuildArtifact(BaseModel):
 
 
 class AwsCodeBuildExecutionMethodSettings(BaseModel):
-    build_arn: Optional[str] = None
-    build_image: Optional[str] = None
-    initiator: Optional[str] = None
-    source_repo_url: Optional[str] = None
-    source_version: Optional[str] = None
-    source_version_infrastructure_website_url: Optional[str] = None
-    environment_type: Optional[str] = None
-    compute_type: Optional[str] = None
-    privileged_mode: Optional[bool] = None
-    image_pull_credentials_type: Optional[str] = None
-    kms_key_id: Optional[str] = None
-    kms_key_infrastructure_website_url: Optional[str] = None
-    service_role: Optional[str] = None
-    service_role_infrastructure_website_url: Optional[str] = None
-    timeout_in_minutes: Optional[int] = None
-    queued_timeout_in_minutes: Optional[int] = None
-    cache: Optional[AwsCodeBuildCache] = None
-    artifacts: Optional[AwsCodeBuildArtifact] = None
-    secondary_artifacts: Optional[list[AwsCodeBuildArtifact]] = None
-    debug_session_enabled: Optional[bool] = None
-    assumed_role_arn: Optional[str] = None
-    assumed_role_infrastructure_website_url: Optional[str] = None
+    build_arn: str | None = None
+    build_image: str | None = None
+    initiator: str | None = None
+    source_repo_url: str | None = None
+    source_version: str | None = None
+    source_version_infrastructure_website_url: str | None = None
+    environment_type: str | None = None
+    compute_type: str | None = None
+    privileged_mode: bool | None = None
+    image_pull_credentials_type: str | None = None
+    kms_key_id: str | None = None
+    kms_key_infrastructure_website_url: str | None = None
+    service_role: str | None = None
+    service_role_infrastructure_website_url: str | None = None
+    timeout_in_minutes: int | None = None
+    queued_timeout_in_minutes: int | None = None
+    cache: AwsCodeBuildCache | None = None
+    artifacts: AwsCodeBuildArtifact | None = None
+    secondary_artifacts: list[AwsCodeBuildArtifact] | None = None
+    debug_session_enabled: bool | None = None
+    assumed_role_arn: str | None = None
+    assumed_role_infrastructure_website_url: str | None = None
 
-    infrastructure_website_url: Optional[str] = None
-    project_name: Optional[str] = None
+    infrastructure_website_url: str | None = None
+    project_name: str | None = None
 
 
     def __init__(self, **kwargs):
@@ -84,7 +86,7 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
         #except Exception as ex: # pylint: disable=broad-except
         #    logger.warning(f"Failed to update derived attributes: {ex}")  # pragma: no cover
 
-    def update_derived_attrs(self, aws_settings: Optional[AwsSettings]=None) -> None:
+    def update_derived_attrs(self, aws_settings: AwsSettings | None=None) -> None:
         logger.info("AWS CodeBuild Execution Method: update_derived_attrs()")
 
         if self.build_arn:
@@ -115,7 +117,7 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
                     role_arn=self.assumed_role_arn)
 
 
-    def compute_region(self) -> Optional[str]:
+    def compute_region(self) -> str | None:
         if self.build_arn:
             tokens = self.build_arn.split(':')
             if len(tokens) >= 6:
@@ -160,17 +162,17 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
 
 
 class AwsCodeBuildWebhookInfo(BaseModel):
-    actor_account_id: Optional[str] = None
-    base_ref: Optional[str] = None
-    event: Optional[str] = None
-    merge_commit: Optional[str] = None
-    prev_commit: Optional[str] = None
-    head_ref: Optional[str] = None
-    trigger: Optional[str] = None
+    actor_account_id: str | None = None
+    base_ref: str | None = None
+    event: str | None = None
+    merge_commit: str | None = None
+    prev_commit: str | None = None
+    head_ref: str | None = None
+    trigger: str | None = None
 
 
 class AwsCodeBuildReport(BaseModel):
-    report_arn: Optional[str] = None
+    report_arn: str | None = None
 
     class Config:
         alias_generator = to_camel
@@ -180,11 +182,11 @@ class AwsCodeBuildReport(BaseModel):
 
 
 class AwsCodeBuildProjectFileSystemLocation(BaseModel):
-    type: Optional[str] = None
-    location: Optional[str] = None
-    mount_point: Optional[str] = None
-    identifier: Optional[str] = None
-    mount_options: Optional[str] = None
+    type: str | None = None
+    location: str | None = None
+    mount_point: str | None = None
+    identifier: str | None = None
+    mount_options: str | None = None
 
     class Config:
         alias_generator = to_camel
@@ -194,8 +196,8 @@ class AwsCodeBuildProjectFileSystemLocation(BaseModel):
 
 
 class AwsCodeBuildDebugSession(BaseModel):
-    session_enabled: Optional[bool] = None
-    session_target: Optional[str] = None
+    session_enabled: bool | None = None
+    session_target: str | None = None
 
     class Config:
         alias_generator = to_camel
@@ -205,23 +207,23 @@ class AwsCodeBuildDebugSession(BaseModel):
 
 
 class AwsCodeBuildExecutionMethodInfo(AwsCodeBuildExecutionMethodSettings):
-    build_id: Optional[str] = None
-    build_number: Optional[int] = None
-    batch_build_identifier: Optional[str] = None
-    build_batch_arn: Optional[str] = None
-    resolved_source_version: Optional[str] = None
-    start_time: Optional[str] = None
-    end_time: Optional[str] = None
-    current_phase: Optional[str] = None
-    build_status: Optional[str] = None
-    build_succeeding: Optional[bool] = None # From proc_wrapper
-    build_complete: Optional[bool] = None
-    public_build_url: Optional[str] = None
-    webhook: Optional[AwsCodeBuildWebhookInfo] = None # From proc_wrapper
-    file_system_locations: Optional[list[AwsCodeBuildProjectFileSystemLocation]] = None
-    cache: Optional[AwsCodeBuildCache] = None
-    reports: Optional[list[AwsCodeBuildReport]] = None
-    debug_session: Optional[AwsCodeBuildDebugSession] = None
+    build_id: str | None = None
+    build_number: int | None = None
+    batch_build_identifier: str | None = None
+    build_batch_arn: str | None = None
+    resolved_source_version: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    current_phase: str | None = None
+    build_status: str | None = None
+    build_succeeding: bool | None = None # From proc_wrapper
+    build_complete: bool | None = None
+    public_build_url: str | None = None
+    webhook: AwsCodeBuildWebhookInfo | None = None # From proc_wrapper
+    file_system_locations: list[AwsCodeBuildProjectFileSystemLocation] | None = None
+    cache: AwsCodeBuildCache | None = None
+    reports: list[AwsCodeBuildReport] | None = None
+    debug_session: AwsCodeBuildDebugSession | None = None
 
     def update_from_start_build_response(self, response: dict[str, Any]) -> None:
         super().update_from_start_build_response(response=response)
@@ -255,10 +257,10 @@ class AwsCodeBuildExecutionMethodInfo(AwsCodeBuildExecutionMethodSettings):
 class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
     NAME = "AWS CodeBuild"
 
-    def __init__(self, task: Optional['Task'],
-            task_execution: Optional['TaskExecution'],
-            aws_settings: Optional[dict[str, Any]] = None,
-            aws_codebuild_settings: Optional[dict[str, Any]] = None):
+    def __init__(self, task: Task | None,
+            task_execution: TaskExecution | None,
+            aws_settings: dict[str, Any] | None = None,
+            aws_codebuild_settings: dict[str, Any] | None = None):
         super().__init__(self.NAME, task=task, task_execution=task_execution,
                 aws_settings=aws_settings)
 
@@ -471,7 +473,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
             logger.warning(f"Can't find 'build' property in start_build() {response=}")
             return
 
-        region: Optional[str] = self.settings.compute_region()
+        region: str | None = self.settings.compute_region()
 
         network_settings = self.aws_settings.network or AwsNetworkSettings()
         self.aws_settings.network = network_settings

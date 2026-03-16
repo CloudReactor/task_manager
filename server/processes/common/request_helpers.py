@@ -1,6 +1,4 @@
-from typing import (
-    cast, Any, Optional, Sequence, Tuple, Union, TYPE_CHECKING
-)
+from typing import (cast, Any, Sequence, Tuple, Union, TYPE_CHECKING)
 
 import logging
 from urllib.parse import urlparse
@@ -31,8 +29,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def request_for_context(request: Optional[Union[HttpRequest, Request]] = None) -> Request:
-    wsgi_request: Optional[WSGIRequest] = None
+def request_for_context(request: Union[HttpRequest, Request] | None = None) -> Request:
+    wsgi_request: WSGIRequest | None = None
 
     if request is None:
         request = get_request()
@@ -44,7 +42,7 @@ def request_for_context(request: Optional[Union[HttpRequest, Request]] = None) -
         wsgi_request = cast(WSGIRequest, request)
 
     if wsgi_request:
-        authenticators: Optional[Sequence[BaseAuthentication]] = None
+        authenticators: Sequence[BaseAuthentication] | None = None
 
         if wsgi_request.user:
             auth = getattr(wsgi_request, 'auth', None)
@@ -83,20 +81,20 @@ def context_with_request() -> dict[str, Any]:
         'request': request_for_context()
     }
 
-def user_and_group_from_request(request: Optional[Request] = None) -> \
-        Tuple[Optional[User], Optional[Group]]:
+def user_and_group_from_request(request: Request | None = None) -> \
+        Tuple[User | None, Group | None]:
     r = request or request_for_context()
 
-    user: Optional[User] = None
+    user: User | None = None
 
     # r.user might be an AnonymousUser
     if isinstance(r.user, User):
         user = cast(User, r.user)
 
-    group: Optional[Group] = None
+    group: Group | None = None
 
     if r.auth and hasattr(r.auth, 'group'):
-        group = cast(Optional[Group], getattr(r.auth, 'group'))
+        group = cast(Group | None, getattr(r.auth, 'group'))
 
     # For compatibility with existing code that requires a single group for a request.
     # For users with multiple groups, the group is None
@@ -107,8 +105,8 @@ def user_and_group_from_request(request: Optional[Request] = None) -> \
 
     return (user, group)
 
-def required_user_and_group_from_request(request: Optional[Request] = None) -> \
-        Tuple[User, Optional[Group]]:
+def required_user_and_group_from_request(request: Request | None = None) -> \
+        Tuple[User, Group | None]:
     opt_user, opt_group = user_and_group_from_request(request=request)
 
     if not opt_user:
@@ -122,8 +120,8 @@ def required_user_and_group_from_request(request: Optional[Request] = None) -> \
 
     return (opt_user, opt_group)
 
-def find_group_by_id_or_name(obj_dict: Optional[dict[str, Any]],
-      raise_exception_if_missing=True, check_conflict=True) -> Optional[Group]:
+def find_group_by_id_or_name(obj_dict: dict[str, Any] | None,
+      raise_exception_if_missing=True, check_conflict=True) -> Group | None:
     if obj_dict is None:
         if raise_exception_if_missing:
             raise serializers.ValidationError({
@@ -153,10 +151,10 @@ def find_group_by_id_or_name(obj_dict: Optional[dict[str, Any]],
     return group
 
 def extract_filtered_group(request: Request,
-        request_group: Optional[Group],
-        request_user: Optional[User] = None,
+        request_group: Group | None,
+        request_user: User | None = None,
         required: bool = True,
-        parameter_name: str = 'group__id') -> Optional[Group]:
+        parameter_name: str = 'group__id') -> Group | None:
     group_id = request.GET.get(parameter_name)
 
     if group_id is None:
@@ -180,11 +178,11 @@ def extract_filtered_group(request: Request,
 
         return group
 
-def ensure_group_access_level(group: Optional[Group] = None,
-        min_access_level: Optional[int] = -1,
-        run_environment: 'Optional[RunEnvironment]' = None,
+def ensure_group_access_level(group: Group | None = None,
+        min_access_level: int | None = -1,
+        run_environment: 'RunEnvironment | None' = None,
         allow_api_key: bool = True,
-        request: Optional[Request] = None) -> Tuple[User, Optional[Group], int]:
+        request: Request | None = None) -> Tuple[User, Group | None, int]:
     from ..models import UserGroupAccessLevel
 
     request = request or request_for_context()
@@ -242,14 +240,14 @@ def ensure_group_access_level(group: Optional[Group] = None,
     return (request_user, request_group, access_level)
 
 def extract_authenticated_run_environment(
-        request: Optional[Request] = None) -> 'Optional[RunEnvironment]':
+        request: Request | None = None) -> 'RunEnvironment | None':
     request = request or request_for_context()
     if hasattr(request.auth, 'run_environment'):
         return cast('SaasToken', request.auth).run_environment
 
     return None
 
-def ensure_api_key_not_used(request: Optional[Request] = None) -> None:
+def ensure_api_key_not_used(request: Request | None = None) -> None:
     request = request or request_for_context()
 
     if type(request.auth).__name__ == 'SaasToken':

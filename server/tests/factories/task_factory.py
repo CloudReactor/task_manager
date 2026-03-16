@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 from processes.execution_methods import (
     AwsEcsExecutionMethod,
@@ -27,9 +27,9 @@ class TaskFactory(OwnedModelFactory):
     heartbeat_interval_seconds = 300
     max_heartbeat_lateness_before_alert_seconds = 120
     max_heartbeat_lateness_before_abandonment_seconds = 600
-    service_instance_count: Optional[int] = None
-    min_service_instance_count: Optional[int] = None
-    max_age_seconds: Optional[int] = None
+    service_instance_count: int | None = None
+    min_service_instance_count: int | None = None
+    max_age_seconds: int | None = None
     default_max_retries = 2
 
     environment_variables_overrides = None
@@ -54,14 +54,14 @@ class TaskFactory(OwnedModelFactory):
     failure_report_probability = 1.0
     timeout_report_probability = 1.0
 
-    aws_default_subnets: Optional[list[str]] = None
+    aws_default_subnets: list[str] | None = None
     aws_ecs_task_definition_arn = 'arn:aws:ecs:us-west-2:123456789012:task-definition/hello_world:8'
     aws_ecs_default_launch_type = 'FARGATE'
-    aws_ecs_supported_launch_types: Optional[list[str]] = ['FARGATE']
+    aws_ecs_supported_launch_types: list[str] | None = ['FARGATE']
     aws_ecs_default_cluster_arn = ''
-    aws_ecs_default_security_groups: Optional[list[str]] = None
+    aws_ecs_default_security_groups: list[str] | None = None
     aws_ecs_default_assign_public_ip = False
-    aws_ecs_service_load_balancer_health_check_grace_period_seconds: Optional[int] = None
+    aws_ecs_service_load_balancer_health_check_grace_period_seconds: int | None = None
     aws_ecs_default_execution_role = ''
     aws_ecs_default_task_role = ''
     aws_ecs_main_container_name = ''
@@ -72,8 +72,8 @@ class TaskFactory(OwnedModelFactory):
     aws_ecs_service_arn = ''
     aws_ecs_service_updated_at = None
 
-    allocated_cpu_units: Optional[int] = 512
-    allocated_memory_mb: Optional[int] = 2048
+    allocated_cpu_units: int | None = 512
+    allocated_memory_mb: int | None = 2048
 
     @factory.post_generation
     def sanitize_emc(task: Task, create: bool, extracted, **kwargs):

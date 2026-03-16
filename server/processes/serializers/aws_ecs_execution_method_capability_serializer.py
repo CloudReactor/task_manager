@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import logging
 
@@ -37,8 +37,8 @@ class AwsEcsExecutionMethodCapabilitySerializer(
 
 
     def __init__(self, instance=None, data=empty,
-            run_environment: Optional[RunEnvironment] = None,
-            is_service: Optional[bool] = None,
+            run_environment: RunEnvironment | None = None,
+            is_service: bool | None = None,
             **kwargs) -> None:
         super().__init__(instance, data, **kwargs)
 

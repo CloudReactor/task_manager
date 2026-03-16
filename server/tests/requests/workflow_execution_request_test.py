@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Tuple
 
 from datetime import timedelta
 import random
@@ -25,8 +25,8 @@ from conftest import *
 def ensure_serialized_workflow_execution_valid(response_workflow_execution: dict[str, Any],
         workflow_execution: WorkflowExecution, user: User,
         group_access_level: int,
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None,
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None,
         is_list: bool = False) -> None:
     context = context_with_authenticated_request(user=user,
             group=workflow_execution.workflow.created_by_group,
@@ -161,8 +161,8 @@ def ensure_serialized_workflow_execution_valid(response_workflow_execution: dict
   # TODO: check filtering, non-default ordering
 ])
 def test_workflow_execution_list(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         user_has_another_group: bool, send_group_id_type: str,
         send_workflow_uuid_type: str,
         status_code: int, expected_indices: List[int],
@@ -208,7 +208,7 @@ def test_workflow_execution_list(
 
     params = {}
 
-    group_id: Optional[str] = None
+    group_id: str | None = None
 
     if send_group_id_type == SEND_ID_CORRECT:
         group_id = str(group.id)
@@ -220,7 +220,7 @@ def test_workflow_execution_list(
     if group_id:
         params['workflow__created_by_group__id'] = group_id
 
-    workflow_uuid: Optional[str] = None
+    workflow_uuid: str | None = None
 
 
     if send_workflow_uuid_type == SEND_ID_CORRECT:
@@ -256,11 +256,11 @@ def common_setup(
         user, group_factory, run_environment_factory,
         workflow_factory, workflow_execution_factory, api_client,
         is_authenticated: bool = True,
-        group_access_level: Optional[int] = UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-        api_key_access_level: Optional[int] = UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+        group_access_level: int | None = UserGroupAccessLevel.ACCESS_LEVEL_TASK,
+        api_key_access_level: int | None = UserGroupAccessLevel.ACCESS_LEVEL_TASK,
         api_key_scope_type: str = SCOPE_TYPE_CORRECT,
         uuid_send_type: str = SEND_ID_NONE) \
-        -> Tuple[WorkflowExecution, Optional[RunEnvironment], APIClient, str]:
+        -> Tuple[WorkflowExecution, RunEnvironment | None, APIClient, str]:
     group = user.groups.first()
 
     if group_access_level is not None:
@@ -307,10 +307,10 @@ def common_setup(
 
     return (workflow_execution, api_key_run_environment, client, url)
 
-def make_request_body(uuid_send_type: Optional[str],
-        workflow_send_type: Optional[str],
+def make_request_body(uuid_send_type: str | None,
+        workflow_send_type: str | None,
         user: User,
-        api_key_run_environment: Optional[RunEnvironment],
+        api_key_run_environment: RunEnvironment | None,
         workflow_execution: WorkflowExecution,
         group_factory, run_environment_factory, workflow_factory,
         workflow_execution_factory) -> dict[str, Any]:
@@ -325,11 +325,11 @@ def make_request_body(uuid_send_type: Optional[str],
                 workflow=workflow_execution.workflow)
         request_data['uuid'] = str(another_workflow_execution.uuid)
 
-    run_environment: Optional[RunEnvironment] = None
+    run_environment: RunEnvironment | None = None
     if workflow_send_type is None:
         run_environment = workflow_execution.workflow.run_environment
     else:
-        workflow: Optional[Workflow] = None
+        workflow: Workflow | None = None
         if workflow_send_type == SEND_ID_NONE:
             request_data['workflow'] = None
         else:
@@ -452,8 +452,8 @@ def make_request_body(uuid_send_type: Optional[str],
 ])
 @mock_aws
 def test_workflow_execution_fetch(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         api_key_scope_type: str,
         uuid_send_type: str,
         status_code: int,
@@ -595,11 +595,11 @@ def test_workflow_execution_fetch(
    401, None, None),
 ])
 def test_workflow_execution_create_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         body_uuid_type: str, workflow_send_type: str,
-        status_code: int, validation_error_attribute: Optional[str],
-        error_code: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
+        error_code: str | None,
         user_factory, group_factory, run_environment_factory,
         workflow_factory, workflow_execution_factory,
         api_client) -> None:
@@ -673,7 +673,7 @@ def test_workflow_execution_create_access_control(
 ])
 @mock_aws
 def test_workflow_execution_scheduled_execution(
-        managed_probability: Optional[float], reason: Optional[str],
+        managed_probability: float | None, reason: str | None,
         status_code: int,
         user_factory, group_factory, run_environment_factory,
         workflow_factory, workflow_execution_factory,
@@ -959,12 +959,12 @@ def test_workflow_execution_create_history_purging(
 ])
 @mock_aws
 def test_workflow_execution_update_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        request_uuid_send_type: str, body_uuid_send_type: Optional[str],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
+        request_uuid_send_type: str, body_uuid_send_type: str | None,
         workflow_send_type: str,
-        status_code: int, validation_error_attribute: Optional[str],
-        error_code: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
+        error_code: str | None,
         user_factory, group_factory, run_environment_factory,
         workflow_factory, workflow_execution_factory,
         api_client) -> None:
@@ -1099,8 +1099,8 @@ def test_workflow_execution_update_access_control(
 ])
 @mock_aws
 def test_workflow_execution_delete(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str,
         status_code: int,
         user_factory, group_factory, run_environment_factory,

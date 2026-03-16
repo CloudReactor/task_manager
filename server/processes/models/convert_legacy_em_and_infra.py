@@ -1,6 +1,6 @@
 import logging
 
-from typing import Any, Optional
+from typing import Any
 
 from ..common.utils import deepmerge_with_lists
 from ..execution_methods import (
@@ -26,7 +26,7 @@ def convert_empty_to_none_values(d: dict[str, Any]) -> dict[str, Any]:
 
 def compute_region(
     task: Task
-) -> Optional[str]:
+) -> str | None:
     region = task.run_environment.aws_default_region
     cluster_arn = task.aws_ecs_default_cluster_arn
     if not cluster_arn:
@@ -42,7 +42,7 @@ def compute_region(
 
 def compute_region_from_task_execution(
     task_execution: TaskExecution
-) -> Optional[str]:
+) -> str | None:
     cluster_arn = task_execution.aws_ecs_cluster_arn
     if not cluster_arn:
         return None
@@ -141,7 +141,7 @@ def extract_emc(task: Task) -> dict[str, Any]:
 def extract_infra_from_task(task: Task) -> dict[str, Any]:
     region = compute_region(task)
 
-    log_stream_prefix: Optional[str] = None
+    log_stream_prefix: str | None = None
 
     log_query = task.log_query
     if log_query:
@@ -284,7 +284,7 @@ def extract_infra_from_task_execution(task_execution: TaskExecution) -> dict[str
 
     task_region = compute_region(task)
 
-    log_stream_prefix: Optional[str] = None
+    log_stream_prefix: str | None = None
 
     log_query = task.log_query
     if log_query:

@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, cast
+from typing import Any, List, Tuple, cast
 
 import uuid
 from urllib.parse import quote
@@ -21,8 +21,8 @@ from conftest import *
 def ensure_serialized_notification_profile_valid(response_dict: dict[str, Any],
         notification_profile: NotificationProfile, user: User,
         group_access_level: int,
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None) -> None:
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None) -> None:
     context = context_with_authenticated_request(user=user,
             group=notification_profile.created_by_group,
             api_key_access_level=api_key_access_level,
@@ -145,8 +145,8 @@ def ensure_serialized_notification_profile_valid(response_dict: dict[str, Any],
   # TODO: check filtering, non-default ordering
 ])
 def test_notification_profile_list(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         user_has_another_group: bool, send_group_id_type: str,
         status_code: int, expected_indices: List[int],
         user_factory, group_factory, run_environment_factory,
@@ -217,11 +217,11 @@ def test_notification_profile_list(
                     api_key_run_environment=api_key_run_environment)
 
 
-def common_setup(is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+def common_setup(is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str, existing_has_run_environment: bool,
         user, group_factory, run_environment_factory, notification_profile_factory, api_client) \
-        -> Tuple[NotificationProfile, Optional[RunEnvironment], APIClient, str]:
+        -> Tuple[NotificationProfile, RunEnvironment | None, APIClient, str]:
     group = user.groups.first()
 
     if group_access_level is not None:
@@ -267,10 +267,10 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 
     return (notification_profile, api_key_run_environment, client, url)
 
-def make_request_body(uuid_send_type: Optional[str],
-        run_environment_send_type: Optional[str],
+def make_request_body(uuid_send_type: str | None,
+        run_environment_send_type: str | None,
         user: User,
-        api_key_run_environment: Optional[RunEnvironment],
+        api_key_run_environment: RunEnvironment | None,
         notification_profile: NotificationProfile,
         group_factory, run_environment_factory) -> dict[str, Any]:
     request_data: dict[str, Any] = {
@@ -282,7 +282,7 @@ def make_request_body(uuid_send_type: Optional[str],
     elif uuid_send_type == SEND_ID_WRONG:
         request_data['uuid'] = str(notification_profile.uuid)
 
-    run_environment: Optional[RunEnvironment] = None
+    run_environment: RunEnvironment | None = None
     if run_environment_send_type is None:
         run_environment = notification_profile.run_environment
     else:
@@ -402,8 +402,8 @@ def make_request_body(uuid_send_type: Optional[str],
    401),
 ])
 def test_notification_profile_fetch(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         api_key_scope_type: str,
         uuid_send_type: str, existing_has_run_environment: bool,
         status_code: int,
@@ -545,10 +545,10 @@ def test_notification_profile_fetch(
    401, None),
 ])
 def test_notification_profile_create_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         body_uuid_type: str, run_environment_send_type: str,
-        status_code: int, validation_error_attribute: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         notification_profile_factory, api_client) -> None:
     """
@@ -805,11 +805,11 @@ def test_notification_profile_create_access_control(
    401, None),
 ])
 def test_notification_profile_update_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        request_uuid_send_type: str, body_uuid_send_type: Optional[str],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
+        request_uuid_send_type: str, body_uuid_send_type: str | None,
         run_environment_send_type: str, existing_has_run_environment: bool,
-        status_code: int, validation_error_attribute: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         notification_profile_factory,
         api_client) -> None:
@@ -961,8 +961,8 @@ def test_notification_profile_update_access_control(
    401),
 ])
 def test_notification_profile_delete(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str, existing_has_run_environment: bool,
         status_code: int,
         user_factory, group_factory, run_environment_factory,

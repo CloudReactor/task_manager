@@ -1,4 +1,4 @@
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from django.views import View
 
@@ -61,7 +61,7 @@ class IsCreatedByGroup(permissions.BasePermission):
             # Client has read access but not write access
             return False
 
-    def group_for_object(self, obj: Any) -> Optional[Group]:
+    def group_for_object(self, obj: Any) -> Group | None:
         if hasattr(obj, 'created_by_group'):
             return obj.created_by_group
         elif hasattr(obj, 'group'):
@@ -69,14 +69,14 @@ class IsCreatedByGroup(permissions.BasePermission):
 
         raise APIException("Can't determine Group from object")
 
-    def run_environment_for_object(self, obj: Any) -> 'Optional[RunEnvironment]':
+    def run_environment_for_object(self, obj: Any) -> 'RunEnvironment | None':
         if hasattr(obj, 'run_environment'):
             return obj.run_environment
 
         return None
 
     def required_access_level(self, request: Request, view: View, obj: Any) \
-            -> Optional[int]:
+            -> int | None:
         if request.method in permissions.SAFE_METHODS:
             return self.required_access_level_for_read(request=request,
                     view=view, obj=obj)
@@ -85,11 +85,11 @@ class IsCreatedByGroup(permissions.BasePermission):
                 view=view, obj=obj)
 
     def required_access_level_for_read(self, request: Request, view: View,
-            obj: Any) -> Optional[int]:
+            obj: Any) -> int | None:
         return UserGroupAccessLevel.ACCESS_LEVEL_OBSERVER
 
     def required_access_level_for_mutation(self, request: Request, view: View,
-            obj: Any) -> Optional[int]:
+            obj: Any) -> int | None:
         return UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
 
     def is_api_key_allowed(self, request: Request, view: View,

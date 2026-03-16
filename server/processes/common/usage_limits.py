@@ -1,9 +1,9 @@
-from typing import Optional
+
 
 from dataclasses import dataclass
 
 
-def add_limits(x: Optional[int], y: Optional[int]) -> Optional[int]:
+def add_limits(x: int | None, y: int | None) -> int | None:
     if (x is None) or (y is None):
         return None
 
@@ -12,19 +12,19 @@ def add_limits(x: Optional[int], y: Optional[int]) -> Optional[int]:
 
 @dataclass
 class UsageLimits:
-    max_users: Optional[int] = None
-    max_api_keys: Optional[int] = None
-    max_api_credits_per_month: Optional[int] = None
-    max_tasks: Optional[int] = None
-    max_task_execution_concurrency: Optional[int] = None
-    max_task_execution_history_items: Optional[int] = None
-    max_workflows: Optional[int] = None
-    max_workflow_execution_concurrency: Optional[int] = None
-    max_workflow_task_instances: Optional[int] = None
-    max_workflow_execution_history_items: Optional[int] = None
-    max_alerts_per_day: Optional[int] = None
-    max_events: Optional[int] = None
-    max_notifications: Optional[int] = None
+    max_users: int | None = None
+    max_api_keys: int | None = None
+    max_api_credits_per_month: int | None = None
+    max_tasks: int | None = None
+    max_task_execution_concurrency: int | None = None
+    max_task_execution_history_items: int | None = None
+    max_workflows: int | None = None
+    max_workflow_execution_concurrency: int | None = None
+    max_workflow_task_instances: int | None = None
+    max_workflow_execution_history_items: int | None = None
+    max_alerts_per_day: int | None = None
+    max_events: int | None = None
+    max_notifications: int | None = None
 
     def combine(self, other: 'UsageLimits') -> 'UsageLimits':
         return UsageLimits(

@@ -1,4 +1,6 @@
-from typing import Any, FrozenSet, Optional, TYPE_CHECKING, cast, override
+from __future__ import annotations
+
+from typing import Any, FrozenSet, TYPE_CHECKING, cast, override
 
 import json
 import logging
@@ -28,17 +30,17 @@ logger = logging.getLogger(__name__)
 
 
 class AwsLambdaExecutionMethodSettings(BaseModel):
-    runtime_id: Optional[str] = None
-    function_arn: Optional[str] = None
-    function_name: Optional[str] = None
-    function_version: Optional[str] = None
-    init_type: Optional[str] = None
-    dotnet_prejit: Optional[str] = None
-    function_memory_mb: Optional[int] = None
-    infrastructure_website_url: Optional[str] = None
+    runtime_id: str | None = None
+    function_arn: str | None = None
+    function_name: str | None = None
+    function_version: str | None = None
+    init_type: str | None = None
+    dotnet_prejit: str | None = None
+    function_memory_mb: int | None = None
+    infrastructure_website_url: str | None = None
 
-    def update_derived_attrs(self, aws_settings: Optional[AwsSettings] = None,
-            execution_method: Optional[ExecutionMethod] = None) -> None:
+    def update_derived_attrs(self, aws_settings: AwsSettings | None = None,
+            execution_method: ExecutionMethod | None = None) -> None:
         logger.info("AWS Lambda Execution Method: update_derived_attrs()")
 
         self.infrastructure_website_url = make_aws_console_lambda_function_url(
@@ -48,29 +50,29 @@ class AwsLambdaExecutionMethodSettings(BaseModel):
 
 
 class AwsCognitoIdentity(BaseModel):
-    id: Optional[str] = None
-    pool_id: Optional[str] = None
+    id: str | None = None
+    pool_id: str | None = None
 
 
 class AwsCognitoClient(BaseModel):
-    installation_id: Optional[str] = None
-    app_title: Optional[str] = None
-    app_version_name: Optional[str] = None
-    app_version_code: Optional[str] = None
-    app_package_name: Optional[str] = None
+    installation_id: str | None = None
+    app_title: str | None = None
+    app_version_name: str | None = None
+    app_version_code: str | None = None
+    app_package_name: str | None = None
 
 
 class AwsClientContext(BaseModel):
-    client: Optional[AwsCognitoClient] = None
-    custom: Optional[dict[str, Any]] = None
-    env: Optional[dict[str, Any]] = None
+    client: AwsCognitoClient | None = None
+    custom: dict[str, Any] | None = None
+    env: dict[str, Any] | None = None
 
 
 class AwsLambdaExecutionMethodInfo(AwsLambdaExecutionMethodSettings):
-    time_zone_name: Optional[str] = None
-    aws_request_id: Optional[str] = None
-    cognito_identity: Optional[AwsCognitoIdentity] = None
-    client_context: Optional[AwsClientContext] = None
+    time_zone_name: str | None = None
+    aws_request_id: str | None = None
+    cognito_identity: AwsCognitoIdentity | None = None
+    client_context: AwsClientContext | None = None
 
     @staticmethod
     def from_capability(
@@ -91,10 +93,10 @@ class AwsLambdaExecutionMethodInfo(AwsLambdaExecutionMethodSettings):
 class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
     NAME = "AWS Lambda"
 
-    def __init__(self, task: Optional['Task'],
-            task_execution: Optional['TaskExecution'],
-            aws_settings: Optional[dict[str, Any]] = None,
-            aws_lambda_settings: Optional[dict[str, Any]] = None):
+    def __init__(self, task: Task | None,
+            task_execution: TaskExecution | None,
+            aws_settings: dict[str, Any] | None = None,
+            aws_lambda_settings: dict[str, Any] | None = None):
         super().__init__(self.NAME, task=task, task_execution=task_execution,
                 aws_settings=aws_settings)
 
@@ -138,8 +140,8 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
 
         network = self.aws_settings.network
 
-        subnets: Optional[list[str]] = None
-        security_groups: Optional[list[str]] = None
+        subnets: list[str] | None = None
+        security_groups: list[str] | None = None
 
         if network:
             subnets = network.subnets

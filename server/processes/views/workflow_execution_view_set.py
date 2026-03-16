@@ -1,4 +1,4 @@
-from typing import cast, Any, Optional
+from typing import cast, Any
 
 import logging
 
@@ -38,23 +38,23 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowExecutionPermission(IsCreatedByGroup):
-    def group_for_object(self, obj: Any) -> Optional[Group]:
+    def group_for_object(self, obj: Any) -> Group | None:
         workflow_execution = cast(WorkflowExecution, obj)
         return workflow_execution.workflow.created_by_group
 
-    def run_environment_for_object(self, obj: Any) -> Optional[RunEnvironment]:
+    def run_environment_for_object(self, obj: Any) -> RunEnvironment | None:
         workflow_execution = cast(WorkflowExecution, obj)
         return workflow_execution.workflow.run_environment
 
     def required_access_level(self, request: Request, view: View, obj: Any) \
-            -> Optional[int]:
+            -> int | None:
         if request.method == 'DELETE':
             return UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
 
         return super().required_access_level(request=request, view=view, obj=obj)
 
     def required_access_level_for_mutation(self, request: Request, view: View,
-            obj: Any) -> Optional[int]:
+            obj: Any) -> int | None:
         return UserGroupAccessLevel.ACCESS_LEVEL_TASK
 
 
@@ -109,7 +109,7 @@ class WorkflowExecutionViewSet(AtomicCreateModelMixin,
             workflow__created_by_group__in=self.request.user.groups.all()
         ).order_by(self.ordering)
 
-    def extract_group(self, request_group: Optional[Group]):
+    def extract_group(self, request_group: Group | None):
         workflow_uuid = self.request.GET.get('workflow__uuid')
 
         if workflow_uuid:

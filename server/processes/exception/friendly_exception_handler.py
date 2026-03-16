@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 import logging
 import traceback
@@ -25,7 +25,7 @@ def friendly_exception_handler(exc, context):
         if response is None:
             response = Response({})
 
-        error_code: Optional[str] = None
+        error_code: str | None = None
         try:
             response.status_code = 500
 

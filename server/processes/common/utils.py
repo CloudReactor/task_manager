@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 from collections import abc
 import logging
 import re
@@ -16,7 +16,7 @@ def model_class_to_type_string(model_class) -> str:
     return camel_case_to_spaces(model_class.__name__).replace(' ', '_').lower()
 
 
-def val_to_str(x: Optional[Any], default: str = "-1") -> str:
+def val_to_str(x: Any | None, default: str = "-1") -> str:
     return default if (x is None) else str(x)
 
 
@@ -116,17 +116,17 @@ def deepmerge(*args, append_lists: bool=False, ignore_none: bool=True) -> Any:
     return deepmerge_core(append_lists, ignore_none, *args)
 
 
-def lookup_string(d: Mapping[str, Any], key: str) -> Optional[str]:
+def lookup_string(d: Mapping[str, Any], key: str) -> str | None:
     x = d.get(key)
     return str(x) if x else None
 
 
-def lookup_int(d: Mapping[str, Any], key: str) -> Optional[int]:
+def lookup_int(d: Mapping[str, Any], key: str) -> int | None:
     x = d.get(key)
     return None if (not x) and (x != 0) else int(x)
 
 
-def lookup_bool(d: Mapping[str, Any], key: str) -> Optional[bool]:
+def lookup_bool(d: Mapping[str, Any], key: str) -> bool | None:
     x = d.get(key)
     return None if x is None else bool(x)
 

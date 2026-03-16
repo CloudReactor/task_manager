@@ -1,4 +1,4 @@
-from typing import cast, Any, Optional
+from typing import cast, Any
 
 import logging
 
@@ -33,11 +33,11 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowTaskInstancePermission(IsCreatedByGroup):
-    def group_for_object(self, obj: Any) -> Optional[Group]:
+    def group_for_object(self, obj: Any) -> Group | None:
         wti = cast(WorkflowTaskInstance, obj)
         return wti.workflow.created_by_group
 
-    def run_environment_for_object(self, obj: Any) -> Optional[RunEnvironment]:
+    def run_environment_for_object(self, obj: Any) -> RunEnvironment | None:
         wti = cast(WorkflowTaskInstance, obj)
         return wti.workflow.run_environment
 
@@ -83,7 +83,7 @@ class WorkflowTaskInstanceViewSet(AtomicCreateModelMixin,
             workflow__created_by_group__in=self.request.user.groups.all()
         ).order_by(self.ordering)
 
-    def extract_group(self, request_group: Optional[Group]):
+    def extract_group(self, request_group: Group | None):
         workflow_uuid = self.request.GET.get('workflow__uuid')
 
         if workflow_uuid:

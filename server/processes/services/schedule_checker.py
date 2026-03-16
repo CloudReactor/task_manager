@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
@@ -47,14 +47,14 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
 
 
     def check_execution_on_time(self, schedulable: BoundSchedulable) \
-            -> Optional[MissingScheduledExecutionEvent]:
+            -> MissingScheduledExecutionEvent | None:
         schedule = schedulable.schedule.strip()
 
         if not schedule:
             logger.warning(f"For schedulable entity {schedulable.uuid}, schedule '{schedule}' is blank, skipping")
             return None
 
-        mse: Optional[MissingScheduledExecutionEvent] = None
+        mse: MissingScheduledExecutionEvent | None = None
 
         utc_now = timezone.now()
         time_range = self.execution_time_range(schedulable, utc_now=utc_now)
@@ -73,7 +73,7 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
 
     @staticmethod
     def execution_time_range(schedulable: BoundSchedulable, utc_now: datetime) \
-            -> Optional[tuple[datetime, datetime, datetime]]:
+            -> tuple[datetime, datetime, datetime] | None:
         model_name = schedulable.kind_label
         schedule = schedulable.schedule
 
@@ -219,7 +219,7 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
         return mse
 
     @staticmethod
-    def parse_rate_schedule(schedule: str) -> Optional[relativedelta]:
+    def parse_rate_schedule(schedule: str) -> relativedelta | None:
         m = Schedulable.RATE_REGEX.match(schedule)
 
         if m:

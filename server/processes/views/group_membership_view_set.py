@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple
 
 import logging
 
@@ -98,7 +98,7 @@ class GroupMembershipViewSet(viewsets.ViewSet):
         data = request.data
         group_dict = data.get('group')
 
-        group: Optional[Group] = None
+        group: Group | None = None
         if group_dict is None:
             if request_group:
                 group = request_group

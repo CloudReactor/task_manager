@@ -1,4 +1,6 @@
-from typing import Any, Optional, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
 
 import logging
 
@@ -18,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 class AwsBaseExecutionMethod(ExecutionMethod):
     def __init__(self, name: str,
-            task: Optional['Task'] = None,
-            task_execution: Optional['TaskExecution'] = None,
-            aws_settings: Optional[dict[str, Any]] = None) -> None:
+            task: Task | None = None,
+            task_execution: TaskExecution | None = None,
+            aws_settings: dict[str, Any] | None = None) -> None:
         super().__init__(name, task=task,
                 task_execution=task_execution)
 
@@ -32,8 +34,8 @@ class AwsBaseExecutionMethod(ExecutionMethod):
 
 
     @staticmethod
-    def merge_aws_settings(task: Optional['Task'],
-            task_execution: Optional['TaskExecution']) -> AwsSettings:
+    def merge_aws_settings(task: Task | None,
+            task_execution: TaskExecution | None) -> AwsSettings:
         settings_to_merge: list[dict[str, Any]] = [ {} ]
 
         if task:
@@ -50,7 +52,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
 
         return AwsSettings.parse_obj(deepmerge(*settings_to_merge))
 
-    def compute_region(self) -> Optional[str]:
+    def compute_region(self) -> str | None:
         region = self.aws_settings.region
 
         if (not region) and self.task:

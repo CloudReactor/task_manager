@@ -147,7 +147,7 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
     def send_event_notifications(self, event: Event) -> int:
         logger.info(f"Sending events for {self.kind_label} {self.name} ({self.uuid}) with event {event.uuid} ...")
 
-        #run_env: Optional[RunEnvironment] = None
+        #run_env: RunEnvironment | None = None
 
         #if hasattr(self, 'run_environment'):
         #    run_env = cast(RunEnvironment, self.run_environment)

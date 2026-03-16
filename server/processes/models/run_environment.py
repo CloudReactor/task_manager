@@ -1,4 +1,4 @@
-from typing import Optional, Type, override
+from typing import Type, override
 
 import logging
 
@@ -51,7 +51,7 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
         return aws_settings and aws_settings.can_manage_infrastructure()
 
     # Deprecated, use AwsSettings.region
-    def get_aws_region(self) -> Optional[str]:
+    def get_aws_region(self) -> str | None:
         if self.aws_settings:
             return self.aws_settings.get('region')
 

@@ -144,7 +144,7 @@ def test_aws_ecs_task_deserialization(is_legacy_schema: bool,
 def test_task_deserialization_with_existing_task(
     api_key_access_level: int, is_api_key_scoped: bool,
     run_environment_send_type: str,
-    status_code: int, validation_error_attribute: Optional[str],
+    status_code: int, validation_error_attribute: str | None,
     unknown_task_factory, run_environment_factory,
     user_factory):
     user = user_factory()

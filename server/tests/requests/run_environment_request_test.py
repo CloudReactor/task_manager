@@ -1,4 +1,4 @@
-from typing import cast, Any, List, Optional, Tuple
+from typing import cast, Any, List, Tuple
 
 import uuid
 from urllib.parse import quote
@@ -25,8 +25,8 @@ from conftest import *
 def ensure_serialized_run_environment_valid(response_re: dict[str, Any],
         run_environment: RunEnvironment, user: User,
         group_access_level: int,
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None) -> None:
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None) -> None:
     context = context_with_authenticated_request(user=user,
             group=run_environment.created_by_group,
             api_key_access_level=api_key_access_level,
@@ -148,8 +148,8 @@ def ensure_serialized_run_environment_valid(response_re: dict[str, Any],
   # TODO: check filtering, non-default ordering
 ])
 def test_run_environment_list(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         user_has_another_group: bool, send_group_id_type: str,
         status_code: int, expected_indices: List[int],
         user_factory, group_factory, run_environment_factory, api_client) -> None:
@@ -211,11 +211,11 @@ def test_run_environment_list(
                     api_key_run_environment=api_key_run_environment)
 
 
-def common_setup(is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+def common_setup(is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str,
         user, group_factory, run_environment_factory, api_client) \
-        -> Tuple[RunEnvironment, Optional[RunEnvironment], APIClient, str]:
+        -> Tuple[RunEnvironment, RunEnvironment | None, APIClient, str]:
     group = user.groups.first()
 
     if group_access_level is not None:
@@ -324,8 +324,8 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
    SEND_ID_CORRECT, 401),
 ])
 def test_run_environment_fetch(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         api_key_scope_type: str,
         send_uuid_type: str, status_code: int,
         user_factory, group_factory, run_environment_factory, api_client) -> None:
@@ -405,8 +405,8 @@ def test_run_environment_fetch(
    SEND_ID_NONE, 401),
 ])
 def test_run_environment_create_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         send_uuid_type: str, status_code: int,
         user_factory, group_factory, run_environment_factory, api_client) -> None:
     """
@@ -527,8 +527,8 @@ def test_run_environment_create_access_control(
    SEND_ID_CORRECT, 401),
 ])
 def test_run_environment_update_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         send_uuid_type: str, status_code: int,
         user_factory, group_factory, run_environment_factory, api_client) -> None:
     """
@@ -623,9 +623,9 @@ def test_run_environment_update_access_control(
    200, None),
 ])
 def test_run_environment_set_notification_profiles(is_post: bool,
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        notification_profile_send_type: Optional[str],
-        status_code: int, validation_error_attribute: Optional[str],
+        api_key_access_level: int | None, api_key_scope_type: str,
+        notification_profile_send_type: str | None,
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         notification_profile_factory,
         api_client) -> None:
@@ -655,7 +655,7 @@ def test_run_environment_set_notification_profiles(is_post: bool,
     }
 
     am_group = user.groups.first()
-    am_run_environment: Optional[RunEnvironment] = None
+    am_run_environment: RunEnvironment | None = None
     if notification_profile_send_type == SEND_ID_CORRECT:
         am_run_environment = run_environment
     if notification_profile_send_type == SEND_ID_WRONG:
@@ -793,8 +793,8 @@ def test_run_environment_set_notification_profiles(is_post: bool,
    SEND_ID_CORRECT, 401),
 ])
 def test_run_environment_delete(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         send_uuid_type: str, status_code: int,
         user_factory, group_factory, run_environment_factory, api_client) -> None:
     user = user_factory()

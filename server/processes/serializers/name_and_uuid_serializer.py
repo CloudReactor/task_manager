@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 from rest_framework import serializers
 
@@ -31,7 +31,7 @@ class NameAndUuidSerializer(serializers.Serializer):
                     view_name=self.view_name,
                     lookup_field='uuid')
 
-    def get_url(self, obj) -> Optional[str]:
+    def get_url(self, obj) -> str | None:
         if self.url_field is None:
             return None
 

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import logging
 
@@ -54,7 +54,7 @@ class BaseReadOnlyViewSetMixin(viewsets.ReadOnlyModelViewSet):
                 run_environment=authenticated_run_environment)
 
     def get_scoped_queryset(self, group: Group,
-            run_environment: Optional[RunEnvironment]) -> QuerySet:
+            run_environment: RunEnvironment | None) -> QuerySet:
         qs = self.model_class.objects.all()
 
         if run_environment:
@@ -77,7 +77,7 @@ class BaseReadOnlyViewSetMixin(viewsets.ReadOnlyModelViewSet):
         return self.model_class.objects.filter(
             created_by_group__in=self.request.user.groups.order_by(self.ordering))
 
-    def extract_group(self, request_group: Optional[Group]) -> Optional[Group]:
+    def extract_group(self, request_group: Group | None) -> Group | None:
         return extract_filtered_group(request=self.request,
             request_group=request_group,
             required=(request_group is None),

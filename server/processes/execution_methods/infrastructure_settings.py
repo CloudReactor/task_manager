@@ -1,4 +1,6 @@
-from typing import Optional, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
@@ -13,5 +15,5 @@ class InfrastructureSettings(BaseModel):
     def can_schedule_workflow(self) -> bool:
         return False
 
-    def update_derived_attrs(self, execution_method: Optional['ExecutionMethod']=None) -> None:
+    def update_derived_attrs(self, execution_method: ExecutionMethod | None=None) -> None:
         pass

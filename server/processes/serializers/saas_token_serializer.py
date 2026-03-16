@@ -1,4 +1,4 @@
-from typing import cast, Any, Optional
+from typing import cast, Any
 
 import logging
 
@@ -76,7 +76,7 @@ class SaasTokenSerializer(
         request = request_for_context()
         user, group = required_user_and_group_from_request(request=request)
 
-        token_group: Optional[Group] = None
+        token_group: Group | None = None
         if group_request_obj:
             token_group = find_group_by_id_or_name(group_request_obj)
             if group and (token_group != group):
@@ -89,7 +89,7 @@ class SaasTokenSerializer(
                 'group': ['Token is missing Group']
             })
 
-        run_environment: Optional[RunEnvironment] = None
+        run_environment: RunEnvironment | None = None
         if run_environment_obj:
             try:
                 run_environment = cast(RunEnvironment,

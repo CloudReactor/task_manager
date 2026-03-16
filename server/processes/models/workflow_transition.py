@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 import logging
 import uuid
@@ -117,7 +117,7 @@ class WorkflowTransition(models.Model):
         return self.should_activate(task_execution_status=task_execution.status,
                 exit_code=task_execution.exit_code)
 
-    def should_activate(self, task_execution_status, exit_code: Optional[int]) -> bool:
+    def should_activate(self, task_execution_status, exit_code: int | None) -> bool:
         from .execution import Execution
 
         pes = task_execution_status

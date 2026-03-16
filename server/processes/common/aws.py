@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 import logging
 import re
@@ -46,7 +46,7 @@ def handle_aws_multiple_failure_response(response) -> None:
 
         raise APIException(detail=message)
 
-def normalize_role_arn(role_arn_or_name, aws_account_id: Optional[str]) -> str:
+def normalize_role_arn(role_arn_or_name, aws_account_id: str | None) -> str:
     if aws_account_id:
         if role_arn_or_name.startswith('arn:'):
 
@@ -57,7 +57,7 @@ def normalize_role_arn(role_arn_or_name, aws_account_id: Optional[str]) -> str:
     return role_arn_or_name
 
 
-def normalize_lambda_arn(lambda_arn_or_name, aws_account_id: Optional[str], region: Optional[str]) -> str:
+def normalize_lambda_arn(lambda_arn_or_name, aws_account_id: str | None, region: str | None) -> str:
     if aws_account_id and region:
         if lambda_arn_or_name.startswith('arn:'):
             return lambda_arn_or_name
@@ -74,7 +74,7 @@ def make_region_parameter(region: str) -> str:
     return 'region=' + quote(region)
 
 
-def make_aws_console_role_url(role_arn: Optional[str]) -> Optional[str]:
+def make_aws_console_role_url(role_arn: str | None) -> str | None:
     if not role_arn:
         return None
 
@@ -86,8 +86,8 @@ def make_aws_console_role_url(role_arn: Optional[str]) -> Optional[str]:
                 exc_info=True)
         return None
 
-def make_aws_console_subnet_url(subnet_name: Optional[str],
-        region: Optional[str]) -> Optional[str]:
+def make_aws_console_subnet_url(subnet_name: str | None,
+        region: str | None) -> str | None:
     if not subnet_name or not region:
         return None
 
@@ -95,8 +95,8 @@ def make_aws_console_subnet_url(subnet_name: Optional[str],
             '?' + make_region_parameter(region) + '#SubnetDetails:subnetId=' + \
             quote(subnet_name)
 
-def make_aws_console_security_group_url(security_group_name: Optional[str],
-        region: Optional[str]) -> Optional[str]:
+def make_aws_console_security_group_url(security_group_name: str | None,
+        region: str | None) -> str | None:
     if not security_group_name or not region:
         return None
 
@@ -104,7 +104,7 @@ def make_aws_console_security_group_url(security_group_name: Optional[str],
             '?' + make_region_parameter(region) + '#SecurityGroup:groupId=' + \
             quote(security_group_name)
 
-def make_aws_console_s3_object_url(object_arn: str) -> Optional[str]:
+def make_aws_console_s3_object_url(object_arn: str) -> str | None:
     # Example object ARN: arn:aws:s3:::bucket/pipeline/App/OGgJCVJ.zip
     # Example output URL: https://s3.console.aws.amazon.com/s3/object/bucket?prefix=pipeline/App/OGgJCVJ.zip
 
@@ -124,7 +124,7 @@ def make_aws_console_s3_object_url(object_arn: str) -> Optional[str]:
 
     return None
 
-def make_aws_console_kms_key_url(key_id: str, region: Optional[str] = None) -> Optional[str]:
+def make_aws_console_kms_key_url(key_id: str, region: str | None = None) -> str | None:
     # Example key ID: xyz-deadbeefdeadbeefdeadbeefdeadbeef
     # Example output URL: https://us-west-1.console.aws.amazon.com/kms/home?region=us-west-1#/kms/keys/xyz-deadbeefdeadbeefdeadbeefdeadbeef
 
@@ -155,7 +155,7 @@ def make_aws_console_kms_key_url(key_id: str, region: Optional[str] = None) -> O
         make_region_parameter(region) + '#/kms/keys/' + aws_encode(resolved_key_id)
 
 
-def extract_cluster_name(ecs_cluster_arn: Optional[str]) -> Optional[str]:
+def extract_cluster_name(ecs_cluster_arn: str | None) -> str | None:
     if not ecs_cluster_arn:
         return None
 
@@ -168,7 +168,7 @@ def extract_cluster_name(ecs_cluster_arn: Optional[str]) -> Optional[str]:
         return None
 
 
-def make_aws_console_ecs_cluster_url(ecs_cluster_arn: Optional[str]) -> Optional[str]:
+def make_aws_console_ecs_cluster_url(ecs_cluster_arn: str | None) -> str | None:
     if not ecs_cluster_arn:
         return None
 
@@ -191,7 +191,7 @@ def make_aws_console_ecs_cluster_url(ecs_cluster_arn: Optional[str]) -> Optional
 
     return None
 
-def make_aws_console_ecs_task_definition_url(task_definition_arn: Optional[str]) -> Optional[str]:
+def make_aws_console_ecs_task_definition_url(task_definition_arn: str | None) -> str | None:
     if not task_definition_arn:
         return None
 
@@ -212,8 +212,8 @@ def make_aws_console_ecs_task_definition_url(task_definition_arn: Optional[str])
 
     return None
 
-def make_aws_console_ecs_service_url(ecs_service_arn: Optional[str],
-        cluster_name: Optional[str] = None):
+def make_aws_console_ecs_service_url(ecs_service_arn: str | None,
+        cluster_name: str | None = None):
     if not ecs_service_arn:
         return None
 
@@ -252,7 +252,7 @@ def make_aws_console_ecs_service_url(ecs_service_arn: Optional[str],
     return None
 
 def make_aws_console_lambda_function_url(
-        function_arn: Optional[str]) -> Optional[str]:
+        function_arn: str | None) -> str | None:
     if function_arn is None:
         return None
 
@@ -275,7 +275,7 @@ def make_aws_console_lambda_function_url(
 
 
 def make_aws_console_codebuild_build_url(
-        build_arn: Optional[str]) -> Optional[str]:
+        build_arn: str | None) -> str | None:
     if build_arn is None:
         return None
 
@@ -294,7 +294,7 @@ def make_aws_console_codebuild_build_url(
     account_id = tokens[4]
     project = tokens[5][len('build/'):]
 
-    build_id: Optional[str] = None
+    build_id: str | None = None
     if token_len == 7:
         build_id = tokens[6]
 

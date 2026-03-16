@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import uuid
 
@@ -14,10 +14,10 @@ import pytest
 from conftest import *
 
 def common_setup(
-        is_authenticated: bool, group_access_level: Optional[int],
-        use_api_key: Optional[int],
-        current_access_level: Optional[int], use_self: bool,
-        other_user_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        use_api_key: int | None,
+        current_access_level: int | None, use_self: bool,
+        other_user_access_level: int | None,
         user_factory, api_client):
     user = user_factory()
     group = user.groups.first()
@@ -131,10 +131,10 @@ def common_setup(
    403),
 ])
 def test_update_access_level(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: Optional[int],
-        current_access_level: Optional[int], requested_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None, use_api_key: int | None,
+        current_access_level: int | None, requested_access_level: int | None,
         update_self: bool,
-        other_user_access_level: Optional[int],
+        other_user_access_level: int | None,
         status_code: int, user_factory, group_factory, api_client):
     client, request_body, target_user, group = common_setup(
         is_authenticated=is_authenticated,
@@ -206,9 +206,9 @@ def test_update_access_level(
    422),
 ])
 def test_group_membership_removal(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: Optional[int],
-        current_access_level: Optional[int], remove_self: bool,
-        other_user_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None, use_api_key: int | None,
+        current_access_level: int | None, remove_self: bool,
+        other_user_access_level: int | None,
         status_code: int, user_factory, group_factory, api_client):
     client, request_body, target_user, group = common_setup(
         is_authenticated=is_authenticated,

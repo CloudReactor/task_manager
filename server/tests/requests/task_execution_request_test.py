@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, cast
+from typing import Any, List, Tuple, cast
 
 from datetime import timedelta
 import random
@@ -27,8 +27,8 @@ from conftest import *
 def ensure_serialized_task_execution_valid(
         response_task_execution: dict[str, Any], task_execution: TaskExecution,
         user: User, group_access_level: int,
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None) -> None:
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None) -> None:
     context = context_with_authenticated_request(user=user,
             group=task_execution.task.created_by_group,
             api_key_access_level=api_key_access_level,
@@ -157,8 +157,8 @@ def ensure_serialized_task_execution_valid(
 ])
 @mock_aws
 def test_task_execution_list(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         user_has_another_group: bool, send_group_id_type: str,
         send_task_uuid_type: str,
         status_code: int, expected_indices: List[int],
@@ -204,7 +204,7 @@ def test_task_execution_list(
 
     params = {}
 
-    group_id: Optional[str] = None
+    group_id: str | None = None
 
     if send_group_id_type == SEND_ID_CORRECT:
         group_id = str(group.id)
@@ -216,7 +216,7 @@ def test_task_execution_list(
     if group_id:
         params['task__created_by_group__id'] = group_id
 
-    task_uuid: Optional[str] = None
+    task_uuid: str | None = None
 
 
     if send_task_uuid_type == SEND_ID_CORRECT:
@@ -247,12 +247,12 @@ def test_task_execution_list(
                     api_key_run_environment=api_key_run_environment)
 
 
-def common_setup(is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+def common_setup(is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str,
         user, group_factory, run_environment_factory,
         task_factory, task_execution_factory, api_client) \
-        -> Tuple[Optional[TaskExecution], Task, Optional[RunEnvironment], APIClient, str]:
+        -> Tuple[TaskExecution | None, Task, RunEnvironment | None, APIClient, str]:
     group = user.groups.first()
 
     if group_access_level is not None:
@@ -271,7 +271,7 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 
     task_execution_run_environment = run_environment
 
-    task_execution: Optional[TaskExecution] = None
+    task_execution: TaskExecution | None = None
     if uuid_send_type != SEND_ID_NONE:
         task_execution = task_execution_factory(task=task)
 
@@ -395,8 +395,8 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 ])
 @mock_aws
 def test_task_execution_fetch(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         api_key_scope_type: str,
         uuid_send_type: str,
         status_code: int,
@@ -559,11 +559,11 @@ def test_task_execution_fetch(
     ])
 @mock_aws
 def test_task_execution_create_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         body_uuid_type: str, task_send_type: str, task_execution_status: str,
-        status_code: int, validation_error_attribute: Optional[str],
-        error_code: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
+        error_code: str | None,
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
         api_client) -> None:
@@ -592,7 +592,7 @@ def test_task_execution_create_access_control(
     is_legacy_schema = False
 
 
-    sent_task: Optional[Task] = task
+    sent_task: Task | None = task
 
     if auto_create or (task_send_type != SEND_ID_CORRECT):
         sent_task = None
@@ -754,8 +754,8 @@ def test_task_create_aws_ecs_task_execution(auto_create: bool,
 @mock_aws
 def test_task_execution_with_unknown_method_auto_creation(
         was_auto_created: bool, passive: bool, is_legacy_schema: bool,
-        status_code: int, validation_error_attribute: Optional[str],
-        error_code: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
+        error_code: str | None,
         user_factory, group_factory, run_environment_factory,
         unknown_execution_method_task_factory, task_execution_factory,
         api_client) -> None:
@@ -1216,12 +1216,12 @@ def test_task_execution_create_with_legacy_task_property(
 ])
 @mock_aws
 def test_task_execution_update_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        request_uuid_send_type: str, body_uuid_send_type: Optional[str],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
+        request_uuid_send_type: str, body_uuid_send_type: str | None,
         task_send_type: str,
-        status_code: int, validation_error_attribute: Optional[str],
-        error_code: Optional[str], skip_response_body: bool,
+        status_code: int, validation_error_attribute: str | None,
+        error_code: str | None, skip_response_body: bool,
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
         api_client) -> None:
@@ -1478,8 +1478,8 @@ def test_task_execution_update_unmodifiable_properties(
 ])
 @mock_aws
 def test_task_execution_delete(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str,
         status_code: int,
         user_factory, group_factory, run_environment_factory,

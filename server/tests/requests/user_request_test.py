@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, cast
+from typing import Any, List, cast
 
 from urllib.parse import quote
 
@@ -76,7 +76,7 @@ def make_test_username(send_username_type: str,
   # TODO: check filtering, ordering
 ])
 def test_user_list(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
+        is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
         user_has_another_group: bool, send_group_id_type: str,
         status_code: int,
         user_factory, group_factory, api_client):
@@ -170,7 +170,7 @@ def test_user_list(
    SEND_ID_NOT_FOUND, 404),
 ])
 def test_user_fetch(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
+        is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
         send_username_type: str,
         status_code: int,
         user_factory, group_factory, api_client):
@@ -215,7 +215,7 @@ def test_user_fetch(
   (False, UserGroupAccessLevel.ACCESS_LEVEL_ADMIN, True, 401),
 ])
 def test_user_creation(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
+        is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
         status_code: int, user_factory, api_client):
     user = user_factory()
     group = user.groups.first()
@@ -298,7 +298,7 @@ UPDATABLE_ATTRIBUTES = ['first_name', 'last_name']
    SEND_ID_NOT_FOUND, ['first_name'], {}, 404),
 ])
 def test_user_update(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
+        is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
         send_username_type, fields_to_change: List[str],
         value_overrides: dict[str, Any],
         status_code: int,
@@ -386,7 +386,7 @@ def test_user_update(
    SEND_ID_NOT_FOUND, 404),
 ])
 def test_user_removal(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
+        is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
         send_username_type, status_code: int,
         user_factory, api_client):
     user = user_factory()

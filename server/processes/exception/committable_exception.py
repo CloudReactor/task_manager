@@ -1,7 +1,7 @@
-from typing import Optional
+
 
 class CommittableException(Exception):
-    def __init__(self, message: Optional[str] = None, cause: Optional[Exception] = None):
+    def __init__(self, message: str | None = None, cause: Exception | None = None):
         if cause:
             self.__cause__ = cause
 

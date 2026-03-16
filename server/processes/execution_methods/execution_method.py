@@ -1,4 +1,6 @@
-from typing import Any, FrozenSet, Optional, Tuple, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import Any, FrozenSet, Tuple, TYPE_CHECKING
 
 import logging
 import enum
@@ -101,8 +103,8 @@ class ExecutionMethod:
     ]
 
     def __init__(self, name: str,
-            task: Optional['Task'],
-            task_execution: Optional['TaskExecution']):
+            task: Task | None,
+            task_execution: TaskExecution | None):
         self.name = name
         self.task_execution = task_execution
 
@@ -118,33 +120,33 @@ class ExecutionMethod:
         return cap in self.capabilities()
 
     def should_update_or_force_recreate_scheduled_execution(self,
-            old_execution_method: Optional['ExecutionMethod']=None) -> Tuple[bool, bool]:
+            old_execution_method: 'ExecutionMethod' | None=None) -> Tuple[bool, bool]:
         should = self.should_maybe_update_scheduled_execution(
                   old_execution_method=old_execution_method)
         return (coalesce(should, True), False)
 
     def setup_scheduled_execution(self,
-            old_execution_method: Optional['ExecutionMethod']=None,
-            force_creation: bool=False, teardown_result: Optional[Any]=None) -> None:
+            old_execution_method: 'ExecutionMethod' | None=None,
+            force_creation: bool=False, teardown_result: Any | None=None) -> None:
         raise UnprocessableEntity(
                 detail='Execution method does not support scheduled execution.')
 
-    def teardown_scheduled_execution(self) -> Tuple[Optional[dict[str, Any]], Optional[Any]]:
+    def teardown_scheduled_execution(self) -> Tuple[dict[str, Any] | None, Any | None]:
         logger.warning('teardown_service(): execution method does not support scheduled execution, no-op')
         return (None, None)
 
     def should_update_or_force_recreate_service(self,
-            old_execution_method: Optional['ExecutionMethod']=None) \
+            old_execution_method: 'ExecutionMethod' | None=None) \
             -> Tuple[bool, bool]:
         return (False, False)
 
     def setup_service(self,
-            old_execution_method: Optional['ExecutionMethod'] = None,
-            force_creation: bool=False, teardown_result: Optional[Any]=None) -> None:
+            old_execution_method: 'ExecutionMethod' | None = None,
+            force_creation: bool=False, teardown_result: Any | None=None) -> None:
         raise UnprocessableEntity(
                 detail='Execution method does not support service setup.')
 
-    def teardown_service(self) -> Tuple[Optional[dict[str, Any]], Optional[Any]]:
+    def teardown_service(self) -> Tuple[dict[str, Any] | None, Any | None]:
         logger.info('teardown_service(): execution method does not support services, no-op')
         return (None, None)
 
@@ -197,7 +199,7 @@ class ExecutionMethod:
         wtie = WorkflowTaskInstanceExecution.objects.filter(
           task_execution__uuid=te_uuid).first()
 
-        wtie_info: Optional[dict[str, Any]] = None
+        wtie_info: dict[str, Any] | None = None
 
         if wtie:
             workflow_execution = wtie.workflow_execution
@@ -256,8 +258,8 @@ class ExecutionMethod:
         }
 
     @staticmethod
-    def make_execution_method(task: Optional['Task'] = None,
-            task_execution: Optional['TaskExecution'] = None) -> 'ExecutionMethod':
+    def make_execution_method(task: 'Task' | None = None,
+            task_execution: 'TaskExecution' | None = None) -> 'ExecutionMethod':
         from .aws_codebuild_execution_method import AwsCodeBuildExecutionMethod
         from .aws_ecs_execution_method import AwsEcsExecutionMethod
         from .aws_lambda_execution_method import AwsLambdaExecutionMethod
@@ -285,7 +287,7 @@ class ExecutionMethod:
         return UnknownExecutionMethod(task=task, task_execution=task_execution)
 
     def should_maybe_update_scheduled_execution(self,
-            old_execution_method: Optional['ExecutionMethod']) -> Optional[bool]:
+            old_execution_method: 'ExecutionMethod' | None) -> bool | None:
         if self.task is None:
             raise APIException('should_maybe_update_scheduled_execution() without Task')
 

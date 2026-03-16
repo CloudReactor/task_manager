@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 from datetime import datetime, timedelta
 import logging
@@ -61,7 +61,7 @@ def test_workflow_schedule_checker_missing_scheduled_executions(
     now_minute = utc_now.minute
     now_hour = utc_now.hour
 
-    last_execution_at: Optional[datetime] = None
+    last_execution_at: datetime | None = None
 
     if last_execution_minutes_ago is not None:
         last_execution_at = utc_now - timedelta(minutes=last_execution_minutes_ago)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Type, TYPE_CHECKING, cast, override
+from typing import Type, TYPE_CHECKING, cast, override
 
 import copy
 from datetime import datetime
@@ -408,7 +408,7 @@ class Workflow(Schedulable):
         self.scheduling_run_environment = run_environment
 
 
-    def teardown_scheduled_execution(self, run_environment: Optional[RunEnvironment] = None) -> None:
+    def teardown_scheduled_execution(self, run_environment: RunEnvironment | None = None) -> None:
         run_environment = run_environment or self.run_environment_for_scheduling(fallback_to_tasks=False)
 
         if run_environment is None:
@@ -466,7 +466,7 @@ class Workflow(Schedulable):
     def make_events_client(self, run_environment: RunEnvironment):
         return run_environment.make_boto3_client('events')
 
-    def run_environment_for_scheduling(self, fallback_to_tasks: bool=True) -> Optional[RunEnvironment]:
+    def run_environment_for_scheduling(self, fallback_to_tasks: bool=True) -> RunEnvironment | None:
         if self.scheduling_run_environment and \
                 self.scheduling_run_environment.can_schedule_workflow():
             return self.scheduling_run_environment
@@ -513,12 +513,12 @@ def pre_save_workflow(sender: Type[Workflow], instance: Workflow, **kwargs) -> N
 
     should_update_schedule = bool(instance.schedule)
 
-    effective_run_env_for_scheduling: Optional[RunEnvironment] = None
+    effective_run_env_for_scheduling: RunEnvironment | None = None
 
     if instance.schedule:
         effective_run_env_for_scheduling = instance.run_environment_for_scheduling()
 
-    old_effective_run_env_for_scheduling: Optional[RunEnvironment] = None
+    old_effective_run_env_for_scheduling: RunEnvironment | None = None
     run_env_for_scheduling_changed = False
     if old_instance and old_instance.schedule:
         old_effective_run_env_for_scheduling = old_instance.run_environment_for_scheduling(

@@ -1,4 +1,4 @@
-from typing import cast, Optional
+from typing import cast
 
 from django.conf import settings
 from django.db import models
@@ -36,7 +36,7 @@ class UserGroupAccessLevel(models.Model):
         return f'UGA: user={self.user.username}, group={self.group.name}, access_level={self.access_level}'
 
     @staticmethod
-    def access_level_for_user_in_group(user: AbstractUser, group: Group) -> Optional[int]:
+    def access_level_for_user_in_group(user: AbstractUser, group: Group) -> int | None:
         if not user.is_authenticated:
             return None
 

@@ -1,4 +1,6 @@
-from typing import Any, FrozenSet, Optional, Tuple, TYPE_CHECKING, cast, override
+from __future__ import annotations
+
+from typing import Any, FrozenSet, Tuple, TYPE_CHECKING, cast, override
 
 from dataclasses import dataclass
 import logging
@@ -42,40 +44,40 @@ DEFAULT_MAIN_CONTAINER_NAME = 'main'
 
 
 class ContainerSettings(BaseModel):
-    name: Optional[str] = None
-    docker_id: Optional[str] = None
-    docker_name: Optional[str] = None
-    image_name: Optional[str] = None
-    image_id: Optional[str] = None
-    labels: Optional[dict[str, str]] = None
-    container_arn: Optional[str] = None
+    name: str | None = None
+    docker_id: str | None = None
+    docker_name: str | None = None
+    image_name: str | None = None
+    image_id: str | None = None
+    labels: dict[str, str] | None = None
+    container_arn: str | None = None
 
 
 class AwsEcsExecutionMethodSettings(BaseModel):
-    launch_type: Optional[str] = None
-    supported_launch_types: Optional[list[str]] = None
-    cluster_arn: Optional[str] = None
-    cluster_infrastructure_website_url: Optional[str] = None
-    task_definition_arn: Optional[str] = None
-    task_definition_infrastructure_website_url: Optional[str] = None
-    infrastructure_website_url: Optional[str] = None
-    main_container_name: Optional[str] = None
-    main_container_cpu_units: Optional[int] = None
-    main_container_memory_mb: Optional[int] = None
-    monitor_container_name: Optional[str] = None
-    execution_role_arn: Optional[str] = None
-    execution_role_infrastructure_website_url: Optional[str] = None
-    task_role_arn: Optional[str] = None
-    task_role_infrastructure_website_url: Optional[str] = None
-    platform_version: Optional[str] = None
-    enable_ecs_managed_tags: Optional[bool] = None
-    propagate_tags: Optional[str] = None
-    enable_execute_command: Optional[bool] = None
-    task_group: Optional[str] = None
+    launch_type: str | None = None
+    supported_launch_types: list[str] | None = None
+    cluster_arn: str | None = None
+    cluster_infrastructure_website_url: str | None = None
+    task_definition_arn: str | None = None
+    task_definition_infrastructure_website_url: str | None = None
+    infrastructure_website_url: str | None = None
+    main_container_name: str | None = None
+    main_container_cpu_units: int | None = None
+    main_container_memory_mb: int | None = None
+    monitor_container_name: str | None = None
+    execution_role_arn: str | None = None
+    execution_role_infrastructure_website_url: str | None = None
+    task_role_arn: str | None = None
+    task_role_infrastructure_website_url: str | None = None
+    platform_version: str | None = None
+    enable_ecs_managed_tags: bool | None = None
+    propagate_tags: str | None = None
+    enable_execute_command: bool | None = None
+    task_group: str | None = None
     # Might not be sent during deployment, so use main_container_xxx properties
-    containers: Optional[list[ContainerSettings]] = None
+    containers: list[ContainerSettings] | None = None
 
-    def update_derived_attrs(self, aws_settings: Optional[AwsSettings]) -> None:
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
         if aws_settings:
             aws_account_id = aws_settings.account_id
             region = aws_settings.region
@@ -110,9 +112,9 @@ class AwsEcsExecutionMethodSettings(BaseModel):
             make_aws_console_role_url(self.task_role_arn)
 
 class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
-    task_arn: Optional[str] = None
+    task_arn: str | None = None
 
-    def update_derived_attrs(self, aws_settings: Optional[AwsSettings]):
+    def update_derived_attrs(self, aws_settings: AwsSettings | None):
         super().update_derived_attrs(aws_settings=aws_settings)
 
         self.infrastructure_website_url = None
@@ -142,28 +144,28 @@ class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
 
 
 class AwsEcsServiceDeploymentCircuitBreaker(BaseModel):
-    enable: Optional[bool] = None
-    rollback_on_failure: Optional[bool] = None
+    enable: bool | None = None
+    rollback_on_failure: bool | None = None
 
 
 class AwsEcsServiceDeploymentConfiguration(BaseModel):
-    maximum_percent: Optional[int] = None
-    minimum_healthy_percent: Optional[int] = None
-    deployment_circuit_breaker: Optional[AwsEcsServiceDeploymentCircuitBreaker] = None
+    maximum_percent: int | None = None
+    minimum_healthy_percent: int | None = None
+    deployment_circuit_breaker: AwsEcsServiceDeploymentCircuitBreaker | None = None
 
 
 class AwsApplicationLoadBalancer(BaseModel):
-    target_group_arn: Optional[str] = None
-    target_group_infrastructure_website_url: Optional[str] = None
-    container_name: Optional[str] = None
-    container_port: Optional[int] = None
+    target_group_arn: str | None = None
+    target_group_infrastructure_website_url: str | None = None
+    container_name: str | None = None
+    container_port: int | None = None
 
     def update_derived_attrs(self, task: 'Task',
-            aws_settings: Optional[AwsSettings]) -> None:
+            aws_settings: AwsSettings | None) -> None:
         self.target_group_infrastructure_website_url = None
 
         if self.target_group_arn:
-            region: Optional[str] = None
+            region: str | None = None
 
             if task.run_environment:
                 region = task.run_environment.aws_default_region
@@ -178,11 +180,11 @@ class AwsApplicationLoadBalancer(BaseModel):
                     + self.target_group_arn
 
 class AwsApplicationLoadBalancerSettings(BaseModel):
-    health_check_grace_period_seconds: Optional[int] = None
-    load_balancers: Optional[list[AwsApplicationLoadBalancer]] = None
+    health_check_grace_period_seconds: int | None = None
+    load_balancers: list[AwsApplicationLoadBalancer] | None = None
 
     def update_derived_attrs(self, task: 'Task',
-            aws_settings: Optional[AwsSettings]) -> None:
+            aws_settings: AwsSettings | None) -> None:
         if self.load_balancers:
             for load_balancer in self.load_balancers:
                 load_balancer.update_derived_attrs(task=task,
@@ -194,7 +196,7 @@ class AwsEcsServiceResponseFragment:
     last_status: str
     service_arn: str
     service_name: str
-    next_service_name_suffix: Optional[int] = None
+    next_service_name_suffix: int | None = None
 
     @staticmethod
     def from_boto_service_response_fragment(service_dict: dict[str, Any]) -> 'AwsEcsServiceResponseFragment':
@@ -202,7 +204,7 @@ class AwsEcsServiceResponseFragment:
         service_name = sd['serviceName']
         service_arn = sd['serviceArn']
         last_status = sd['status'].upper()
-        index: Optional[int] = None
+        index: int | None = None
 
         logger.info(f"Last status of service '{service_name}' with ARN '{service_arn}' is {last_status}")
 
@@ -230,23 +232,23 @@ class AwsEcsServiceResponseFragment:
 
 @dataclass
 class AwsEcsServiceTeardownResult:
-    service_info: Optional[AwsEcsServiceResponseFragment] = None
+    service_info: AwsEcsServiceResponseFragment | None = None
 
 
 class AwsEcsServiceSettings(BaseModel):
-    deployment_configuration: Optional[AwsEcsServiceDeploymentConfiguration] = None
-    scheduling_strategy: Optional[str] = None
-    force_new_deployment: Optional[bool] = None
-    load_balancer_settings: Optional[AwsApplicationLoadBalancerSettings] = None
-    enable_ecs_managed_tags: Optional[bool] = None
-    propagate_tags: Optional[str] = None
-    tags: Optional[dict[str, str]] = None
-    service_arn: Optional[str] = None
-    infrastructure_website_url: Optional[str] = None
+    deployment_configuration: AwsEcsServiceDeploymentConfiguration | None = None
+    scheduling_strategy: str | None = None
+    force_new_deployment: bool | None = None
+    load_balancer_settings: AwsApplicationLoadBalancerSettings | None = None
+    enable_ecs_managed_tags: bool | None = None
+    propagate_tags: str | None = None
+    tags: dict[str, str] | None = None
+    service_arn: str | None = None
+    infrastructure_website_url: str | None = None
 
     def update_derived_attrs(self, task: 'Task',
             aws_ecs_settings: AwsEcsExecutionMethodSettings,
-            aws_settings: Optional[AwsSettings]):
+            aws_settings: AwsSettings | None):
         cluster_name = extract_cluster_name(aws_ecs_settings.cluster_arn)
 
         if cluster_name and self.service_arn:
@@ -274,7 +276,7 @@ class AwsEcsServiceSettings(BaseModel):
         dc = sd.get('deploymentConfiguration')
 
         if dc:
-            parsed_dcb: Optional[AwsEcsServiceDeploymentCircuitBreaker] = None
+            parsed_dcb: AwsEcsServiceDeploymentCircuitBreaker | None = None
 
             dcb = dc.get('deploymentCircuitBreaker')
             if dcb:
@@ -364,10 +366,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
 
     def __init__(self,
-            task: Optional['Task'] = None,
-            task_execution: Optional['TaskExecution'] = None,
-            aws_settings: Optional[dict[str, Any]] = None,
-            aws_ecs_settings: Optional[dict[str, Any]] = None) -> None:
+            task: 'Task' | None = None,
+            task_execution: 'TaskExecution' | None = None,
+            aws_settings: dict[str, Any] | None = None,
+            aws_ecs_settings: dict[str, Any] | None = None) -> None:
         super().__init__(self.NAME, task=task, task_execution=task_execution,
                 aws_settings=aws_settings)
 
@@ -385,8 +387,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         else:
             self.settings = AwsEcsExecutionMethodSettings.parse_obj(aws_ecs_settings)
 
-        self.service_settings: Optional[AwsEcsServiceSettings] = None
-        self.scheduling_settings: Optional[AwsCloudwatchSchedulingSettings] = None
+        self.service_settings: AwsEcsServiceSettings | None = None
+        self.scheduling_settings: AwsCloudwatchSchedulingSettings | None = None
 
         if task and (task_execution is None):
             if task.service_settings is not None:
@@ -398,8 +400,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
 
     @staticmethod
-    def merge_aws_ecs_settings_dict(task: Optional['Task'],
-            task_execution: Optional['TaskExecution']) -> dict[str, Any]:
+    def merge_aws_ecs_settings_dict(task: 'Task' | None,
+            task_execution: 'TaskExecution' | None) -> dict[str, Any]:
 
         settings_to_merge: list[dict[str, Any]] = [ {} ]
 
@@ -431,7 +433,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         network = self.aws_settings.network
 
-        subnets: Optional[list[str]] = None
+        subnets: list[str] | None = None
 
         if network:
             subnets = network.subnets
@@ -443,7 +445,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
 
     def should_update_or_force_recreate_scheduled_execution(self,
-            old_execution_method: Optional[ExecutionMethod]=None) \
+            old_execution_method: ExecutionMethod | None=None) \
             -> Tuple[bool, bool]:
         should = super().should_maybe_update_scheduled_execution(
                 old_execution_method=old_execution_method)
@@ -497,8 +499,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         return (False, False)
 
     @override
-    def setup_scheduled_execution(self, old_execution_method: Optional[ExecutionMethod]=None,
-            force_creation: bool=False, teardown_result: Optional[Any]=None) -> None:
+    def setup_scheduled_execution(self, old_execution_method: ExecutionMethod | None=None,
+            force_creation: bool=False, teardown_result: Any | None=None) -> None:
         task = self.task
 
         if not task:
@@ -614,7 +616,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         task.scheduling_settings = ss.dict()
 
     @override
-    def teardown_scheduled_execution(self) -> Tuple[Optional[dict[str, Any]], Optional[Any]]:
+    def teardown_scheduled_execution(self) -> Tuple[dict[str, Any] | None, Any | None]:
         task = self.task
 
         if not task:
@@ -635,7 +637,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 task.scheduling_provider_type = ''
             return (None, None)
 
-        client: Optional[Any] = None
+        client: Any | None = None
 
         if ss.event_target_rule_name and ss.event_target_id:
             client = self.aws_settings.make_events_client()
@@ -708,7 +710,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return (task.scheduling_settings, None)
 
-    def should_update_or_force_recreate_service(self, old_execution_method: Optional[ExecutionMethod]=None) -> Tuple[bool, bool]:
+    def should_update_or_force_recreate_service(self, old_execution_method: ExecutionMethod | None=None) -> Tuple[bool, bool]:
         task = self.task
 
         if not task:
@@ -716,8 +718,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         will_be_managed_service = task.is_active_managed_service(current=False)
 
-        old_task: Optional[Task] = None
-        old_aws_ecs_execution_method: Optional[AwsEcsExecutionMethod] = None
+        old_task: Task | None = None
+        old_aws_ecs_execution_method: AwsEcsExecutionMethod | None = None
 
         if old_execution_method:
             old_task = old_execution_method.task
@@ -867,8 +869,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         return (False, False)
 
     @override
-    def setup_service(self, old_execution_method: Optional['ExecutionMethod']=None,
-            force_creation: bool=False, teardown_result: Optional[Any]=None) -> None:
+    def setup_service(self, old_execution_method: 'ExecutionMethod' | None=None,
+            force_creation: bool=False, teardown_result: Any | None=None) -> None:
         task = self.task
 
         if not task:
@@ -881,10 +883,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         logger.info(f"setup_service() for Task {task.name}, {force_creation=}, {teardown_result=} ...")
 
-        old_aws_ecs_execution_method: Optional[AwsEcsExecutionMethod] = None
-        old_ecs_client: Optional[Any] = None
-        existing_service_info: Optional[AwsEcsServiceResponseFragment] = None
-        aws_ecs_service_teardown_result: Optional[AwsEcsServiceTeardownResult] = None
+        old_aws_ecs_execution_method: AwsEcsExecutionMethod | None = None
+        old_ecs_client: Any | None = None
+        existing_service_info: AwsEcsServiceResponseFragment | None = None
+        aws_ecs_service_teardown_result: AwsEcsServiceTeardownResult | None = None
 
         if isinstance(old_execution_method, AwsEcsExecutionMethod):
             old_aws_ecs_execution_method = cast(AwsEcsExecutionMethod, old_execution_method)
@@ -896,7 +898,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         if (existing_service_info is None) and old_aws_ecs_execution_method:
             old_service_settings = old_aws_ecs_execution_method.service_settings
-            old_service_arn: Optional[str] = None
+            old_service_arn: str | None = None
 
             if old_service_settings:
                 old_service_arn = old_service_settings.service_arn
@@ -911,7 +913,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             except Exception:
                 logger.warning("Cannot find existing ECS service with old execution method")
 
-        ecs_client: Optional[Any] = None
+        ecs_client: Any | None = None
 
         if not existing_service_info:
             ecs_client = self.make_ecs_client()
@@ -922,7 +924,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         #role = task.aws_ecs_default_task_role or task.aws_ecs_default_execution_role or \
         #    run_env.aws_ecs_default_task_role or run_env.aws_ecs_default_execution_role
 
-        service_name: Optional[str] = None
+        service_name: str | None = None
         if existing_service_info:
             service_name = existing_service_info.service_name
 
@@ -1011,7 +1013,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         logger.info(f"setup_service() for Task {task.name} got service ARN {ss.service_arn} ...")
 
     @override
-    def teardown_service(self) -> Tuple[Optional[dict[str, Any]], Optional[Any]]:
+    def teardown_service(self) -> Tuple[dict[str, Any] | None, Any | None]:
         task = self.task
 
         if not task:
@@ -1020,7 +1022,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         logger.info(f"Tearing down service for Task {task.name} ...")
 
         teardown_result = AwsEcsServiceTeardownResult()
-        ssd: Optional[dict[str, Any]] = None
+        ssd: dict[str, Any] | None = None
 
         ecs_client = self.make_ecs_client()
         existing_service_info = self.find_aws_ecs_service(ecs_client=ecs_client)
@@ -1146,7 +1148,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             task.execution_method_capability_details or {})
 
         main_container_cpu_units = aws_ecs_settings.main_container_cpu_units
-        computed_main_container_cpu_units: Optional[int] = None
+        computed_main_container_cpu_units: int | None = None
 
         if (main_container_cpu_units is None) and task.allocated_cpu_units and task_aws_ecs_settings.main_container_cpu_units:
             computed_main_container_cpu_units = (cpu_units - task.allocated_cpu_units) + task_aws_ecs_settings.main_container_cpu_units
@@ -1158,7 +1160,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         main_container_memory_mb = aws_ecs_settings.main_container_memory_mb
 
-        computed_main_container_memory_mb: Optional[int] = None
+        computed_main_container_memory_mb: int | None = None
 
         if (main_container_memory_mb is None) and task.allocated_memory_mb and task_aws_ecs_settings.main_container_memory_mb:
             computed_main_container_memory_mb = (memory_mb - task.allocated_memory_mb) + task_aws_ecs_settings.main_container_memory_mb
@@ -1325,8 +1327,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return 'CR_' + str(self.task.uuid) + '_' + str(index)
 
-    def find_aws_ecs_service(self, ecs_client: Optional[Any]=None,
-            service_arn_or_name: Optional[str] = None) -> Optional[AwsEcsServiceResponseFragment]:
+    def find_aws_ecs_service(self, ecs_client: Any | None=None,
+            service_arn_or_name: str | None = None) -> AwsEcsServiceResponseFragment | None:
         if ecs_client is None:
             ecs_client = self.make_ecs_client()
 

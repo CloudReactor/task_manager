@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 import logging
 
@@ -39,7 +39,7 @@ class WorkflowTransitionEvaluationSerializer(serializers.ModelSerializer,
 
     from_workflow_task_instance_execution = serializers.SerializerMethodField()
 
-    def get_from_workflow_task_instance_execution(self, wte: WorkflowTransitionEvaluation) -> Optional[str]:
+    def get_from_workflow_task_instance_execution(self, wte: WorkflowTransitionEvaluation) -> str | None:
         wtie = wte.from_workflow_task_instance_execution
         if wtie:
             return str(wtie.uuid)

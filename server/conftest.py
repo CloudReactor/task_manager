@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Mapping, NamedTuple, Tuple, TYPE_CHECKING, cast
+from typing import Any, Mapping, NamedTuple, Tuple, TYPE_CHECKING, cast
 
 from collections import abc
 from datetime import datetime
@@ -131,8 +131,8 @@ def api_client():
     return APIClient()
 
 def make_saas_token_api_client(user: User, group: Group,
-        api_client: APIClient, access_level: Optional[int] = None,
-        run_environment: Optional[RunEnvironment] = None) -> APIClient:
+        api_client: APIClient, access_level: int | None = None,
+        run_environment: RunEnvironment | None = None) -> APIClient:
     print(f"make_saas_token_api_client() {group=}, {run_environment=}, {access_level=}")
 
     token, _ = SaasToken.objects.get_or_create(user=user, group=group,
@@ -149,9 +149,9 @@ def make_jwt_token_api_client(user: User, api_client: APIClient) -> APIClient:
 
 def make_api_client_from_options(api_client: APIClient,
         is_authenticated: bool = False,
-        user: Optional[User] = None, group: Optional[Group] = None,
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None) -> APIClient:
+        user: User | None = None, group: Group | None = None,
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None) -> APIClient:
     if not is_authenticated:
         return api_client
 
@@ -170,7 +170,7 @@ def make_api_client_from_options(api_client: APIClient,
             run_environment=api_key_run_environment)
 
 def set_group_access_level(user: User, group: Group,
-        access_level: Optional[int]) -> None:
+        access_level: int | None) -> None:
     if access_level is None:
         UserGroupAccessLevel.objects.filter(user=user, group=group).delete()
         user.groups.remove(group)
@@ -182,10 +182,10 @@ def set_group_access_level(user: User, group: Group,
         user.groups.add(group)
 
 def authenticated_request_for_context(user: User,
-        group: Optional[Group],
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None,
-        path: Optional[str] = None,  **kwargs) -> Request:
+        group: Group | None,
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None,
+        path: str | None = None,  **kwargs) -> Request:
     if api_key_access_level is None:
         assert api_key_run_environment is None
         auth = RefreshToken.for_user(user)
@@ -207,8 +207,8 @@ def context_with_authenticated_request(**kwargs) -> dict[str, Any]:
     }
 
 def check_validation_error(response: Response,
-        validation_error_attribute: Optional[str] = None,
-        error_code: Optional[str] = None) -> None:
+        validation_error_attribute: str | None = None,
+        error_code: str | None = None) -> None:
     if validation_error_attribute:
         response_dict = cast(dict[str, Any], response.data)
         assert(validation_error_attribute in response_dict)
@@ -216,13 +216,13 @@ def check_validation_error(response: Response,
         if error_code:
             assert(response_dict[validation_error_attribute][0].code == error_code)
 
-def iso8601_with_z(dt: Optional[datetime]) -> Optional[str]:
+def iso8601_with_z(dt: datetime | None) -> str | None:
     if dt:
         return dt.isoformat().replace('+00:00', 'Z')
 
     return None
 
-def split_url(url: str) -> Tuple[Optional[str], str]:
+def split_url(url: str) -> Tuple[str | None, str]:
     double_slash_index = url.find('//')
     if double_slash_index >= 0:
         next_slash_index = url.find('/', double_slash_index + 2)
@@ -258,7 +258,7 @@ def verify_name_uuid_url_match(body_1: dict[str, Any],
         assert t_1[1] == t_2[1]
 
 
-def assert_deep_subset(subset: Any, superset: Any, attr: Optional[str]=None) \
+def assert_deep_subset(subset: Any, superset: Any, attr: str | None=None) \
         -> None:
     attr = attr or '(unknown)'
 
@@ -421,7 +421,7 @@ def make_common_task_request_body(run_environment_name: str = 'Staging',
 
 
 def validate_serialized_run_environment(body_re: dict[str, Any], model_re: run_environment,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     ensure_attributes_match(body_re, model_re, OUTPUT_RUN_ENVIRONMENT_ATTRIBUTES)
@@ -448,7 +448,7 @@ def validate_serialized_run_environment(body_re: dict[str, Any], model_re: run_e
 
 def validate_saved_run_environment(body_re: dict[str, Any],
         model_re: RunEnvironment,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     ensure_attributes_match(body_re, model_re, COPIED_RUN_ENVIRONMENT_ATTRIBUTES,
@@ -813,7 +813,7 @@ def make_unknown_task_request_body(run_environment: RunEnvironment) -> dict[str,
 
 
 def validate_serialized_task(body_task: dict[str, Any], model_task: Task,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     ensure_attributes_match(body_task, model_task, OUTPUT_TASK_ATTRIBUTES)
@@ -1079,22 +1079,22 @@ def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
 
 
 
-def make_task_execution_request_body(uuid_send_type: Optional[str],
-        task_send_type: Optional[str],
+def make_task_execution_request_body(uuid_send_type: str | None,
+        task_send_type: str | None,
         user: User,
         group_factory, run_environment_factory, task_factory,
         task_execution_factory,
         task_execution_status: str = 'RUNNING',
         task_property_name: str = 'task',
-        api_key_run_environment: Optional[RunEnvironment] = None,
-        task_execution: Optional[TaskExecution] = None,
-        task: Optional[Task] = None) -> dict[str, Any]:
+        api_key_run_environment: RunEnvironment | None = None,
+        task_execution: TaskExecution | None = None,
+        task: Task | None = None) -> dict[str, Any]:
     request_data: dict[str, Any] = {
       'status': task_execution_status,
       'extraprop': 'dummy',
     }
 
-    run_environment: Optional[RunEnvironment] = None
+    run_environment: RunEnvironment | None = None
 
     if task_send_type == SEND_ID_CORRECT:
         if (task is None) and task_execution:
@@ -1146,17 +1146,17 @@ def make_task_execution_request_body(uuid_send_type: Optional[str],
 
 
 def make_aws_ecs_task_execution_request_body(
-        run_environment: Optional[RunEnvironment],
+        run_environment: RunEnvironment | None,
         group_factory, run_environment_factory, task_factory,
         task_execution_factory,
         user: User,
-        uuid_send_type: Optional[str] = SEND_ID_NONE,
-        task_send_type: Optional[str] = SEND_ID_CORRECT,
-        task_execution: Optional[TaskExecution] = None,
+        uuid_send_type: str | None = SEND_ID_NONE,
+        task_send_type: str | None = SEND_ID_CORRECT,
+        task_execution: TaskExecution | None = None,
         task_execution_status: str = 'RUNNING',
         task_property_name: str = 'task',
-        task: Optional[Task] = None,
-        aws_ecs_setup: Optional[AwsEcsSetup] = None,
+        task: Task | None = None,
+        aws_ecs_setup: AwsEcsSetup | None = None,
         was_auto_created: bool = False, is_passive: bool = False,
         is_legacy_schema: bool = False) -> dict[str, Any]:
     body = make_task_execution_request_body(
@@ -1257,7 +1257,7 @@ def make_aws_ecs_task_execution_request_body(
 
 def validate_serialized_task_execution(body_task_execution: dict[str, Any],
         model_task_execution: TaskExecution,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     ensure_attributes_match(body_task_execution, model_task_execution,
@@ -1310,7 +1310,7 @@ def validate_serialized_task_execution(body_task_execution: dict[str, Any],
 
 def validate_saved_task_execution(body_task_execution: dict[str, Any],
         model_task_execution: TaskExecution,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     ensure_attributes_match(body_task_execution, model_task_execution,
@@ -1352,7 +1352,7 @@ def validate_saved_task_execution(body_task_execution: dict[str, Any],
 
 def validate_serialized_workflow(body_workflow: dict[str, Any],
         model_workflow: Workflow,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     ensure_attributes_match(body_workflow, model_workflow, [
@@ -1391,7 +1391,7 @@ def validate_serialized_workflow(body_workflow: dict[str, Any],
 def validate_serialized_workflow_execution_summary(
         body_workflow_execution: dict[str, Any],
         model_workflow_execution: WorkflowExecution,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     ensure_attributes_match(body_workflow_execution, model_workflow_execution, [
@@ -1422,7 +1422,7 @@ def validate_serialized_workflow_execution_summary(
 
 def validate_serialized_workflow_execution(body_workflow_execution: dict[str, Any],
         model_workflow_execution: WorkflowExecution,
-        context: Optional[dict[str, Any]] = None) -> None:
+        context: dict[str, Any] | None = None) -> None:
     context = context or context_with_request()
 
     validate_serialized_workflow_execution_summary(body_workflow_execution,
@@ -1457,8 +1457,8 @@ def validate_serialized_workflow_execution(body_workflow_execution: dict[str, An
 def ensure_serialized_event_valid(response_dict: dict[str, Any],
         event: Event, user: User,
         group_access_level: int,
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None) -> None:
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None) -> None:
     context = context_with_authenticated_request(user=user,
             group=event.created_by_group,
             api_key_access_level=api_key_access_level,

@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 from datetime import timedelta
 from django.utils import timezone
@@ -23,7 +23,7 @@ def test_save_event_exceeding_max_events(group: Group, subscription_plan_factory
           start_at=utc_now - timedelta(minutes=1))
     subscription.save()
 
-    earliest_event: Optional[Event] = None
+    earliest_event: Event | None = None
 
     for i in range(5):
         event = basic_event_factory(created_by_group=group,

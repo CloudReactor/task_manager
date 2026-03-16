@@ -1,4 +1,4 @@
-from typing import cast, Optional
+from typing import cast
 
 import logging
 
@@ -145,7 +145,7 @@ class InvitationViewSet(AtomicCreateModelMixin,
             group = cast(Group, validated_data['group'])
             invited_user.groups.add(group)
 
-            access_level = cast(Optional[int], validated_data.get('group_access_level'))
+            access_level = cast(int | None, validated_data.get('group_access_level'))
 
             if access_level is None:
                 logger.info(f'No access level found for {invited_user.username=}')

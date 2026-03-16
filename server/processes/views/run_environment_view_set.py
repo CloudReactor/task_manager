@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 import logging
 import uuid as python_uuid
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 class RunEnvironmentScopePermission(IsCreatedByGroup):
     def run_environment_for_object(self,
-            obj: RunEnvironment) -> Optional[RunEnvironment]:
+            obj: RunEnvironment) -> RunEnvironment | None:
         return obj
 
 class RunEnvironmentFilter(filters.FilterSet):

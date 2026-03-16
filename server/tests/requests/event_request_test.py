@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, cast
+from typing import Any, List, cast
 
 import uuid
 from urllib.parse import quote
@@ -128,8 +128,8 @@ from conftest import *
    401, None),
 ])
 def test_event_list(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         user_has_another_group: bool, send_group_id_type: str,
         status_code: int, expected_indices: List[int],
         user_factory, group_factory,
@@ -164,7 +164,7 @@ def test_event_list(
 
     params = {}
 
-    group_id: Optional[str] = None
+    group_id: str | None = None
 
     if send_group_id_type == SEND_ID_CORRECT:
         group_id = str(group.id)
@@ -241,8 +241,8 @@ def test_event_list(
    401),
 ])
 def test_event_fetch(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         uuid_send_type: str,
         status_code: int,
         user_factory, group_factory,
@@ -333,11 +333,11 @@ def test_event_fetch(
    401, None, None),
 ])
 def test_event_create_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         request_uuid_type: str, event_type: str,
-        status_code: int, validation_error_attribute: Optional[str],
-        error_code: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
+        error_code: str | None,
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory,
         workflow_factory, workflow_execution_factory,
@@ -467,8 +467,8 @@ def test_event_create_access_control(
    401),
 ])
 def test_event_update_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         status_code: int,
         user_factory, group_factory,
         basic_event_factory,
@@ -548,8 +548,8 @@ def test_event_update_access_control(
    401),
 ])
 def test_event_delete_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         status_code: int,
         user_factory, group_factory,
         basic_event_factory,

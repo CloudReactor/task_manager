@@ -1,4 +1,4 @@
-from typing import Any, Collection, Mapping, NoReturn, Optional
+from typing import Any, Collection, Mapping, NoReturn
 
 import logging
 
@@ -31,11 +31,11 @@ class SerializerHelpers:
     # Context key to prevent infinite recursion in polymorphic serializers
     SKIP_POLYMORPHIC_DELEGATION = '_skip_polymorphic_delegation'
 
-    def get_request_user(self) -> Optional[User]:
+    def get_request_user(self) -> User | None:
         request = self.context['request']
         return request.user
 
-    def get_request_group(self) -> Optional[Group]:
+    def get_request_group(self) -> Group | None:
         request = self.context['request']
 
         group = None
@@ -55,7 +55,7 @@ class SerializerHelpers:
     def set_validated_notification_profiles(self,
             data: Mapping[str, Any],
             validated: dict[str, Any],
-            run_environment: Optional[RunEnvironment],
+            run_environment: RunEnvironment | None,
             property_name: str = 'notification_profiles',
             allow_any_run_environment: bool = False):
         from processes.models import NotificationProfile
@@ -88,7 +88,7 @@ class SerializerHelpers:
 
 
     @staticmethod
-    def validate_schedule(schedule: Optional[str]) -> Optional[str]:
+    def validate_schedule(schedule: str | None) -> str | None:
         if schedule is None:
             return None
 
@@ -125,7 +125,7 @@ class SerializerHelpers:
     # See https://github.com/encode/django-rest-framework/issues/3864
     @staticmethod
     def handle_to_internal_value_exception(ex: Exception,
-            field_name: Optional[str] = None) -> NoReturn:
+            field_name: str | None = None) -> NoReturn:
         if isinstance(ex, serializers.ValidationError):
             detail = ex.detail
 
@@ -138,8 +138,8 @@ class SerializerHelpers:
     @staticmethod
     def copy_props_with_prefix(dest_dict: dict[str, Any],
             src_dict: Mapping[str, Any], dest_prefix='',
-            included_keys: Optional[Collection[str]] = None,
-            except_keys: Optional[Collection[str]] = None,
+            included_keys: Collection[str] | None = None,
+            except_keys: Collection[str] | None = None,
             none_to_empty_strings: bool = False) -> dict[str, Any]:
         included_key_set = None if (included_keys is None) else set(included_keys)
         except_key_set = set(except_keys or [])

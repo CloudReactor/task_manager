@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import cast
 
 import logging
 
@@ -65,19 +65,19 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         logger.debug(f"wts: to_internal value, validated = {validated}")
 
-        wts: Optional[WorkflowTransition] = None
+        wts: WorkflowTransition | None = None
 
         if self.instance:
             wts = cast(WorkflowTransition, self.instance)
 
         #workflow = self.instance.workflow if self.instance else None
 
-        from_workflow: Optional[Workflow] = None
-        last_present_property_name: Optional[str] = None
+        from_workflow: Workflow | None = None
+        last_present_property_name: str | None = None
 
         for x in ['from', 'to']:
             is_to = (x == 'to')
-            workflow: Optional[Workflow] = None
+            workflow: Workflow | None = None
 
             p = f'{x}_workflow_task_instance'
 

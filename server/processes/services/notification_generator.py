@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import logging
 
@@ -22,13 +22,13 @@ class NotificationGenerator:
 
     def make_template_params(
           self,
-          run_environment: Optional[RunEnvironment] = None,
-          task: Optional[Task] = None,
-          task_execution: Optional[TaskExecution] = None,
-          workflow: Optional[Workflow] = None,
-          workflow_execution: Optional[WorkflowExecution] = None,
+          run_environment: RunEnvironment | None = None,
+          task: Task | None = None,
+          task_execution: TaskExecution | None = None,
+          workflow: Workflow | None = None,
+          workflow_execution: WorkflowExecution | None = None,
           is_resolution: bool = False,
-          severity: Optional[str] = None) -> dict[str, Any]:
+          severity: str | None = None) -> dict[str, Any]:
         from processes.serializers import (
             RunEnvironmentSerializer,
             TaskSerializer,
@@ -85,9 +85,9 @@ class NotificationGenerator:
         return template_dict
 
     def generate_text(
-        self, template_params, template: Optional[str] = None,
-        task_execution: Optional[TaskExecution] = None,
-        workflow_execution: Optional[WorkflowExecution] = None) -> str:
+        self, template_params, template: str | None = None,
+        task_execution: TaskExecution | None = None,
+        workflow_execution: WorkflowExecution | None = None) -> str:
 
         if workflow_execution:
             template = template or DEFAULT_NOTIFICATION_WORKFLOW_EXECUTION_SUMMARY_TEMPLATE

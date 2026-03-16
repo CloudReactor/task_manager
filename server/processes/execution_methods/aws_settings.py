@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import cast
 
 import os
 from urllib.parse import quote
@@ -18,54 +18,54 @@ INFRASTRUCTURE_TYPE_AWS = 'AWS'
 
 
 class SecurityGroup(BaseModel):
-    name: Optional[str] = None
-    id: Optional[str] = None
-    infrastructure_website_url: Optional[str] = None
+    name: str | None = None
+    id: str | None = None
+    infrastructure_website_url: str | None = None
 
 class Vpc(BaseModel):
-    name: Optional[str] = None
-    id: Optional[str] = None
-    infrastructure_website_url: Optional[str] = None
+    name: str | None = None
+    id: str | None = None
+    infrastructure_website_url: str | None = None
 
 class Subnet(BaseModel):
-    name: Optional[str] = None
-    id: Optional[str] = None
-    infrastructure_website_url: Optional[str] = None
+    name: str | None = None
+    id: str | None = None
+    infrastructure_website_url: str | None = None
 
 class AwsNetwork(BaseModel):
-    network_mode: Optional[str] = None
-    device_number: Optional[int] = None
-    eni_id: Optional[str] = None
-    aws_account_id: Optional[str] = None
-    ip_v4_subnet_cidr_block: Optional[str] = None
-    ip_v6_subnet_cidr_block: Optional[str] = None
-    dns_servers: Optional[list[str]] = None
-    dns_search_list: Optional[list[str]] = None
-    private_dns_name: Optional[str] = None
-    public_dns_name: Optional[str] = None
-    subnet_gateway_ip_v4_address: Optional[str] = None
-    ip_v4_addresses: Optional[list[str]] = None
-    ip_v6_addresses: Optional[list[str]] = None
-    mac_address: Optional[str] = None
-    security_groups: Optional[SecurityGroup] = None
-    vpc: Optional[Vpc] = None
+    network_mode: str | None = None
+    device_number: int | None = None
+    eni_id: str | None = None
+    aws_account_id: str | None = None
+    ip_v4_subnet_cidr_block: str | None = None
+    ip_v6_subnet_cidr_block: str | None = None
+    dns_servers: list[str] | None = None
+    dns_search_list: list[str] | None = None
+    private_dns_name: str | None = None
+    public_dns_name: str | None = None
+    subnet_gateway_ip_v4_address: str | None = None
+    ip_v4_addresses: list[str] | None = None
+    ip_v6_addresses: list[str] | None = None
+    mac_address: str | None = None
+    security_groups: SecurityGroup | None = None
+    vpc: Vpc | None = None
 
 
 class AwsNetworkSettings(BaseModel):
-    region: Optional[str] = None
-    availability_zone: Optional[str] = None
-    subnets: Optional[list[str]] = None
-    subnet_infrastructure_website_urls: Optional[list[str]] = None
-    security_groups: Optional[list[str]] = None
-    security_group_infrastructure_website_urls: Optional[list[str]] = None
-    assign_public_ip: Optional[bool] = None
-    networks: Optional[list[AwsNetwork]] = None
-    vpc_id: Optional[str] = None
-    selected_subnet: Optional[str] = None
-    selected_subnet_infrastructure_website_url: Optional[str] = None
+    region: str | None = None
+    availability_zone: str | None = None
+    subnets: list[str] | None = None
+    subnet_infrastructure_website_urls: list[str] | None = None
+    security_groups: list[str] | None = None
+    security_group_infrastructure_website_urls: list[str] | None = None
+    assign_public_ip: bool | None = None
+    networks: list[AwsNetwork] | None = None
+    vpc_id: str | None = None
+    selected_subnet: str | None = None
+    selected_subnet_infrastructure_website_url: str | None = None
 
     def update_derived_attrs(self, aws_settings: 'AwsSettings',
-          execution_method: Optional[ExecutionMethod] = None) -> None:
+          execution_method: ExecutionMethod | None = None) -> None:
         region = self.compute_region(aws_settings=aws_settings,
             execution_method=execution_method)
 
@@ -89,7 +89,7 @@ class AwsNetworkSettings(BaseModel):
 
 
     def compute_region(self, aws_settings: 'AwsSettings',
-            execution_method: Optional[ExecutionMethod] = None) -> Optional[str]:
+            execution_method: ExecutionMethod | None = None) -> str | None:
         from .aws_base_execution_method import AwsBaseExecutionMethod
 
         region = self.region or aws_settings.region
@@ -101,19 +101,19 @@ class AwsNetworkSettings(BaseModel):
 
 
 class AwsLogOptions(BaseModel):
-    region: Optional[str] = None
-    group: Optional[str] = None
-    create_group: Optional[str] = None
-    stream_prefix: Optional[str] = None
-    stream: Optional[str] = None
-    datetime_format: Optional[str] = None
-    multiline_pattern: Optional[str] = None
-    mode: Optional[str] = None
-    max_buffer_size: Optional[str] = None
-    stream_infrastructure_website_url: Optional[str] = None
+    region: str | None = None
+    group: str | None = None
+    create_group: str | None = None
+    stream_prefix: str | None = None
+    stream: str | None = None
+    datetime_format: str | None = None
+    multiline_pattern: str | None = None
+    mode: str | None = None
+    max_buffer_size: str | None = None
+    stream_infrastructure_website_url: str | None = None
 
     def update_derived_attrs(self, aws_settings: 'AwsSettings',
-            execution_method: Optional[ExecutionMethod] = None) -> None:
+            execution_method: ExecutionMethod | None = None) -> None:
         self.stream_infrastructure_website_url = None
 
         if self.stream and self.group:
@@ -128,7 +128,7 @@ class AwsLogOptions(BaseModel):
                     + aws_encode(self.stream)
 
     def compute_region(self, aws_settings: 'AwsSettings',
-            execution_method: Optional[ExecutionMethod] = None) -> Optional[str]:
+            execution_method: ExecutionMethod | None = None) -> str | None:
         from .aws_base_execution_method import AwsBaseExecutionMethod
 
         region = self.region or aws_settings.region
@@ -140,12 +140,12 @@ class AwsLogOptions(BaseModel):
 
 
 class AwsLoggingSettings(BaseModel):
-    driver: Optional[str] = None
-    options: Optional[AwsLogOptions] = None
-    infrastructure_website_url: Optional[str] = None
+    driver: str | None = None
+    options: AwsLogOptions | None = None
+    infrastructure_website_url: str | None = None
 
     def update_derived_attrs(self, aws_settings: 'AwsSettings',
-            execution_method: Optional[ExecutionMethod]) -> None:
+            execution_method: ExecutionMethod | None) -> None:
         self.infrastructure_website_url = None
 
         options = self.options
@@ -169,10 +169,10 @@ class AwsLoggingSettings(BaseModel):
 
 
     def compute_region(self, aws_settings: 'AwsSettings',
-            execution_method: Optional[ExecutionMethod] = None) -> Optional[str]:
+            execution_method: ExecutionMethod | None = None) -> str | None:
         from .aws_base_execution_method import AwsBaseExecutionMethod
 
-        region: Optional[str] = None
+        region: str | None = None
         options = self.options
 
         if options:
@@ -188,8 +188,8 @@ class AwsLoggingSettings(BaseModel):
 
 
 class AwsXraySettings(BaseModel):
-    trace_id: Optional[str] = None
-    context_missing: Optional[str] = None
+    trace_id: str | None = None
+    context_missing: str | None = None
 
 
 PROTECTED_AWS_SETTINGS_PROPERTIES = [
@@ -198,28 +198,28 @@ PROTECTED_AWS_SETTINGS_PROPERTIES = [
 
 
 class AwsSettings(InfrastructureSettings):
-    account_id: Optional[str] = None
-    region: Optional[str] = None
-    access_key: Optional[str] = None
-    secret_key: Optional[str] = None
-    events_role_arn: Optional[str] = None
-    events_role_infrastructure_website_url: Optional[str] = None
-    assumed_role_external_id: Optional[str] = None
-    execution_role_arn: Optional[str] = None
-    execution_role_infrastructure_website_url: Optional[str] = None
-    workflow_starter_lambda_arn: Optional[str] = None
-    workflow_starter_lambda_infrastructure_website_url: Optional[str] = None
-    workflow_starter_access_key: Optional[str] = None
-    network: Optional[AwsNetworkSettings] = None
-    logging: Optional[AwsLoggingSettings] = None
-    xray: Optional[AwsXraySettings] = None
-    tags: Optional[dict[str, str]] = None
+    account_id: str | None = None
+    region: str | None = None
+    access_key: str | None = None
+    secret_key: str | None = None
+    events_role_arn: str | None = None
+    events_role_infrastructure_website_url: str | None = None
+    assumed_role_external_id: str | None = None
+    execution_role_arn: str | None = None
+    execution_role_infrastructure_website_url: str | None = None
+    workflow_starter_lambda_arn: str | None = None
+    workflow_starter_lambda_infrastructure_website_url: str | None = None
+    workflow_starter_access_key: str | None = None
+    network: AwsNetworkSettings | None = None
+    logging: AwsLoggingSettings | None = None
+    xray: AwsXraySettings | None = None
+    tags: dict[str, str] | None = None
 
     def assume_aws_role(self, b, service_name: str, role_arn: str,
             region_name: str, session_uuid: str,
-            aws_access_key: Optional[str] = None,
-            aws_secret_access_key: Optional[str] = None,
-            external_id: Optional[str] = None) -> boto3.session.Session:
+            aws_access_key: str | None = None,
+            aws_secret_access_key: str | None = None,
+            external_id: str | None = None) -> boto3.session.Session:
         kwargs = {
             'region_name': region_name
         }
@@ -257,7 +257,7 @@ class AwsSettings(InfrastructureSettings):
             region_name=region_name)
 
 
-    def make_boto3_client(self, service_name: str, session_uuid: Optional[str] = None):
+    def make_boto3_client(self, service_name: str, session_uuid: str | None = None):
         if not self.region:
             raise UnprocessableEntity(detail='Missing region to access AWS')
 
@@ -298,7 +298,7 @@ class AwsSettings(InfrastructureSettings):
             return boto3_session_2.client(service_name)  # type: ignore
 
 
-    def make_events_client(self, session_uuid: Optional[str] = None):
+    def make_events_client(self, session_uuid: str | None = None):
         return self.make_boto3_client('events',
                 session_uuid=session_uuid)
 
@@ -313,7 +313,7 @@ class AwsSettings(InfrastructureSettings):
                 self.workflow_starter_access_key and \
                 self.execution_role_arn)
 
-    def update_derived_attrs(self, execution_method: Optional[ExecutionMethod]=None) -> None:
+    def update_derived_attrs(self, execution_method: ExecutionMethod | None=None) -> None:
         if self.events_role_arn:
             self.events_role_arn = normalize_role_arn(self.events_role_arn,
                 aws_account_id = self.account_id)

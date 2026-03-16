@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from datetime import datetime, timedelta
 
@@ -33,8 +33,8 @@ MAX_REQUEST_DELAY_SECONDS = 10
   (1000, 32, False),
 ])
 def test_subscription_rate_throttling(
-      current_usage: Optional[int],
-      api_last_used_days_ago: Optional[int],
+      current_usage: int | None,
+      api_last_used_days_ago: int | None,
       throttled: bool,
       user_factory, group_info_factory,
       subscription_plan_factory, subscription_factory,
@@ -46,7 +46,7 @@ def test_subscription_rate_throttling(
     subscription_factory(subscription_plan=subscription_plan,
             group=group)
 
-    group_info: Optional[GroupInfo] = None
+    group_info: GroupInfo | None = None
     old_api_last_used_at = None
     if (current_usage is not None) or (api_last_used_days_ago is not None):
         old_api_last_used_at = timezone.now() \

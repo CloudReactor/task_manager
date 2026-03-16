@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 from pydantic import BaseModel
 
@@ -6,8 +6,8 @@ SCHEDULING_TYPE_AWS_CLOUDWATCH = 'AWS CloudWatch'
 
 
 class AwsCloudwatchSchedulingSettings(BaseModel):
-    execution_rule_name: Optional[str] = None
-    event_rule_arn: Optional[str] = None
-    event_target_rule_name: Optional[str] = None
-    event_target_id: Optional[str] = None
-    event_bus_name: Optional[str] = None
+    execution_rule_name: str | None = None
+    event_rule_arn: str | None = None
+    event_target_rule_name: str | None = None
+    event_target_id: str | None = None
+    event_bus_name: str | None = None

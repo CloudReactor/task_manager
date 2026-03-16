@@ -1,4 +1,4 @@
-from typing import cast, Any, Optional, Sequence
+from typing import cast, Any, Sequence
 
 import logging
 
@@ -95,8 +95,8 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
         'notification_profiles',
     ])
 
-    def __init__(self, instance=None, data=empty, context: Optional[dict[str, Any]] = None,
-            forced_access_level: Optional[int] = None, **kwargs) -> None:
+    def __init__(self, instance=None, data=empty, context: dict[str, Any] | None = None,
+            forced_access_level: int | None = None, **kwargs) -> None:
         context = context or {}
 
         super().__init__(instance, data, context=context, **kwargs)
@@ -123,13 +123,13 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
 
 
     # Deprecated
-    def get_aws_account_id(self, run_env: RunEnvironment) -> Optional[str]:
+    def get_aws_account_id(self, run_env: RunEnvironment) -> str | None:
         if not run_env.aws_settings:
             return None
         return run_env.aws_settings.get('account_id')
 
     # Deprecated
-    def get_aws_default_region(self, run_env: RunEnvironment) -> Optional[str]:
+    def get_aws_default_region(self, run_env: RunEnvironment) -> str | None:
         if not run_env.aws_settings:
             return None
         return run_env.aws_settings.get('region')
@@ -247,7 +247,7 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
 
 
         self.set_validated_notification_profiles(data=data, validated=validated,
-            run_environment=cast(Optional[RunEnvironment], self.instance),
+            run_environment=cast(RunEnvironment | None, self.instance),
             property_name='notification_profiles')
 
         return validated

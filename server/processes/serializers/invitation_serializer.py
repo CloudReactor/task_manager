@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import binascii
 import logging
@@ -50,7 +50,7 @@ class InvitationSerializer(serializers.HyperlinkedModelSerializer):
         request = request_for_context()
         user, group = required_user_and_group_from_request(request=request)
 
-        request_body_group: Optional[Group] = None
+        request_body_group: Group | None = None
         request_body_group_dict = data.pop('group', None)
 
         if request_body_group_dict is None:

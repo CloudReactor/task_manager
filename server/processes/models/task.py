@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Type, TYPE_CHECKING, cast, override
+from typing import Any, Type, TYPE_CHECKING, cast, override
 
 import copy
 from datetime import datetime
@@ -140,7 +140,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
 
     should_skip_synchronize_with_run_environment = False
 
-    def get_aws_region(self) -> Optional[str]:
+    def get_aws_region(self) -> str | None:
         if self.run_environment is None:
             return None
 
@@ -226,7 +226,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         return True
 
     @property
-    def logs_url(self) -> Optional[str]:
+    def logs_url(self) -> str | None:
         lq = self.log_query
         if lq:
             if lq.startswith('http://') or lq.startswith('https://'):
@@ -344,14 +344,14 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         return self.enabled and (not self.passive) and self.is_service and \
                 coalesce(self.is_service_managed, not current)
 
-    def synchronize_with_run_environment(self, old_self: Optional['Task']=None,
+    def synchronize_with_run_environment(self, old_self: 'Task' | None=None,
             is_saving: bool=False) -> bool:
         if self.passive and ((not old_self) or old_self.passive):
             return False
 
         execution_method = self.execution_method()
 
-        old_execution_method: Optional[ExecutionMethod] = None
+        old_execution_method: ExecutionMethod | None = None
 
         if old_self:
             old_execution_method = old_self.execution_method()
@@ -368,9 +368,9 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         if should_update_scheduled_execution:
             logger.info(f"synchronize_with_run_environment(): Updating scheduled_execution, {self.is_scheduling_managed=}, {self.enabled=} ...")
 
-            schedule_teardown_completed_at: Optional[datetime] = None
-            schedule_teardown_result: Optional[Any] = None
-            torndown_scheduling_settings: Optional[dict[str, Any]] = None
+            schedule_teardown_completed_at: datetime | None = None
+            schedule_teardown_result: Any | None = None
+            torndown_scheduling_settings: dict[str, Any] | None = None
 
             will_be_managed_scheduled_execution = \
                     self.has_active_managed_scheduled_execution(current=False)
@@ -427,9 +427,9 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         if should_update_service:
             logger.info(f"synchronize_with_run_environment(): {self.uuid=} Updating service, {self.is_service=}, {self.enabled=}, {self.is_service_managed=} ...")
 
-            service_teardown_completed_at: Optional[datetime] = None
-            service_teardown_result: Optional[Any] = None
-            torndown_service_settings: Optional[dict[str, Any]] = None
+            service_teardown_completed_at: datetime | None = None
+            service_teardown_result: Any | None = None
+            torndown_service_settings: dict[str, Any] | None = None
 
             will_be_managed_service = self.is_active_managed_service(current=False)
 

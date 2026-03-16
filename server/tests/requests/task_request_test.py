@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, cast
+from typing import Any, List, Tuple, cast
 
 import logging
 from datetime import timedelta
@@ -39,8 +39,8 @@ logger = logging.getLogger(__name__)
 def ensure_serialized_task_valid(response_task: dict[str, Any],
         task: Task, user: User,
         group_access_level: int,
-        api_key_access_level: Optional[int] = None,
-        api_key_run_environment: Optional[RunEnvironment] = None) -> None:
+        api_key_access_level: int | None = None,
+        api_key_run_environment: RunEnvironment | None = None) -> None:
     context = context_with_authenticated_request(user=user,
             group=task.created_by_group,
             api_key_access_level=api_key_access_level,
@@ -162,8 +162,8 @@ def ensure_serialized_task_valid(response_task: dict[str, Any],
 ])
 @mock_aws
 def test_task_list(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         user_has_another_group: bool, send_group_id_type: str,
         status_code: int, expected_indices: List[int],
         user_factory, group_factory, run_environment_factory,
@@ -232,12 +232,12 @@ def test_task_list(
                     api_key_run_environment=api_key_run_environment)
 
 
-def common_setup(is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+def common_setup(is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str,
         user: User,
         group_factory, run_environment_factory, task_factory, api_client) \
-        -> Tuple[Optional[Task], Optional[RunEnvironment], APIClient, str]:
+        -> Tuple[Task | None, RunEnvironment | None, APIClient, str]:
     group = user.groups.first()
 
     assert group is not None
@@ -266,7 +266,7 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
 
     url = '/api/v1/tasks/'
 
-    task: Optional[Task] = None
+    task: Task | None = None
     if uuid_send_type != SEND_ID_NONE:
         task = task_factory(created_by_group=task_group,
                             run_environment=task_run_environment)
@@ -289,17 +289,17 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
     return (task, api_key_run_environment, client, url,)
 
 
-def make_request_body(uuid_send_type: Optional[str],
-        run_environment_send_type: Optional[str],
+def make_request_body(uuid_send_type: str | None,
+        run_environment_send_type: str | None,
         user: User,
         group_factory, run_environment_factory,
         task_factory,
-        api_key_run_environment: Optional[RunEnvironment] = None,
-        task: Optional[Task] = None,
-        execution_method_type: Optional[str] = None,
-        emcd: Optional[dict[str, Any]] = None,
-        legacy_emc: Optional[dict[str, Any]] = None) \
-        -> Tuple[dict[str, Any], Optional[RunEnvironment]]:
+        api_key_run_environment: RunEnvironment | None = None,
+        task: Task | None = None,
+        execution_method_type: str | None = None,
+        emcd: dict[str, Any] | None = None,
+        legacy_emc: dict[str, Any] | None = None) \
+        -> Tuple[dict[str, Any], RunEnvironment | None]:
     request_data: dict[str, Any] = {
       'name': 'Some Task',
       'passive': False,
@@ -329,7 +329,7 @@ def make_request_body(uuid_send_type: Optional[str],
         request_data['execution_method_capability'] = legacy_emc
 
     group = user.groups.first()
-    run_environment: Optional[RunEnvironment] = None
+    run_environment: RunEnvironment | None = None
 
     if run_environment_send_type == SEND_ID_CORRECT:
         if api_key_run_environment:
@@ -458,8 +458,8 @@ def make_request_body(uuid_send_type: Optional[str],
 ])
 @mock_aws
 def test_task_fetch(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None,
         api_key_scope_type: str,
         uuid_send_type: str,
         status_code: int,
@@ -695,10 +695,10 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
 ])
 @mock_aws
 def test_task_create_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         body_uuid_type: str, run_environment_send_type: str,
-        status_code: int, validation_error_attribute: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         task_factory, api_client) -> None:
     """
@@ -1083,10 +1083,10 @@ def test_task_create_with_links(
 ])
 @mock_aws
 def test_task_set_notification_profiles(
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        run_environment_send_type: Optional[str],
-        notification_profile_send_type: Optional[str],
-        status_code: int, validation_error_attribute: Optional[str],
+        api_key_access_level: int | None, api_key_scope_type: str,
+        run_environment_send_type: str | None,
+        notification_profile_send_type: str | None,
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         task_factory, notification_profile_factory,
         api_client) -> None:
@@ -1371,11 +1371,11 @@ def test_task_set_notification_profiles(
 ])
 @mock_aws
 def test_task_update_access_control(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
-        request_uuid_send_type: str, body_uuid_send_type: Optional[str],
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
+        request_uuid_send_type: str, body_uuid_send_type: str | None,
         run_environment_send_type: str,
-        status_code: int, validation_error_attribute: Optional[str],
+        status_code: int, validation_error_attribute: str | None,
         user_factory, group_factory, run_environment_factory,
         notification_profile_factory, task_factory,
         api_client) -> None:
@@ -1751,8 +1751,8 @@ def test_task_enable_aws_ecs_task(
 ])
 @mock_aws
 def test_task_delete(
-        is_authenticated: bool, group_access_level: Optional[int],
-        api_key_access_level: Optional[int], api_key_scope_type: str,
+        is_authenticated: bool, group_access_level: int | None,
+        api_key_access_level: int | None, api_key_scope_type: str,
         uuid_send_type: str,
         status_code: int,
         user_factory, group_factory, run_environment_factory,

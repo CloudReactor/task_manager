@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 from datetime import timedelta
 from django.utils import timezone
@@ -23,7 +23,7 @@ def test_save_notification_exceeding_max_notifications(group: Group, subscriptio
           start_at=utc_now - timedelta(minutes=1))
     subscription.save()
 
-    earliest_notification: Optional[Notification] = None
+    earliest_notification: Notification | None = None
 
     for i in range(5):
         notification = notification_factory(created_by_group=group,

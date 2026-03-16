@@ -1,4 +1,4 @@
-from typing import Any, Optional, Tuple
+from typing import Any, Tuple
 
 import uuid
 from uuid import UUID
@@ -75,10 +75,10 @@ from conftest import *
    ]
 )
 def test_invitation_creation(is_authenticated: bool,
-        group_access_level: Optional[int], use_api_key: bool,
-        invitation_access_level: Optional[int], is_user_existing: bool,
+        group_access_level: int | None, use_api_key: bool,
+        invitation_access_level: int | None, is_user_existing: bool,
         is_existing_user_active: bool,
-        existing_user_access_level: Optional[int],
+        existing_user_access_level: int | None,
         status_code: int, user_factory, api_client, mailoutbox):
     user = user_factory()
 
@@ -158,8 +158,8 @@ def test_invitation_creation(is_authenticated: bool,
 
 
 
-def make_invitation(user_factory, group_access_level: Optional[int] = None,
-      group: Optional[Group] = None) -> Invitation:
+def make_invitation(user_factory, group_access_level: int | None = None,
+      group: Group | None = None) -> Invitation:
     if group_access_level is None:
         group_access_level = UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER
     invited_by_user = user_factory()
@@ -190,7 +190,7 @@ def test_invitation_list(send_invitation_code_type: str, status_code: int,
       user_factory, api_client):
     invitation = make_invitation(user_factory)
 
-    invitation_code: Optional[str] = 'ABC'
+    invitation_code: str | None = 'ABC'
     if send_invitation_code_type == SEND_ID_NOT_FOUND:
         invitation_code = 'NOTREAL'
     elif send_invitation_code_type == SEND_ID_NONE:
@@ -217,7 +217,7 @@ def test_invitation_list(send_invitation_code_type: str, status_code: int,
             assert page['count'] == 0
             assert len(page['results']) == 0
 
-def common_setup(is_authenticated: bool, group_access_level: Optional[int],
+def common_setup(is_authenticated: bool, group_access_level: int | None,
         use_api_key: bool, send_uuid_type: str, request_by_inviter: bool,
         user_factory, api_client: APIClient) -> Tuple[Invitation, UUID, APIClient]:
     invitation = make_invitation(user_factory)
@@ -282,7 +282,7 @@ def common_setup(is_authenticated: bool, group_access_level: Optional[int],
    SEND_ID_CORRECT, True, 401),
 ])
 def test_invitation_fetch(
-        is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
+        is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
         send_uuid_type: str, request_by_inviter: bool, status_code: int,
         user_factory, api_client):
     invitation, invitation_uuid, client = common_setup(
@@ -331,7 +331,7 @@ def test_invitation_fetch(
     ]
 )
 def test_invitation_update_access_control(
-      is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
+      is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
       send_uuid_type: str, request_by_inviter: bool,
       status_code: int,
       user_factory, group_factory, api_client):
@@ -379,7 +379,7 @@ def test_invitation_update_access_control(
     ]
 )
 def test_invitation_removal(
-      is_authenticated: bool, group_access_level: Optional[int], use_api_key: bool,
+      is_authenticated: bool, group_access_level: int | None, use_api_key: bool,
       send_uuid_type: str, request_by_inviter: bool,
       status_code: int,
       user_factory, group_factory, api_client):

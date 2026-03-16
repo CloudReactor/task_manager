@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import cast
 
 import logging
 
@@ -61,7 +61,7 @@ class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
         view_name='workflow_task_instances-detail',
         lookup_field='uuid', read_only=True)
 
-    def __init__(self, instance=None, data=empty, workflow: Optional[Workflow] = None,
+    def __init__(self, instance=None, data=empty, workflow: Workflow | None = None,
             for_embedded_deserialization=False, **kwargs):
         super().__init__(instance, data, **kwargs)
         self.embedded_in_workflow = workflow
@@ -73,7 +73,7 @@ class WorkflowTaskInstanceSerializer(EmbeddedWorkflowSerializer):
 
         workflow = self.embedded_in_workflow
 
-        wti = cast(Optional[WorkflowTaskInstance], self.instance)
+        wti = cast(WorkflowTaskInstance | None, self.instance)
 
         if wti:
             workflow = workflow or wti.workflow

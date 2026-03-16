@@ -1,4 +1,4 @@
-from typing import Optional
+
 
 import logging
 
@@ -125,8 +125,8 @@ class WorkflowTaskInstance(UuidModel):
 
     @classmethod
     def find_by_uuid_or_name(cls, obj_dict,
-            required_group: Optional[Group] = None,
-            required_run_environment: Optional[RunEnvironment] = None,
+            required_group: Group | None = None,
+            required_run_environment: RunEnvironment | None = None,
             check_conflict: bool = True):
         uuid = obj_dict.get('uuid')
         name = obj_dict.get('name')

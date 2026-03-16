@@ -1,7 +1,7 @@
 #import ipdb
 import logging
 
-from typing import Optional, cast
+from typing import cast
 
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ErrorDetail, ValidationError
@@ -106,7 +106,7 @@ class WorkflowSerializer(
     def to_internal_value(self, data):
         logger.info(f"wfs: to_internal value, data = {data}")
 
-        workflow: Optional[Workflow] = cast(Workflow, self.instance) if self.instance else None
+        workflow: Workflow | None = cast(Workflow, self.instance) if self.instance else None
 
         data['description'] = data.get('description') or ''
         data['schedule'] = data.get('schedule') or ''

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import logging
 
@@ -50,7 +50,7 @@ class AwsEcsExecutionMethodCapabilityStopgapSerializer(
             required=False)
 
     def __init__(self, instance=None, data=empty,
-            run_environment: Optional[RunEnvironment] = None,
+            run_environment: RunEnvironment | None = None,
             **kwargs) -> None:
         super().__init__(instance, data, **kwargs)
 

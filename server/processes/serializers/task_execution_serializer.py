@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Mapping, cast
 
 import logging
 
@@ -200,7 +200,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         group = self.get_request_group()
 
-        task_execution: Optional[TaskExecution] = \
+        task_execution: TaskExecution | None = \
             cast(TaskExecution, self.instance) if self.instance else None
 
         # Support process_type for backward compatibility with wrapper scripts
@@ -210,7 +210,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         was_auto_created = ('auto_created_task_properties' in data)
 
-        task: Optional[Task] = None
+        task: Task | None = None
         if task_dict is None:
             if ('task' in data) or was_auto_created or ('process_type' in data):
                 raise serializers.ValidationError({
@@ -278,7 +278,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         logger.debug(f"{execution_method_dict=}")
 
-        execution_method_type: Optional[str] = None
+        execution_method_type: str | None = None
 
         if task:
             execution_method_type = task.execution_method_type
@@ -342,7 +342,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         build_dict = data.pop('build', None)
 
-        dte: Optional[TaskExecution] = None
+        dte: TaskExecution | None = None
 
         if build_dict and ('task_execution' in build_dict):
             build_task_execution_dict = build_dict['task_execution']
@@ -471,7 +471,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         return super().update(instance, validated_data)
 
 
-    def get_build(self, obj: TaskExecution) -> Optional[dict[str, Any]]:
+    def get_build(self, obj: TaskExecution) -> dict[str, Any] | None:
         try:
             build_task_execution = obj.build_task_execution
 
@@ -490,7 +490,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             }
 
 
-    def get_deploy(self, obj: TaskExecution) -> Optional[dict[str, Any]]:
+    def get_deploy(self, obj: TaskExecution) -> dict[str, Any] | None:
         try:
             deployment_task_execution = obj.deployment_task_execution
 
@@ -520,7 +520,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
                 context=self.context, read_only=True).data
 
     def protect_attributes(self, validated_data: dict[str, Any],
-            existing_task_execution: Optional[TaskExecution],
+            existing_task_execution: TaskExecution | None,
             task: Task) -> None:
         if task.was_auto_created and task.passive:
             return

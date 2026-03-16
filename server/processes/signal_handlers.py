@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Type
 
 import logging
 
@@ -24,7 +24,7 @@ def add_default_group_and_saas_token(user: User) -> None:
     logger.info(f'add_default_group_and_saas_token() for {user=}')
     if user.groups.count() == 0:
         index = 0
-        group: Optional[Group] = None
+        group: Group | None = None
 
         while (index < 100) and (group is None):
             name = user.username
