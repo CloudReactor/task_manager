@@ -169,7 +169,7 @@ default_db_port = '5432' if IN_DOCKER else '9432'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': env.str('DATABASE_NAME', default='cloudreactor_task_manager'),
         'USER': env.str('DATABASE_USER', default='web'),
         'PASSWORD': env.str('DATABASE_PASSWORD', default='webpass'),
@@ -180,7 +180,7 @@ DATABASES = {
         }
     },
     # 'test': {
-    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
+    #     'ENGINE': 'django.db.backends.postgresql_psycopg',
     #     'NAME': 'cloudreactor_task_manager_test',
     #     'USER': env.str('DATABASE_USER', default='web'),
     #     'PASSWORD': env.str('DATABASE_PASSWORD', default='webpass'),
