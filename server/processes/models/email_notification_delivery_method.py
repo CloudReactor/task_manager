@@ -62,7 +62,7 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
         }
 
     def make_task_execution_status_change_email(self, event: TaskExecutionStatusChangeEvent) -> Any:
-        from ..services import NotificationGenerator
+        from ..services.notification_generator import NotificationGenerator
 
         notification_generator = NotificationGenerator()
 
@@ -97,7 +97,7 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
         return email
 
     def make_workflow_execution_status_change_email(self, event: WorkflowExecutionStatusChangeEvent) -> Any:
-        from ..services import NotificationGenerator
+        from ..services.notification_generator import NotificationGenerator
 
         notification_generator = NotificationGenerator()
 

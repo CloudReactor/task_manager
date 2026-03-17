@@ -117,7 +117,7 @@ class WorkflowExecution(Execution):
 
     @override
     def manually_start(self) -> None:
-        from processes.serializers import WorkflowSerializer
+        from ..serializers.workflow_serializer import WorkflowSerializer
 
         logger.info(f"Manually starting workflow execution with UUID = {self.uuid} ...")
 
@@ -447,7 +447,7 @@ class WorkflowExecution(Execution):
 
     def make_multidigraph_and_lookup_tables(self):
         # To handle legacy data, remove when all workflows have been converted
-        from processes.serializers import WorkflowSerializer
+        from ..serializers.workflow_serializer import WorkflowSerializer
         if not self.workflow_snapshot:
             self.workflow_snapshot = WorkflowSerializer(self.workflow,
                 context=context_with_request()).data

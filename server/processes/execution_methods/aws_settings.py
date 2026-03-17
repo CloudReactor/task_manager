@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import os
 from urllib.parse import quote
@@ -94,12 +94,10 @@ class AwsNetworkSettings(BaseModel):
 
     def compute_region(self, aws_settings: 'AwsSettings',
             execution_method: ExecutionMethod | None = None) -> str | None:
-        from .aws_base_execution_method import AwsBaseExecutionMethod
-
         region = self.region or aws_settings.region
 
-        if (not region) and isinstance(execution_method, AwsBaseExecutionMethod):
-            region = cast(AwsBaseExecutionMethod, execution_method).compute_region()
+        if (not region) and hasattr(execution_method, 'compute_region'):
+            region = execution_method.compute_region()  # type: ignore[union-attr]
 
         return region
 
@@ -133,12 +131,10 @@ class AwsLogOptions(BaseModel):
 
     def compute_region(self, aws_settings: 'AwsSettings',
             execution_method: ExecutionMethod | None = None) -> str | None:
-        from .aws_base_execution_method import AwsBaseExecutionMethod
-
         region = self.region or aws_settings.region
 
-        if (not region) and isinstance(execution_method, AwsBaseExecutionMethod):
-            region = cast(AwsBaseExecutionMethod, execution_method).compute_region()
+        if (not region) and hasattr(execution_method, 'compute_region'):
+            region = execution_method.compute_region()  # type: ignore[union-attr]
 
         return region
 
@@ -174,8 +170,6 @@ class AwsLoggingSettings(BaseModel):
 
     def compute_region(self, aws_settings: 'AwsSettings',
             execution_method: ExecutionMethod | None = None) -> str | None:
-        from .aws_base_execution_method import AwsBaseExecutionMethod
-
         region: str | None = None
         options = self.options
 
@@ -185,8 +179,8 @@ class AwsLoggingSettings(BaseModel):
         if not region:
             region = aws_settings.region
 
-        if (not region) and isinstance(execution_method, AwsBaseExecutionMethod):
-            region = cast(AwsBaseExecutionMethod, execution_method).compute_region()
+        if (not region) and hasattr(execution_method, 'compute_region'):
+            region = execution_method.compute_region()  # type: ignore[union-attr]
 
         return region
 
