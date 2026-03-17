@@ -22,5 +22,5 @@ class PagerDutyNotificationDeliveryMethodFactory(NotificationDeliveryMethodFacto
 
     pagerduty_api_key = 'test_api_key_12345'
     pagerduty_event_class_template = 'Task Execution Status Change'
-    pagerduty_event_component_template = '{{ task_name }}'
-    pagerduty_event_group_template = '{{ run_environment_name }}'
+    pagerduty_event_component_template = '{{ task.name }}'
+    pagerduty_event_group_template = '{{ run_environment.name }}'

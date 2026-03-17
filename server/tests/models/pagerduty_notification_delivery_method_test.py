@@ -47,11 +47,13 @@ def test_send_task_execution_event(run_environment: RunEnvironment,
         assert call_args.kwargs['severity'] == 'error'
         assert call_args.kwargs['dedup_key'] == 'test-grouping-key'
 
-        # Check that payload contains the expected fields with the templates
-        payload = call_args.kwargs['payload']
-        assert 'class' in payload
-        assert 'component' in payload
-        assert 'group' in payload
+        # Check that custom_details contains the rendered template values
+        details = call_args.kwargs['custom_details']
+        assert details == {
+            'class': 'Task Execution Status Change',
+            'component': task.name,
+            'group': run_environment.name,
+        }
 
         # Verify result
         assert result['dedup_key'] == 'test-dedup-key-123'

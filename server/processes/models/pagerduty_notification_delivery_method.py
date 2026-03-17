@@ -22,6 +22,10 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
     pagerduty_event_component_template = models.CharField(max_length=1000, null=True, blank=True)
     pagerduty_event_group_template = models.CharField(max_length=1000, null=True, blank=True)
 
+    # Signing secret from the PagerDuty Generic Webhooks V3 subscription used to
+    # validate incoming webhook callbacks for this delivery method.
+    # pagerduty_webhook_signing_secret = models.CharField(max_length=1000, null=True, blank=True)
+
     @staticmethod
     def pagerduty_severity_from_event_severity(severity: int) -> str:
         if severity >= Event.Severity.CRITICAL:
@@ -42,6 +46,9 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
         from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 
         from ..services import NotificationGenerator
+
+        if not self.pagerduty_api_key:
+            raise ValueError("PagerDuty API key is required for PagerDuty notifications")
 
         severity = DEFAULT_NOTIFICATION_ERROR_SEVERITY
         if event.is_resolution:
@@ -77,24 +84,24 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
                     'resolve_return_value': events_client.resolve(dedup_key=event.grouping_key)
                 }
 
-            payload: dict[str, Any] = {}
+            details: dict[str, Any] = {}
 
             if self.pagerduty_event_class_template:
-                payload['class'] = notification_generator.generate_text(
+                details['class'] = notification_generator.generate_text(
                     template_params=template_params,
                     template=self.pagerduty_event_class_template,
                     task_execution=task_execution,
                     workflow_execution=workflow_execution).strip()
 
             if self.pagerduty_event_component_template:
-                payload['component'] = notification_generator.generate_text(
+                details['component'] = notification_generator.generate_text(
                     template_params=template_params,
                     template=self.pagerduty_event_component_template,
                     task_execution=task_execution,
                     workflow_execution=workflow_execution).strip()
 
             if self.pagerduty_event_group_template:
-                payload['group'] = notification_generator.generate_text(
+                details['group'] = notification_generator.generate_text(
                     template_params=template_params,
                     template=self.pagerduty_event_group_template,
                     task_execution=task_execution,
@@ -107,8 +114,7 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
                 source=source,
                 severity=pd_severity,
                 dedup_key=event.grouping_key,
-                payload=payload,
-                custom_details=template_params,
+                custom_details=details,
                 links=[{'href': event_url, 'text': 'View Event in CloudReactor'}])
 
             logger.info(f"Done triggering PagerDuty event, {dedup_key=}")
