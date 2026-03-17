@@ -45,7 +45,7 @@ class PagerDutyNotificationDeliveryMethod(NotificationDeliveryMethod):
         from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
         from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 
-        from ..services import NotificationGenerator
+        from ..services.notification_generator import NotificationGenerator
 
         if not self.pagerduty_api_key:
             raise ValueError("PagerDuty API key is required for PagerDuty notifications")

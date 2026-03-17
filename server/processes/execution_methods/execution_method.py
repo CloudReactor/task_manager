@@ -16,8 +16,8 @@ from ..exception import UnprocessableEntity
 
 if TYPE_CHECKING:
     from ..models import (
-      Task,
-      TaskExecution
+        Task,
+        TaskExecution
     )
 
 logger = logging.getLogger(__name__)
@@ -120,13 +120,13 @@ class ExecutionMethod:
         return cap in self.capabilities()
 
     def should_update_or_force_recreate_scheduled_execution(self,
-            old_execution_method: 'ExecutionMethod' | None=None) -> Tuple[bool, bool]:
+            old_execution_method: ExecutionMethod | None=None) -> Tuple[bool, bool]:
         should = self.should_maybe_update_scheduled_execution(
                   old_execution_method=old_execution_method)
         return (coalesce(should, True), False)
 
     def setup_scheduled_execution(self,
-            old_execution_method: 'ExecutionMethod' | None=None,
+            old_execution_method: ExecutionMethod | None=None,
             force_creation: bool=False, teardown_result: Any | None=None) -> None:
         raise UnprocessableEntity(
                 detail='Execution method does not support scheduled execution.')
@@ -136,12 +136,12 @@ class ExecutionMethod:
         return (None, None)
 
     def should_update_or_force_recreate_service(self,
-            old_execution_method: 'ExecutionMethod' | None=None) \
+            old_execution_method: ExecutionMethod | None=None) \
             -> Tuple[bool, bool]:
         return (False, False)
 
     def setup_service(self,
-            old_execution_method: 'ExecutionMethod' | None = None,
+            old_execution_method: ExecutionMethod | None = None,
             force_creation: bool=False, teardown_result: Any | None=None) -> None:
         raise UnprocessableEntity(
                 detail='Execution method does not support service setup.')
@@ -258,8 +258,8 @@ class ExecutionMethod:
         }
 
     @staticmethod
-    def make_execution_method(task: 'Task' | None = None,
-            task_execution: 'TaskExecution' | None = None) -> 'ExecutionMethod':
+    def make_execution_method(task: Task | None = None,
+            task_execution: TaskExecution | None = None) -> ExecutionMethod:
         from .aws_codebuild_execution_method import AwsCodeBuildExecutionMethod
         from .aws_ecs_execution_method import AwsEcsExecutionMethod
         from .aws_lambda_execution_method import AwsLambdaExecutionMethod
@@ -287,7 +287,7 @@ class ExecutionMethod:
         return UnknownExecutionMethod(task=task, task_execution=task_execution)
 
     def should_maybe_update_scheduled_execution(self,
-            old_execution_method: 'ExecutionMethod' | None) -> bool | None:
+            old_execution_method: ExecutionMethod | None) -> bool | None:
         if self.task is None:
             raise APIException('should_maybe_update_scheduled_execution() without Task')
 

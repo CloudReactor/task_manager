@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import logging
 
+from typing import TYPE_CHECKING
+
 from django.utils import timezone
 
-from processes.models.task_execution import TaskExecution
+if TYPE_CHECKING:
+    from .task_execution import TaskExecution
 
 from .event import Event
 from .task_execution_event import TaskExecutionEvent

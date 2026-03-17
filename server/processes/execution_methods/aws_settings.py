@@ -1,4 +1,6 @@
-from typing import cast
+from __future__ import annotations
+
+from typing import cast, TYPE_CHECKING
 
 import os
 from urllib.parse import quote
@@ -11,7 +13,9 @@ from pydantic import BaseModel
 from ..common.aws import *
 from ..exception import UnprocessableEntity
 from .infrastructure_settings import InfrastructureSettings
-from .execution_method import ExecutionMethod
+
+if TYPE_CHECKING:
+    from .execution_method import ExecutionMethod
 
 
 INFRASTRUCTURE_TYPE_AWS = 'AWS'

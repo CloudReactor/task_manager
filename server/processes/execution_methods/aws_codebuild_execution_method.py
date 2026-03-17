@@ -15,11 +15,11 @@ from botocore.exceptions import ClientError
 
 from ..common.aws import *
 from ..common.utils import deepmerge, lookup_string, lookup_int, lookup_bool, to_camel
-from .execution_method import ExecutionMethod
 from .aws_base_execution_method import AwsBaseExecutionMethod
 from .aws_settings import *
 
 if TYPE_CHECKING:
+    from .execution_method import ExecutionMethod
     from ..models import (
       Task,
       TaskExecution

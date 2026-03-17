@@ -1,17 +1,22 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
 
 import logging
 
 from jinja2.sandbox import SandboxedEnvironment
 
-from processes.common.notification import *
-from processes.common.request_helpers import context_with_request
-from processes.models import (
-    RunEnvironment,
-    Task, TaskExecution,
-    Workflow, WorkflowExecution
-)
-from processes.models.user_group_access_level import UserGroupAccessLevel
+from ..common.notification import *
+from ..common.request_helpers import context_with_request
+from ..models.user_group_access_level import UserGroupAccessLevel
+
+if TYPE_CHECKING:
+    from ..models import (
+        RunEnvironment,
+        Task, TaskExecution,
+        Workflow, WorkflowExecution
+    )
+    
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +34,7 @@ class NotificationGenerator:
           workflow_execution: WorkflowExecution | None = None,
           is_resolution: bool = False,
           severity: str | None = None) -> dict[str, Any]:
-        from processes.serializers import (
+        from ..serializers import (
             RunEnvironmentSerializer,
             TaskSerializer,
             TaskExecutionSerializer,
