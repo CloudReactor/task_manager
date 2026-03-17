@@ -50,7 +50,7 @@ export default function isAuth<P extends object>(
 
             if (savedCurrentGroupId) {
               const foundGroup = user.groups.find(g => g.id === savedCurrentGroupId);
-              group = foundGroup ?? group
+              group = foundGroup ?? group;
             }
 
             setCurrentGroup(group);
