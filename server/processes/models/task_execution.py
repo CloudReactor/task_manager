@@ -432,7 +432,7 @@ def pre_save_task_execution(sender: Type[TaskExecution], instance: TaskExecution
     else:
         old_instance = cast(TaskExecution, instance._loaded_copy)
 
-    if instance.started_at and ((old_instance is None) or (old_instance.started_at is None)):
+    if (instance.pk is not None) and instance.started_at and ((old_instance is None) or (old_instance.started_at is None)):
         from .delayed_task_execution_start_event import DelayedTaskExecutionStartEvent
         DelayedTaskExecutionStartEvent.resolve_existing_for_task_execution(task_execution=instance)
 

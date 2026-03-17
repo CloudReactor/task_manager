@@ -71,12 +71,12 @@ services:
 
   db:
     container_name: db
-    image: postgres:13.7
+    image: postgis/postgis:18-3.6
     volumes:
       - ./server/sql/initial.sql:/docker-entrypoint-initdb.d/initial.sql
       - ./server/sql/db-setup.sql:/db-setup.sql
       - ./server/processes/fixtures:/tmp/fixtures
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     ports:
       - "9432:5432"
     environment:
