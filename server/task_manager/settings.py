@@ -359,8 +359,13 @@ LOGGING = {
             'level': DB_LOGGING_LEVEL,
             'propagate': False,
         },
+        'boto3': {
+            'level': BOTO_LOGGING_LEVEL,
+            'handlers': ['console'],
+            'propagate': False
+        },
         'botocore': {
-            'level': 'DEBUG',
+            'level': BOTO_LOGGING_LEVEL,
             'handlers': ['console'],
             'propagate': False
         },
@@ -376,16 +381,6 @@ LOGGING = {
         },
         'factory': {
             'level': 'INFO',
-            'handlers': ['console'],
-            'propagate': False
-        },
-        'boto3': {
-            'level': BOTO_LOGGING_LEVEL,
-            'handlers': ['console'],
-            'propagate': False
-        },
-        'botocore': {
-            'level': BOTO_LOGGING_LEVEL,
             'handlers': ['console'],
             'propagate': False
         },
