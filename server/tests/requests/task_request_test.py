@@ -532,7 +532,7 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
     assert api_key_run_environment is not None
 
     aws_settings = setup_aws()
-    api_key_run_environment.aws_settings = aws_settings.dict()
+    api_key_run_environment.aws_settings = aws_settings.model_dump()
     api_key_run_environment.save()
     
     aws_ecs_setup = setup_aws_ecs(run_environment=api_key_run_environment)

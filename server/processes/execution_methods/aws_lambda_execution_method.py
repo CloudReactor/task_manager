@@ -122,9 +122,9 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
 
         if task_execution:
             self.settings = cast(AwsLambdaExecutionMethodSettings,
-                    AwsLambdaExecutionMethodInfo.parse_obj(aws_lambda_settings))
+                    AwsLambdaExecutionMethodInfo.model_validate(aws_lambda_settings))
         else:
-            self.settings = AwsLambdaExecutionMethodSettings.parse_obj(
+            self.settings = AwsLambdaExecutionMethodSettings.model_validate(
                     aws_lambda_settings)
 
 
@@ -181,7 +181,7 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         }
 
         task_execution.execution_method_type = self.NAME
-        task_execution.execution_method_details = self.settings.dict()
+        task_execution.execution_method_details = self.settings.model_dump()
 
         success = False
         try:
@@ -218,7 +218,7 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
             task_execution.stop_reason = TaskExecution.StopReason.FAILED_TO_START
             task_execution.finished_at = timezone.now()
 
-        task_execution.execution_method_details = self.settings.dict()
+        task_execution.execution_method_details = self.settings.model_dump()
         task_execution.save()
 
     @override
@@ -232,10 +232,10 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
 
         emcd = self.task.execution_method_capability_details
         if emcd:
-            aws_lambda_settings = AwsLambdaExecutionMethodSettings.parse_obj(emcd)
+            aws_lambda_settings = AwsLambdaExecutionMethodSettings.model_validate(emcd)
             aws_lambda_settings.update_derived_attrs(aws_settings=self.aws_settings,
                 execution_method=self)
-            self.task.execution_method_capability_details = aws_lambda_settings.dict()
+            self.task.execution_method_capability_details = aws_lambda_settings.model_dump()
 
 
     @override
@@ -248,8 +248,8 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
         emd = self.task_execution.execution_method_details
 
         if emd:
-            aws_lambda_settings =  AwsLambdaExecutionMethodInfo.parse_obj(emd)
+            aws_lambda_settings =  AwsLambdaExecutionMethodInfo.model_validate(emd)
             aws_lambda_settings.update_derived_attrs(aws_settings=self.aws_settings)
 
             self.task_execution.execution_method_details = deepmerge(
-                    emd, aws_lambda_settings.dict())
+                    emd, aws_lambda_settings.model_dump())

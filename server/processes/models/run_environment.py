@@ -75,7 +75,7 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
         if not self.aws_settings:
             return None
 
-        return AwsSettings.parse_obj(self.aws_settings)
+        return AwsSettings.model_validate(self.aws_settings)
 
 
     def can_schedule_workflow(self) -> bool:
@@ -86,17 +86,17 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
         aws_settings = self.parsed_aws_settings()
         if aws_settings:
             aws_settings.update_derived_attrs()
-            self.aws_settings = aws_settings.dict()
+            self.aws_settings = aws_settings.model_dump()
 
         if self.default_aws_ecs_configuration:
-            aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(self.default_aws_ecs_configuration)
+            aws_ecs_settings = AwsEcsExecutionMethodSettings.model_validate(self.default_aws_ecs_configuration)
             aws_ecs_settings.update_derived_attrs(aws_settings=aws_settings)
-            self.default_aws_ecs_configuration = aws_ecs_settings.dict()
+            self.default_aws_ecs_configuration = aws_ecs_settings.model_dump()
 
         if self.default_aws_lambda_configuration:
-            aws_lambda_settings = AwsLambdaExecutionMethodSettings.parse_obj(self.default_aws_lambda_configuration)
+            aws_lambda_settings = AwsLambdaExecutionMethodSettings.model_validate(self.default_aws_lambda_configuration)
             aws_lambda_settings.update_derived_attrs(aws_settings=aws_settings)
-            self.default_aws_lambda_configuration = aws_lambda_settings.dict()
+            self.default_aws_lambda_configuration = aws_lambda_settings.model_dump()
 
 
 

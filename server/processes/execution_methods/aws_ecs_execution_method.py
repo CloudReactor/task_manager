@@ -383,19 +383,19 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         if task_execution:
             self.settings = cast(AwsEcsExecutionMethodSettings,
-                    AwsEcsExecutionMethodInfo.parse_obj(aws_ecs_settings))
+                    AwsEcsExecutionMethodInfo.model_validate(aws_ecs_settings))
         else:
-            self.settings = AwsEcsExecutionMethodSettings.parse_obj(aws_ecs_settings)
+            self.settings = AwsEcsExecutionMethodSettings.model_validate(aws_ecs_settings)
 
         self.service_settings: AwsEcsServiceSettings | None = None
         self.scheduling_settings: AwsCloudwatchSchedulingSettings | None = None
 
         if task and (task_execution is None):
             if task.service_settings is not None:
-                self.service_settings = AwsEcsServiceSettings.parse_obj(task.service_settings)
+                self.service_settings = AwsEcsServiceSettings.model_validate(task.service_settings)
 
             if task.scheduling_settings is not None:
-                self.scheduling_settings = AwsCloudwatchSchedulingSettings.parse_obj(
+                self.scheduling_settings = AwsCloudwatchSchedulingSettings.model_validate(
                     task.scheduling_settings)
 
 
@@ -563,7 +563,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         task.is_scheduling_managed = True
         task.scheduling_provider_type = SCHEDULING_TYPE_AWS_CLOUDWATCH
-        task.scheduling_settings = ss.dict()
+        task.scheduling_settings = ss.model_dump()
 
         client.enable_rule(Name=aws_scheduled_execution_rule_name)
 
@@ -613,7 +613,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         ss.event_target_rule_name = aws_event_target_rule_name
         ss.event_target_id = aws_event_target_id
 
-        task.scheduling_settings = ss.dict()
+        task.scheduling_settings = ss.model_dump()
 
     @override
     def teardown_scheduled_execution(self) -> Tuple[dict[str, Any] | None, Any | None]:
@@ -672,7 +672,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             ss.event_target_rule_name = None
             ss.event_target_id = None
             self.scheduling_settings = ss
-            task.scheduling_settings = ss.dict()
+            task.scheduling_settings = ss.model_dump()
 
         if ss.execution_rule_name:
             client = client or self.aws_settings.make_events_client()
@@ -705,7 +705,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             ss.event_rule_arn = None
 
             self.scheduling_settings = ss
-            task.scheduling_settings = ss.dict()
+            task.scheduling_settings = ss.model_dump()
             task.is_scheduling_managed = None
 
         return (task.scheduling_settings, None)
@@ -952,7 +952,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             task.aws_ecs_service_updated_at = timezone.now()
 
             ss.service_arn = None
-            task.service_settings = ss.dict()
+            task.service_settings = ss.model_dump()
 
             # Can't save if this is part of a creation request
             if task.pk:
@@ -1008,7 +1008,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         task.aws_ecs_service_updated_at = timezone.now()
 
         ss.service_arn = service_info.service_arn
-        task.service_settings = ss.dict()
+        task.service_settings = ss.model_dump()
 
         logger.info(f"setup_service() for Task {task.name} got service ARN {ss.service_arn} ...")
 
@@ -1046,7 +1046,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
                 if self.service_settings:
                     self.service_settings.service_arn = None
-                    ssd = self.service_settings.dict()
+                    ssd = self.service_settings.model_dump()
                     task.service_settings = ssd
             else:
                 logger.info(f'Service {service_name} had status {service_info.last_status}, saving service ARN')
@@ -1064,7 +1064,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     self.service_settings = AwsEcsServiceSettings.from_boto_service_response_fragment(
                             service_dict=service_info.service_dict)
 
-                ssd = self.service_settings.dict()
+                ssd = self.service_settings.model_dump()
                 task.service_settings = ssd
 
             task.aws_ecs_service_updated_at = timezone.now()
@@ -1076,7 +1076,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
             if self.service_settings:
                 self.service_settings.service_arn = None
-                ssd = self.service_settings.dict()
+                ssd = self.service_settings.model_dump()
 
         return (ssd, teardown_result)
 
@@ -1133,7 +1133,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         task_execution.allocated_cpu_units = cpu_units
         task_execution.allocated_memory_mb = memory_mb
 
-        aws_ecs_settings = AwsEcsExecutionMethodInfo.parse_obj(
+        aws_ecs_settings = AwsEcsExecutionMethodInfo.model_validate(
             task_execution.execution_method_details or {})
 
         aws_ecs_settings.cluster_arn = self.settings.cluster_arn
@@ -1144,7 +1144,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         aws_ecs_settings.task_role_arn = self.settings.task_role_arn
         aws_ecs_settings.task_group = self.settings.task_group
 
-        task_aws_ecs_settings = AwsEcsExecutionMethodInfo.parse_obj(
+        task_aws_ecs_settings = AwsEcsExecutionMethodInfo.model_validate(
             task.execution_method_capability_details or {})
 
         main_container_cpu_units = aws_ecs_settings.main_container_cpu_units
@@ -1174,9 +1174,9 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         aws_ecs_settings.main_container_memory_mb = main_container_memory_mb
 
         task_execution.execution_method_type = self.NAME
-        task_execution.execution_method_details = aws_ecs_settings.dict()
+        task_execution.execution_method_details = aws_ecs_settings.model_dump()
 
-        aws_settings = AwsSettings.parse_obj(task_execution.infrastructure_settings or {})
+        aws_settings = AwsSettings.model_validate(task_execution.infrastructure_settings or {})
         network = aws_settings.network
 
         if network is None:
@@ -1193,7 +1193,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         network.assign_public_ip = merged_network.assign_public_ip
 
         task_execution.infrastructure_type = INFRASTRUCTURE_TYPE_AWS
-        task_execution.infrastructure_settings = aws_settings.dict()
+        task_execution.infrastructure_settings = aws_settings.model_dump()
 
         task_execution.save()
         task.latest_task_execution = task_execution
@@ -1537,16 +1537,16 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         emcd = self.task.execution_method_capability_details
         if emcd:
-            aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(emcd)
+            aws_ecs_settings = AwsEcsExecutionMethodSettings.model_validate(emcd)
             aws_ecs_settings.update_derived_attrs(aws_settings=self.aws_settings)
-            self.task.execution_method_capability_details = aws_ecs_settings.dict()
+            self.task.execution_method_capability_details = aws_ecs_settings.model_dump()
 
         if self.service_settings:
             self.service_settings.update_derived_attrs(task=self.task,
                     aws_ecs_settings=self.settings,
                     aws_settings=self.aws_settings)
             self.task.service_settings = deepmerge(self.task.service_settings,
-                    self.service_settings.dict())
+                    self.service_settings.model_dump())
 
     @override
     def enrich_task_execution_settings(self) -> None:
@@ -1558,8 +1558,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         emd = self.task_execution.execution_method_details
 
         if emd:
-            aws_ecs_settings =  AwsEcsExecutionMethodInfo.parse_obj(emd)
+            aws_ecs_settings =  AwsEcsExecutionMethodInfo.model_validate(emd)
             aws_ecs_settings.update_derived_attrs(aws_settings=self.aws_settings)
 
             self.task_execution.execution_method_details = deepmerge(
-                    emd, aws_ecs_settings.dict())
+                    emd, aws_ecs_settings.model_dump())

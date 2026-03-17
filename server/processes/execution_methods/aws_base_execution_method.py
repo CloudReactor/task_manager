@@ -30,7 +30,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
             self.aws_settings = self.merge_aws_settings(task=task,
                 task_execution=task_execution)
         else:
-            self.aws_settings = AwsSettings.parse_obj(aws_settings)
+            self.aws_settings = AwsSettings.model_validate(aws_settings)
 
 
     @staticmethod
@@ -50,7 +50,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
                 (task_execution.infrastructure_type == INFRASTRUCTURE_TYPE_AWS):
             settings_to_merge.append(task_execution.infrastructure_settings)
 
-        return AwsSettings.parse_obj(deepmerge(*settings_to_merge))
+        return AwsSettings.model_validate(deepmerge(*settings_to_merge))
 
     def compute_region(self) -> str | None:
         region = self.aws_settings.region
@@ -83,12 +83,12 @@ class AwsBaseExecutionMethod(ExecutionMethod):
         aws_settings_dict = self.task.infrastructure_settings
 
         if aws_settings_dict:
-            aws_settings = AwsSettings.parse_obj(aws_settings_dict)
+            aws_settings = AwsSettings.model_validate(aws_settings_dict)
 
             aws_settings.update_derived_attrs(execution_method=self)
 
             self.task.infrastructure_settings = deepmerge(
-                    aws_settings_dict, aws_settings.dict())
+                    aws_settings_dict, aws_settings.model_dump())
 
         # TODO: scheduling URLs
 
@@ -99,9 +99,9 @@ class AwsBaseExecutionMethod(ExecutionMethod):
         aws_settings_dict = self.task_execution.infrastructure_settings
 
         if aws_settings_dict:
-            aws_settings = AwsSettings.parse_obj(aws_settings_dict)
+            aws_settings = AwsSettings.model_validate(aws_settings_dict)
 
             aws_settings.update_derived_attrs(execution_method=self)
 
             self.task_execution.infrastructure_settings = deepmerge(
-                    aws_settings_dict, aws_settings.dict())
+                    aws_settings_dict, aws_settings.model_dump())

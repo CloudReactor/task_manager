@@ -69,11 +69,5 @@ jobs:
     - name: Run mypy
       working-directory: ./server
       run: |
-        uv run mypy processes/ --config-file=mypy_django.ini
-      continue-on-error: true
-
-    - name: Run mypy (strict)
-      working-directory: ./server
-      run: |
-        uv run mypy processes/ --config-file=mypy.ini || true
+        uv run mypy processes/
       continue-on-error: true

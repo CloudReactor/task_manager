@@ -879,7 +879,7 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
             if attr in emc:
                 assert getattr(model_task, attr) == emc[attr]
 
-        model_infra = AwsSettings.parse_obj(model_task.infrastructure_settings)
+        model_infra = AwsSettings.model_validate(model_task.infrastructure_settings)
         model_network = model_infra.network
 
         if 'default_subnets' in emc:
@@ -920,7 +920,7 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
 
     if infra is not None:
         if body_task.get('infrastructure_type') == INFRASTRUCTURE_TYPE_AWS:
-            model_infra = AwsSettings.parse_obj(model_task.infrastructure_settings)
+            model_infra = AwsSettings.model_validate(model_task.infrastructure_settings)
 
             ensure_attributes_match(infra, model_infra,
                     ['tags'], partial=True)
@@ -999,7 +999,7 @@ def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
 
     run_environment = model_task.run_environment
 
-    re_emc = AwsEcsExecutionMethodSettings.parse_obj(
+    re_emc = AwsEcsExecutionMethodSettings.model_validate(
             run_environment.default_aws_ecs_configuration)
 
     emcd = model_task.execution_method_capability_details
@@ -1022,7 +1022,7 @@ def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
             assert model_task.min_service_instance_count >= 0
 
             ss_dict = model_task.service_settings
-            ss = AwsEcsServiceSettings.parse_obj(ss_dict)
+            ss = AwsEcsServiceSettings.model_validate(ss_dict)
             assert ss.service_arn.startswith(f"arn:aws:ecs:{region}:{account_id}:service/{aws_ecs_setup.cluster_name}/CR_{task_uuid}")
 
             services_response = ecs_client.describe_services(
@@ -1054,7 +1054,7 @@ def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
         if model_task.enabled:
             assert model_task.scheduling_settings is not None
             ss_dict = model_task.scheduling_settings
-            ss = AwsCloudwatchSchedulingSettings.parse_obj(ss_dict)
+            ss = AwsCloudwatchSchedulingSettings.model_validate(ss_dict)
             assert ss.event_rule_arn == f"arn:aws:events:{region}:{account_id}:rule/CR_{task_uuid}"
             assert ss.execution_rule_name == f"CR_{task_uuid}"
             assert ss.event_target_id == f"CR_{task_uuid}"

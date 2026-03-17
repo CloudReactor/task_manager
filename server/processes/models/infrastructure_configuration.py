@@ -16,6 +16,6 @@ class InfrastructureConfiguration(models.Model):
             return None
 
         if self.infrastructure_type == INFRASTRUCTURE_TYPE_AWS:
-            return AwsSettings.parse_obj(self.infrastructure_settings)
+            return AwsSettings.model_validate(self.infrastructure_settings)
 
         return None

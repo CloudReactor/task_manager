@@ -30,7 +30,7 @@ def test_aws_ecs_scheduled_task_execution_setup_and_teardown(task_factory):
     ss_dict = task.scheduling_settings
 
     assert ss_dict is not None
-    ss = AwsCloudwatchSchedulingSettings.parse_obj(ss_dict)
+    ss = AwsCloudwatchSchedulingSettings.model_validate(ss_dict)
 
     assert ss.event_rule_arn is not None
     assert ss.event_target_id is not None

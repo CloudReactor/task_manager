@@ -88,9 +88,9 @@ def populate_run_environment_infra(run_environment: RunEnvironment) -> bool:
                 run_environment)
 
         if run_environment.aws_settings:
-            aws_settings = AwsSettings.parse_obj(run_environment.aws_settings)
+            aws_settings = AwsSettings.model_validate(run_environment.aws_settings)
             aws_settings.update_derived_attrs()
-            run_environment.aws_settings = aws_settings.dict()
+            run_environment.aws_settings = aws_settings.model_dump()
 
         return True
     else:
@@ -113,10 +113,10 @@ def populate_run_environment_aws_ecs_configuration(run_environment: RunEnvironme
         aws_ecs_config = extract_aws_ecs_configuration(run_environment)
 
         if aws_ecs_config:
-            aws_ecs_settings = AwsEcsExecutionMethodSettings.parse_obj(
+            aws_ecs_settings = AwsEcsExecutionMethodSettings.model_validate(
                     aws_ecs_config)
             aws_ecs_settings.update_derived_attrs(aws_settings=None)
-            aws_ecs_config = aws_ecs_settings.dict()
+            aws_ecs_config = aws_ecs_settings.model_dump()
 
         run_environment.default_aws_ecs_configuration = aws_ecs_config
 

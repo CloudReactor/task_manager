@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from rest_framework.exceptions import APIException
 
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 from botocore.exceptions import ClientError
 
@@ -42,12 +42,7 @@ class AwsCodeBuildArtifact(BaseModel):
     encryption_disabled: bool | None = None
     artifact_identifier: str | None = None
     bucket_owner_access: str | None = None
-
-    class Config:
-        alias_generator = to_camel
-
-        # Change to populate_by_name for pydantic V2
-        allow_population_by_field_name = True
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class AwsCodeBuildExecutionMethodSettings(BaseModel):
@@ -150,15 +145,15 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
 
         artifact_dict = build_dict.get('artifacts')
         if artifact_dict:
-            self.artifacts = AwsCodeBuildArtifact.parse_obj(artifact_dict)
+            self.artifacts = AwsCodeBuildArtifact.model_validate(artifact_dict)
 
         secondary_artifacts_dicts = build_dict.get('secondaryArtifacts')
         if secondary_artifacts_dicts:
-            self.secondary_artifacts = [AwsCodeBuildArtifact.parse_obj(sad) for sad in secondary_artifacts_dicts]
+            self.secondary_artifacts = [AwsCodeBuildArtifact.model_validate(sad) for sad in secondary_artifacts_dicts]
 
         cache_dict = build_dict.get('cache')
         if cache_dict:
-            self.cache = AwsCodeBuildCache.parse_obj(cache_dict)
+            self.cache = AwsCodeBuildCache.model_validate(cache_dict)
 
 
 class AwsCodeBuildWebhookInfo(BaseModel):
@@ -173,12 +168,7 @@ class AwsCodeBuildWebhookInfo(BaseModel):
 
 class AwsCodeBuildReport(BaseModel):
     report_arn: str | None = None
-
-    class Config:
-        alias_generator = to_camel
-
-        # Change to populate_by_name for pydantic V2
-        allow_population_by_field_name = True
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class AwsCodeBuildProjectFileSystemLocation(BaseModel):
@@ -187,23 +177,13 @@ class AwsCodeBuildProjectFileSystemLocation(BaseModel):
     mount_point: str | None = None
     identifier: str | None = None
     mount_options: str | None = None
-
-    class Config:
-        alias_generator = to_camel
-
-        # Change to populate_by_name for pydantic V2
-        allow_population_by_field_name = True
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class AwsCodeBuildDebugSession(BaseModel):
     session_enabled: bool | None = None
     session_target: str | None = None
-
-    class Config:
-        alias_generator = to_camel
-
-        # Change to populate_by_name for pydantic V2
-        allow_population_by_field_name = True
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class AwsCodeBuildExecutionMethodInfo(AwsCodeBuildExecutionMethodSettings):
@@ -251,7 +231,7 @@ class AwsCodeBuildExecutionMethodInfo(AwsCodeBuildExecutionMethodSettings):
 
         debug_session_dict = build_dict.get('debugSession')
         if debug_session_dict:
-            self.debug_session = AwsCodeBuildDebugSession.parse_obj(debug_session_dict)
+            self.debug_session = AwsCodeBuildDebugSession.model_validate(debug_session_dict)
 
 
 class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
@@ -283,9 +263,9 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
 
         if task_execution:
             self.settings = cast(AwsCodeBuildExecutionMethodSettings,
-                    AwsCodeBuildExecutionMethodInfo.parse_obj(aws_codebuild_settings))
+                    AwsCodeBuildExecutionMethodInfo.model_validate(aws_codebuild_settings))
         else:
-            self.settings = AwsCodeBuildExecutionMethodSettings.parse_obj(
+            self.settings = AwsCodeBuildExecutionMethodSettings.model_validate(
                     aws_codebuild_settings)
 
     @override
@@ -345,7 +325,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
             start_build_args['imageOverride'] = self.settings.build_image
 
         if self.settings.artifacts:
-            start_build_args['artifactsOverride'] = self.settings.artifacts.dict(by_alias=True)
+            start_build_args['artifactsOverride'] = self.settings.artifacts.model_dump(by_alias=True)
         else:
             artifacts_type = 'NO_ARTIFACTS'
 
@@ -357,10 +337,10 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
             }
 
         if self.settings.secondary_artifacts:
-            start_build_args['secondaryArtifactsOverride'] = [sad.dict(by_alias=True) for sad in self.settings.secondary_artifacts]
+            start_build_args['secondaryArtifactsOverride'] = [sad.model_dump(by_alias=True) for sad in self.settings.secondary_artifacts]
 
         if self.settings.cache:
-            start_build_args['cacheOverride'] = self.settings.cache.dict(by_alias=True)
+            start_build_args['cacheOverride'] = self.settings.cache.model_dump(by_alias=True)
 
         if self.settings.service_role:
             start_build_args['serviceRoleOverride'] = self.settings.service_role
@@ -400,7 +380,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
             start_build_args['debugSessionEnabled'] = self.settings.debug_session_enabled
 
         task_execution.execution_method_type = self.NAME
-        task_execution.execution_method_details = self.settings.dict()
+        task_execution.execution_method_details = self.settings.model_dump()
 
         success = False
         try:
@@ -431,8 +411,8 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
             task_execution.stop_reason = TaskExecution.StopReason.FAILED_TO_START
             task_execution.finished_at = timezone.now()
 
-        task_execution.execution_method_details = self.settings.dict()
-        task_execution.infrastructure_settings = self.aws_settings.dict()
+        task_execution.execution_method_details = self.settings.model_dump()
+        task_execution.infrastructure_settings = self.aws_settings.model_dump()
         task_execution.save()
 
     @override
@@ -444,9 +424,9 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
 
         emcd = self.task.execution_method_capability_details
         if emcd:
-            aws_codebuild_settings = AwsCodeBuildExecutionMethodSettings.parse_obj(emcd)
+            aws_codebuild_settings = AwsCodeBuildExecutionMethodSettings.model_validate(emcd)
             aws_codebuild_settings.update_derived_attrs(aws_settings=self.aws_settings)
-            self.task.execution_method_capability_details = aws_codebuild_settings.dict()
+            self.task.execution_method_capability_details = aws_codebuild_settings.model_dump()
 
 
     @override
@@ -459,11 +439,11 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
         emd = self.task_execution.execution_method_details
 
         if emd:
-            aws_codebuild_settings =  AwsCodeBuildExecutionMethodInfo.parse_obj(emd)
+            aws_codebuild_settings =  AwsCodeBuildExecutionMethodInfo.model_validate(emd)
             aws_codebuild_settings.update_derived_attrs(aws_settings=self.aws_settings)
 
             self.task_execution.execution_method_details = deepmerge(
-                    emd, aws_codebuild_settings.dict())
+                    emd, aws_codebuild_settings.model_dump())
 
 
     def update_aws_settings_from_start_build_response(self, response: dict[str, Any]) -> None:
