@@ -1,4 +1,6 @@
-from typing import Type, override
+from __future__ import annotations
+
+from typing import Type, override, TYPE_CHECKING
 
 import logging
 
@@ -18,6 +20,10 @@ from .named_with_uuid_model import NamedWithUuidModel
 from .aws_ecs_configuration import AwsEcsConfiguration
 from .infrastructure_configuration import InfrastructureConfiguration
 from .subscription import Subscription
+
+if TYPE_CHECKING:
+    from .notification_profile import NotificationProfile
+
 
 logger = logging.getLogger(__name__)
 

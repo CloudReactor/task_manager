@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Final
 
 from datetime import timedelta
 import logging
@@ -193,7 +193,8 @@ class TaskExecutionChecker:
 
                 if (not last_heartbeat_detection_event) or \
                         last_heartbeat_detection_event.resolved_at or \
-                        (last_heartbeat_detection_event.detected_at - utc_now).total_seconds() > self.HEARTBEAT_DETECTION_INTERVAL_SECONDS:
+                        (last_heartbeat_detection_event.detected_at and \
+                        ((last_heartbeat_detection_event.detected_at - utc_now).total_seconds() > self.HEARTBEAT_DETECTION_INTERVAL_SECONDS)):
                     logger.info(f"Saving missing heartbeat detection event for Task Execution {te.uuid}")
 
                     mhde = MissingHeartbeatDetectionEvent(
