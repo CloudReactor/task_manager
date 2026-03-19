@@ -123,7 +123,6 @@ class Command(BaseCommand):
 
                 logger.info(f"Checking all Workflow Executions took {run_duration} seconds")
 
-
                 try:
                     PostponedEventChecker().check_all()
                     success_count += 1
@@ -134,6 +133,12 @@ class Command(BaseCommand):
                     status_updater.send_update(last_status_message=msg,
                             success_count=success_count,
                             failure_count=failure_count)
+
+                current_time = timezone.now()
+                run_duration = int((current_time - last_start_time).total_seconds())
+                total_run_duration += run_duration
+
+                logger.info(f"Checking postponed Events took {run_duration} seconds")
 
                 if failure_count == attempt_count:
                     msg = 'All checks failed to execute, exiting'
@@ -146,5 +151,5 @@ class Command(BaseCommand):
                 sleep_seconds = MIN_CHECK_INTERVAL_SECONDS - total_run_duration
 
                 if sleep_seconds > 0:
-                    logger.debug(f"Sleeping for {sleep_seconds} seconds ...")
+                    logger.info(f"Sleeping for {sleep_seconds} seconds ...")
                     time.sleep(sleep_seconds)

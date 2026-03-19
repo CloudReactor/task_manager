@@ -20,12 +20,16 @@ class PostponedEventChecker:
 
         utc_now = timezone.now()
 
-        triggered_count = 0
+        event_count = 0
+        triggered_count = 0        
         for event in TaskExecutionStatusChangeEvent.objects.filter(
                 postponed_until__gte=utc_now - timezone.timedelta(seconds=self.MAX_POSTPONED_AGE_SECONDS),
                 postponed_until__lte=utc_now,
                 triggered_at__isnull=True, resolved_event__isnull=True,
-                resolved_at__isnull=True).iterator():
+                resolved_at__isnull=True,
+                task__enabled=True).iterator():
+            event_count += 1
+
             with transaction.atomic():
                 try:
                     if self.check_event(event):
@@ -33,7 +37,7 @@ class PostponedEventChecker:
                 except Exception:
                     logger.exception(f"Exception checking event {event.uuid}")
 
-        logger.info(f"Done checking for postponed events, triggered {triggered_count} events")
+        logger.info(f"Done checking for postponed events, triggered {triggered_count} out of {event_count} events")
 
         return triggered_count
 
