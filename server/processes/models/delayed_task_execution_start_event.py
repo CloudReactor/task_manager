@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from typing import TYPE_CHECKING
 
@@ -52,7 +53,7 @@ class DelayedTaskExecutionStartEvent(TaskExecutionEvent):
 
             if (not self.expected_start_by_deadline) and self.desired_start_at and (delay_before_event_seconds is not None):
                 self.expected_start_by_deadline = (self.desired_start_at + \
-                    timezone.timedelta(seconds=delay_before_event_seconds)).replace(microsecond=0)
+                    timedelta(seconds=delay_before_event_seconds)).replace(microsecond=0)
 
             if self.severity is None:
                 if self.resolved_at:
@@ -67,6 +68,10 @@ class DelayedTaskExecutionStartEvent(TaskExecutionEvent):
     def resolve(self) -> DelayedTaskExecutionStartEvent | None:
         if self.resolved_at:
             logger.info(f"Delayed Task Execution Start Event {self.uuid} is already resolved")
+            return None
+
+        if not self.task_execution:
+            logger.warning(f"Delayed Task Execution Start Event {self.uuid} has no associated TaskExecution, cannot resolve")
             return None
 
         utc_now = timezone.now()
@@ -87,6 +92,6 @@ class DelayedTaskExecutionStartEvent(TaskExecutionEvent):
         )
         resolving_event.save()
 
-        self.send_event_notifications(resolving_event)
+        self.task_execution.send_event_notifications(resolving_event)
 
         return resolving_event
