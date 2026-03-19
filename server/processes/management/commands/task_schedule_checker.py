@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from proc_wrapper import StatusUpdater
 
-from processes.services import *
+from ...services import *
 
 MIN_CHECK_INTERVAL_SECONDS = 60
 

@@ -23,7 +23,7 @@ from ..common.aws import *
 # context_with_request not used in this module
 from ..common.pagerduty import *
 from ..common.utils import coalesce, val_to_str
-from ..execution_methods import ExecutionMethod
+from ..execution_methods.execution_method import ExecutionMethod
 
 from .execution import Execution
 from .task import Task
