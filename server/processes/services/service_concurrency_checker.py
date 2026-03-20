@@ -56,9 +56,7 @@ class ServiceConcurrencyChecker:
             first_expected_execution_at = service.aws_ecs_service_updated_at + timedelta(
                 seconds=max_delay_seconds)
 
-        if first_expected_execution_at > start_dt:
-            start_dt = first_expected_execution_at
-
+        start_dt = max(start_dt, first_expected_execution_at)
         interval_start_timestamp = start_dt.timestamp()
 
         if interval_start_timestamp >= utc_timestamp:

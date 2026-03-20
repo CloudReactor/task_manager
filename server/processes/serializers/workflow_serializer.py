@@ -1,7 +1,6 @@
-#import ipdb
 import logging
 
-from typing import cast
+from typing import Any, cast
 
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ErrorDetail, ValidationError
@@ -104,7 +103,7 @@ class WorkflowSerializer(
     notification_profiles = NameAndUuidSerializer(include_name=True,
             view_name='notification_profiles-detail', many=True, required=False)
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         logger.info(f"wfs: to_internal value, data = {data}")
 
         workflow: Workflow | None = cast(Workflow, self.instance) if self.instance else None
@@ -128,13 +127,13 @@ class WorkflowSerializer(
 
         return validated
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Workflow:
         return self.create_or_update(None, validated_data)
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Workflow, validated_data: dict[str, Any]) -> Workflow:
         return self.create_or_update(instance, validated_data)
 
-    def create_or_update(self, instance, validated_data):
+    def create_or_update(self, instance: Workflow | None, validated_data: dict[str, Any]) -> Workflow:
         defaults = validated_data
 
         notification_profiles = defaults.pop('notification_profiles', None)

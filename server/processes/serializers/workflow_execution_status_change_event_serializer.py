@@ -32,8 +32,6 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
         """Convert nested workflow and workflow_execution data to actual instances."""
         from ..models import Workflow, WorkflowExecution
 
-        request = self.context.get('request')
-
         workflow_data = data.pop('workflow', None)
         workflow_execution_data = data.pop('workflow_execution', None)
 
@@ -78,7 +76,7 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
         if workflow is None:
             workflow = workflow_execution.workflow
 
-        if run_environment and (workflow.run_environment.pk != run_environment.pk):
+        if run_environment and workflow and (workflow.run_environment.pk != run_environment.pk):
             raise UnprocessableEntity({
                 'workflow': [ErrorDetail('The Workflow\'s Run Environment does not match the specified Run Environment', code='mismatch')]
             })

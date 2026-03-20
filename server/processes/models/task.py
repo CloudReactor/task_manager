@@ -172,8 +172,10 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         from .task_execution import TaskExecution
         from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
 
+        event_at = execution.started_at if (execution and execution.started_at) else timezone.now()
+
         resolving_event = MissingScheduledTaskExecutionEvent(
-            event_at=execution.started_at, detected_at=detected_at,
+            event_at=event_at, detected_at=detected_at,
             severity=resolved_event.severity, resolved_event=resolved_event,
             created_by_group=self.created_by_group, task=self,
             task_execution=cast(TaskExecution, execution),
