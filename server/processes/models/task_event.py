@@ -26,5 +26,5 @@ class TaskEvent(SchedulableInstanceEvent):
 
     @override
     @property
-    def schedulable_instance(self) -> Task:
+    def schedulable_instance(self) -> Task | None:
         return self.task

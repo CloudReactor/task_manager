@@ -12,5 +12,5 @@ class SchedulableInstanceEvent(Event):
         proxy = True
 
     @property
-    def schedulable_instance(self) -> Schedulable:
+    def schedulable_instance(self) -> Schedulable | None:
         raise NotImplementedError()

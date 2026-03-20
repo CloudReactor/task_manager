@@ -16,7 +16,6 @@ if TYPE_CHECKING:
         Task, TaskExecution,
         Workflow, WorkflowExecution
     )
-    
 
 logger = logging.getLogger(__name__)
 

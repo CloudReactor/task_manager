@@ -128,7 +128,7 @@ class Execution(UuidModel, ExecutionProbabilities):
 
     def manually_start(self) -> None:
         raise NotImplementedError()
-    
+
 
     def maybe_create_and_send_status_change_event(self) -> ExecutionStatusChangeEvent | None:
         executable = self.get_schedulable()

@@ -16,7 +16,7 @@ class MissingScheduledWorkflowExecutionEvent(WorkflowExecutionEvent, MissingSche
 
     @property
     @override
-    def schedulable_instance(self) -> Workflow:
+    def schedulable_instance(self) -> Workflow | None:
         return self.workflow
 
     @property

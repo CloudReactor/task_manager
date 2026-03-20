@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Manager
+from django.db.models import QuerySet
 from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -157,12 +157,12 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         return 'tasks'
 
     @override
-    def executions(self) -> Manager[TaskExecution]:
+    def executions(self) -> QuerySet[TaskExecution]:
         from .task_execution import TaskExecution
         return TaskExecution.objects.filter(task=self)
 
     @override
-    def lookup_all_missing_scheduled_execution_events(self) -> Manager[MissingScheduledTaskExecutionEvent]:
+    def lookup_all_missing_scheduled_execution_events(self) -> QuerySet[MissingScheduledTaskExecutionEvent]:
         from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
         return MissingScheduledTaskExecutionEvent.objects.filter(task=self)
 

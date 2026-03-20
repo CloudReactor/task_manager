@@ -16,6 +16,7 @@ DEFAULT_MAX_STARTUP_DURATION_SECONDS = 5 * 60
 logger = logging.getLogger(__name__)
 
 
+# TODO: Also check that concurrency is less than max concurrency in the case of passive/scheduled Tasks.
 class ServiceConcurrencyChecker:
     TRIGGERED_EVENT_SUMMARY_TEMPLATE = \
         """Service '{{task.name}}' had an insufficient instance count of {{detected_concurrency}} between {{interval_start_at}} and {{interval_end_at}}, required instance count of {{required_concurrency}}"""
@@ -125,8 +126,10 @@ class ServiceConcurrencyChecker:
                 logger.info(f"Found insufficient min concurrency {min_concurrency_found}, creating event")
 
                 # set microseconds to 0 so that formatted date in alert doesn't have fractional seconds
+                severity = service.notification_event_severity_on_insufficient_instances
+                assert severity is not None  # guaranteed by isnull=False filter above
                 current_event = InsufficientServiceTaskExecutionsEvent(
-                    severity=service.notification_event_severity_on_insufficient_instances,
+                    severity=severity,
                     created_by_group=service.created_by_group,
                     run_environment=service.run_environment,
                     task=service,
@@ -152,8 +155,9 @@ class ServiceConcurrencyChecker:
                 event.resolved_at = utc_now
                 event.save()
 
+                severity = service.notification_event_severity_on_sufficient_instances_restored or Event.Severity.DEBUG.value
                 resolving_event = InsufficientServiceTaskExecutionsEvent(
-                    severity=service.notification_event_severity_on_sufficient_instances_restored,
+                    severity=severity,
                     created_by_group=service.created_by_group,
                     run_environment=service.run_environment,
                     task=service,

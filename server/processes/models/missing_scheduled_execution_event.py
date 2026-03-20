@@ -1,5 +1,8 @@
 from typing import Final
 
+from django.utils import timezone
+
+from .event import Event
 from .execution import Execution
 
 
@@ -17,36 +20,43 @@ class MissingScheduledExecutionEvent:
         # and both parent classes are already initialized by the concrete class
         # that uses this mixin. We only set fields specific to missing execution events.
 
+        self.expected_execution_at = self.expected_execution_at or self.event_at or timezone.now()
         self.event_at = self.expected_execution_at
-
-        instance = self.schedulable_instance
-
-        self.severity = instance.notification_event_severity_on_missing_execution
-
-        label = instance.kind_label
 
         epoch_minutes = divmod(self.expected_execution_at.timestamp(), 60)[0]
 
-        self.grouping_key = f"missing_scheduled_{label.lower()}-{instance.uuid}-{epoch_minutes}"
+        instance = self.schedulable_instance
 
-        summary_template = self.FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE if \
-            self.resolved_event else self.MISSING_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE
+        if instance:
+            self.severity = instance.notification_event_severity_on_missing_execution
 
-        notification_generator = NotificationGenerator()
+            label = instance.kind_label
+        
+            self.grouping_key = f"missing_scheduled_{label.lower()}-{instance.uuid}-{epoch_minutes}"
 
-        template_params = notification_generator.make_template_params(
-            task=getattr(self, 'task'),
-            workflow=getattr(self, 'workflow'),
-            is_resolution=self.is_resolution,
-            severity=self.severity_label)
+            summary_template = self.FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE if \
+                self.resolved_event else self.MISSING_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE
 
-        template_params['type_label'] = label
-        template_params['instance'] = instance
-        template_params['expected_execution_at'] = self.expected_execution_at
+            notification_generator = NotificationGenerator()
 
-        self.error_summary = notification_generator.generate_text(
-            template_params=template_params,
-            template=summary_template)
+            template_params = notification_generator.make_template_params(
+                task=getattr(self, 'task'),
+                workflow=getattr(self, 'workflow'),
+                is_resolution=self.is_resolution,
+                severity=self.severity_label)
+
+            template_params['type_label'] = label
+            template_params['instance'] = instance
+            template_params['expected_execution_at'] = self.expected_execution_at
+
+            self.error_summary = notification_generator.generate_text(
+                template_params=template_params,
+                template=summary_template)
+
+        else:
+            self.severity = Event.Severity.ERROR
+            self.grouping_key = ''
+            self.error_summary = ''
 
     @property
     def resolving_execution(self) -> Execution | None:

@@ -73,11 +73,12 @@ class EmailNotificationDeliveryMethod(NotificationDeliveryMethod):
         template_params['model_task_execution'] = event.task_execution
         template_params['event'] = event
 
-        template_params['formatted_execution_method_details'] = \
-            self.make_formatted_execution_method_details(task_execution=event.task_execution)
+        if event.task_execution:
+            template_params['formatted_execution_method_details'] = \
+                self.make_formatted_execution_method_details(task_execution=event.task_execution)
 
-        template_params['formatted_infrastructure_settings'] = \
-            self.make_formatted_infrastructure_settings(task_execution=event.task_execution)
+            template_params['formatted_infrastructure_settings'] = \
+                self.make_formatted_infrastructure_settings(task_execution=event.task_execution)
 
         if event.details:
             template_params.update(event.details)

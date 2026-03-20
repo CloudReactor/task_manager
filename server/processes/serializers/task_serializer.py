@@ -207,7 +207,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         return attrs
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         body_task_links = data.pop('links', None) or \
             data.pop('process_type_links', None)
 
@@ -546,13 +546,13 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 many=True).data
         return obj
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Task:
         return self.create_or_update(None, validated_data)
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Task, validated_data: dict[str, Any]) -> Task:
         return self.create_or_update(instance, validated_data)
 
-    def create_or_update(self, instance, validated_data):
+    def create_or_update(self, instance: Task | None, validated_data: dict[str, Any]) -> Task:
         #print(f"request = {self.context['request']}")
         #print(f"validated data = {validated_data}")
         request = self.context['request']
@@ -617,8 +617,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             method_name: str,
             task: Task | None = None, is_service: bool | None = None,
             run_environment: RunEnvironment | None = None,
-            is_legacy_schema: bool = False) \
-            -> serializers.Serializer:
+            is_legacy_schema: bool = False) -> serializers.Serializer:
         #print(f"request = {self.context['request']}")
         request = self.context['request']
         omitted = (request.query_params.get('omit') or '').split(',')

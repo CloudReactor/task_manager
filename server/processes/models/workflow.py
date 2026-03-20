@@ -11,7 +11,7 @@ import uuid as python_uuid
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Manager
+from django.db.models import QuerySet
 from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -71,12 +71,12 @@ class Workflow(Schedulable):
     def workflow_transitions(self):
         return WorkflowTransition.objects.filter(to_workflow_task_instance__workflow=self)
 
-    def in_progress_executions_queryset(self):
+    def in_progress_executions_queryset(self) -> QuerySet[WorkflowExecution]:
         from .workflow_execution import WorkflowExecution
         return self.workflowexecution_set.filter(
                 status__in=WorkflowExecution.IN_PROGRESS_STATUSES)
 
-    def running_executions_queryset(self):
+    def running_executions_queryset(self) -> QuerySet[WorkflowExecution]:
         return self.workflowexecution_set.filter(
             status=Execution.Status.RUNNING
         )
@@ -111,12 +111,12 @@ class Workflow(Schedulable):
         return True
 
     @override
-    def executions(self) -> Manager[WorkflowExecution]:
+    def executions(self) -> QuerySet[WorkflowExecution]:
         from .workflow_execution import WorkflowExecution
         return WorkflowExecution.objects.filter(workflow=self)
 
     @override
-    def lookup_all_missing_scheduled_execution_events(self) -> Manager[MissingScheduledWorkflowExecutionEvent]:
+    def lookup_all_missing_scheduled_execution_events(self) -> QuerySet[MissingScheduledWorkflowExecutionEvent]:
         from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
         return MissingScheduledWorkflowExecutionEvent.objects.filter(workflow=self)
 

@@ -1,5 +1,5 @@
 import logging
-from typing import override
+from typing import Any, override
 
 from rest_framework import serializers
 
@@ -118,7 +118,7 @@ class NotificationDeliveryMethodSerializer(GroupSettingSerializerMixin,
         # Default: use parent's to_representation for base NotificationDeliveryMethod
         return super().to_representation(instance)
 
-    def get_rate_limit_tiers(self, ndm: NotificationDeliveryMethod) -> list[dict[str, any]]:
+    def get_rate_limit_tiers(self, ndm: NotificationDeliveryMethod) -> list[dict[str, Any]]:
         tiers = []
         # Use EventSeveritySerializer to produce string labels for severities
         severity_serializer = EventSeveritySerializer()

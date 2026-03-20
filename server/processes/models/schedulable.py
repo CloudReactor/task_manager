@@ -10,7 +10,7 @@ import re
 from typing_extensions import Self
 
 from django.db import models
-from django.db.models import Manager
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from .event import Event
@@ -112,7 +112,7 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
     def can_start_execution(self) -> bool:
         return False
 
-    def executions(self) -> Manager[Execution]:
+    def executions(self) -> QuerySet[Execution]:
         raise NotImplementedError()
 
     @property
@@ -125,10 +125,10 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
 
         return None
 
-    def lookup_all_missing_scheduled_execution_events(self) -> Manager[MissingScheduledExecutionEvent]:
+    def lookup_all_missing_scheduled_execution_events(self) -> QuerySet[MissingScheduledExecutionEvent]:
         raise NotImplementedError()
 
-    def lookup_missing_scheduled_execution_events(self) -> Manager[MissingScheduledExecutionEvent]:
+    def lookup_missing_scheduled_execution_events(self) -> QuerySet[MissingScheduledExecutionEvent]:
         manager = self.lookup_all_missing_scheduled_execution_events()
 
         schedule_type = self.schedule_type
