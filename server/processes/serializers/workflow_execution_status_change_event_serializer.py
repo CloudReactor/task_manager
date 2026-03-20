@@ -76,9 +76,10 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
         if workflow is None:
             workflow = workflow_execution.workflow
 
-        if run_environment and workflow and (workflow.run_environment.pk != run_environment.pk):
+        if workflow and run_environment and \
+                ((workflow.run_environment is None) or (workflow.run_environment.pk != run_environment.pk)):
             raise UnprocessableEntity({
-                'workflow': [ErrorDetail('The Workflow\'s Run Environment does not match the specified Run Environment', code='mismatch')]
+                'workflow': [ErrorDetail('The Run Environment of the Workflow does not match the specified Run Environment', code='mismatch')]
             })
 
         validated['workflow'] = workflow
