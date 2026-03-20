@@ -49,7 +49,7 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
     default_aws_ecs_configuration = models.JSONField(null=True, blank=True)
     default_aws_lambda_configuration = models.JSONField(null=True, blank=True)
 
-    notification_profiles: models.ManyToManyField['NotificationProfile'] = models.ManyToManyField('NotificationProfile')
+    notification_profiles: models.ManyToManyField['NotificationProfile', 'NotificationProfile'] = models.ManyToManyField('NotificationProfile')
 
     # Deprecated, use InfrastructureSettings.can_manage_infrastructure()
     def can_control_aws_ecs(self) -> bool:

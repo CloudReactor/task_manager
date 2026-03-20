@@ -168,7 +168,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
 
     @override
     def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,
-        resolved_event: MissingScheduledExecutionEvent, execution: Execution) -> MissingScheduledTaskExecutionEvent:
+        resolved_event: MissingScheduledExecutionEvent, execution: Execution | None) -> MissingScheduledTaskExecutionEvent:
         from .task_execution import TaskExecution
         from .missing_scheduled_task_execution_event import MissingScheduledTaskExecutionEvent
 
@@ -468,7 +468,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
                             self.save_without_sync()
                             logger.info(f"Done saving torndown service settings in DB {self.uuid=}")
 
-                    raise CommittableException(cause=ex)
+                    raise CommittableException(cause=ex) from ex
 
                 self.is_service_managed = True
             else:

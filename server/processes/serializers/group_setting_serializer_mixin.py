@@ -32,7 +32,7 @@ from .serializer_helpers import SerializerHelpers
 logger = logging.getLogger(__name__)
 
 
-class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
+class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):  # pylint: disable=abstract-method
     created_by_user = serializers.ReadOnlyField(source='created_by_user.username', allow_null=True)
     created_by_group = GroupSerializer(read_only=True, include_users=False, allow_null=True)
     run_environment = NameAndUuidSerializer(required=False, allow_null=True,

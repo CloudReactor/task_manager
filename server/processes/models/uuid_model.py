@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING, override
+from typing import Any, ClassVar, TYPE_CHECKING, override
 
 import uuid
 
@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 class UuidModel(models.Model):
     class Meta:
         abstract = True
+
+    objects: ClassVar[models.Manager[Self]]
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)

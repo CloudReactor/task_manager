@@ -27,7 +27,7 @@ class CloningMixin(BaseViewSet):
     @action(methods=['post'], detail=True,
             url_path='clone', url_name='clone')
     def clone(self, request: Request, uuid: str):
-        entity = self.model_class.objects.get(uuid=uuid)
+        entity = self.model_objects.get(uuid=uuid)
 
         ensure_group_access_level(group=entity.created_by_group,
             min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,

@@ -14,7 +14,7 @@ class FrontendAppView(View):
 
     def get(self, request):
         try:
-            with open(os.path.join(settings.CRA_ROOT, 'index.html')) as f:
+            with open(os.path.join(settings.CRA_ROOT, 'index.html'), encoding='utf-8') as f:
                 return HttpResponse(f.read())
         except FileNotFoundError:
             logging.exception('Production build of app not found')

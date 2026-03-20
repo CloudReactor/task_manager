@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-class NameAndUuidSerializer(serializers.Serializer):
+class NameAndUuidSerializer(serializers.Serializer):  # pylint: disable=abstract-method
     """
     Identifies an entity in three ways: 1. UUID; 2. Name; and 3. URL.
     When used to identify an entity in a request method body, only one of

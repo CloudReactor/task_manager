@@ -159,7 +159,7 @@ class WorkflowExecution(Execution):
             self.finished_at = timezone.now()
             self.save()
 
-    def retry(self):
+    def retry(self) -> WorkflowExecution:
         from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
         logger.info(f"Retrying Workflow Execution with UUID = {self.uuid} ...")

@@ -1,4 +1,4 @@
-from typing import override
+from typing import Any, override
 
 import logging
 
@@ -34,7 +34,7 @@ class InsufficientServiceTaskExecutionsEventSerializer(EventSerializer):
         ]
 
     @override
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         """Convert nested task data to an actual instance."""
         from ..models import Task
 

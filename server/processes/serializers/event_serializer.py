@@ -39,8 +39,8 @@ def convert_event_severity_value(data: Any) -> int:
             # Fallback: if client passed a numeric string, parse and use as-is
             try:
                 return int(s)
-            except ValueError:
-                raise serializers.ValidationError(f"Unknown severity: {data}")
+            except ValueError as exc:
+                raise serializers.ValidationError(f"Unknown severity: {data}") from exc
 
     raise serializers.ValidationError('Invalid severity')
 

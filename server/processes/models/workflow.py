@@ -122,7 +122,7 @@ class Workflow(Schedulable):
 
     @override
     def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,
-        resolved_event: MissingScheduledExecutionEvent, execution: Execution) -> MissingScheduledWorkflowExecutionEvent:
+        resolved_event: MissingScheduledExecutionEvent, execution: Execution | None) -> MissingScheduledWorkflowExecutionEvent:
         from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
         from .workflow_execution import WorkflowExecution
 
@@ -509,7 +509,7 @@ def pre_save_workflow(sender: Type[Workflow], instance: Workflow, **kwargs) -> N
         if (max_workflows is not None) and (existing_count >= max_workflows):
             raise UnprocessableEntity(detail='Workflow limit exceeded', code='limit_exceeded')
     else:
-        old_instance = instance._loaded_copy
+        old_instance = cast(Workflow, instance._loaded_copy)
 
     should_update_schedule = bool(instance.schedule)
 

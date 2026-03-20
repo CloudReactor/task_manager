@@ -141,7 +141,7 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
 
 
     def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,
-        resolved_event: MissingScheduledExecutionEvent, execution: Execution) -> MissingScheduledExecutionEvent:
+        resolved_event: MissingScheduledExecutionEvent, execution: Execution | None) -> MissingScheduledExecutionEvent:
         raise NotImplementedError()
 
     def send_event_notifications(self, event: Event) -> int:
