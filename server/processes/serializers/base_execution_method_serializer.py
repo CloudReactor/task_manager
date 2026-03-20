@@ -20,3 +20,9 @@ class BaseExecutionMethodSerializer(FlexFieldsSerializerMixin,
 
     def get_execution_method_type(self, obj: Any) -> str:
         raise NotImplementedError()
+
+    def create(self, validated_data: dict[str, Any]) -> Any:
+        raise NotImplementedError()
+
+    def update(self, instance: Any, validated_data: dict[str, Any]) -> Any:
+        raise NotImplementedError()

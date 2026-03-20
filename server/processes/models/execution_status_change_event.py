@@ -116,4 +116,4 @@ class ExecutionStatusChangeEvent:
         return execution.get_schedulable()
 
     def get_execution(self) -> Execution | None:
-        return None
+        raise NotImplementedError()

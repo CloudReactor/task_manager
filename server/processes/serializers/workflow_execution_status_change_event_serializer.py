@@ -1,4 +1,4 @@
-from typing import override
+from typing import Any, override
 
 from rest_framework.exceptions import ErrorDetail
 
@@ -28,7 +28,7 @@ class WorkflowExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSer
 
 
     @override
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         """Convert nested workflow and workflow_execution data to actual instances."""
         from ..models import Workflow, WorkflowExecution
 

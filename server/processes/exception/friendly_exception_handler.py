@@ -11,7 +11,7 @@ from rest_framework import serializers
 logger = logging.getLogger(__name__)
 
 
-def friendly_exception_handler(exc, context):
+def friendly_exception_handler(exc: Exception, context: dict) -> Response | None:
     from rest_framework.views import exception_handler
 
     ex_traceback = exc.__traceback__

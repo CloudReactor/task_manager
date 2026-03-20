@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Final
 
+from datetime import timedelta
 import logging
 
 from django.db import transaction
@@ -23,7 +24,7 @@ class PostponedEventChecker:
         event_count = 0
         triggered_count = 0
         for event in TaskExecutionStatusChangeEvent.objects.filter(
-                postponed_until__gte=utc_now - timezone.timedelta(seconds=self.MAX_POSTPONED_AGE_SECONDS),
+                postponed_until__gte=utc_now - timedelta(seconds=self.MAX_POSTPONED_AGE_SECONDS),
                 postponed_until__lte=utc_now,
                 triggered_at__isnull=True, resolved_event__isnull=True,
                 resolved_at__isnull=True,

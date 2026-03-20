@@ -49,12 +49,12 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
     default_aws_ecs_configuration = models.JSONField(null=True, blank=True)
     default_aws_lambda_configuration = models.JSONField(null=True, blank=True)
 
-    notification_profiles = models.ManyToManyField('NotificationProfile')
+    notification_profiles: models.ManyToManyField['NotificationProfile'] = models.ManyToManyField('NotificationProfile')
 
     # Deprecated, use InfrastructureSettings.can_manage_infrastructure()
     def can_control_aws_ecs(self) -> bool:
         aws_settings = self.parsed_aws_settings()
-        return aws_settings and aws_settings.can_manage_infrastructure()
+        return (aws_settings is not None) and aws_settings.can_manage_infrastructure()
 
     # Deprecated, use AwsSettings.region
     def get_aws_region(self) -> str | None:
@@ -86,7 +86,7 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
     def can_schedule_workflow(self) -> bool:
         aws_settings = self.parsed_aws_settings()
-        return aws_settings and aws_settings.can_schedule_workflow()
+        return (aws_settings is not None) and aws_settings.can_schedule_workflow()
 
     def enrich_settings(self) -> None:
         aws_settings = self.parsed_aws_settings()

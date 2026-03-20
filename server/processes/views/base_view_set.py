@@ -1,9 +1,9 @@
-from typing import Any
+from typing import Any, cast
 
 import logging
 
 from django.conf import settings
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from django.db import models
 from django.db.models.query import QuerySet
 
@@ -27,11 +27,17 @@ class BaseReadOnlyViewSetMixin(viewsets.ReadOnlyModelViewSet):
     ordering_fields: Any = ('name',)
     ordering = 'name'
 
+    # The django-stubs plugin intentionally removes objects from the base Model class
+    # (keeping it only on concrete subclasses).
+    @property
+    def model_objects(self) -> models.Manager:
+        return self.model_class.objects  # type: ignore[attr-defined]
+
     def get_queryset(self) -> QuerySet:
         # Prevents this problem in drf-spectacular:
         # failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, having an empty fallback in get_queryset() or by using @extend_schema. (Exception: No User found)
         if settings.IN_SCHEMA_GENERATION:
-            return self.model_class.objects.none()
+            return self.model_objects.none()
 
         if self.action != 'list':
             return self.get_queryset_for_all_groups()
@@ -55,7 +61,7 @@ class BaseReadOnlyViewSetMixin(viewsets.ReadOnlyModelViewSet):
 
     def get_scoped_queryset(self, group: Group,
             run_environment: RunEnvironment | None) -> QuerySet:
-        qs = self.model_class.objects.all()
+        qs = self.model_objects.all()
 
         if run_environment:
             if run_environment.created_by_group != group:
@@ -63,7 +69,7 @@ class BaseReadOnlyViewSetMixin(viewsets.ReadOnlyModelViewSet):
 
             return self.filter_queryset_by_run_environment(qs, run_environment)
 
-        return self.filter_queryset_by_group(self.model_class.objects.all(),
+        return self.filter_queryset_by_group(self.model_objects.all(),
                 group=group)
 
     def filter_queryset_by_group(self, qs: QuerySet, group: Group) -> QuerySet:
@@ -74,8 +80,9 @@ class BaseReadOnlyViewSetMixin(viewsets.ReadOnlyModelViewSet):
         return qs.filter(run_environment=run_environment)
 
     def get_queryset_for_all_groups(self) -> QuerySet:
-        return self.model_class.objects.filter(
-            created_by_group__in=self.request.user.groups.order_by(self.ordering))
+        user = cast(User, self.request.user)
+        return self.model_objects.filter(
+            created_by_group__in=user.groups.order_by(self.ordering))
 
     def extract_group(self, request_group: Group | None) -> Group | None:
         return extract_filtered_group(request=self.request,

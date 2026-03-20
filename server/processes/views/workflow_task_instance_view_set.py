@@ -3,7 +3,7 @@ from typing import cast, Any
 import logging
 
 from django.db.models.query import QuerySet
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 
 from django_filters import CharFilter
 from django_filters import rest_framework as filters
@@ -79,8 +79,9 @@ class WorkflowTaskInstanceViewSet(AtomicCreateModelMixin,
         return qs.filter(workflow__run_environment=run_environment)
 
     def get_queryset_for_all_groups(self) -> QuerySet:
+        user = cast(User, self.request.user)
         return self.model_class.objects.filter(
-            workflow__created_by_group__in=self.request.user.groups.all()
+            workflow__created_by_group__in=user.groups.all()
         ).order_by(self.ordering)
 
     def extract_group(self, request_group: Group | None):

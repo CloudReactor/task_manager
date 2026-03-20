@@ -8,7 +8,7 @@ from django.db import transaction
 from django.db.models.query import QuerySet
 from django.views import View
 
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 
 from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
@@ -105,8 +105,9 @@ class WorkflowExecutionViewSet(AtomicCreateModelMixin,
         return qs.filter(workflow__run_environment=run_environment)
 
     def get_queryset_for_all_groups(self) -> QuerySet:
+        user = cast(User, self.request.user)
         return self.model_class.objects.filter(
-            workflow__created_by_group__in=self.request.user.groups.all()
+            workflow__created_by_group__in=user.groups.all()
         ).order_by(self.ordering)
 
     def extract_group(self, request_group: Group | None):

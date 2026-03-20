@@ -1,20 +1,23 @@
-import logging
-from typing import override
-from urllib.request import Request
+from __future__ import annotations
 
-from django.db.models import F, Value
+import logging
+
+from typing import override
+
+from django.db.models import F, QuerySet, Value
 from django.db.models.functions import Coalesce
+
 from django.views import View
 
 from django_filters import rest_framework as filters
 from django_filters.filters import NumberFilter, CharFilter
 
 from rest_framework import permissions
-
-from processes.models.user_group_access_level import UserGroupAccessLevel
+from rest_framework.request import Request
 
 from ..common.utils import model_class_to_type_string
-from ..models import Event
+from ..models.event import Event
+from ..models.user_group_access_level import UserGroupAccessLevel
 from ..permissions import IsCreatedByGroup
 from ..serializers import EventSerializer
 
@@ -49,7 +52,7 @@ class EventFilter(filters.FilterSet):
     # Filter by resolved status: 'resolved', 'not_resolved', or empty for any
     resolved_status = CharFilter(method='filter_resolved_status')
 
-    def _parse_severity_value(self, value):
+    def _parse_severity_value(self, value: str) -> int | None:
         """
         Parse a severity value which can be either a label or numeric value.
         Returns the numeric severity value or None if invalid.
@@ -68,7 +71,7 @@ class EventFilter(filters.FilterSet):
             logger.warning(f"Invalid severity value: {value}")
             return None
 
-    def filter_severity(self, queryset, name, value):
+    def filter_severity(self, queryset, name: str, value: str) -> QuerySet[Event]:
         """
         Filter severity by label (e.g., 'error', 'warning') or numeric value.
         Accepts comma-separated list of severity labels/values or single value.
@@ -97,7 +100,7 @@ class EventFilter(filters.FilterSet):
             else:
                 return queryset.none()
 
-    def filter_min_severity(self, queryset, name, value):
+    def filter_min_severity(self, queryset, name: str, value: str) -> QuerySet[Event]:
         """
         Filter events with severity greater than or equal to the specified value.
         Accepts severity label or numeric value.
@@ -111,7 +114,7 @@ class EventFilter(filters.FilterSet):
         else:
             return queryset.none()
 
-    def filter_max_severity(self, queryset, name, value):
+    def filter_max_severity(self, queryset, name: str, value: str) -> QuerySet[Event]:
         """
         Filter events with severity less than or equal to the specified value.
         Accepts severity label or numeric value.
@@ -125,7 +128,7 @@ class EventFilter(filters.FilterSet):
         else:
             return queryset.none()
 
-    def filter_event_type(self, queryset, name, value):
+    def filter_event_type(self, queryset, name: str, value: str) -> QuerySet[Event]:
         """
         Filter events by event_type strings (as returned by `EventSerializer.get_event_type`).
         Accepts a single value or a comma-separated list of type strings.
@@ -146,7 +149,7 @@ class EventFilter(filters.FilterSet):
 
         return queryset.filter(type__in=type_names)
 
-    def filter_acknowledged_status(self, queryset, name, value):
+    def filter_acknowledged_status(self, queryset, name: str, value: str) -> QuerySet[Event]:
         """
         Filter events by acknowledgement status.
         - 'acknowledged': events that have been acknowledged (acknowledged_at is not null)
@@ -164,7 +167,7 @@ class EventFilter(filters.FilterSet):
             # Invalid value, return empty queryset
             return queryset.none()
 
-    def filter_resolved_status(self, queryset, name, value):
+    def filter_resolved_status(self, queryset, name: str, value: str) -> QuerySet[Event]:
         """
         Filter events by resolved status.
         - 'resolved': events that have been resolved (resolved_at is not null)

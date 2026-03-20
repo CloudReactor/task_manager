@@ -27,7 +27,7 @@ class TaskLink(NamedWithUuidModel):
     rank = models.IntegerField(default=0)
 
     @property
-    def link_url(self):
+    def link_url(self) -> str:
         if self.link_url_template.find("{{") >= 0:
             logger.debug('Processing link URL template')
             pt = self.task

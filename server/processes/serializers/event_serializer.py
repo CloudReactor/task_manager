@@ -172,7 +172,7 @@ class EventSerializer(EmbeddedIdValidatingSerializerMixin, GroupSettingSerialize
         # Default: use parent's to_representation for base Event
         return super().to_representation(instance)
 
-    def required_access_level_for_mutation(self):
+    def required_access_level_for_mutation(self) -> int:
         return UserGroupAccessLevel.ACCESS_LEVEL_TASK
 
     @override

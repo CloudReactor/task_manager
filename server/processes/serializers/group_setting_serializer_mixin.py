@@ -1,4 +1,4 @@
-from typing import cast, override
+from typing import Any, cast, override
 
 import logging
 
@@ -39,7 +39,7 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
             view_name='run_environments-detail')
 
     @override
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         group_dict = data.pop('created_by_group', None)
         data_has_run_environment_key = 'run_environment' in data
         run_environment_dict = data.pop('run_environment', None)
@@ -119,5 +119,5 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):
 
         return validated
 
-    def required_access_level_for_mutation(self):
+    def required_access_level_for_mutation(self) -> int:
         return UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER

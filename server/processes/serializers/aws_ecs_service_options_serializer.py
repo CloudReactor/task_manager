@@ -50,13 +50,13 @@ class AwsEcsServiceOptionsSerializer(SerializerHelpers, serializers.Serializer):
     tags = serializers.HStoreField(source='aws_ecs_service_tags',
             allow_null=True, allow_empty=True, required=False)
 
-    def to_representation(self, instance: Task):
+    def to_representation(self, instance: Task) -> Any:
         if instance.is_service:
             return super().to_representation(instance)
 
         return None
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         validated: dict[str, Any] = {}
 
         self.copy_props_with_prefix(dest_dict=validated,

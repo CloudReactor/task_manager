@@ -31,7 +31,7 @@ class MissingScheduledExecutionEvent:
             self.severity = instance.notification_event_severity_on_missing_execution
 
             label = instance.kind_label
-        
+
             self.grouping_key = f"missing_scheduled_{label.lower()}-{instance.uuid}-{epoch_minutes}"
 
             summary_template = self.FOUND_SCHEDULED_EXECUTION_SUMMARY_TEMPLATE if \

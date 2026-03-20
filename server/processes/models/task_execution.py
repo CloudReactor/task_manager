@@ -407,7 +407,7 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
 
 
     @override
-    def create_status_change_event(self, severity: Event.Severity) -> TaskExecutionStatusChangeEvent:
+    def create_status_change_event(self, severity: int) -> TaskExecutionStatusChangeEvent:
         from .task_execution_status_change_event import TaskExecutionStatusChangeEvent
         return TaskExecutionStatusChangeEvent(
             severity=severity,

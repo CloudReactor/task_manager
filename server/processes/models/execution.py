@@ -141,7 +141,7 @@ class Execution(UuidModel, ExecutionProbabilities):
             logger.info(f"Skipping status change event creation since Task {executable.uuid} should not create status change event")
             return None
 
-        severity: int | None = Event.Severity.ERROR
+        severity: int | None = Event.Severity.ERROR.value
 
         if self.status == Execution.Status.SUCCEEDED:
             severity = executable.notification_event_severity_on_success
@@ -152,7 +152,7 @@ class Execution(UuidModel, ExecutionProbabilities):
 
         # TODO: default to Run Environment's severities, override with TaskExecution severities
 
-        if (severity is None) or (severity == Event.Severity.NONE):
+        if (severity is None) or (severity == Event.Severity.NONE.value):
             logger.info(f"Skipping notifications since Schedulable {executable.uuid} has no severity set for status {self.status}")
             return None
 
@@ -178,7 +178,7 @@ class Execution(UuidModel, ExecutionProbabilities):
         if self.finished_at and \
             ((utc_now - self.finished_at).total_seconds() > self.MAX_STATUS_CHANGE_AGE_SECONDS):
             logger.info(f"Skipping status change event creation since finished_at={self.finished_at} is too long ago")
-            return None
+            return False
 
         executable = self.get_schedulable()
 
@@ -196,7 +196,7 @@ class Execution(UuidModel, ExecutionProbabilities):
 
         return True
 
-    def create_status_change_event(self, severity: Event.Severity) -> ExecutionStatusChangeEvent:
+    def create_status_change_event(self, severity: int) -> ExecutionStatusChangeEvent:
         raise NotImplementedError()
 
 

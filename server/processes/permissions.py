@@ -54,9 +54,9 @@ class IsCreatedByGroup(permissions.BasePermission):
                       run_environment=run_environment,
                       allow_api_key=allow_api_key,
                       request=request)
-            except PermissionDenied as pd:
+            except PermissionDenied as pd2:
                 # Client has neither read nor write access
-                raise NotFound() from pd
+                raise NotFound() from pd2
 
             # Client has read access but not write access
             return False

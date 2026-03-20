@@ -509,7 +509,7 @@ def pre_save_task(sender: Type[Task], instance: Task, raw: bool, using: str, upd
     if instance.should_skip_synchronize_with_run_environment:
         logger.info(f"skipping synchronize_with_run_environment with Task {instance}")
     else:
-        instance.synchronize_with_run_environment(old_self=instance._loaded_copy,
+        instance.synchronize_with_run_environment(old_self=cast(Task, instance._loaded_copy),
                 is_saving=False)
 
     try:

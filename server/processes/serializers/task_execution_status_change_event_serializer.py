@@ -1,4 +1,4 @@
-from typing import override
+from typing import Any, override
 
 from rest_framework.exceptions import ErrorDetail
 
@@ -27,7 +27,7 @@ class TaskExecutionStatusChangeEventSerializer(ExecutionStatusChangeEventSeriali
         ]
 
     @override
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         """Convert nested task and task_execution data to actual instances."""
         from ..models import Task, TaskExecution
 

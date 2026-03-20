@@ -123,8 +123,8 @@ class Workflow(Schedulable):
     @override
     def make_resolved_missing_scheduled_execution_event(self, detected_at: datetime,
         resolved_event: MissingScheduledExecutionEvent, execution: Execution) -> MissingScheduledWorkflowExecutionEvent:
-        from .workflow_execution import WorkflowExecution
         from .missing_scheduled_workflow_execution_event import MissingScheduledWorkflowExecutionEvent
+        from .workflow_execution import WorkflowExecution
 
         resolving_event = MissingScheduledWorkflowExecutionEvent(
             event_at=execution.started_at, detected_at=detected_at,

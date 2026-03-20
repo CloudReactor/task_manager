@@ -145,6 +145,15 @@ class TaskExecutionChecker:
             return False
 
         task = te.task
+
+        if task is None:
+            logger.info(f"Task Execution {te.uuid} has no Task associated with it, cannot check heartbeats")
+            return False    
+
+        if not task.notification_event_severity_on_missing_heartbeat:
+            logger.debug(f"Task Execution {te.uuid} has no notification severity configured for missing heartbeats")
+            return False
+
         is_missing = False
 
         heartbeat_interval_seconds = te.heartbeat_interval_seconds
@@ -213,6 +222,6 @@ class TaskExecutionChecker:
                 else:
                     logger.debug(f"Found existing last heartbeat detection event for Task Execution {te.uuid}")
             else:
-                logger.debug(f'Not abandoning or sending alert for Task Execution {te.uuid} with {task.max_heartbeat_lateness_before_alert_seconds=}')
+                logger.debug(f'Not abandoning or sending notification for Task Execution {te.uuid} with {task.max_heartbeat_lateness_before_alert_seconds=}')
 
         return is_missing

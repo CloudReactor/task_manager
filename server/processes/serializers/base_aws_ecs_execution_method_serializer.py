@@ -1,6 +1,6 @@
-from rest_framework import serializers
+from typing import Any
 
-from ..models.run_environment import RunEnvironment
+from rest_framework import serializers
 
 from ..execution_methods import AwsEcsExecutionMethod
 
@@ -55,5 +55,5 @@ class BaseAwsEcsExecutionMethodSerializer(
             source='aws_ecs_default_platform_version', max_length=10,
             required=False)
 
-    def get_execution_method_type(self, run_env: RunEnvironment) -> str:
+    def get_execution_method_type(self, obj: Any) -> str:
         return AwsEcsExecutionMethod.NAME

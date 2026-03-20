@@ -69,6 +69,7 @@ disable=raw-checker-failed,
         # Non-defaults
         logging-fstring-interpolation,
         logging-format-interpolation,
+        logging-not-lazy,
         missing-module-docstring,
         missing-class-docstring,
         missing-function-docstring,

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import Any, TYPE_CHECKING, override
 
 import uuid
+
+from typing_extensions import Self
 
 from django.conf import settings
 from django.db import models
@@ -33,12 +35,12 @@ class UuidModel(models.Model):
         return str(self.uuid)
 
     @classmethod
-    def find_by_uuid(cls, obj_dict,
+    def find_by_uuid(cls: type[Self], obj_dict: dict[str, Any],
             required_group: Group | None = None,
             required_run_environment: RunEnvironment | None = None,
             check_conflict: bool = False,
             allowed_run_environment: RunEnvironment | None = None,
-            allow_any_run_environment: bool | None = None):
+            allow_any_run_environment: bool | None = None) -> Self:
         return cls.find_by_uuid_or_name_core(
             obj_dict,
             required_group=required_group,
@@ -50,13 +52,13 @@ class UuidModel(models.Model):
 
 
     @classmethod
-    def find_by_uuid_or_name_core(cls, obj_dict,
+    def find_by_uuid_or_name_core(cls: type[Self], obj_dict: dict[str, Any],
             required_group: Group | None,
             required_run_environment: RunEnvironment | None,
             check_conflict: bool,
             allowed_run_environment: RunEnvironment | None,
             allow_any_run_environment: bool | None,
-            use_name: bool):
+            use_name: bool) -> Self:
         model_uuid = obj_dict.get('uuid')
         name = obj_dict.get('name') if use_name else None
 

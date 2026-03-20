@@ -86,7 +86,7 @@ class WorkflowExecution(Execution):
         return WorkflowExecutionStatusChangeEvent.objects.filter(workflow_execution=self)
 
     @override
-    def create_status_change_event(self, severity: Event.Severity) -> WorkflowExecutionStatusChangeEvent:
+    def create_status_change_event(self, severity: int) -> WorkflowExecutionStatusChangeEvent:
         from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
         return WorkflowExecutionStatusChangeEvent(
             severity=severity,
