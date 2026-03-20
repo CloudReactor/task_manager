@@ -45,8 +45,12 @@ from ..common.request_helpers import (
 
 from ..execution_methods import *
 from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
-from ..models import *
 from ..common.utils import coalesce, deepmerge
+from ..models.aws_ecs_service_load_balancer_details import AwsEcsServiceLoadBalancerDetails
+from ..models.run_environment import RunEnvironment
+from ..models.task import Task
+from ..models.task_link import TaskLink
+from ..models.user_group_access_level import UserGroupAccessLevel
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
 from .embedded_id_validating_serializer_mixin import (
