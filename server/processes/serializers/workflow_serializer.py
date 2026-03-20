@@ -10,7 +10,10 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
 from ..exception.unprocessable_entity import UnprocessableEntity
 
-from ..models import *
+from ..models.user_group_access_level import UserGroupAccessLevel
+from ..models.workflow import Workflow
+from ..models.workflow_task_instance import WorkflowTaskInstance
+from ..models.workflow_transition import WorkflowTransition
 from .name_and_uuid_serializer import NameAndUuidSerializer
 from .embedded_id_validating_serializer_mixin import (
     EmbeddedIdValidatingSerializerMixin

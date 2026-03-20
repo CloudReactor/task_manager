@@ -7,7 +7,8 @@ from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
 from drf_spectacular.utils import extend_schema_field
 
-from ..models import Execution, WorkflowExecution
+from ..models.execution import Execution
+from ..models.workflow_execution import WorkflowExecution
 
 from .serializer_helpers import SerializerHelpers
 from .embedded_workflow_serializer import EmbeddedWorkflowSerializer

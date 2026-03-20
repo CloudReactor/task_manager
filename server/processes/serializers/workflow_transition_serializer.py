@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 
 import logging
 
@@ -58,7 +58,7 @@ class WorkflowTransitionSerializer(EmbeddedIdValidatingSerializerMixin,
         lookup_field='uuid', read_only=True, required=False
     )
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
         group = self.get_request_group()
         authenticated_run_environment = extract_authenticated_run_environment()
         validated = super().to_internal_value(data)

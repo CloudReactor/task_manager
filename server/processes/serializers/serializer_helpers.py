@@ -12,8 +12,9 @@ from rest_framework import serializers
 
 from crontab import CronTab
 
-from ..models import RunEnvironment, Schedulable
 from ..exception import UnprocessableEntity
+from ..models.run_environment import RunEnvironment
+from ..models.schedulable import Schedulable
 
 logger = logging.getLogger(__name__)
 

@@ -13,13 +13,11 @@ from rest_framework.exceptions import (
 from rest_framework.serializers import ValidationError
 
 from ..common.request_helpers import ensure_group_access_level
-from ..models import (
-    UserGroupAccessLevel,
-    Task,
-    Workflow,
-    WorkflowTaskInstance
-)
 from ..exception import UnprocessableEntity
+from ..models.task import Task
+from ..models.user_group_access_level import UserGroupAccessLevel
+from ..models.workflow import Workflow
+from ..models.workflow_task_instance import WorkflowTaskInstance
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
 # OptionalModificationTimestampSerializerMixin not used here

@@ -2,7 +2,7 @@ import logging
 
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 
-from ..models import WorkflowTaskInstanceExecution
+from ..models.workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
 from .workflow_task_instance_execution_base_serializer import WorkflowTaskInstanceExecutionBaseSerializer
 from .serializer_helpers import SerializerHelpers

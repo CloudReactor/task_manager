@@ -148,7 +148,7 @@ class TaskExecutionChecker:
 
         if task is None:
             logger.info(f"Task Execution {te.uuid} has no Task associated with it, cannot check heartbeats")
-            return False    
+            return False
 
         if not task.notification_event_severity_on_missing_heartbeat:
             logger.debug(f"Task Execution {te.uuid} has no notification severity configured for missing heartbeats")

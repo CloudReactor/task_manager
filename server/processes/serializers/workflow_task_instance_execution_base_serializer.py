@@ -2,7 +2,7 @@ import logging
 
 from rest_framework import serializers
 
-from ..models import WorkflowTaskInstanceExecution
+from ..models.workflow_task_instance_execution import WorkflowTaskInstanceExecution
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
 

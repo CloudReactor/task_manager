@@ -3,11 +3,11 @@ import logging
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, NotFound
 
-from ..models import Workflow
 from ..common.request_helpers import (
   extract_authenticated_run_environment
 )
 from ..exception import UnprocessableEntity
+from ..models.workflow import Workflow
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
 from .serializer_helpers import SerializerHelpers

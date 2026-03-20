@@ -165,10 +165,9 @@ class ExecutionMethod:
         from ..models import (
             WorkflowTaskInstanceExecution
         )
-        from ..serializers import (
-            TaskSerializer, TaskExecutionSerializer,
-            WorkflowExecutionSummarySerializer
-        )
+        from ..serializers.task_execution_serializer import TaskExecutionSerializer
+        from ..serializers.task_serializer import TaskSerializer
+        from ..serializers.workflow_execution_serializer import WorkflowExecutionSummarySerializer
 
         task_execution = self.task_execution
 
