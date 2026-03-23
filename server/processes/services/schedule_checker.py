@@ -148,16 +148,15 @@ class ScheduleChecker(Generic[BoundSchedulable, BoundExecution], metaclass=ABCMe
         required_instance_count = max(1, schedulable.scheduled_instance_count or 1)
         missing_execution_count = required_instance_count - execution_count
 
-        event_manager = schedulable.lookup_missing_scheduled_execution_events()
+        event_qs = schedulable.lookup_missing_scheduled_execution_events()
 
         if schedulable.schedule_type == SCHEDULE_TYPE_CRON:
-            event_manager = event_manager.filter(expected_execution_at=expected_datetime).order_by(
-                    '-event_at')
+            event_qs = event_qs.filter(expected_execution_at=expected_datetime).order_by('-event_at')
         else:
-            event_manager = event_manager.filter(expected_execution_at__gte=from_datetime).order_by(
+            event_qs = event_qs.filter(expected_execution_at__gte=from_datetime).order_by(
                     '-expected_execution_at', '-event_at')
 
-        mse = event_manager.first()
+        mse = event_qs.first()
 
         if mse:
             if missing_execution_count == mse.missing_execution_count:
