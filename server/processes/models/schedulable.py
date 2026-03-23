@@ -106,7 +106,7 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
     def kind_label(self) -> str:
         raise NotImplementedError()
 
-    def concurrency_at(self, dt: datetime) -> int:
+    def concurrency_at(self, dt: datetime, cap_to_max_concurrency: bool = True) -> int:
         raise NotImplementedError()
 
     def can_start_execution(self) -> bool:

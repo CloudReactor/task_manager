@@ -87,16 +87,24 @@ class Workflow(Schedulable):
         return 'Workflow'
 
     @override
-    def concurrency_at(self, dt: datetime) -> int:
+    def concurrency_at(self, dt: datetime, cap_to_max_concurrency: bool = True) -> int:
+        """
+        Returns the number of executions of this Workflow that were running at the given datetime,
+        based on the Workflow's WorkflowExecutions. Limit the count up to the maximum concurrency, plus one, 
+        if it is set and cap_to_max_concurrency is True.
+        """
+
         from .workflow_execution import WorkflowExecution
-        # TODO: add index for this
-        return WorkflowExecution.objects.filter(
-            models.Q(workflow=self) &
-            models.Q(started_at__lte=dt) & (
-                models.Q(finished_at__gte=dt) |
-                models.Q(finished_at__isnull=True)
-            )
-        ).count()
+
+        qs = WorkflowExecution.objects.filter(workflow=self, started_at__lte=dt).filter(
+                (models.Q(finished_at__gte=dt) | models.Q(finished_at__isnull=True)))
+        
+        if cap_to_max_concurrency or (self.max_concurrency is None) or (self.max_concurrency < 0):
+            return qs.count()
+
+        threshold = self.max_concurrency + 1
+        count = qs.annotate(const=models.Values(1)).values('const')[:threshold].count()
+        return min(count, threshold)
 
     @override
     def can_start_execution(self) -> bool:
