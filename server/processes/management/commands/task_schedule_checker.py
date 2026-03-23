@@ -9,7 +9,7 @@ from proc_wrapper import StatusUpdater
 
 from ...services import *
 
-MIN_CHECK_INTERVAL_SECONDS = 60
+MIN_CHECK_INTERVAL_SECONDS = 5 * 60
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class Command(BaseCommand):
                 run_duration = int((current_time - last_start_time).total_seconds())
                 total_run_duration += run_duration
 
-                logger.info(f"Checking all services took {run_duration} seconds")
+                logger.info(f"Checking concurrency of all services took {run_duration} seconds")
 
                 attempt_count += 1
                 try:
@@ -153,3 +153,5 @@ class Command(BaseCommand):
                 if sleep_seconds > 0:
                     logger.info(f"Sleeping for {sleep_seconds} seconds ...")
                     time.sleep(sleep_seconds)
+                else:
+                    logger.warning("No time to sleep, starting next check loop immediately ...")
