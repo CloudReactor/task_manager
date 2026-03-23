@@ -198,19 +198,25 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         return self.taskexecution_set.filter(status=Execution.Status.RUNNING)
 
     @override
-    def concurrency_at(self, dt: datetime) -> int:
+    def concurrency_at(self, dt: datetime, cap_to_max_concurrency: bool = True) -> int:
+        """
+        Returns the number of executions of this Task that were running at the given datetime,
+        based on the Task's TaskExecutions. Limit the count up to the maximum concurrency, plus one,
+        if it is set and cap_to_max_concurrency is True.
+        """
         from .task_execution import TaskExecution
 
-        return TaskExecution.objects.filter(
-            models.Q(task=self) & models.Q(started_at__lte=dt) & (
-                models.Q(finished_at__gte=dt) |
-                models.Q(finished_at__isnull=True)
-            ) & (
-                models.Q(marked_done_at__gte=dt) |
-                models.Q(marked_done_at__isnull=True)
-            )
-        ).count()
+        qs = TaskExecution.objects.filter(task=self, started_at__lte=dt).filter(
+                (models.Q(finished_at__gte=dt) | models.Q(finished_at__isnull=True)) &
+                (models.Q(marked_done_at__isnull=True) | models.Q(marked_done_at__gte=dt)))
 
+        if cap_to_max_concurrency or (self.max_concurrency is None) or (self.max_concurrency < 0):
+            return qs.count()
+
+        threshold = self.max_concurrency + 1
+        count = qs.annotate(const=models.Values(1)).values('const')[:threshold].count()
+        return min(count, threshold)
+    
     @override
     def can_start_execution(self) -> bool:
         if self.max_concurrency and (self.max_concurrency > 0):
