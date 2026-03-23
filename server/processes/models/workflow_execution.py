@@ -26,7 +26,6 @@ from .task_execution import TaskExecution
 from .workflow import Workflow
 
 if TYPE_CHECKING:
-    from .event import Event
     from .workflow_task_instance_execution import WorkflowTaskInstanceExecution
     from .workflow_execution_status_change_event import WorkflowExecutionStatusChangeEvent
 
@@ -66,6 +65,13 @@ class WorkflowExecution(Execution):
 
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
     workflow_snapshot = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['started_at']
+        indexes = [
+            models.Index(fields=['workflow', 'started_at'],
+                    name='workflowexec_wf_started_at_idx'),
+        ]
 
     @override
     def __str__(self) -> str:
