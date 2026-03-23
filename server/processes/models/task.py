@@ -201,12 +201,8 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
     def concurrency_at(self, dt: datetime) -> int:
         from .task_execution import TaskExecution
 
-        # TODO: add index for this
         return TaskExecution.objects.filter(
-            models.Q(task=self) & (
-                models.Q(started_at__lte=dt) |
-                models.Q(started_at__isnull=True)
-            ) & (
+            models.Q(task=self) & models.Q(started_at__lte=dt) & (
                 models.Q(finished_at__gte=dt) |
                 models.Q(finished_at__isnull=True)
             ) & (
