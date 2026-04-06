@@ -112,7 +112,8 @@ if [[ ! -f $VAR_FILENAME ]]
     exit 1
 fi
 
-ENV_FILE_OPTIONS="-e WORK_DIR=/home/appuser/work"
+# For now CloudReactor's deployer only supports linux/amd64
+ENV_FILE_OPTIONS="-e DOCKER_DEFAULT_PLATFORM=linux/amd64 -e WORK_DIR=/home/appuser/work"
 
 if [[ -f "deploy.env" ]]
   then
