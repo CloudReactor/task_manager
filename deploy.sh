@@ -13,7 +13,7 @@ if [ -z "$1" ]
     DEPLOYMENT_ENVIRONMENT=$1
 fi
 
-export DOCKER_IMAGE_TAG="3.2.3"
+export DOCKER_IMAGE_TAG="4.3.2"
 
 export EXTRA_DOCKER_RUN_OPTIONS="$EXTRA_DOCKER_RUN_OPTIONS -v $PWD/deploy_config/files/client.env.${DEPLOYMENT_ENVIRONMENT}:/home/appuser/work/docker_context/deploy_config/files/client.env"
 
