@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from enum import IntEnum, unique
 import logging
@@ -13,6 +13,10 @@ from django.contrib.auth.models import User, Group
 from typedmodels.models import TypedModel
 
 from .subscription import Subscription
+
+if TYPE_CHECKING:
+    from .execution import Execution
+    from .schedulable import Schedulable
 
 
 logger = logging.getLogger(__name__)
@@ -168,6 +172,28 @@ class Event(TypedModel):
     @override
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}>, {self.error_summary}"
+
+
+    def get_executable(self) -> Schedulable | None:
+        if self.task:
+            return self.task
+        elif self.workflow:
+            return self.workflow
+        else:
+            execution = self.get_execution()
+
+            if execution:
+                return execution.get_schedulable()
+            else:
+                return None
+
+    def get_execution(self) -> Execution | None:
+        if self.task_execution:
+            return self.task_execution
+        elif self.workflow_execution:
+            return self.workflow_execution
+        else:
+            return None
 
 
 class BasicEvent(Event):
