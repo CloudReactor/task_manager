@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from processes.exception import CommittableException
+from ..exception import CommittableException
 
 __all__ = ['AtomicCreateModelMixin', 'AtomicUpdateModelMixin', 'AtomicDestroyModelMixin',
            'AtomicModelViewSetMixin', 'AtomicModelViewSet']

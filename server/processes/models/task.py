@@ -348,7 +348,7 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
         return self.enabled and (not self.passive) and self.is_service and \
                 coalesce(self.is_service_managed, not current)
 
-    def synchronize_with_run_environment(self, old_self: 'Task' | None=None,
+    def synchronize_with_run_environment(self, old_self: Task | None=None,
             is_saving: bool=False) -> bool:
         if self.passive and ((not old_self) or old_self.passive):
             return False
@@ -401,12 +401,13 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
                 except Exception as ex:
                     logger.exception(f"Failed to setup scheduled_execution for Task {self.uuid}")
 
-                    # FIXME: due to AtomicUpdateModelMixin all changes will
-                    # probably be rolled back.
-                    if schedule_teardown_completed_at:
-                        self.scheduling_settings = torndown_scheduling_settings
-                        if self.pk:
-                            self.save_without_sync()
+                    task_in_db = Task.objects.get(pk=self.pk) if self.pk else None                    
+                
+                    if task_in_db and schedule_teardown_completed_at:
+                        task_in_db.enabled = False
+                        task_in_db.scheduling_settings = torndown_scheduling_settings                        
+                        task_in_db.save_without_sync()
+
                     raise ex
 
                 self.is_scheduling_managed = True
@@ -463,16 +464,22 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
                     msg = f"Failed to setup service for Task {self.uuid}"
                     logger.exception(msg)
 
-                    if service_teardown_completed_at:
-                        logger.info(f"Saving torndown service settings locally {self.uuid=} ...")
-                        self.service_settings = torndown_service_settings
-                        self.aws_ecs_service_updated_at = service_teardown_completed_at
-                        if self.pk:
-                            logger.info(f"Saving torndown service settings in DB {self.uuid=} ...")
-                            self.save_without_sync()
-                            logger.info(f"Done saving torndown service settings in DB {self.uuid=}")
+                    task_in_db = Task.objects.get(pk=self.pk) if self.pk else None
 
-                    raise CommittableException(cause=ex) from ex
+                    if task_in_db:                                                
+                        if service_teardown_completed_at:
+                            logger.info(f"Saving torndown service settings locally {self.uuid=} ...")
+                        
+                            task_in_db.enabled = False
+                            task_in_db.service_settings = torndown_service_settings
+                            task_in_db.aws_ecs_service_updated_at = service_teardown_completed_at
+
+                            logger.info(f"Saving torndown service settings in DB {self.uuid=} ...")
+
+                        task_in_db.save_without_sync()
+                        logger.info(f"Done saving disabled task settings in DB {self.uuid=}")
+
+                    raise APIException(msg) from ex
 
                 self.is_service_managed = True
             else:

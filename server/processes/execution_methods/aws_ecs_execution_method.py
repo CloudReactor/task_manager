@@ -921,15 +921,16 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     service_arn_or_name=ss.service_arn)
 
         # When creating a service that specifies multiple target groups, the Amazon ECS service-linked role must be created. The role is created by omitting the role parameter in API requests, or the Role property in AWS CloudFormation. For more information, see Service-Linked Role for Amazon ECS.
-        #role = task.aws_ecs_default_task_role or task.aws_ecs_default_execution_role or \
+        # role = task.aws_ecs_default_task_role or task.aws_ecs_default_execution_role or \
         #    run_env.aws_ecs_default_task_role or run_env.aws_ecs_default_execution_role
 
         service_name: str | None = None
         if existing_service_info:
+            last_status = existing_service_info.last_status
             service_name = existing_service_info.service_name
 
             logger.info(f"setup_service() for Task {task.uuid} found existing service {service_name}")
-            if force_creation and (existing_service_info.last_status == 'ACTIVE'):
+            if force_creation and (last_status == 'ACTIVE'):
                 if old_aws_ecs_execution_method:
                     logger.info(f"setup_service(): deleting ACTIVE service {service_name} ...")
                     old_ecs_client = old_ecs_client or old_aws_ecs_execution_method.make_ecs_client()
@@ -941,8 +942,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             else:
                 logger.info(f"setup_service() {task.uuid} not deleting existing service {service_name}")
 
-        if (existing_service_info is None) or \
-                (existing_service_info.last_status == 'INACTIVE'):
+        if (existing_service_info is None) or (last_status == 'INACTIVE'):
             logger.info(f"Clearing service_arn for inactive or missing service {service_name or 'N/A'}")
 
             # TODO: remove when Task.service_settings is the source of truth
