@@ -19,34 +19,13 @@ from drf_spectacular.utils import (
     # PolymorphicProxySerializer,
 )
 
-# Legacy
-from .aws_ecs_execution_method_capability_serializer import (
-    AwsEcsExecutionMethodCapabilitySerializer
-)
-from .generic_execution_method_capability_serializer import (
-    GenericExecutionMethodCapabilitySerializer
-)
-from .unknown_execution_method_capability_serializer import (
-    UnknownExecutionMethodCapabilitySerializer
-)
-
-# Stopgap
-from .generic_execution_method_capability_stopgap_serializer import (
-    GenericExecutionMethodCapabilityStopgapSerializer
-)
-from .aws_ecs_execution_method_capability_stopgap_serializer import (
-    AwsEcsExecutionMethodCapabilityStopgapSerializer
-)
-
 from ..common.request_helpers import (
     ensure_group_access_level,
     required_user_and_group_from_request
 )
 
 from ..execution_methods import *
-from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from ..common.utils import coalesce, deepmerge
-from ..models.aws_ecs_service_load_balancer_details import AwsEcsServiceLoadBalancerDetails
 from ..models.run_environment import RunEnvironment
 from ..models.task import Task
 from ..models.task_link import TaskLink
@@ -192,13 +171,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         execution_method_type = attrs.get('execution_method_type')
 
-        # Legacy support
-        if execution_method_type is None:
-            legacy_emc = attrs.get('execution_method_capability')
-
-            if legacy_emc:
-                execution_method_type = legacy_emc.get('type')
-
         if not execution_method_type:
             execution_method_type = task.execution_method_type if task \
                 else UnknownExecutionMethod.NAME
@@ -212,11 +184,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
         return attrs
 
     def to_internal_value(self, data: dict[str, Any]) -> dict[str, Any]:
-        body_task_links = data.pop('links', None) or \
-            data.pop('process_type_links', None)
-
-        legacy_emc = data.pop('execution_method_capability', None)
-        logger.info(f"Removed {legacy_emc=}")
+        body_task_links = data.pop('links', None)
 
         validated = super().to_internal_value(data)
 
@@ -358,9 +326,6 @@ class TaskSerializer(GroupSettingSerializerMixin,
             min_service_instance_count = None
             is_service_managed = None
 
-            # Legacy
-            validated['aws_ecs_service_load_balancer_health_check_grace_period_seconds'] = None
-
         validated['service_instance_count'] = service_instance_count
         validated['min_service_instance_count'] = min_service_instance_count
         validated['is_service_managed'] = is_service_managed
@@ -391,26 +356,16 @@ class TaskSerializer(GroupSettingSerializerMixin,
         validated['is_scheduling_managed'] = is_scheduling_managed
 
         emcd = validated.get('execution_method_capability_details')
-        execution_method_dict = emcd
 
-        # deprecated
-        is_legacy_schema = (legacy_emc is not None) and (emcd is None)
-        logger.debug(f"{is_legacy_schema=}")
-
-        execution_method_dict = execution_method_dict or legacy_emc
-
-        logger.debug(f"{execution_method_dict=}")
+        logger.debug(f"{emcd=}")
 
         execution_method_type: str | None = None
 
         if task:
             execution_method_type = task.execution_method_type
 
-        if is_legacy_schema:
-            execution_method_type = legacy_emc.get('type', execution_method_type)
-        else:
-            execution_method_type = validated.get('execution_method_type',
-                execution_method_type)
+        execution_method_type = validated.get('execution_method_type',
+            execution_method_type)
 
         if execution_method_type:
             known_execution_method_type = UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME.get(
@@ -439,44 +394,14 @@ class TaskSerializer(GroupSettingSerializerMixin,
             (data.get('passive') is None):
             validated['passive'] = True
 
-        if execution_method_dict is not None:
-            ems = self.execution_method_capability_serializer_for_type(
-                    method_name=execution_method_type, task=task,
-                    is_service=is_service, run_environment=run_environment,
-                    is_legacy_schema=is_legacy_schema)
-
-            em_validated = ems.to_internal_value(execution_method_dict)
-
-            logger.info(f"{em_validated=}")
-
-            validated |= em_validated
-
         infrastructure_type = validated.get('infrastructure_type')
         infrastructure_settings = validated.get('infrastructure_settings')
-
-        if infrastructure_type == INFRASTRUCTURE_TYPE_AWS:
-            if infrastructure_settings:
-                self.copy_props_with_prefix(dest_dict=validated,
-                    src_dict=infrastructure_settings,
-                    dest_prefix='aws_',
-                    included_keys=['tags'])
-
-                network_settings = infrastructure_settings.get('network')
-                if network_settings:
-                    self.copy_props_with_prefix(dest_dict=validated,
-                        src_dict=network_settings,
-                        dest_prefix='aws_default_',
-                        included_keys=['subnets'])
-                    self.copy_props_with_prefix(dest_dict=validated,
-                        src_dict=network_settings,
-                        dest_prefix='aws_ecs_default_',
-                        included_keys=['security_groups', 'assign_public_ip'])
 
         if task:
             if (emcd is not None) and task.execution_method_capability_details and \
                 (task.execution_method_type == execution_method_type):
-                emcd = deepmerge(task.execution_method_capability_details.copy(), emcd,
-                                 ignore_none=False)
+                emcd = deepmerge(task.execution_method_capability_details.copy(), emcd, 
+                        ignore_none=False)
                 validated['execution_method_capability_details'] = emcd
                 logger.info(f"to_internal_value(): {task.uuid}: Merged old {emcd=}")
             else:
@@ -574,31 +499,23 @@ class TaskSerializer(GroupSettingSerializerMixin,
 
         task_links = validated_data.pop('task_links', None)
 
-        # Legacy?
-        load_balancer_details_list = validated_data.pop('aws_ecs_load_balancer_details_set', None)
-
         task: Task | None = instance
 
         old_self: Task | None = None
         if task is None:
             task = Task(**validated_data)
-            task.should_skip_synchronize_with_run_environment = True
 
             if instance is None:
                 task.created_by_user = user
-
-            task.save()
         else:
             old_self = copy.copy(task)
             old_self.id = None
-
-            task.should_skip_synchronize_with_run_environment = True
+            
             for attr, value in validated_data.items():
                 setattr(task, attr, value)
 
+        task.should_skip_synchronize_with_run_environment = True
         task.save()
-        self.update_aws_ecs_service_load_balancer_details_set(
-                task, load_balancer_details_list)
 
         task.synchronize_with_run_environment(old_self=old_self, is_saving=True)
         task.should_skip_synchronize_with_run_environment = False
@@ -612,77 +529,4 @@ class TaskSerializer(GroupSettingSerializerMixin,
                 task_link.task = task
                 task_link.save()
 
-        if not task.is_service:
-            task.aws_ecs_service_load_balancer_details_set.all().delete()
-
         return task
-
-    def execution_method_capability_serializer_for_type(self,
-            method_name: str,
-            task: Task | None = None, is_service: bool | None = None,
-            run_environment: RunEnvironment | None = None,
-            is_legacy_schema: bool = False) -> serializers.Serializer:
-        #print(f"request = {self.context['request']}")
-        request = self.context['request']
-        omitted = (request.query_params.get('omit') or '').split(',')
-
-        if is_legacy_schema:
-            omit_details = 'execution_method_capability.details' in omitted
-
-            if method_name == AwsEcsExecutionMethod.NAME:
-                return AwsEcsExecutionMethodCapabilitySerializer(task,
-                        required=False, is_service=is_service,
-                        run_environment=run_environment,
-                        omit_details=omit_details)
-            elif method_name == UnknownExecutionMethod.NAME:
-                return UnknownExecutionMethodCapabilitySerializer(task,
-                        required=False)
-            else:
-                return GenericExecutionMethodCapabilitySerializer(task,
-                        required=False)
-        else:
-            if method_name == AwsEcsExecutionMethod.NAME:
-                return AwsEcsExecutionMethodCapabilityStopgapSerializer(task,
-                        required=False,
-                        run_environment=run_environment)
-
-            return GenericExecutionMethodCapabilityStopgapSerializer(task,
-                        required=False)
-
-
-    # Legacy
-    def update_aws_ecs_service_load_balancer_details_set(self, task: Task,
-            load_balancer_details_list: list[AwsEcsServiceLoadBalancerDetails] | None):
-        if load_balancer_details_list is None:
-            return False
-
-        must_recreate_service = False
-        target_group_arn_to_lb = {}
-        existing = task.aws_ecs_service_load_balancer_details_set.all()
-
-        for details in existing:
-            target_group_arn_to_lb[details.target_group_arn] = details
-
-        for details in load_balancer_details_list:
-            existing_details = target_group_arn_to_lb.pop(details.target_group_arn, None)
-
-            if existing_details:
-                if (existing_details.container_name != details.container_name) or \
-                        (existing_details.container_port != details.container_port):
-                    logger.info(f"Found different details for target group ARN: '{details.target_group_arn}': {details}")
-                    must_recreate_service = True
-                    existing_details.container_name = details.container_name
-                    existing_details.container_port = details.container_port
-                    existing_details.save()
-            else:
-                logger.info(f"Found new target group ARN: '{details.target_group_arn}', must recreate service")
-                details.task = task
-                details.save()
-                must_recreate_service = True
-
-        for details in target_group_arn_to_lb.values():
-            logger.info(f"Found unused target group ARN: '{details.target_group_arn}', must recreate service")
-            details.delete()
-            must_recreate_service = True
-
-        return must_recreate_service

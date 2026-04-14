@@ -263,7 +263,7 @@ def common_setup(is_authenticated: bool, group_access_level: int | None,
 
     run_environment = run_environment_factory(created_by_group=task_execution_group)
 
-    setup_aws_ecs_cluster(run_environment=run_environment)
+    setup_aws_ecs(run_environment=run_environment)
 
     another_run_environment = run_environment_factory(created_by_group=task_execution_group)
 
@@ -492,13 +492,13 @@ def test_task_execution_fetch(
     (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
     UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
     SEND_ID_NONE, None, 'MANUALLY_STARTED',
-    400, 'task', 'missing'),
+    400, 'task', 'required'),
 
     # Developer with scoped API Key fails when Task is omitted, status is RUNNING
     (True, UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
      UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER, SCOPE_TYPE_CORRECT,
      SEND_ID_NONE, None, 'RUNNING',
-     400, 'task', 'missing'),
+     400, 'task', 'required'),
 
     # Developer with scoped API Key cannot create Task Execution with no
     # Task, status is MANUALLY_STARTED
@@ -589,9 +589,6 @@ def test_task_execution_create_access_control(
     aws_ecs_setup = setup_aws_ecs(run_environment=task.run_environment)
 
     auto_create = False
-    is_legacy_schema = False
-
-
     sent_task: Task | None = task
 
     if auto_create or (task_send_type != SEND_ID_CORRECT):
@@ -609,8 +606,8 @@ def test_task_execution_create_access_control(
         task_send_type=task_send_type,
         aws_ecs_setup=aws_ecs_setup,
         task=sent_task,
-        was_auto_created=auto_create,
-        is_legacy_schema=is_legacy_schema)
+        was_auto_created=auto_create
+    )
 
 
     # request_data = make_request_body(uuid_send_type=body_uuid_type,
@@ -652,16 +649,13 @@ def test_task_execution_create_access_control(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  auto_create, is_legacy_schema
+  auto_create
 """, [
-  (False, True),
-  (False, False),
-  (True, True),
-  (True, False),
+  (False),
+  (True),
 ])
 @mock_aws
 def test_task_create_aws_ecs_task_execution(auto_create: bool,
-        is_legacy_schema: bool,
         user_factory, group_factory, run_environment_factory, task_factory,
         task_execution_factory, api_client) -> None:
     user = user_factory()
@@ -688,7 +682,6 @@ def test_task_create_aws_ecs_task_execution(auto_create: bool,
         aws_ecs_setup=aws_ecs_setup,
         task=None if auto_create else task,
         was_auto_created=auto_create,
-        is_legacy_schema=is_legacy_schema,
         user=user,
         group_factory=group_factory,
         run_environment_factory=run_environment_factory,
@@ -723,37 +716,25 @@ def test_task_create_aws_ecs_task_execution(auto_create: bool,
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-    was_auto_created, passive, is_legacy_schema,
+    was_auto_created, passive,
     status_code, validation_error_attribute, error_code
 """, [
     (
-        True, True, True,
+        True, True,
         201, None, None
     ),
     (
-        True, True, False,
-        201, None, None
-    ),
-    (
-        False, True, True,
+        False, True,
         422, 'task', 'not_found'
     ),
     (
-        False, True, False,
-        422, 'task', 'not_found'
-    ),
-    (
-        True, False, True,
-        400, 'passive', 'invalid'
-    ),
-    (
-        True, False, False,
+        True, False,
         400, 'passive', 'invalid'
     ),
 ])
 @mock_aws
 def test_task_execution_with_unknown_method_auto_creation(
-        was_auto_created: bool, passive: bool, is_legacy_schema: bool,
+        was_auto_created: bool, passive: bool,
         status_code: int, validation_error_attribute: str | None,
         error_code: str | None,
         user_factory, group_factory, run_environment_factory,
@@ -785,14 +766,8 @@ def test_task_execution_with_unknown_method_auto_creation(
         'run_environment': {
             'name': api_key_run_environment.name,
         },
+        'execution_method_type': 'Unknown',
     }
-
-    if is_legacy_schema:
-        task_dict['execution_method_capability'] =  {
-            'type': 'Unknown',
-        }
-    else:
-        task_dict['execution_method_type'] = 'Unknown'
 
     request_dict: dict[str, Any] = {
         'status': Execution.Status.RUNNING.name,
@@ -991,63 +966,6 @@ def test_task_execution_create_history_purging(subscription_plan,
             assert exists
         else:
             assert not exists
-
-
-@pytest.mark.django_db
-@mock_aws
-def test_task_execution_create_with_legacy_task_property(
-        user_factory, group_factory, run_environment_factory,
-        task_factory, task_execution_factory,
-        api_client) -> None:
-    """
-    Tests that the 'process_type' property sent by legacy clients is still
-    accepted.
-    """
-
-    user = user_factory()
-
-    task_execution, _task, api_key_run_environment, client, url = common_setup(
-            is_authenticated=True,
-            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-            api_key_scope_type=SCOPE_TYPE_CORRECT,
-            uuid_send_type=SEND_ID_NONE,
-            user=user,
-            group_factory=group_factory,
-            run_environment_factory=run_environment_factory,
-            task_factory=task_factory,
-            task_execution_factory=task_execution_factory,
-            api_client=api_client)
-
-    request_data = make_task_execution_request_body(uuid_send_type=SEND_ID_NONE,
-            task_send_type=SEND_ID_CORRECT,
-            user=user,
-            group_factory=group_factory,
-            api_key_run_environment=api_key_run_environment,
-            task_execution=task_execution,
-            run_environment_factory=run_environment_factory,
-            task_factory=task_factory,
-            task_execution_factory=task_execution_factory,
-            task_property_name='process_type')
-
-    old_count = TaskExecution.objects.count()
-
-    response = client.post(url, data=request_data)
-
-    assert response.status_code == 201
-
-    new_count = TaskExecution.objects.count()
-    assert new_count == old_count + 1
-
-    response_task_execution = cast(dict[str, Any], response.data)
-    task_execution_uuid = response_task_execution['uuid']
-    created_task_execution = TaskExecution.objects.get(uuid=task_execution_uuid)
-
-    ensure_serialized_task_execution_valid(response_task_execution=response_task_execution,
-            task_execution=created_task_execution, user=user,
-            group_access_level= UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-            api_key_access_level= UserGroupAccessLevel.ACCESS_LEVEL_TASK,
-            api_key_run_environment=api_key_run_environment)
 
 
 @pytest.mark.django_db

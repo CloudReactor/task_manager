@@ -4,9 +4,6 @@ from .user_serializer import UserSerializer
 from .user_serializer import FullUserSerializer
 from .invitation_serializer import InvitationSerializer
 
-# Legacy
-from .aws_ecs_service_load_balancer_details_serializer import AwsEcsServiceLoadBalancerDetailsSerializer
-
 from .notification_profile_serializer import NotificationProfileSerializer
 from .notification_delivery_method_serializer import NotificationDeliveryMethodSerializer
 from .email_notification_delivery_method_serializer import EmailNotificationDeliveryMethodSerializer

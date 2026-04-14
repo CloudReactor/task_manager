@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, FrozenSet, Tuple, TYPE_CHECKING, cast, override
+from typing import Any, FrozenSet, TYPE_CHECKING, cast, override
 
 from dataclasses import dataclass
 import logging
@@ -16,6 +16,7 @@ from rest_framework.exceptions import APIException
 from pydantic import BaseModel
 
 from botocore.exceptions import ClientError
+
 
 from ..common.aws import *
 from ..common.utils import coalesce, deepmerge
@@ -39,6 +40,11 @@ logger = logging.getLogger(__name__)
 
 
 SERVICE_PROVIDER_AWS_ECS = 'AWS ECS'
+
+
+AWS_ECS_PLATFORM_VERSION_DEFAULT = '1.4.0'
+AWS_ECS_PLATFORM_VERSION_LATEST = 'LATEST'
+
 
 DEFAULT_MAIN_CONTAINER_NAME = 'main'
 
@@ -76,6 +82,26 @@ class AwsEcsExecutionMethodSettings(BaseModel):
     task_group: str | None = None
     # Might not be sent during deployment, so use main_container_xxx properties
     containers: list[ContainerSettings] | None = None
+
+    def sanitize(self, aws_settings: AwsSettings | None) -> bool:        
+        if aws_settings is None:
+            logger.warning("Can't sanitize AwsEcsExecutionMethodSettings because aws_settings is None")
+            return False
+
+        changed = False
+
+        cluster = self.cluster_arn
+
+        if cluster and (not cluster.startswith('arn:')):
+            account_id = aws_settings.account_id
+            region = aws_settings.region
+            if account_id and region:
+                self.cluster_arn = f"arn:aws:ecs:{region}:{account_id}:cluster/{cluster}"
+                changed = True
+            else:
+                logger.warning("Can't sanitize cluster ARN because aws_settings is missing account_id or region")
+
+        return changed
 
     def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
         if aws_settings:
@@ -446,7 +472,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
     def should_update_or_force_recreate_scheduled_execution(self,
             old_execution_method: ExecutionMethod | None=None) \
-            -> Tuple[bool, bool]:
+            -> tuple[bool, bool]:
         should = super().should_maybe_update_scheduled_execution(
                 old_execution_method=old_execution_method)
 
@@ -552,10 +578,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         aws_scheduled_event_rule_arn = response['RuleArn']
         logger.info(f"got rule ARN = {aws_scheduled_event_rule_arn}")
 
-        # Delete these once scheduling_settings is the source of truth
-        task.aws_scheduled_execution_rule_name = aws_scheduled_execution_rule_name
-        task.aws_scheduled_event_rule_arn = aws_scheduled_event_rule_arn
-
         ss.execution_rule_name = aws_scheduled_execution_rule_name
         ss.event_rule_arn = aws_scheduled_event_rule_arn
 
@@ -606,17 +628,13 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         )
         handle_aws_multiple_failure_response(response)
 
-        # Remove these once scheduling_settings is the source of truth
-        task.aws_event_target_rule_name = aws_event_target_rule_name
-        task.aws_event_target_id = aws_event_target_id
-
         ss.event_target_rule_name = aws_event_target_rule_name
         ss.event_target_id = aws_event_target_id
 
         task.scheduling_settings = ss.model_dump()
 
     @override
-    def teardown_scheduled_execution(self) -> Tuple[dict[str, Any] | None, Any | None]:
+    def teardown_scheduled_execution(self) -> tuple[dict[str, Any] | None, Any | None]:
         task = self.task
 
         if not task:
@@ -665,10 +683,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     logger.exception(f"teardown_scheduled_execution(): Can't remove target {ss.event_target_rule_name} due to unhandled error {error_code}")
                     raise client_error
 
-            # Remove when scheduling_settings is the source of truth
-            task.aws_event_target_rule_name = ''
-            task.aws_event_target_id = ''
-
             ss.event_target_rule_name = None
             ss.event_target_id = None
             self.scheduling_settings = ss
@@ -698,9 +712,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                         f"teardown_scheduled_execution(): Can't delete rule {ss.execution_rule_name} due to unhandled error {error_code}")
                     raise client_error
 
-            # TODO: Remove when scheduling_settings becomes source of truth
-            task.aws_scheduled_event_rule_arn = ''
-
             ss.execution_rule_name = None
             ss.event_rule_arn = None
 
@@ -710,7 +721,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return (task.scheduling_settings, None)
 
-    def should_update_or_force_recreate_service(self, old_execution_method: ExecutionMethod | None=None) -> Tuple[bool, bool]:
+    def should_update_or_force_recreate_service(self, old_execution_method: ExecutionMethod | None=None) -> tuple[bool, bool]:
         task = self.task
 
         if not task:
@@ -945,9 +956,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if (existing_service_info is None) or (last_status == 'INACTIVE'):
             logger.info(f"Clearing service_arn for inactive or missing service {service_name or 'N/A'}")
 
-            # TODO: remove when Task.service_settings is the source of truth
-            task.aws_ecs_service_arn = ''
-
             # TODO: set generic service_updated_at column
             task.aws_ecs_service_updated_at = timezone.now()
 
@@ -989,6 +997,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             args['clientToken'] = client_token
             args['schedulingStrategy'] = ss.scheduling_strategy or 'REPLICA'
             args['deploymentController'] = {
+                # TODO: support EXTERNAL deployment controller for running on EKS or self-managed Kubernetes
                 'type': 'ECS'
             }
 
@@ -1003,8 +1012,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         service_info = AwsEcsServiceResponseFragment.from_boto_service_response_fragment(
                 service_dict=response['service'])
 
-        # TODO: Remove when Task.service_settings are the source of truth
-        task.aws_ecs_service_arn = service_info.service_arn
         task.aws_ecs_service_updated_at = timezone.now()
 
         ss.service_arn = service_info.service_arn
@@ -1013,7 +1020,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         logger.info(f"setup_service() for Task {task.name} got service ARN {ss.service_arn} ...")
 
     @override
-    def teardown_service(self) -> Tuple[dict[str, Any] | None, Any | None]:
+    def teardown_service(self) -> tuple[dict[str, Any] | None, Any | None]:
         task = self.task
 
         if not task:
@@ -1041,9 +1048,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             if service_info.last_status == 'INACTIVE':
                 logger.info(f'Service {service_name} was inactive, clearing service ARN')
 
-                # TODO: Remove when service_settings are the source of truth
-                task.aws_ecs_service_arn = ''
-
                 if self.service_settings:
                     self.service_settings.service_arn = None
                     ssd = self.service_settings.model_dump()
@@ -1054,9 +1058,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 # The service ARN is not modified so that the name can be
                 # incremented next time the service is enabled.
                 service_arn = service_info.service_arn
-
-                # TODO: Remove when service_settings are the source of truth
-                task.aws_ecs_service_arn = service_arn
 
                 if self.service_settings:
                     self.service_settings.service_arn = service_arn
@@ -1070,9 +1071,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             task.aws_ecs_service_updated_at = timezone.now()
         else:
             logger.info(f"Tearing down service for Task {task.name} was a no-op since service was not found")
-
-            # TODO: Remove when service_settings are the source of truth
-            task.aws_ecs_service_arn = ''
 
             if self.service_settings:
                 self.service_settings.service_arn = None
@@ -1116,19 +1114,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         logger.info(f"manually_start() with args = {args}, " +
             f"{cpu_units=}, {memory_mb=}, " +
             f"{self.settings.execution_role_arn=}, {self.settings.task_role_arn=}")
-
-        # TODO: Remove when execution_method_details are the source of truth
-        task_execution.aws_ecs_cluster_arn = args['cluster']
-        task_execution.aws_ecs_task_definition_arn = args['taskDefinition']
-        task_execution.aws_ecs_platform_version = args['platformVersion']
-        task_execution.aws_ecs_launch_type = args['launchType']
-        task_execution.aws_ecs_execution_role = self.settings.execution_role_arn or ''
-        task_execution.aws_ecs_task_role = self.settings.task_role_arn or ''
-        nc = args['networkConfiguration']['awsvpcConfiguration']
-        task_execution.aws_subnets = nc['subnets']
-        task_execution.aws_ecs_security_groups = nc['securityGroups']
-        task_execution.aws_ecs_assign_public_ip = \
-                (nc['assignPublicIp'] == 'ENABLED')
 
         task_execution.allocated_cpu_units = cpu_units
         task_execution.allocated_memory_mb = memory_mb
@@ -1294,9 +1279,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             logger.info(f"Got run_task() return value {rv}")
 
             # TODO: handle failures in rv['failures'][]
-
-            # TODO: remove once execution_method_details is the source of truth
-            task_execution.aws_ecs_task_arn = rv['tasks'][0]['taskArn']
 
             task_arn = rv['tasks'][0]['taskArn']
             cast(AwsEcsExecutionMethodInfo, self.settings).task_arn = task_arn
@@ -1527,6 +1509,19 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 output_tags[k] = v
 
         return output_tags
+
+    @override
+    def sanitize_task_settings(self) -> bool:
+        if not self.task:
+            raise RuntimeError("No Task found")
+
+        changed = super().sanitize_task_settings()
+
+        if self.settings and self.settings.sanitize(self.aws_settings):
+            self.task.execution_method_capability_details = self.settings.model_dump()
+            changed = True
+
+        return changed
 
     @override
     def enrich_task_settings(self) -> None:

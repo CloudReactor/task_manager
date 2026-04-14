@@ -1,6 +1,7 @@
 from rest_framework.exceptions import APIException
 
-from processes.common.aws import extract_cluster_name
+import copy
+
 from processes.common.request_helpers import context_with_request
 from processes.models import Task, UserGroupAccessLevel
 from processes.serializers import TaskSerializer
@@ -50,19 +51,13 @@ def test_task_serialization_with_unsupported_emcd(task_factory):
 @mock_aws
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  is_legacy_schema, is_service, is_scheduled
+  is_service, is_scheduled
 """, [
-    (False, False, False),
-
-    # Service property extraction into legacy columns not supported
-    # (False, True, False),
-
-    (False, False, True),
-    (True, False, False),
-    (True, True, False),
-    (True, False, True),
+    (False, False),
+    (False, True),
+    (True, False),
 ])
-def test_aws_ecs_task_deserialization(is_legacy_schema: bool,
+def test_aws_ecs_task_deserialization(
         is_service: bool, is_scheduled: bool,
         user_factory, run_environment_factory):
     user = user_factory()
@@ -90,10 +85,9 @@ def test_aws_ecs_task_deserialization(is_legacy_schema: bool,
             run_environment=run_environment,
             aws_ecs_setup=aws_ecs_setup,
             is_service=is_service,
-            schedule=schedule,
-            is_legacy_schema=is_legacy_schema)
+            schedule=schedule)
 
-    ser = TaskSerializer(data=data.copy(), context=context)
+    ser = TaskSerializer(data=copy.deepcopy(data), context=context)
     ser.is_valid(raise_exception=True)
     task = ser.save()
 

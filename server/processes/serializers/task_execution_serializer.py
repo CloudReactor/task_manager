@@ -26,10 +26,8 @@ from ..common.request_helpers import ensure_group_access_level
 from ..common.utils import deepmerge
 from ..exception import UnprocessableEntity
 from ..execution_methods import *
-from ..execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
-from ..models.convert_legacy_em_and_infra import convert_empty_to_none_values
-from .name_and_uuid_serializer import NameAndUuidSerializer
 
+from .name_and_uuid_serializer import NameAndUuidSerializer
 from .embedded_id_validating_serializer_mixin import (
     EmbeddedIdValidatingSerializerMixin
 )
@@ -124,8 +122,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             'created_at', 'updated_at'
         ]
 
-    # required=False so that legacy proc_wrappers can use "process_type"
-    task = NameAndUuidSerializer(view_name='tasks-detail', required=False)
+    task = NameAndUuidSerializer(view_name='tasks-detail')
 
     started_by = serializers.ReadOnlyField(source='started_by.username')
     marked_done_by = serializers.ReadOnlyField(
@@ -179,41 +176,22 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         return attrs
 
     def to_internal_value(self, data: dict[str, Any]):
-        # Remove once wrappers < 2.0 are extinct
-        process_version_number = data.get('process_version_number')
-
-        if process_version_number is not None:
-            data['task_version_number'] = process_version_number
-
-        process_version_signature = data.get('process_version_signature')
-
-        if process_version_signature:
-            data['task_version_signature'] = process_version_signature
-
-        api_request_timeout_seconds = data.get('api_timeout_seconds')
-        if api_request_timeout_seconds is not None:
-            data['api_request_timeout_seconds'] = api_request_timeout_seconds
-        # End < 2.0
-
         validated = super().to_internal_value(data)
 
-        logger.info(f"super validated = {validated}")
+        logger.info(f"super {validated=}")
 
         group = self.get_request_group()
 
         task_execution: TaskExecution | None = \
             cast(TaskExecution, self.instance) if self.instance else None
 
-        # Support process_type for backward compatibility with wrapper scripts
-        # less than 2.0.0
-        task_dict = data.get('auto_created_task_properties') or \
-                data.get('task') or data.get('process_type')
+        task_dict = data.get('auto_created_task_properties') or data.get('task')
 
         was_auto_created = ('auto_created_task_properties' in data)
 
         task: Task | None = None
         if task_dict is None:
-            if ('task' in data) or was_auto_created or ('process_type' in data):
+            if ('task' in data) or was_auto_created:
                 raise serializers.ValidationError({
                     'task': [ErrorDetail('Cannot be empty', code='invalid')]
                 })
@@ -271,12 +249,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         execution_method_dict = data.get('execution_method_details')
 
-        legacy_em = data.pop('execution_method', None)
-        is_legacy_schema = (legacy_em is not None) and \
-            (execution_method_dict is None)
-
-        execution_method_dict = execution_method_dict or legacy_em
-
         logger.debug(f"{execution_method_dict=}")
 
         execution_method_type: str | None = None
@@ -288,9 +260,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
 
         execution_method_type = data.get('execution_method_type',
             execution_method_type)
-
-        if is_legacy_schema:
-            execution_method_type = legacy_em.get('type', execution_method_type)
 
         if execution_method_type:
             from .task_serializer import UPPER_METHOD_TYPE_TO_EXECUTION_METHOD_NAME
@@ -307,40 +276,7 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
         logger.debug(f"{execution_method_type=}")
 
         validated['execution_method_type'] = execution_method_type
-
-        # Set deprecated columns
-        if execution_method_dict:
-            if is_legacy_schema:
-                self.copy_props_with_prefix(dest_dict=validated,
-                      src_dict=execution_method_dict,
-                      included_keys=['allocated_cpu_units',
-                          'allocated_memory_mb'])
-
-            if execution_method_type == AwsEcsExecutionMethod.NAME:
-                if is_legacy_schema:
-                    validated['execution_method_details'] = convert_empty_to_none_values({
-                        'launch_type': execution_method_dict.get('launch_type'),
-                        'cluster_arn': execution_method_dict.get('cluster_arn'),
-                        'task_definition_arn': execution_method_dict.get('task_definition_arn'),
-                        'task_arn': execution_method_dict.get('task_arn'),
-                        'execution_role_arn': execution_method_dict.get('execution_role'),
-                        'task_role_arn': execution_method_dict.get('task_role'),
-                        'platform_version': execution_method_dict.get('platform_version'),
-                    })
-
-                    validated['infrastructure_type'] = INFRASTRUCTURE_TYPE_AWS
-                    validated['infrastructure_settings'] = {
-                        'network': {
-                            'region': execution_method_dict.get('region'),
-                            'availability_zone': execution_method_dict.get('availability_zone'),
-                            'security_groups': execution_method_dict.get('security_groups'),
-                            'subnets': execution_method_dict.get('subnets'),
-                            'assign_public_ip': execution_method_dict.get('assign_public_ip')
-                        }
-                    }
-
-        # End set deprecated columns
-
+        
         build_dict = data.pop('build', None)
 
         dte: TaskExecution | None = None
@@ -395,10 +331,6 @@ class TaskExecutionSerializer(EmbeddedIdValidatingSerializerMixin,
             f"calling update with existing instance {instance}, validated {validated_data}")
 
         validated_task = validated_data.pop('task', None)
-
-        # Support process_type for backward compatibility
-        if validated_task is None:
-            validated_task = validated_data.get('process_type')
 
         if validated_task:
             if instance.task != validated_task:

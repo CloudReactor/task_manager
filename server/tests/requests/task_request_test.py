@@ -496,18 +496,14 @@ def test_task_fetch(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  is_legacy_schema, is_service, is_scheduled
+  is_service, is_scheduled
 """, [
-  (True, False, False),
-  (True, True, False),
-  (True, False, True),
-  (False, False, False),
-  (False, True, False),
-  (False, False, True),
+  (False, False),
+  (True, False),
+  (False, True),
 ])
 @mock_aws
-def test_task_create_aws_ecs_task(is_legacy_schema: bool,
-        is_service: bool, is_scheduled: bool,
+def test_task_create_aws_ecs_task(is_service: bool, is_scheduled: bool,
         user_factory, group_factory,
         run_environment_factory, task_factory,
         api_client) -> None:
@@ -544,8 +540,7 @@ def test_task_create_aws_ecs_task(is_legacy_schema: bool,
     request_data = make_aws_ecs_task_request_body(
         run_environment=api_key_run_environment,
         aws_ecs_setup=aws_ecs_setup,
-        is_service=is_service, schedule=schedule,
-        is_legacy_schema=is_legacy_schema)
+        is_service=is_service, schedule=schedule)
 
     old_count = Task.objects.count()
 

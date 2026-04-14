@@ -28,6 +28,7 @@ from processes.common.aws import extract_cluster_name
 from processes.common.request_helpers import (
     context_with_request, make_fake_request
 )
+from processes.common.utils import coalesce
 from processes.execution_methods import *
 from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS, Vpc
 from processes.execution_methods.aws_cloudwatch_scheduling_settings import (
@@ -623,18 +624,16 @@ class AwsEcsSetup(NamedTuple):
         )
     
 
-def setup_aws_ecs_cluster(run_environment: RunEnvironment) -> str:
-    ecs_client = run_environment.make_boto3_client('ecs')
-    cluster_response = ecs_client.create_cluster(
-            clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
-    return cluster_response['cluster']
-
 def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     aws_settings = run_environment.parsed_aws_settings()
 
     ecs_client = run_environment.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
             clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
+    
+    ecs_settings_dict = run_environment.default_aws_ecs_configuration
+    ecs_settings = AwsEcsExecutionMethodSettings.model_validate(ecs_settings_dict or {})
+
     task_def_response = ecs_client.register_task_definition(family='nginx',
         executionRoleArn=run_environment.aws_ecs_default_execution_role,
         networkMode='awsvpc',
@@ -659,11 +658,21 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
                   }
             }
         }])
+    
+    cluster_arn = cluster_response['cluster']['clusterArn']
+    
+    ecs_settings.cluster_arn = cluster_arn
+
+    execution_role_arn = coalesce(ecs_settings.execution_role_arn,
+            aws_settings.events_role_arn)
+    ecs_settings.execution_role_arn = execution_role_arn
+    run_environment.default_aws_ecs_configuration = ecs_settings.model_dump()
+    run_environment.save()
 
     return AwsEcsSetup(cluster_name=cluster_response['cluster']['clusterName'],
-        cluster_arn=cluster_response['cluster']['clusterArn'],
+        cluster_arn=cluster_arn,
         task_definition=task_def_response['taskDefinition'],
-        execution_role_arn=run_environment.default_aws_ecs_configuration['execution_role_arn'],
+        execution_role_arn=execution_role_arn,
         subnets=aws_settings.network.subnets,
         security_groups=aws_settings.network.security_groups)
 
@@ -671,8 +680,7 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
 def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
         aws_ecs_setup: AwsEcsSetup,
         is_service: bool = False, schedule: str = '',
-        was_auto_created: bool = False,
-        is_legacy_schema=False) -> dict[str, Any]:
+        was_auto_created: bool = False) -> dict[str, Any]:
     body = make_common_task_request_body(
             run_environment_name=run_environment.name,
             was_auto_created=was_auto_created)
@@ -684,28 +692,52 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
 
     task_definition_arn = aws_ecs_setup.task_definition_arn
 
-    if is_legacy_schema:
-        emc = {
-            'type': 'AWS ECS',
-            'task_definition_arn': task_definition_arn,
-            'default_launch_type': 'FARGATE',
-            'supported_launch_types': ['FARGATE'],
-            'default_platform_version': '1.4.0',
-            'main_container_name': 'hello',
-            'allocated_cpu_units': 1024,
-            'allocated_memory_mb': 2048,
-            'default_execution_role': run_environment.aws_ecs_default_execution_role,
-            'default_task_role': 'arn:aws:iam::123456789012:role/task',
-            'default_subnets': aws_ecs_setup.subnets,
-            'default_security_groups': aws_ecs_setup.security_groups,
-            'tags': {
-                'TagA': 'A',
-                'TagB': 'B'
-            },
+    body['allocated_cpu_units'] = 1024
+    body['allocated_memory_mb'] = 2048
+    body['execution_method_type'] = 'AWS ECS'
+    body['execution_method_capability_details'] = {
+        'task_definition_arn': task_definition_arn,
+        'launch_type': 'FARGATE',
+        'supported_launch_types': ['FARGATE'],
+        'platform_version': '1.4.0',
+        'main_container_name': 'hello',
+        'execution_role_arn': run_environment.aws_ecs_default_execution_role,
+        'task_role_arn': 'arn:aws:iam::123456789012:role/task'
+    }
+    body['infrastructure_type'] = 'AWS'
+    body['infrastructure_settings'] = {
+        'region': 'us-west-1',
+        'network': {
+            'subnets': aws_ecs_setup.subnets,
+            'security_groups': aws_ecs_setup.security_groups,
+        },
+        'logging': {
+            'driver': 'awslogs',
+            'options': {
+                'group': '/aws/fargate/hello_world-' + run_environment.name,
+                'region': 'us-west-1',
+                'stream_prefix': 'hello_world-' + run_environment.name
+            }
+        },
+        'tags': {
+            'TagA': 'A',
+            'TagB': 'B'
         }
+    }
 
-        if is_service:
-            emc['service_options'] = {
+    if is_service:
+        body['service_provider_type'] = SERVICE_PROVIDER_AWS_ECS
+        body['service_settings'] = {
+            'deployment_configuration': {
+                'minimum_healthy_percent': 50,
+                'maximum_percent': 200,
+                'deployment_circuit_breaker': {
+                    'enable': True,
+                    'rollback_on_failure': False
+                }
+            },
+            'force_new_deployment': True,
+            'load_balancer_settings': {
                 'load_balancers': [
                     {
                         'target_group_arn': 'arn:aws:elasticloadbalancing:us-west-1:123456789012:targetgroup/example-web/hello',
@@ -713,87 +745,18 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
                         'container_port': 8080
                     }
                 ],
-                'load_balancer_health_check_grace_period_seconds': 60,
-                'force_new_deployment': True,
-                'deploy_minimum_healthy_percent': 50,
-                'deploy_maximum_percent': 200,
-                'deploy_enable_circuit_breaker': True,
-                'deploy_rollback_on_failure': False,
-                'enable_ecs_managed_tags': True,
-                'propagate_tags': 'SERVICE',
-                'tags': {
-                    'TagC': 'C',
-                    'TagD': 'D'
-                }
-            }
-
-        body['execution_method_capability'] = emc
-    else:
-        body['allocated_cpu_units'] = 1024
-        body['allocated_memory_mb'] = 2048
-        body['execution_method_type'] = 'AWS ECS'
-        body['execution_method_capability_details'] = {
-            'task_definition_arn': task_definition_arn,
-            'launch_type': 'FARGATE',
-            'supported_launch_types': ['FARGATE'],
-            'platform_version': '1.4.0',
-            'main_container_name': 'hello',
-            'execution_role_arn': run_environment.aws_ecs_default_execution_role,
-            'task_role_arn': 'arn:aws:iam::123456789012:role/task'
-        }
-        body['infrastructure_type'] = 'AWS'
-        body['infrastructure_settings'] = {
-            'region': 'us-west-1',
-            'network': {
-                'subnets': aws_ecs_setup.subnets,
-                'security_groups': aws_ecs_setup.security_groups,
+                'health_check_grace_period_seconds': 60,
             },
-            'logging': {
-                'driver': 'awslogs',
-                'options': {
-                    'group': '/aws/fargate/hello_world-' + run_environment.name,
-                    'region': 'us-west-1',
-                    'stream_prefix': 'hello_world-' + run_environment.name
-                }
-            },
+            'enable_ecs_managed_tags': True,
+            'propagate_tags': 'SERVICE',
             'tags': {
-                'TagA': 'A',
-                'TagB': 'B'
+                'TagC': 'C',
+                'TagD': 'D'
             }
         }
 
-        if is_service:
-            body['service_provider_type'] = SERVICE_PROVIDER_AWS_ECS
-            body['service_settings'] = {
-                'deployment_configuration': {
-                    'minimum_healthy_percent': 50,
-                    'maximum_percent': 200,
-                    'deployment_circuit_breaker': {
-                        'enable': True,
-                        'rollback_on_failure': False
-                    }
-                },
-                'force_new_deployment': True,
-                'load_balancer_settings': {
-                    'load_balancers': [
-                        {
-                            'target_group_arn': 'arn:aws:elasticloadbalancing:us-west-1:123456789012:targetgroup/example-web/hello',
-                            'container_name': 'hello',
-                            'container_port': 8080
-                        }
-                    ],
-                    'health_check_grace_period_seconds': 60,
-                },
-                'enable_ecs_managed_tags': True,
-                'propagate_tags': 'SERVICE',
-                'tags': {
-                    'TagC': 'C',
-                    'TagD': 'D'
-                }
-            }
-
-        if schedule:
-            body['scheduling_provider_type'] = SCHEDULING_TYPE_AWS_CLOUDWATCH
+    if schedule:
+        body['scheduling_provider_type'] = SCHEDULING_TYPE_AWS_CLOUDWATCH
 
     return body
 
@@ -868,53 +831,8 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
         if attr in body_task:
             assert_deep_subset(body_task[attr], getattr(model_task, attr), attr)
 
-    execution_method_type = ''
-    service_provider_type = ''
-
-    # Deprecated schema
-    emc = body_task.get('execution_method_capability')
-    if emc is not None:
-        execution_method_type = emc['type']
-        for attr in ['allocated_cpu_units', 'allocated_memory_mb']:
-            if attr in emc:
-                assert getattr(model_task, attr) == emc[attr]
-
-        model_infra = AwsSettings.model_validate(model_task.infrastructure_settings)
-        model_network = model_infra.network
-
-        if 'default_subnets' in emc:
-            assert model_network is not None
-            assert model_network.subnet_infrastructure_website_urls is not None
-            assert len(model_network.subnet_infrastructure_website_urls) == len(emc['default_subnets'])
-            for i, subnet in enumerate(emc['default_subnets']):
-                assert model_network.subnet_infrastructure_website_urls[i].index(subnet) >= 0
-
-        if 'default_security_groups' in emc:
-            assert model_network is not None
-            assert model_network.security_group_infrastructure_website_urls is not None
-            assert len(model_network.security_group_infrastructure_website_urls) == len(emc['default_security_groups'])
-            for i, security_group in enumerate(emc['default_security_groups']):
-                assert model_network.security_group_infrastructure_website_urls[i].index(security_group) >= 0
-
-        service_options = emc.get('service_options')
-
-        if service_options is None:
-            assert model_task.service_instance_count is None
-            assert model_task.service_provider_type == ''
-            assert model_task.service_settings is None
-        else:
-            service_provider_type = SERVICE_PROVIDER_AWS_ECS
-
-            assert model_task.service_instance_count is not None
-            assert model_task.service_instance_count >= 1
-
-            assert model_task.service_provider_type == 'AWS ECS'
-            assert model_task.service_settings is not None
-
     execution_method_type = body_task.get('execution_method_type') or \
-            execution_method_type or model_task.execution_method_type
-
-    emcd = body_task.get('execution_method_capability_details')
+            model_task.execution_method_type
 
     infra = body_task.get('infrastructure_settings')
 
@@ -960,32 +878,36 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
                 if (aws_logging.get('driver') == 'awslogs') and ('group' in aws_logging):
                     assert model_logging.infrastructure_website_url is not None
 
-    service_provider_type = body_task.get('service_provider_type') or \
-            service_provider_type
+    enabled = body_task.get('enabled', model_task.enabled)
+
+    schedule = coalesce(body_task.get('schedule'), model_task.schedule)
+    is_scheduled = (schedule is not None) and schedule != ''
+    body_is_scheduling_managed = body_task.get('is_scheduling_managed')
+
+    if enabled and is_scheduled and (body_is_scheduling_managed is None):
+        assert model_task.is_scheduling_managed
+    else:
+        assert model_task.is_scheduling_managed == body_is_scheduling_managed
+
+    if is_scheduled and (execution_method_type == AwsEcsExecutionMethod.NAME):
+        assert model_task.scheduling_provider_type == SCHEDULING_TYPE_AWS_CLOUDWATCH
+        if enabled:
+            assert model_task.scheduling_settings is not None
+
+    service_provider_type = body_task.get('service_provider_type')
     body_service_settings = body_task.get('service_settings')
 
     if service_provider_type:
         assert model_task.service_provider_type == service_provider_type
+
+    if body_service_settings:
         model_service_settings = model_task.service_settings
         assert model_service_settings is not None
-
-    if body_task.get('schedule'):
-        body_is_scheduling_managed = body_task.get('is_scheduling_managed')
-        if body_is_scheduling_managed is None:
-            assert model_task.is_scheduling_managed
-        else:
-            assert model_task.is_scheduling_managed == body_is_scheduling_managed
-
-        if execution_method_type == AwsEcsExecutionMethod.NAME:
-            assert model_task.scheduling_provider_type == SCHEDULING_TYPE_AWS_CLOUDWATCH
-        else:
-            assert model_task.scheduling_provider_type == body_task.get('scheduling_provider_type') or ''
-        assert model_task.scheduling_settings is not None
-
+                        
     if model_task.is_service:
         body_is_service_managed = body_task.get('is_service_managed')
         if body_is_service_managed is None:
-            if model_task.enabled:
+            if enabled:
                 assert model_task.is_service_managed
             else:
                 assert not model_task.is_service_managed
@@ -994,18 +916,18 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
 
 
 def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
-        aws_ecs_setup: AwsEcsSetup) -> None:    
+        aws_ecs_setup: AwsEcsSetup) -> None:
+    if model_task.min_service_instance_count is not None:
+        assert model_task.min_service_instance_count >= 0
+    
     assert model_task.execution_method_type == 'AWS ECS'
-
-    run_environment = model_task.run_environment
-
-    re_emc = AwsEcsExecutionMethodSettings.model_validate(
-            run_environment.default_aws_ecs_configuration)
 
     emcd = model_task.execution_method_capability_details
     assert emcd is not None
     assert emcd['task_definition_arn'] == aws_ecs_setup.task_definition_arn
-    assert emcd['execution_role_arn'] == re_emc.execution_role_arn
+
+    if emcd['execution_role_arn'] is not None:
+        assert emcd['execution_role_arn'] == aws_ecs_setup.execution_role_arn
 
     region = aws_settings.region
     account_id = aws_settings.account_id
@@ -1019,7 +941,6 @@ def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
         if model_task.enabled:
             assert model_task.service_settings is not None
             assert model_task.service_instance_count >= 1
-            assert model_task.min_service_instance_count >= 0
 
             ss_dict = model_task.service_settings
             ss = AwsEcsServiceSettings.model_validate(ss_dict)
@@ -1157,8 +1078,7 @@ def make_aws_ecs_task_execution_request_body(
         task_property_name: str = 'task',
         task: Task | None = None,
         aws_ecs_setup: AwsEcsSetup | None = None,
-        was_auto_created: bool = False, is_passive: bool = False,
-        is_legacy_schema: bool = False) -> dict[str, Any]:
+        was_auto_created: bool = False, is_passive: bool = False) -> dict[str, Any]:
     body = make_task_execution_request_body(
         uuid_send_type = uuid_send_type,
         task_send_type = task_send_type,
@@ -1186,30 +1106,25 @@ def make_aws_ecs_task_execution_request_body(
             task_request_fragment = make_aws_ecs_task_request_body(
                 run_environment=run_environment,
                 aws_ecs_setup=aws_ecs_setup,
-                was_auto_created=was_auto_created,
-                is_legacy_schema=is_legacy_schema)
+                was_auto_created=was_auto_created
+            )
 
         task_request_fragment["passive"] = is_passive
 
         body['task'] = task_request_fragment
 
-    default_attr_prefix = ''
-    if is_legacy_schema:
-        emcd = task_request_fragment.get('execution_method_capability')
-        default_attr_prefix = 'default_'
-    else:
-        emcd = task_request_fragment.get('execution_method_capability_details')
+    emcd = task_request_fragment.get('execution_method_capability_details')
 
     emcd = emcd or {}
 
-    launch_type = emcd.get(default_attr_prefix + "launch_type", "FARGATE")
+    launch_type = emcd.get("launch_type", "FARGATE")
     emd = {
         "task_arn": "arn:aws:ecs:us-east-1:012345678910:task/9781c248-0edd-4cdb-9a93-f63cb662a5d3",
         "task_definition_arn": emcd.get('task_definition_arn', aws_ecs_setup.task_definition_arn),
         "launch_type": launch_type
     }
 
-    cluster_arn = emcd.get(default_attr_prefix + "cluster_arn")
+    cluster_arn = emcd.get("cluster_arn")
 
     if not cluster_arn:
         assert run_environment is not None
@@ -1217,41 +1132,37 @@ def make_aws_ecs_task_execution_request_body(
 
     emd["cluster_arn"] = cluster_arn
 
-    if is_legacy_schema:
-        emd["type"] = "AWS ECS"
-        body['execution_method'] = emd
-    else:
-        body['execution_method_type'] = AwsEcsExecutionMethod.NAME
-        body['execution_method_details'] = emd
+    body['execution_method_type'] = AwsEcsExecutionMethod.NAME
+    body['execution_method_details'] = emd
 
-        infra_type = task_request_fragment.get('infrastructure_type')
-        if infra_type:
-            body['infrastructure_type'] = infra_type
+    infra_type = task_request_fragment.get('infrastructure_type')
+    if infra_type:
+        body['infrastructure_type'] = infra_type
 
-            infra = task_request_fragment.get('infrastructure_settings') or {}
+        infra = task_request_fragment.get('infrastructure_settings') or {}
 
-            te_logging = (infra.get('logging') or {}).copy()
-            te_logging.pop('stream_prefix', None)
-            te_logging['stream'] = "ecs/curl/cd189a933e5849daa93386466019ab50"
+        te_logging = (infra.get('logging') or {}).copy()
+        te_logging.pop('stream_prefix', None)
+        te_logging['stream'] = "ecs/curl/cd189a933e5849daa93386466019ab50"
 
-            body['infrastructure_settings'] = {
-                'region': 'us-east-2',
-                'network': {
-                    "region": "us-east-2",
-                    "availability_zone": "us-east-2a",
-                    "networks": [
-                        {
-                            "network_mode": "awsvpc",
-                            "ip_v4_subnet_cidr_block": "192.0.2.0/24",
-                            "dns_servers": ["192.0.2.2"],
-                            "dns_search_list": ["us-west-2.compute.internal"],
-                            "private_dns_name": "ip-10-0-0-222.us-east-2.compute.internal",
-                            "subnet_gateway_ip_v4_address": "192.0.2.0/24"
-                        }
-                    ]
-                },
-                'logging': te_logging
-            }
+        body['infrastructure_settings'] = {
+            'region': 'us-east-2',
+            'network': {
+                "region": "us-east-2",
+                "availability_zone": "us-east-2a",
+                "networks": [
+                    {
+                        "network_mode": "awsvpc",
+                        "ip_v4_subnet_cidr_block": "192.0.2.0/24",
+                        "dns_servers": ["192.0.2.2"],
+                        "dns_search_list": ["us-west-2.compute.internal"],
+                        "private_dns_name": "ip-10-0-0-222.us-east-2.compute.internal",
+                        "subnet_gateway_ip_v4_address": "192.0.2.0/24"
+                    }
+                ]
+            },
+            'logging': te_logging
+        }
 
     return body
 

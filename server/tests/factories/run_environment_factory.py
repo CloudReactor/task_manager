@@ -2,7 +2,6 @@
 from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS
 from processes.models import RunEnvironment
 from processes.models.convert_legacy_em_and_infra import (
-    populate_run_environment_infra,
     populate_run_environment_aws_ecs_configuration
 )
 

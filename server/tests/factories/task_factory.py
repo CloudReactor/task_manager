@@ -1,11 +1,15 @@
+from processes.execution_methods import UnknownExecutionMethod
 
-
-from processes.execution_methods import (
-    AwsEcsExecutionMethod,
-    UnknownExecutionMethod
-)
 from processes.models import Task
-from processes.models.convert_legacy_em_and_infra import populate_task_emc_and_infra
+from processes.execution_methods import (
+    INFRASTRUCTURE_TYPE_AWS,
+)
+
+from processes.execution_methods.aws_ecs_execution_method import (
+      AWS_ECS_PLATFORM_VERSION_DEFAULT,
+      AwsEcsExecutionMethod,
+      AwsEcsExecutionMethodSettings,      
+)
 
 import factory
 from faker import Factory as FakerFactory
@@ -54,42 +58,47 @@ class TaskFactory(OwnedModelFactory):
     failure_report_probability = 1.0
     timeout_report_probability = 1.0
 
-    aws_default_subnets: list[str] | None = None
-    aws_ecs_task_definition_arn = 'arn:aws:ecs:us-west-2:123456789012:task-definition/hello_world:8'
-    aws_ecs_default_launch_type = 'FARGATE'
-    aws_ecs_supported_launch_types: list[str] | None = ['FARGATE']
-    aws_ecs_default_cluster_arn = ''
-    aws_ecs_default_security_groups: list[str] | None = None
-    aws_ecs_default_assign_public_ip = False
-    aws_ecs_service_load_balancer_health_check_grace_period_seconds: int | None = None
-    aws_ecs_default_execution_role = ''
-    aws_ecs_default_task_role = ''
-    aws_ecs_main_container_name = ''
-    aws_scheduled_execution_rule_name = ''
-    aws_scheduled_event_rule_arn = ''
-    aws_event_target_rule_name = ''
-    aws_event_target_id = ''
-    aws_ecs_service_arn = ''
-    aws_ecs_service_updated_at = None
+    execution_method_capability_details = AwsEcsExecutionMethodSettings(
+        launch_type = AwsEcsExecutionMethod.DEFAULT_LAUNCH_TYPE,
+        supported_launch_types = [AwsEcsExecutionMethod.DEFAULT_LAUNCH_TYPE],
+        task_definition_arn = 'arn:aws:ecs:us-west-2:123456789012:task-definition/hello_world:8',        
+        platform_version = AWS_ECS_PLATFORM_VERSION_DEFAULT,
+    ).model_dump()
+
+    infrastructure_type = INFRASTRUCTURE_TYPE_AWS
+
+    # aws_default_subnets: list[str] | None = None
+    # aws_ecs_task_definition_arn = ''
+    # aws_ecs_default_launch_type = 'FARGATE'
+    # aws_ecs_supported_launch_types: list[str] | None = ['FARGATE']
+    # aws_ecs_default_cluster_arn = ''
+    # aws_ecs_default_security_groups: list[str] | None = None
+    # aws_ecs_default_assign_public_ip = Non
+    # aws_ecs_service_load_balancer_health_check_grace_period_seconds: int | None = None
+    # aws_ecs_default_execution_role = ''
+    # aws_ecs_default_task_role = ''
+    # aws_ecs_main_container_name = ''
+    # aws_scheduled_execution_rule_name = ''
+    # aws_scheduled_event_rule_arn = ''
+    # aws_event_target_rule_name = ''
+    # aws_event_target_id = ''
+    # aws_ecs_service_arn = ''
+
+    # aws_ecs_service_updated_at = None
 
     allocated_cpu_units: int | None = 512
     allocated_memory_mb: int | None = 2048
 
-    @factory.post_generation
-    def sanitize_emc(task: Task, create: bool, extracted, **kwargs):
-        if task.execution_method_capability_details:
-            return
+    # @factory.post_generation
+    # def sanitize_emc(task: Task, create: bool, extracted, **kwargs):
+    #     if task.execution_method_capability_details:
+    #         return
 
-        if populate_task_emc_and_infra(task):
-            task.save()
+    #     populate_task_emc_and_infra(task)        
 
 
 class UnknownTaskFactory(TaskFactory):
     execution_method_type = UnknownExecutionMethod.NAME
-
-    aws_ecs_task_definition_arn = ''
-    aws_ecs_default_launch_type = ''
-    aws_ecs_supported_launch_types = None
 
     allocated_cpu_units = None
     allocated_memory_mb = None

@@ -36,15 +36,13 @@ def test_task_execution_in_workflow_serialization(task_execution_factory,
 @mock_aws
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  is_passive, is_legacy_schema
+  is_passive
 """, [
-  (False, False),
-  (False, True),
-  (True, False),
-  (True, True),
+  (False),
+  (True),
 ])
 def test_auto_created_aws_ecs_task_execution_deserialization(
-        is_passive: bool, is_legacy_schema: bool,
+        is_passive: bool,
         user_factory, group_factory, run_environment_factory,
         task_factory, task_execution_factory):
     user = user_factory()
@@ -68,8 +66,7 @@ def test_auto_created_aws_ecs_task_execution_deserialization(
         task_execution_factory=task_execution_factory,
         user=user,
         was_auto_created=True, is_passive=is_passive,
-        aws_ecs_setup=aws_ecs_setup,
-        is_legacy_schema=is_legacy_schema)
+        aws_ecs_setup=aws_ecs_setup)
 
     ser = TaskExecutionSerializer(data=request_body.copy(), context=context)
     ser.is_valid(raise_exception=True)

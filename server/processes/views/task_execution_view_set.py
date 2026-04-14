@@ -100,9 +100,6 @@ class TaskExecutionViewSet(AtomicCreateModelMixin, AtomicUpdateModelMixin,
                        'current_memory_mb', 'mean_memory_mb', 'max_memory_mb',
                        'failed_attempts', 'timed_out_attempts', 'exit_code',
                        'api_base_url',
-                       'aws_ecs_task_definition_arn', 'aws_ecs_task_arn',
-                       'aws_ecs_launch_type', 'aws_ecs_cluster_arn',
-                       'aws_ecs_execution_role', 'aws_ecs_task_role',
                        'created_at', 'updated_at',)
     ordering = 'started_at'
 

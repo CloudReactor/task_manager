@@ -8,7 +8,6 @@ from urllib.parse import quote, quote_plus
 
 from rest_framework.exceptions import APIException
 
-AWS_ECS_PLATFORM_VERSION_LATEST = 'LATEST'
 
 HTTPS = 'https://'
 AWS_CONSOLE_HOSTNAME = 'console.aws.amazon.com'

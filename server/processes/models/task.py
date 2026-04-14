@@ -22,7 +22,7 @@ from ..execution_methods import (
     ExecutionMethod,
     AwsEcsExecutionMethod
 )
-from ..exception import CommittableException, UnprocessableEntity
+from ..exception import UnprocessableEntity
 
 from .aws_ecs_configuration import AwsEcsConfiguration
 from .run_environment import RunEnvironment

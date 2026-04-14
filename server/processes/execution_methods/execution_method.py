@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, FrozenSet, Tuple, TYPE_CHECKING
+from typing import Any, FrozenSet, TYPE_CHECKING
 
 import logging
 import enum
@@ -61,7 +61,6 @@ class ExecutionMethod:
         'run_environment',
         'allocated_cpu_units',
         'allocated_memory_mb',
-        #'execution_method_capability', # Deprecated
         'execution_method_type',
         'execution_method_capability_details',
         #'capabilities',
@@ -120,7 +119,7 @@ class ExecutionMethod:
         return cap in self.capabilities()
 
     def should_update_or_force_recreate_scheduled_execution(self,
-            old_execution_method: ExecutionMethod | None=None) -> Tuple[bool, bool]:
+            old_execution_method: ExecutionMethod | None=None) -> tuple[bool, bool]:
         should = self.should_maybe_update_scheduled_execution(
                   old_execution_method=old_execution_method)
         return (coalesce(should, True), False)
@@ -131,13 +130,13 @@ class ExecutionMethod:
         raise UnprocessableEntity(
                 detail='Execution method does not support scheduled execution.')
 
-    def teardown_scheduled_execution(self) -> Tuple[dict[str, Any] | None, Any | None]:
+    def teardown_scheduled_execution(self) -> tuple[dict[str, Any] | None, Any | None]:
         logger.warning('teardown_service(): execution method does not support scheduled execution, no-op')
         return (None, None)
 
     def should_update_or_force_recreate_service(self,
             old_execution_method: ExecutionMethod | None=None) \
-            -> Tuple[bool, bool]:
+            -> tuple[bool, bool]:
         return (False, False)
 
     def setup_service(self,
@@ -146,12 +145,15 @@ class ExecutionMethod:
         raise UnprocessableEntity(
                 detail='Execution method does not support service setup.')
 
-    def teardown_service(self) -> Tuple[dict[str, Any] | None, Any | None]:
+    def teardown_service(self) -> tuple[dict[str, Any] | None, Any | None]:
         logger.info('teardown_service(): execution method does not support services, no-op')
         return (None, None)
 
     def manually_start(self) -> None:
         raise ValidationError(detail='Execution method does not support manual start.')
+
+    def sanitize_task_settings(self) -> bool:
+        return False
 
     # TODO: allow implementation to partially fail, signaling errors
     def enrich_task_settings(self) -> None:
@@ -277,13 +279,22 @@ class ExecutionMethod:
             emt = task_execution.execution_method_type or emt
             logger.info(f"emt overridden to = {emt}")
 
+        em: ExecutionMethod | None = None
+
         if emt == AwsEcsExecutionMethod.NAME:
-            return AwsEcsExecutionMethod(task=task, task_execution=task_execution)
+            em = AwsEcsExecutionMethod(task=task, task_execution=task_execution)
         elif emt == AwsLambdaExecutionMethod.NAME:
-            return AwsLambdaExecutionMethod(task=task, task_execution=task_execution)
+            em = AwsLambdaExecutionMethod(task=task, task_execution=task_execution)
         elif emt == AwsCodeBuildExecutionMethod.NAME:
-            return AwsCodeBuildExecutionMethod(task=task, task_execution=task_execution)
-        return UnknownExecutionMethod(task=task, task_execution=task_execution)
+            em = AwsCodeBuildExecutionMethod(task=task, task_execution=task_execution)
+        else:
+            em = UnknownExecutionMethod(task=task, task_execution=task_execution)
+
+        if task_execution is None:
+            em.sanitize_task_settings()
+        
+        return em
+
 
     def should_maybe_update_scheduled_execution(self,
             old_execution_method: ExecutionMethod | None) -> bool | None:
