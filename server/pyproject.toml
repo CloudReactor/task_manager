@@ -43,7 +43,7 @@ dependencies = [
     "python-intervals>=1.10.0,<2.0.0",
     "pytz>=2025.1",
     "PyYAML>=6.0.2,<7.0.0",
-    "requests>=2.32.3,<3.0.0",
+    "requests>=2.33.0,<3.0.0",
     "sqlparse>=0.5.3,<1.0.0",
     "stringcase==1.2.0,<2.0.0",
     # "django-queryinspect==1.1.0" # Uncomment if needed
