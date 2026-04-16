@@ -78,7 +78,7 @@ class SaasTokenSerializer(
 
         token_group: Group | None = None
         if group_request_obj:
-            token_group = find_group_by_id_or_name(group_request_obj)
+            token_group = find_group_by_id_or_name(group_request_obj, raise_exception_if_missing=False)
             if group and (token_group != group):
                 raise PermissionDenied()
         else:

@@ -108,9 +108,7 @@ class GroupMembershipViewSet(viewsets.ViewSet):
                 })
         else:
             group = find_group_by_id_or_name(group_dict)
-            if not group:
-                raise APIException()
-
+            
         if request_group and (request_group != group):
             raise PermissionDenied('Group mismatch')
 

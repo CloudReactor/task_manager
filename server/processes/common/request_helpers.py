@@ -134,9 +134,9 @@ def find_group_by_id_or_name(obj_dict: dict[str, Any] | None,
     name = obj_dict.get('name')
 
     if obj_id is not None:
-        group = Group.objects.get(pk=obj_id)
+        group = Group.objects.filter(pk=int(obj_id)).first()
 
-        if check_conflict and (name is not None) and (group.name != name):
+        if group and check_conflict and (name is not None) and (group.name != name):
             raise serializers.ValidationError({
                 'name': [ErrorDetail(f"{group.pk=} is named '{group.name}', not '{name}'", code='conflict')]
             })
@@ -146,7 +146,12 @@ def find_group_by_id_or_name(obj_dict: dict[str, Any] | None,
                 'id': [ErrorDetail('Neither ID or name of Group found in request', code='invalid')]
             })
 
-        group = Group.objects.get(name=name)
+        group = Group.objects.filter(name=name).first()
+
+    if raise_exception_if_missing and (group is None):
+        raise UnprocessableEntity({
+            'group': ['Group not found']
+        })
 
     return group
 

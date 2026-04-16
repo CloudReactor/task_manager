@@ -49,7 +49,7 @@ class GroupSettingSerializerMixin(SerializerHelpers, serializers.Serializer):  #
         group: Group | None = None
         authenticated_group = self.get_request_group()
         if group_dict:
-            group = find_group_by_id_or_name(obj_dict=group_dict)
+            group = find_group_by_id_or_name(obj_dict=group_dict, raise_exception_if_missing=False)
         elif self.instance:
             group = self.instance.created_by_group
         else:

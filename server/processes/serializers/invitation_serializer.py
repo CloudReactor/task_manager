@@ -9,10 +9,13 @@ from django.contrib.auth.models import Group, User
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
-from processes.common.request_helpers import (
+from ..common.request_helpers import (
     ensure_group_access_level, request_for_context, required_user_and_group_from_request, find_group_by_id_or_name
 )
-from processes.models import (
+
+from ..exception import UnprocessableEntity
+
+from ..models import (
     Invitation,
     UserGroupAccessLevel,
 )
@@ -59,7 +62,7 @@ class InvitationSerializer(serializers.HyperlinkedModelSerializer):
             request_body_group = find_group_by_id_or_name(request_body_group_dict)
 
         if request_body_group is None:
-            raise serializers.ValidationError({
+            raise UnprocessableEntity({
                 'group': ['Invitation is missing Group']
             })
 
