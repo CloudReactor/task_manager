@@ -13,7 +13,6 @@ from .schedulable import Schedulable
 from .execution import Execution
 from .aws_tagged_entity import AwsTaggedEntity
 from .task import Task
-from .aws_ecs_service_load_balancer_details import AwsEcsServiceLoadBalancerDetails
 from .task_link import TaskLink
 from .task_execution import TaskExecution
 from .workflow import Workflow

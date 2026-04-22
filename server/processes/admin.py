@@ -29,7 +29,6 @@ from .models.notification_delivery_method import NotificationDeliveryMethod
 from .models.email_notification_delivery_method import EmailNotificationDeliveryMethod
 from .models.pagerduty_notification_delivery_method import PagerDutyNotificationDeliveryMethod
 from .models.notification import Notification
-from .models.aws_ecs_service_load_balancer_details import AwsEcsServiceLoadBalancerDetails
 from .models.user_profile import UserProfile
 from .models.group_info import GroupInfo
 
@@ -156,7 +155,6 @@ admin.site.register(Notification, NotificationAdmin)
 
 admin.site.register(Task, TaskAdmin)
 admin.site.register(TaskExecution, TaskExecutionAdmin)
-admin.site.register(AwsEcsServiceLoadBalancerDetails)
 
 admin.site.register(Workflow, WorkflowAdmin)
 admin.site.register(WorkflowTaskInstance, WorkflowTaskInstanceAdmin)
