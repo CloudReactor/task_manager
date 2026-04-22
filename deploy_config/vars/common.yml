@@ -490,21 +490,21 @@ project_task_name_to_config:
     ecs:
       cpu_units: 1024
       memory_mb: 2048
-      service:
-        deployment_configuration:
-          # force_new_deployment: False
-          minimum_healthy_percent: 100
-          maximum_percent: 200
-          enable_circuit_breaker: True
-          rollback_on_failure: True
-          # enable_ecs_managed_tags: True
-          # propagate_tags: SERVICE # Or "TASK_EXECUTION"
-          # tags:
-          #   IS_SERVICE: TRUE
       extra_main_container_properties:
         portMappings:
           - containerPort: 8000
             protocol: tcp
+    service_settings:
+      deployment_configuration:
+        # force_new_deployment: False
+        minimum_healthy_percent: 100
+        maximum_percent: 200
+        enable_circuit_breaker: True
+        rollback_on_failure: True
+        # enable_ecs_managed_tags: True
+        # propagate_tags: SERVICE # Or "TASK_EXECUTION"
+        # tags:
+        #   IS_SERVICE: TRUE
 
   create_superuser:
     command: "python manage.py createsuperuser --noinput"
