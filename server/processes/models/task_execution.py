@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
+class TaskExecution(TaskExecutionConfiguration, Execution):
     @enum.unique
     class RunReason(enum.IntEnum):
         EXPLICIT_START = 0
@@ -174,18 +174,6 @@ class TaskExecution(TaskExecutionConfiguration, AwsTaggedEntity, Execution):
         to_field='uuid', db_column='deployment_task_execution_uuid',
         blank=True, null=True,  related_name='+', db_constraint=False
     )
-
-    # Deprecated
-    aws_subnets = ArrayField(models.CharField(max_length=1000, blank=False), null=True)
-    aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
-    aws_ecs_task_arn = models.CharField(max_length=1000, blank=True)
-    aws_ecs_launch_type = models.CharField(max_length=50, blank=True)
-    aws_ecs_cluster_arn = models.CharField(max_length=1000, blank=True)
-    aws_ecs_security_groups = ArrayField(models.CharField(max_length=1000, blank=False), null=True)
-    aws_ecs_assign_public_ip = models.BooleanField(null=True)
-    aws_ecs_execution_role = models.CharField(max_length=1000, blank=True)
-    aws_ecs_task_role = models.CharField(max_length=1000, blank=True)
-    aws_ecs_platform_version = models.CharField(max_length=10, blank=True)
 
     class Meta:
         db_table = 'processes_processexecution'
