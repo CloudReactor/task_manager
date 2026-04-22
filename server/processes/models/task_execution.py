@@ -12,7 +12,6 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
 
 from django_middleware_global_request.middleware import get_request
@@ -20,8 +19,6 @@ from django_middleware_global_request.middleware import get_request
 from rest_framework.exceptions import ValidationError
 
 from ..common.aws import *
-# context_with_request not used in this module
-from ..common.pagerduty import *
 from ..common.utils import coalesce, val_to_str
 from ..execution_methods.execution_method import ExecutionMethod
 
@@ -30,7 +27,6 @@ from .task import Task
 from .event import Event
 from .task_execution_configuration import TaskExecutionConfiguration
 from .schedulable import Schedulable
-from .aws_tagged_entity import AwsTaggedEntity
 
 
 if TYPE_CHECKING:
