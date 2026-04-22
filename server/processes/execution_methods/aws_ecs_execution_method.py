@@ -1382,10 +1382,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         return 'DISABLED'
 
     def make_common_args(self, include_launch_type: bool=True) -> dict[str, Any]:
-        from ..models.aws_ecs_configuration import AwsEcsConfiguration
-
-        platform_version = self.settings.platform_version \
-                or AwsEcsConfiguration.PLATFORM_VERSION_LATEST
+        platform_version = self.settings.platform_version or AWS_ECS_PLATFORM_VERSION_LATEST
 
         subnets: list[str] = []
         security_groups: list[str] = []

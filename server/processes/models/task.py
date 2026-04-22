@@ -14,17 +14,13 @@ from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
-from django.contrib.postgres.fields import HStoreField
-
 from ..common.aws import *
 from ..common.utils import coalesce
 from ..execution_methods import (
     ExecutionMethod,
-    AwsEcsExecutionMethod
 )
 from ..exception import UnprocessableEntity
 
-from .aws_ecs_configuration import AwsEcsConfiguration
 from .run_environment import RunEnvironment
 from .schedulable import Schedulable
 from .subscription import Subscription
@@ -41,7 +37,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
+class Task(TaskExecutionConfiguration, Schedulable):
     """
     The specification for a runnable task (job), including details on how to
     run the task and how often the task is supposed to run.
@@ -87,37 +83,6 @@ class Task(AwsEcsConfiguration, TaskExecutionConfiguration, Schedulable):
     input_value_schema = models.JSONField(null=True, blank=True)
     default_input_value = models.JSONField(null=True, blank=True)
     output_value_schema = models.JSONField(null=True, blank=True)
-
-    # Start Deprecated
-    aws_ecs_task_definition_arn = models.CharField(max_length=1000, blank=True)
-    aws_ecs_service_load_balancer_health_check_grace_period_seconds = \
-            models.IntegerField(null=True, blank=True)
-    aws_ecs_service_deploy_rollback_on_failure = \
-            models.BooleanField(null=True, blank=True)
-    aws_ecs_service_deploy_minimum_healthy_percent = \
-            models.IntegerField(null=True, blank=True)
-    aws_ecs_service_deploy_maximum_percent = \
-            models.IntegerField(null=True, blank=True)
-    aws_ecs_service_deploy_enable_circuit_breaker = \
-            models.BooleanField(null=True, blank=True)
-    aws_ecs_service_enable_ecs_managed_tags = \
-            models.BooleanField(null=True, blank=True)
-    aws_ecs_service_propagate_tags = \
-            models.CharField(max_length=20,
-            blank=True, choices=[(x, x) for x in AwsEcsExecutionMethod.SERVICE_PROPAGATE_TAGS_CHOICES])
-    aws_ecs_service_tags = HStoreField(blank=True, null=True)
-
-    aws_ecs_service_force_new_deployment = \
-            models.BooleanField(null=True, blank=True)
-
-    aws_ecs_main_container_name = models.CharField(max_length=1000, blank=True)
-    aws_scheduled_execution_rule_name = models.CharField(max_length=1000,
-            blank=True)
-    aws_scheduled_event_rule_arn = models.CharField(max_length=1000, blank=True)
-    aws_event_target_rule_name = models.CharField(max_length=1000, blank=True)
-    aws_event_target_id = models.CharField(max_length=1000, blank=True)
-    aws_ecs_service_arn = models.CharField(max_length=1000, blank=True)
-    # End deprecated
 
     # TODO: rename to service_updated_at for other infrastructures
     aws_ecs_service_updated_at = models.DateTimeField(null=True, blank=True)

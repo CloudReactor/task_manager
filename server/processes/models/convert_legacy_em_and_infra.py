@@ -7,7 +7,6 @@ from ..execution_methods import (
     AwsEcsExecutionMethodSettings
 )
 from .run_environment import RunEnvironment
-from .task import Task
 
 
 logger = logging.getLogger(__name__)
@@ -15,22 +14,6 @@ logger = logging.getLogger(__name__)
 
 def convert_empty_to_none_values(d: dict[str, Any]) -> dict[str, Any]:
     return { k: (None if v == '' else v) for (k, v) in d.items() }
-
-
-def compute_region(
-    task: Task
-) -> str | None:
-    region = task.run_environment.aws_default_region
-    cluster_arn = task.aws_ecs_default_cluster_arn
-    if not cluster_arn:
-        return region
-
-    if cluster_arn.startswith("arn:aws:ecs:"):
-        parts = cluster_arn.split(":")
-        return parts[3]
-
-    logger.warning(f"Can't determine AWS region from cluster ARN '{cluster_arn}'")
-    return region
 
 
 def extract_infra_from_run_environment(run_environment: RunEnvironment) -> dict[str, Any]:
