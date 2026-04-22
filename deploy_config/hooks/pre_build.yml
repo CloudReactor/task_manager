@@ -11,22 +11,6 @@
 - debug:
     msg: "Pre-build"
 
-# - name: Upload .env file to AWS Secrets Manager
-#   community.aws.aws_secret:
-#     name: 'CloudReactor/task_manager/{{env}}/env'
-#     state: present
-#     secret_type: 'string'
-#     secret: "{{ lookup('file', '/home/appuser/work/deploy_config/files/.env.' + env)  }}"
-#   register: create_dotenv_secret_result
-
-# - debug:
-#     msg: "Secret: {{create_dotenv_secret_result}}"
-
-# - name: Copy server .env file
-#   copy: |
-#     src=/home/appuser/work/deploy_config/files/.env.{{env}}
-#     dest=/home/appuser/work/docker_context/build/{{env}}/.env
-
 - name: Set client build variables
   set_fact:
     docker_client_build_image_name: "cloudreactor-task-manager-web-builder-{{env}}"
@@ -36,7 +20,7 @@
     - client
 
 - name: Build client Docker image
-  command: "docker --debug build -f /home/appuser/work/docker_context/client/Dockerfile -t {{docker_client_build_image_name | quote}} /home/appuser/work/docker_context"
+  command: "docker --debug build -f /home/appuser/work/docker_context/client/Dockerfile --build-arg VERSION_SIGNATURE={{task_version_signature | quote}} -t {{docker_client_build_image_name | quote}} /home/appuser/work/docker_context"
   tags:
     - build
     - client

@@ -19,6 +19,9 @@ RUN npm install --ignore-optional --legacy-peer-deps
 COPY client/ ./
 COPY deploy_config/files/client.env ../deploy_config/files/client.env
 
+ARG VERSION_SIGNATURE="N/A"
+ENV VITE_VERSION_SIGNATURE=$VERSION_SIGNATURE
+
 RUN npm run build:deployed
 
 CMD ["npm", "start"]
