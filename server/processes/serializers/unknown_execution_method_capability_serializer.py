@@ -1,3 +1,5 @@
+from typing import Any
+
 from ..execution_methods import UnknownExecutionMethod
 
 from .base_execution_method_capability_serializer import (
@@ -5,8 +7,8 @@ from .base_execution_method_capability_serializer import (
 )
 
 class UnknownExecutionMethodCapabilitySerializer(BaseExecutionMethodCapabilitySerializer):
-    def get_execution_method_type(self, obj) -> str:
+    def get_execution_method_type(self, obj: Any) -> str:
         return UnknownExecutionMethod.NAME
-
-    def get_capabilities(self, obj) -> list[str]:
+    
+    def get_capabilities(self, obj: Any) -> list[str]:
         return []
