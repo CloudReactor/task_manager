@@ -105,12 +105,6 @@ class Task(TaskExecutionConfiguration, Schedulable):
 
     should_skip_synchronize_with_run_environment = False
 
-    def get_aws_region(self) -> str | None:
-        if self.run_environment is None:
-            return None
-
-        return self.run_environment.get_aws_region()
-
     @override
     @property
     def kind_label(self) -> str:

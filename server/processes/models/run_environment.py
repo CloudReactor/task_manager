@@ -51,18 +51,6 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
     notification_profiles: models.ManyToManyField['NotificationProfile', 'NotificationProfile'] = models.ManyToManyField('NotificationProfile')
 
-    # Deprecated, use InfrastructureSettings.can_manage_infrastructure()
-    def can_control_aws_ecs(self) -> bool:
-        aws_settings = self.parsed_aws_settings()
-        return (aws_settings is not None) and aws_settings.can_manage_infrastructure()
-
-    # Deprecated, use AwsSettings.region
-    def get_aws_region(self) -> str | None:
-        if self.aws_settings:
-            return self.aws_settings.get('region')
-
-        return None
-
     # Deprecated, use AwsSettings.make_boto3_client()
     def make_boto3_client(self, service_name: str):
         aws_settings = self.parsed_aws_settings()
@@ -75,7 +63,7 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
     @override
     def parsed_infrastructure_settings(self) -> InfrastructureSettings | None:
-        return super().parsed_infrastructure_settings() or self.parsed_aws_settings()
+        return self.parsed_aws_settings()
 
     def parsed_aws_settings(self) -> AwsSettings | None:
         if not self.aws_settings:
@@ -85,8 +73,8 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
 
     def can_schedule_workflow(self) -> bool:
-        aws_settings = self.parsed_aws_settings()
-        return (aws_settings is not None) and aws_settings.can_schedule_workflow()
+        infra_settings = self.parsed_infrastructure_settings()
+        return (infra_settings is not None) and infra_settings.can_schedule_workflow()
 
     def enrich_settings(self) -> None:
         aws_settings = self.parsed_aws_settings()

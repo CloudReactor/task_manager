@@ -627,7 +627,7 @@ class AwsEcsSetup(NamedTuple):
 def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     aws_settings = run_environment.parsed_aws_settings()
 
-    ecs_client = run_environment.make_boto3_client('ecs')
+    ecs_client = aws_settings.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
             clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
     
@@ -936,7 +936,7 @@ def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
     if model_task.is_service:
         assert model_task.service_provider_type == SERVICE_PROVIDER_AWS_ECS
 
-        ecs_client = model_task.run_environment.make_boto3_client('ecs')
+        ecs_client = aws_settings.make_boto3_client('ecs')
 
         if model_task.enabled:
             assert model_task.service_settings is not None

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Type, TYPE_CHECKING, cast, override
+from typing import Any, Type, TYPE_CHECKING, cast, override
 
 import copy
 from datetime import datetime
@@ -35,6 +35,7 @@ from .schedulable import Schedulable
 from .execution import Execution
 from .run_environment import RunEnvironment
 from .workflow_transition import WorkflowTransition
+from processes.execution_methods import aws_settings
 
 
 if TYPE_CHECKING:
@@ -473,8 +474,13 @@ class Workflow(Schedulable):
 
             self.aws_scheduled_event_rule_arn = ''
 
-    def make_events_client(self, run_environment: RunEnvironment):
-        return run_environment.make_boto3_client('events')
+    def make_events_client(self, run_environment: RunEnvironment) -> Any:
+        aws_settings = run_environment.parsed_aws_settings()
+        
+        if not aws_settings:
+            raise UnprocessableEntity("make_events_client(): AWS infrastructure required to schedule workflows")
+                
+        return aws_settings.make_boto3_client('events', str(self.uuid))
 
     def run_environment_for_scheduling(self, fallback_to_tasks: bool=True) -> RunEnvironment | None:
         if self.scheduling_run_environment and \

@@ -22,9 +22,6 @@ from ..execution_methods import *
 from ..models import RunEnvironment, UserGroupAccessLevel
 
 from .name_and_uuid_serializer import NameAndUuidSerializer
-from .aws_ecs_run_environment_execution_method_capability_serializer import (
-    AwsEcsRunEnvironmentExecutionMethodCapabilitySerializer
-)
 from .group_serializer import GroupSerializer
 from .serializer_helpers import SerializerHelpers
 
@@ -54,11 +51,7 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
             'created_by_user', 'created_by_group',
             'created_at', 'updated_at',
             'infrastructure_settings',
-            'aws_account_id',
-            'aws_default_region',
-
             'notification_profiles',
-            'execution_method_capabilities',
             'execution_method_settings',
         ]
 
@@ -77,12 +70,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
     )
 
     infrastructure_settings = serializers.SerializerMethodField()
-
-    # Deprecated, maintained for compatibility with aws-ecs-cloudreactor-deployer
-    aws_account_id = serializers.SerializerMethodField()
-    aws_default_region = serializers.SerializerMethodField()
-    execution_method_capabilities = serializers.SerializerMethodField()
-
     execution_method_settings = serializers.SerializerMethodField()
 
     notification_profiles = NameAndUuidSerializer(include_name=True,
@@ -120,31 +107,6 @@ class RunEnvironmentSerializer(FlexFieldsSerializerMixin,
             if access_level < UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER:
                 for prop in (self.fields.keys() - self.SUMMARY_PROPS):
                     del self.fields[prop]
-
-
-    # Deprecated
-    def get_aws_account_id(self, run_env: RunEnvironment) -> str | None:
-        if not run_env.aws_settings:
-            return None
-        return run_env.aws_settings.get('account_id')
-
-    # Deprecated
-    def get_aws_default_region(self, run_env: RunEnvironment) -> str | None:
-        if not run_env.aws_settings:
-            return None
-        return run_env.aws_settings.get('region')
-
-    # Deprecated
-    # TODO: use PolymorphicProxySerializer when it is supported
-    @extend_schema_field(AwsEcsRunEnvironmentExecutionMethodCapabilitySerializer(many=True))
-    def get_execution_method_capabilities(self, run_env: RunEnvironment) \
-            -> Sequence[dict[str, Any]]:
-        rv = []
-        if run_env.can_control_aws_ecs():
-            rv.append(AwsEcsRunEnvironmentExecutionMethodCapabilitySerializer(
-                    run_env).data)
-        return rv
-
 
     def get_infrastructure_settings(self, run_env: RunEnvironment) \
             -> dict[str, Any]:
