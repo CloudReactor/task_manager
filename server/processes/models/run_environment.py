@@ -51,16 +51,6 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
 
     notification_profiles: models.ManyToManyField['NotificationProfile', 'NotificationProfile'] = models.ManyToManyField('NotificationProfile')
 
-    # Deprecated, use AwsSettings.make_boto3_client()
-    def make_boto3_client(self, service_name: str):
-        aws_settings = self.parsed_aws_settings()
-
-        if not aws_settings:
-            raise RuntimeError("make_boto3_client(): no AWS settings found")
-
-        return aws_settings.make_boto3_client(service_name=service_name,
-                session_uuid=str(self.uuid))
-
     @override
     def parsed_infrastructure_settings(self) -> InfrastructureSettings | None:
         return self.parsed_aws_settings()
