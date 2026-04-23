@@ -626,16 +626,17 @@ class AwsEcsSetup(NamedTuple):
 
 def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     aws_settings = run_environment.parsed_aws_settings()
+    assert aws_settings is not None, "AWS settings not found in Run Environment"
+
+    ecs_settings = run_environment.parsed_execution_method_settings(AwsEcsExecutionMethod.NAME)
+    assert ecs_settings is not None, "ECS settings not found in Run Environment"
 
     ecs_client = aws_settings.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
-            clusterName=extract_cluster_name(run_environment.aws_ecs_default_cluster_arn))
+            clusterName=extract_cluster_name(ecs_settings.cluster_arn))
     
-    ecs_settings_dict = run_environment.default_aws_ecs_configuration
-    ecs_settings = AwsEcsExecutionMethodSettings.model_validate(ecs_settings_dict or {})
-
     task_def_response = ecs_client.register_task_definition(family='nginx',
-        executionRoleArn=run_environment.aws_ecs_default_execution_role,
+        executionRoleArn=ecs_settings.execution_role_arn,
         networkMode='awsvpc',
         containerDefinitions=[{
             "name": "nginx",
@@ -663,8 +664,7 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     
     ecs_settings.cluster_arn = cluster_arn
 
-    execution_role_arn = coalesce(ecs_settings.execution_role_arn,
-            aws_settings.events_role_arn)
+    execution_role_arn = coalesce(ecs_settings.execution_role_arn, aws_settings.events_role_arn)
     ecs_settings.execution_role_arn = execution_role_arn
     run_environment.default_aws_ecs_configuration = ecs_settings.model_dump()
     run_environment.save()

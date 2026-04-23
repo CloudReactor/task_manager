@@ -5,6 +5,7 @@ from typing import Any, FrozenSet, TYPE_CHECKING
 import logging
 import enum
 
+from pydantic import BaseModel
 from rest_framework.exceptions import (
     APIException,
     ValidationError
@@ -22,6 +23,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+class ExecutionMethodSettings(BaseModel):
+    pass
 
 class ExecutionMethod:
     @enum.unique

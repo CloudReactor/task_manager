@@ -16,35 +16,21 @@ from ..execution_methods import (
     InfrastructureSettings,
 )
 from .named_with_uuid_model import NamedWithUuidModel
-
-from .aws_ecs_configuration import AwsEcsConfiguration
 from .infrastructure_configuration import InfrastructureConfiguration
 from .subscription import Subscription
 
 if TYPE_CHECKING:
-    from .notification_profile import NotificationProfile
-
+    from ..execution_methods.execution_method import ExecutionMethodSettings
+    from .notification_profile import NotificationProfile    
 
 logger = logging.getLogger(__name__)
 
 
-class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
-        NamedWithUuidModel):
+class RunEnvironment(InfrastructureConfiguration, NamedWithUuidModel):
     class Meta:
         unique_together = (('name', 'created_by_group'),)
 
     aws_settings = models.JSONField(null=True, blank=True)
-
-    # Deprecated
-    aws_account_id = models.CharField(max_length=200, blank=True)
-    aws_default_region = models.CharField(max_length=20, blank=True)
-    aws_access_key = models.CharField(max_length=100, blank=True)
-    aws_secret_key = models.CharField(max_length=100, blank=True)
-    aws_events_role_arn = models.CharField(max_length=100, blank=True)
-    aws_assumed_role_external_id = models.CharField(max_length=1000, blank=True)
-    aws_workflow_starter_lambda_arn = models.CharField(max_length=1000, blank=True)
-    aws_workflow_starter_access_key = models.CharField(max_length=1000, blank=True)
-    # End deprecated
 
     default_aws_ecs_configuration = models.JSONField(null=True, blank=True)
     default_aws_lambda_configuration = models.JSONField(null=True, blank=True)
@@ -60,6 +46,28 @@ class RunEnvironment(InfrastructureConfiguration, AwsEcsConfiguration,
             return None
 
         return AwsSettings.model_validate(self.aws_settings)
+
+
+    def parsed_execution_method_settings(self, method_type: str) -> ExecutionMethodSettings | None:
+        from ..execution_methods.aws_ecs_execution_method import (
+            AwsEcsExecutionMethod, AwsEcsExecutionMethodSettings
+        )
+        from ..execution_methods.aws_lambda_execution_method import (
+            AwsLambdaExecutionMethod, AwsLambdaExecutionMethodSettings
+        )
+
+        if method_type == AwsEcsExecutionMethod.NAME:
+            if not self.default_aws_ecs_configuration:
+                return None
+
+            return AwsEcsExecutionMethodSettings.model_validate(self.default_aws_ecs_configuration)
+        elif method_type == AwsLambdaExecutionMethod.NAME:
+            if not self.default_aws_lambda_configuration:
+                return None
+
+            return AwsLambdaExecutionMethodSettings.model_validate(self.default_aws_lambda_configuration)
+        else:
+            return None
 
 
     def can_schedule_workflow(self) -> bool:

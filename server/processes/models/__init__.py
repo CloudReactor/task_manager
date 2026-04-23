@@ -11,7 +11,6 @@ from .named_with_uuid_and_run_environment_model import NamedWithUuidAndRunEnviro
 from .invitation import Invitation
 from .schedulable import Schedulable
 from .execution import Execution
-from .aws_tagged_entity import AwsTaggedEntity
 from .task import Task
 from .task_link import TaskLink
 from .task_execution import TaskExecution
