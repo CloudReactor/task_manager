@@ -397,7 +397,7 @@ class Workflow(Schedulable):
             'request_method': 'POST',
             'request_headers': {
                 'Authorization': 'Token ' + token,
-                'X-Url-Requester-Access-Key': run_environment.aws_workflow_starter_access_key
+                'X-Url-Requester-Access-Key': aws_workflow_starter_access_key
             },
             'request_body': json.dumps(request_body_dict)
         }

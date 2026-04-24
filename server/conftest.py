@@ -701,7 +701,7 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
         'supported_launch_types': ['FARGATE'],
         'platform_version': '1.4.0',
         'main_container_name': 'hello',
-        'execution_role_arn': run_environment.aws_ecs_default_execution_role,
+        'execution_role_arn': aws_ecs_setup.execution_role_arn,
         'task_role_arn': 'arn:aws:iam::123456789012:role/task'
     }
     body['infrastructure_type'] = 'AWS'
@@ -1128,7 +1128,9 @@ def make_aws_ecs_task_execution_request_body(
 
     if not cluster_arn:
         assert run_environment is not None
-        cluster_arn = run_environment.aws_ecs_default_cluster_arn
+        re_ecs_settings = run_environment.parsed_execution_method_settings(AwsEcsExecutionMethod.NAME)
+        assert re_ecs_settings is not None
+        cluster_arn = re_ecs_settings.cluster_arn
 
     emd["cluster_arn"] = cluster_arn
 

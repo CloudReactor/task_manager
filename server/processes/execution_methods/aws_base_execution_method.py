@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, override
 
 import logging
+from urllib.parse import quote
 
 from ..common.utils import deepmerge
 from .execution_method import ExecutionMethod
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
+
 
 if TYPE_CHECKING:
     from ..models import (
@@ -105,3 +107,24 @@ class AwsBaseExecutionMethod(ExecutionMethod):
 
             self.task_execution.infrastructure_settings = deepmerge(
                     aws_settings_dict, aws_settings.model_dump())
+
+    @override
+    def logs_url(self) -> str | None:
+        if not self.task:
+            return None
+
+        lq = self.task.log_query
+
+        if not lq:
+            return None
+
+        region = self.compute_region()
+
+        if not region:
+            logger.warning("Could not determine AWS region for logs URL")
+            return None
+        
+        limit = 2000
+        
+        return f"https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logs-insights:queryDetail=~(end~0~start~-86400~timeType~'RELATIVE~unit~'seconds~editorString~'fields*20*40timestamp*2c*20*40message*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" + \
+                quote(lq, safe='').replace('%', '*') + '))'

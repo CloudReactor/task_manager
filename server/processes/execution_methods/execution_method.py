@@ -328,3 +328,6 @@ class ExecutionMethod:
             return True
 
         return None
+
+    def logs_url(self) -> str | None:
+        return None

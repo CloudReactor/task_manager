@@ -5,7 +5,6 @@ from typing import Any, Type, TYPE_CHECKING, cast, override
 import copy
 from datetime import datetime
 import logging
-from urllib.parse import quote
 
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -190,24 +189,11 @@ class Task(TaskExecutionConfiguration, Schedulable):
 
     @property
     def logs_url(self) -> str | None:
-        lq = self.log_query
-        if lq:
-            if lq.startswith('http://') or lq.startswith('https://'):
-                return lq
-            else:
-                # Assume Cloudwatch logs
-                run_env = self.run_environment
-                region = 'us-west-2'
-                if run_env:
-                    region = run_env.aws_default_region or region
-
-                limit = 2000
-
-                return f"https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#logs-insights:queryDetail=~(end~0~start~-86400~timeType~'RELATIVE~unit~'seconds~editorString~'fields*20*40timestamp*2c*20*40message*0a*7c*20sort*20*40timestamp*20desc*0a*7c*20limit*20{limit}~isLiveTail~false~source~(~'" + \
-                        quote(lq, safe='').replace('%', '*') + '))'
+        em = self.execution_method()
+        if em:
+            return em.logs_url()
         else:
             return None
-
 
     def purge_history(self, reservation_count: int = 0,
             max_to_purge: int = -1) -> int:
