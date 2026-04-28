@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, FrozenSet, TYPE_CHECKING, cast, override
+from typing import Any, FrozenSet, Literal, TYPE_CHECKING, cast, override
 
 from dataclasses import dataclass
 import logging
@@ -17,15 +17,15 @@ from pydantic import BaseModel
 
 from botocore.exceptions import ClientError
 
-
 from ..common.aws import *
 from ..common.utils import coalesce, deepmerge
+from ..exception.unprocessable_entity import UnprocessableEntity
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsNetworkSettings, AwsSettings
 from .aws_cloudwatch_scheduling_settings import (
     SCHEDULING_TYPE_AWS_CLOUDWATCH,
     AwsCloudwatchSchedulingSettings
 )
-from .aws_base_execution_method import AwsBaseExecutionMethod
+from .aws_base_execution_method import AwsBaseExecutionMethod, Boto3SerializableSettings
 
 if TYPE_CHECKING:
     from ..models import (
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
       TaskExecution
     )
 
-from .execution_method import ExecutionMethod
+from .execution_method import ExecutionMethod, ExecutionMethodSettings
 
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,20 @@ AWS_ECS_PLATFORM_VERSION_LATEST = 'LATEST'
 
 DEFAULT_MAIN_CONTAINER_NAME = 'main'
 
+# Valid ECS launch types
+LAUNCH_TYPE_EC2 = 'EC2'
+LAUNCH_TYPE_FARGATE = 'FARGATE'
+LAUNCH_TYPE_EXTERNAL = 'EXTERNAL'
+ALL_LAUNCH_TYPES = [LAUNCH_TYPE_FARGATE, LAUNCH_TYPE_EC2, LAUNCH_TYPE_EXTERNAL]
+
+PROPAGATE_TAGS_TASK_DEFINITION = 'TASK_DEFINITION'
+PROPAGATE_TAGS_SERVICE = 'SERVICE'
+
+# Type aliases for valid ECS configuration values
+LaunchType = Literal['EC2', 'FARGATE', 'EXTERNAL']
+PropagateTags = Literal['TASK_DEFINITION', 'SERVICE']
+PlatformVersion = Literal['1.4.0', 'LATEST']
+
 
 class ContainerSettings(BaseModel):
     name: str | None = None
@@ -59,33 +73,38 @@ class ContainerSettings(BaseModel):
     container_arn: str | None = None
 
 
-class AwsEcsExecutionMethodSettings(BaseModel):
-    launch_type: str | None = None
-    supported_launch_types: list[str] | None = None
+class CapacityProviderStrategyItem(Boto3SerializableSettings):
+    capacity_provider: str
+    weight: int | None = None
+    base: int | None = None
+
+class AwsEcsCommonSettings(BaseModel):
+    launch_type: LaunchType | None = None
     cluster_arn: str | None = None
     cluster_infrastructure_website_url: str | None = None
     task_definition_arn: str | None = None
     task_definition_infrastructure_website_url: str | None = None
-    infrastructure_website_url: str | None = None
-    main_container_name: str | None = None
-    main_container_cpu_units: int | None = None
-    main_container_memory_mb: int | None = None
-    monitor_container_name: str | None = None
     execution_role_arn: str | None = None
     execution_role_infrastructure_website_url: str | None = None
     task_role_arn: str | None = None
     task_role_infrastructure_website_url: str | None = None
-    platform_version: str | None = None
+    platform_version: PlatformVersion | None = None
+    capacity_provider_strategy: list[CapacityProviderStrategyItem] | None = None
+    task_group: str | None = None    
+    propagate_tags: PropagateTags | None = None
     enable_ecs_managed_tags: bool | None = None
-    propagate_tags: str | None = None
     enable_execute_command: bool | None = None
-    task_group: str | None = None
-    # Might not be sent during deployment, so use main_container_xxx properties
-    containers: list[ContainerSettings] | None = None
+
+    def boto3_capacity_provider_strategy_value(self) -> list[dict[str, Any]] | None:
+        if self.capacity_provider_strategy is None:
+            return None
+        
+        return [cpsi.to_boto3_dict() for cpsi in self.capacity_provider_strategy]
+    
 
     def sanitize(self, aws_settings: AwsSettings | None) -> bool:        
         if aws_settings is None:
-            logger.warning("Can't sanitize AwsEcsExecutionMethodSettings because aws_settings is None")
+            logger.warning("Can't sanitize AwsEcsCommonSettings because aws_settings is None")
             return False
 
         changed = False
@@ -137,6 +156,17 @@ class AwsEcsExecutionMethodSettings(BaseModel):
         self.task_role_infrastructure_website_url = \
             make_aws_console_role_url(self.task_role_arn)
 
+
+class AwsEcsExecutionMethodSettings(ExecutionMethodSettings, AwsEcsCommonSettings):
+    supported_launch_types: list[LaunchType] | None = None
+    main_container_name: str | None = None
+    main_container_cpu_units: int | None = None
+    main_container_memory_mb: int | None = None
+    monitor_container_name: str | None = None
+
+    # Might not be sent during deployment, so use main_container_xxx properties
+    containers: list[ContainerSettings] | None = None
+
 class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
     task_arn: str | None = None
 
@@ -168,17 +198,22 @@ class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
                         + quote(cluster_name) + '/tasks/' \
                         + quote(task_id) + '/details'
 
-
+    
 class AwsEcsServiceDeploymentCircuitBreaker(BaseModel):
     enable: bool | None = None
     rollback_on_failure: bool | None = None
 
 
-class AwsEcsServiceDeploymentConfiguration(BaseModel):
+class AwsEcsServiceDeploymentConfiguration(Boto3SerializableSettings):
     maximum_percent: int | None = None
     minimum_healthy_percent: int | None = None
     deployment_circuit_breaker: AwsEcsServiceDeploymentCircuitBreaker | None = None
-
+    alarms: dict[str, Any] | None = None
+    strategy: str | None = None
+    bake_time_in_minutes: int | None = None
+    lifecycle_hooks: list[dict[str, Any]] | None = None
+    linear_configuration: dict[str, Any] | None = None
+    canary_configuration: dict[str, Any] | None = None
 
 class AwsApplicationLoadBalancer(BaseModel):
     target_group_arn: str | None = None
@@ -186,8 +221,7 @@ class AwsApplicationLoadBalancer(BaseModel):
     container_name: str | None = None
     container_port: int | None = None
 
-    def update_derived_attrs(self, task: 'Task',
-            aws_settings: AwsSettings | None) -> None:
+    def update_derived_attrs(self, task: Task, aws_settings: AwsSettings | None) -> None:
         self.target_group_infrastructure_website_url = None
 
         if self.target_group_arn:
@@ -209,12 +243,16 @@ class AwsApplicationLoadBalancerSettings(BaseModel):
     health_check_grace_period_seconds: int | None = None
     load_balancers: list[AwsApplicationLoadBalancer] | None = None
 
-    def update_derived_attrs(self, task: 'Task',
-            aws_settings: AwsSettings | None) -> None:
+    def update_derived_attrs(self, task: Task, aws_settings: AwsSettings | None) -> None:
         if self.load_balancers:
             for load_balancer in self.load_balancers:
-                load_balancer.update_derived_attrs(task=task,
-                    aws_settings=aws_settings)
+                load_balancer.update_derived_attrs(task=task, aws_settings=aws_settings)
+
+class ServiceRegistry(Boto3SerializableSettings):
+    registry_arn: str | None = None
+    port: int | None = None
+    container_name: str | None = None
+    container_port: int | None = None
 
 @dataclass
 class AwsEcsServiceResponseFragment:
@@ -260,19 +298,20 @@ class AwsEcsServiceResponseFragment:
 class AwsEcsServiceTeardownResult:
     service_info: AwsEcsServiceResponseFragment | None = None
 
-
 class AwsEcsServiceSettings(BaseModel):
     deployment_configuration: AwsEcsServiceDeploymentConfiguration | None = None
     scheduling_strategy: str | None = None
     force_new_deployment: bool | None = None
+    availability_zone_rebalancing: str | None = None
     load_balancer_settings: AwsApplicationLoadBalancerSettings | None = None
-    enable_ecs_managed_tags: bool | None = None
-    propagate_tags: str | None = None
+    service_registries: list[ServiceRegistry] | None = None    
+    service_connect_configuration: dict[str, Any] | None = None
+    volume_configurations: list[dict[str, Any]] | None = None
+    vpc_lattice_configurations: list[dict[str, Any]] | None = None    
     tags: dict[str, str] | None = None
-    service_arn: str | None = None
-    infrastructure_website_url: str | None = None
+    service_arn: str | None = None    
 
-    def update_derived_attrs(self, task: 'Task',
+    def update_derived_attrs(self, task: Task,
             aws_ecs_settings: AwsEcsExecutionMethodSettings,
             aws_settings: AwsSettings | None):
         cluster_name = extract_cluster_name(aws_ecs_settings.cluster_arn)
@@ -349,10 +388,7 @@ class AwsEcsServiceSettings(BaseModel):
 
 class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     NAME = 'AWS ECS'
-
-    LAUNCH_TYPE_EC2 = 'EC2'
-    LAUNCH_TYPE_FARGATE = 'FARGATE'
-    ALL_LAUNCH_TYPES = [LAUNCH_TYPE_FARGATE, LAUNCH_TYPE_EC2]
+    
     DEFAULT_LAUNCH_TYPE = LAUNCH_TYPE_FARGATE
     DEFAULT_CPU_UNITS = 256
     DEFAULT_MEMORY_MB = 512
@@ -392,8 +428,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
 
     def __init__(self,
-            task: 'Task' | None = None,
-            task_execution: 'TaskExecution' | None = None,
+            task: Task | None = None,
+            task_execution: TaskExecution | None = None,
             aws_settings: dict[str, Any] | None = None,
             aws_ecs_settings: dict[str, Any] | None = None) -> None:
         super().__init__(self.NAME, task=task, task_execution=task_execution,
@@ -426,8 +462,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
 
     @staticmethod
-    def merge_aws_ecs_settings_dict(task: 'Task' | None,
-            task_execution: 'TaskExecution' | None) -> dict[str, Any]:
+    def merge_aws_ecs_settings_dict(task: Task | None,
+            task_execution: TaskExecution | None) -> dict[str, Any]:
 
         settings_to_merge: list[dict[str, Any]] = [ {} ]
 
@@ -591,8 +627,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         aws_event_target_rule_name = f"CR_{task.uuid}"
         aws_event_target_id = f"CR_{task.uuid}"
-        platform_version = self.settings.platform_version or \
-                AWS_ECS_PLATFORM_VERSION_LATEST
+        platform_version = self.settings.platform_version or AWS_ECS_PLATFORM_VERSION_LATEST
 
         task_network = self.aws_settings.network
 
@@ -601,6 +636,40 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         assign_public_ip = self.assign_public_ip_str()
 
+
+        ecs_parameters ={
+            'TaskDefinitionArn': self.settings.task_definition_arn,
+            'TaskCount': task.scheduled_instance_count or 1,            
+            # Only for tasks that use awsvpc networking
+            'NetworkConfiguration': {
+                'awsvpcConfiguration': {
+                    'Subnets': task_network.subnets,
+                    'SecurityGroups': task_network.security_groups,
+                    'AssignPublicIp': assign_public_ip
+                }
+            },
+            'PlatformVersion': platform_version,
+        }
+
+        task_group = self.settings.task_group
+
+        if task_group:
+            ecs_parameters['Group'] = task_group
+
+        if self.settings.capacity_provider_strategy:
+            ecs_parameters['CapacityProviderStrategy'] = self.settings.boto3_capacity_provider_strategy_value()
+        else:            
+            ecs_parameters['LaunchType'] = self.settings.launch_type or self.DEFAULT_LAUNCH_TYPE
+
+        if self.settings.enable_execute_command is not None:
+            ecs_parameters['EnableExecuteCommand'] = self.settings.enable_execute_command
+
+        if self.settings.propagate_tags:
+            ecs_parameters['PropagateTags'] = self.settings.propagate_tags
+
+        if self.settings.enable_ecs_managed_tags is not None:
+            ecs_parameters['EnableECSManagedTags'] = self.settings.enable_ecs_managed_tags
+
         response = client.put_targets(
             Rule=aws_event_target_rule_name,
             Targets=[
@@ -608,21 +677,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     'Id': aws_event_target_id,
                     'Arn': self.settings.cluster_arn,
                     'RoleArn': self.aws_settings.events_role_arn,
-                    'EcsParameters': {
-                        'TaskDefinitionArn': self.settings.task_definition_arn,
-                        'TaskCount': task.scheduled_instance_count or 1,
-                        'LaunchType': self.settings.launch_type or self.DEFAULT_LAUNCH_TYPE,
-                        # Only for tasks that use awsvpc networking
-                        'NetworkConfiguration': {
-                            'awsvpcConfiguration': {
-                                'Subnets': task_network.subnets,
-                                'SecurityGroups': task_network.security_groups,
-                                'AssignPublicIp': assign_public_ip
-                            }
-                        },
-                        'PlatformVersion': platform_version,
-                        #'Group': 'string'
-                    },
+                    'EcsParameters': ecs_parameters,
                 },
             ]
         )
@@ -836,14 +891,25 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             #             (old_lbs.health_check_grace_period_seconds != lbs.health_check_grace_period_seconds):
             #         return (True, True)
             # elif old_lbs:
-            #     return (True, True)
+            #     return (True, True)            
 
             # recreate is False from here down
-
-            if (old_task.service_instance_count != task.service_instance_count) or \
-                    (old_settings.task_definition_arn != self.settings.task_definition_arn) or \
-                    (old_aws_ecs_execution_method.compute_tags() != self.compute_tags()):
+        
+            if old_task.service_instance_count != task.service_instance_count:
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} Task settings changed, update required, but not recreate (1)")
+                return (True, False)
+
+            if (old_settings.task_definition_arn != self.settings.task_definition_arn) or \
+                (old_settings.platform_version != self.settings.platform_version) or \
+                (old_settings.capacity_provider_strategy != self.settings.capacity_provider_strategy) or \
+                (old_settings.enable_execute_command != self.settings.enable_execute_command) or \
+                (old_settings.enable_ecs_managed_tags != self.settings.enable_ecs_managed_tags) or \
+                (old_settings.propagate_tags != self.settings.propagate_tags):                
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} ECS settings changed, update required, but not recreate (3)")
+                return (True, False)
+
+            if (old_aws_ecs_execution_method.compute_tags() != self.compute_tags()):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} tags changed, update required but not recreate")
                 return (True, False)
 
             network = self.aws_settings.network
@@ -860,17 +926,20 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 return (True, False)
 
             if ss:
-                if (old_ss.enable_ecs_managed_tags != ss.enable_ecs_managed_tags) or \
-                    (old_ss.propagate_tags != ss.propagate_tags):
-                    logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} service settings changed, update required, but not recreate (3)")
-                    return (True, False)
-
                 dc = ss.deployment_configuration
                 old_dc = old_ss.deployment_configuration
 
                 if dc and (dc != old_dc):
                     logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {dc=} != {old_dc=}, requires update but no recreate (2)")
                     return (True, False)
+                
+                sr = ss.service_registries
+                old_sr = old_ss.service_registries
+
+                if (sr or []) != (old_sr or []):
+                    logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {sr=} != {old_sr=}, requires update but no recreate (3)")
+                    return (True, False)
+
         except Exception:
             logger.warning(f"Can't parse old Task service settings: {task.uuid=} {old_ss}", exc_info=True)
             return (True, True)
@@ -1001,12 +1070,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 'type': 'ECS'
             }
 
-            if ss.enable_ecs_managed_tags is not None:
-                args['enableECSManagedTags'] = ss.enable_ecs_managed_tags
-
-            if ss.propagate_tags:
-                args['propagateTags'] = ss.propagate_tags
-
             response = ecs_client.create_service(**args)
 
         service_info = AwsEcsServiceResponseFragment.from_boto_service_response_fragment(
@@ -1100,8 +1163,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if task_execution.process_max_retries is None:
             task_execution.process_max_retries = task.default_max_retries
 
-        args = self.add_creation_args(self.make_common_args(
-                include_launch_type=True))
+        args = self.add_creation_args(self.make_common_args(include_launch_type=True))
 
         if self.settings.task_group:
             args['group'] = self.settings.task_group
@@ -1409,12 +1471,14 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             'platformVersion': platform_version,
         }
 
-        if include_launch_type:
+        if self.settings.capacity_provider_strategy:
+            args['capacityProviderStrategy'] = self.settings.boto3_capacity_provider_strategy_value()
+        elif include_launch_type:
             launch_type = self.settings.launch_type or self.DEFAULT_LAUNCH_TYPE
 
             if (self.settings.supported_launch_types is not None) and \
-                (launch_type not in self.settings.supported_launch_types):
-                raise APIException(f"Launch type '{launch_type}' is not supported")
+                 (launch_type not in self.settings.supported_launch_types):
+                raise UnprocessableEntity(detail=f"Launch type '{launch_type}' is not supported")
 
             args['launchType'] = launch_type
 
@@ -1422,6 +1486,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
 
     def make_common_service_args(self, include_launch_type: bool=True) -> dict[str, Any]:
+        ecs_settings = self.settings
         ss = self.service_settings
 
         if not ss:
@@ -1435,21 +1500,29 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         args = self.make_common_args(include_launch_type=include_launch_type)
         args['desiredCount'] = task.service_instance_count
 
-        managed_tags = ss.enable_ecs_managed_tags
+        managed_tags = ecs_settings.enable_ecs_managed_tags
         if managed_tags is not None:
             args['enableECSManagedTags'] = managed_tags
+
+        propagate_tags = ecs_settings.propagate_tags
+        if propagate_tags:
+            args['propagateTags'] = propagate_tags
 
         dc = ss.deployment_configuration or AwsEcsServiceDeploymentConfiguration()
         dcb = dc.deployment_circuit_breaker or AwsEcsServiceDeploymentCircuitBreaker()
 
-        args['deploymentConfiguration'] = {
+        dc_arg = dc.to_boto3_dict()
+
+        dc_arg.update({        
             'maximumPercent': coalesce(dc.maximum_percent, 200),
             'minimumHealthyPercent': coalesce(dc.minimum_healthy_percent, 100),
             'deploymentCircuitBreaker': {
                 'enable': coalesce(dcb.enable, False),
                 'rollback': coalesce(dcb.rollback_on_failure, False),
             }
-        }
+        })
+
+        args['deploymentConfiguration'] = dc_arg
 
         load_balancer_settings = ss.load_balancer_settings
 
@@ -1470,6 +1543,19 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     load_balancer_settings.health_check_grace_period_seconds or \
                     self.DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
 
+        service_registries = ss.service_registries
+        if service_registries is not None:
+            args['serviceRegistries'] = [sr.to_boto3_dict() for sr in service_registries]
+
+        if ss.service_connect_configuration is not None:
+            args['serviceConnectConfiguration'] = ss.service_connect_configuration.to_boto3_dict()
+
+        if ss.volume_configurations is not None:
+            args['volumes'] = ss.volume_configurations
+
+        if ss.vpc_lattice_configurations is not None:
+            args['vpcLatticeConfigurations'] = ss.vpc_lattice_configurations
+
         return args
 
     def add_creation_args(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -1479,16 +1565,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             args['tags']  = [
                 { 'key': k, 'value': v } for k, v in tags.items() if v
             ][0:self.MAX_TAG_COUNT]
-
-        # TODO:
-        # serviceRegistries=[
-        #     {
-        #         'registryArn': 'string',
-        #         'port': 123,
-        #         'containerName': 'string',
-        #         'containerPort': 123
-        #     },
-        # ],
 
         return args
 

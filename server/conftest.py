@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, NamedTuple, Tuple, TYPE_CHECKING, cast
+from typing import Any, Mapping, NamedTuple, Tuple, cast
 
 from collections import abc
 from datetime import datetime
@@ -32,10 +32,11 @@ from processes.common.utils import coalesce
 from processes.execution_methods import *
 from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS, Vpc
 from processes.execution_methods.aws_cloudwatch_scheduling_settings import (
-    SCHEDULING_TYPE_AWS_CLOUDWATCH, 
-    AwsCloudwatchSchedulingSettings
+    SCHEDULING_TYPE_AWS_CLOUDWATCH, AwsCloudwatchSchedulingSettings
 )
-from processes.execution_methods.aws_ecs_execution_method import AwsEcsExecutionMethod, AwsEcsExecutionMethodInfo
+from processes.execution_methods.aws_ecs_execution_method import (
+    AwsEcsExecutionMethod, LAUNCH_TYPE_FARGATE
+)
 from processes.models import *
 from processes.serializers import *
 
@@ -614,8 +615,8 @@ class AwsEcsSetup(NamedTuple):
         return AwsEcsExecutionMethodSettings(
             task_definition_arn=self.task_definition_arn,
             cluster_arn=self.cluster_arn,
-            launch_type='FARGATE',
-            supported_launch_types=['FARGATE'],
+            launch_type=LAUNCH_TYPE_FARGATE,
+            supported_launch_types=[LAUNCH_TYPE_FARGATE],
             execution_role_arn=self.execution_role_arn,
             platform_version='1.4.0',
             main_container_name=self.task_definition['containerDefinitions'][0]['name'],
@@ -697,12 +698,14 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
     body['execution_method_type'] = 'AWS ECS'
     body['execution_method_capability_details'] = {
         'task_definition_arn': task_definition_arn,
-        'launch_type': 'FARGATE',
-        'supported_launch_types': ['FARGATE'],
+        'launch_type': LAUNCH_TYPE_FARGATE,
+        'supported_launch_types': [LAUNCH_TYPE_FARGATE],
         'platform_version': '1.4.0',
         'main_container_name': 'hello',
         'execution_role_arn': aws_ecs_setup.execution_role_arn,
-        'task_role_arn': 'arn:aws:iam::123456789012:role/task'
+        'task_role_arn': 'arn:aws:iam::123456789012:role/task',
+        'enable_ecs_managed_tags': True,
+        'propagate_tags': 'SERVICE',        
     }
     body['infrastructure_type'] = 'AWS'
     body['infrastructure_settings'] = {
@@ -747,8 +750,6 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
                 ],
                 'health_check_grace_period_seconds': 60,
             },
-            'enable_ecs_managed_tags': True,
-            'propagate_tags': 'SERVICE',
             'tags': {
                 'TagC': 'C',
                 'TagD': 'D'

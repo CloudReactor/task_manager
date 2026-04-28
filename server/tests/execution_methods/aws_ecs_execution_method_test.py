@@ -5,15 +5,13 @@ from moto import mock_aws
 from conftest import setup_aws, setup_aws_ecs, validate_aws_ecs_task_settings
 
 from processes.execution_methods.aws_cloudwatch_scheduling_settings import (
-    SCHEDULING_TYPE_AWS_CLOUDWATCH,
-    AwsCloudwatchSchedulingSettings
+    SCHEDULING_TYPE_AWS_CLOUDWATCH, AwsCloudwatchSchedulingSettings
 )
 from processes.execution_methods.aws_ecs_execution_method import (
     AwsEcsExecutionMethod,
     AwsEcsServiceSettings,
     SERVICE_PROVIDER_AWS_ECS,
 )
-from processes.models import Task
 
 
 @pytest.mark.django_db

@@ -5,6 +5,10 @@ from typing import Any, TYPE_CHECKING, override
 import logging
 from urllib.parse import quote
 
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
+
+
 from ..common.utils import deepmerge
 from .execution_method import ExecutionMethod
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
@@ -18,6 +22,17 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+# Has model_config suitable for use in boto3
+class Boto3SerializableSettings(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True
+    )
+
+    def to_boto3_dict(self) -> dict[str, Any]:
+        return self.model_dump(mode='json', by_alias=True, exclude_unset=True, exclude_none=True)
 
 
 class AwsBaseExecutionMethod(ExecutionMethod):

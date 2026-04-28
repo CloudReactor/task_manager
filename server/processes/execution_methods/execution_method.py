@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 class ExecutionMethodSettings(BaseModel):
-    pass
+    infrastructure_website_url: str | None = None
 
 class ExecutionMethod:
     @enum.unique

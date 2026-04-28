@@ -9,19 +9,15 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from ..exception.unprocessable_entity import UnprocessableEntity
-from ..execution_methods import (
-    AwsSettings,
-    AwsEcsExecutionMethodSettings,
-    AwsLambdaExecutionMethodSettings,
-    InfrastructureSettings,
-)
 from .named_with_uuid_model import NamedWithUuidModel
 from .infrastructure_configuration import InfrastructureConfiguration
 from .subscription import Subscription
 
 if TYPE_CHECKING:
+    from ..execution_methods.infrastructure_settings import InfrastructureSettings
+    from ..execution_methods.aws_settings import AwsSettings
     from ..execution_methods.execution_method import ExecutionMethodSettings
-    from .notification_profile import NotificationProfile    
+    from .notification_profile import NotificationProfile
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +38,8 @@ class RunEnvironment(InfrastructureConfiguration, NamedWithUuidModel):
         return self.parsed_aws_settings()
 
     def parsed_aws_settings(self) -> AwsSettings | None:
+        from ..execution_methods.aws_settings import AwsSettings
+
         if not self.aws_settings:
             return None
 
@@ -75,6 +73,13 @@ class RunEnvironment(InfrastructureConfiguration, NamedWithUuidModel):
         return (infra_settings is not None) and infra_settings.can_schedule_workflow()
 
     def enrich_settings(self) -> None:
+        from ..execution_methods.aws_ecs_execution_method import (
+            AwsEcsExecutionMethodSettings
+        )
+        from ..execution_methods.aws_lambda_execution_method import (
+            AwsLambdaExecutionMethodSettings
+        )
+
         aws_settings = self.parsed_aws_settings()
         if aws_settings:
             aws_settings.update_derived_attrs()

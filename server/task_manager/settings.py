@@ -426,8 +426,8 @@ SPECTACULAR_SETTINGS = {
     # postprocess.
     'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
     'ENUM_NAME_OVERRIDES': {
-        # Duplicated from AwsEcsExecutionMethod.ALL_LAUNCH_TYPES
-        'AwsEcsLaunchType': ['FARGATE', 'EC2',],
+        # Duplicated from aws_ecs_execution_method.ALL_LAUNCH_TYPES
+        'AwsEcsLaunchType': ['FARGATE', 'EC2', 'EXTERNAL'],
         # Duplicated from NOTIFICATION_SEVERITIES in notification.py
         'NotificationSeverity': ['critical', 'error', 'warning', 'info'],
     },

@@ -17,6 +17,7 @@ from ..common.aws import *
 from ..common.utils import deepmerge, lookup_string, lookup_int, lookup_bool, to_camel
 from .aws_base_execution_method import AwsBaseExecutionMethod
 from .aws_settings import *
+from .execution_method import ExecutionMethodSettings
 
 if TYPE_CHECKING:
     from .execution_method import ExecutionMethod
@@ -35,17 +36,18 @@ class AwsCodeBuildCache(BaseModel):
 
 
 class AwsCodeBuildArtifact(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    
     location: str | None = None
     sha256_sum: str | None = None
     md5_sum: str | None = None
     override_artifact_name: str | None = None
     encryption_disabled: bool | None = None
     artifact_identifier: str | None = None
-    bucket_owner_access: str | None = None
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    bucket_owner_access: str | None = None    
 
 
-class AwsCodeBuildExecutionMethodSettings(BaseModel):
+class AwsCodeBuildExecutionMethodSettings(ExecutionMethodSettings):
     build_arn: str | None = None
     build_image: str | None = None
     initiator: str | None = None
@@ -68,8 +70,6 @@ class AwsCodeBuildExecutionMethodSettings(BaseModel):
     debug_session_enabled: bool | None = None
     assumed_role_arn: str | None = None
     assumed_role_infrastructure_website_url: str | None = None
-
-    infrastructure_website_url: str | None = None
     project_name: str | None = None
 
 

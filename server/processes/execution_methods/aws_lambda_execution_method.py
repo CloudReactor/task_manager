@@ -15,7 +15,7 @@ from botocore.exceptions import ClientError
 
 from ..common.aws import *
 from ..common.utils import deepmerge
-from .execution_method import ExecutionMethod
+from .execution_method import ExecutionMethod, ExecutionMethodSettings
 from .aws_base_execution_method import AwsBaseExecutionMethod
 from .aws_settings import *
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AwsLambdaExecutionMethodSettings(BaseModel):
+class AwsLambdaExecutionMethodSettings(ExecutionMethodSettings):
     runtime_id: str | None = None
     function_arn: str | None = None
     function_name: str | None = None
@@ -37,7 +37,6 @@ class AwsLambdaExecutionMethodSettings(BaseModel):
     init_type: str | None = None
     dotnet_prejit: str | None = None
     function_memory_mb: int | None = None
-    infrastructure_website_url: str | None = None
 
     def update_derived_attrs(self, aws_settings: AwsSettings | None = None,
             execution_method: ExecutionMethod | None = None) -> None:
@@ -75,9 +74,8 @@ class AwsLambdaExecutionMethodInfo(AwsLambdaExecutionMethodSettings):
     client_context: AwsClientContext | None = None
 
     @staticmethod
-    def from_capability(
-        capability: AwsLambdaExecutionMethodSettings) \
-        -> 'AwsLambdaExecutionMethodInfo':
+    def from_capability(capability: AwsLambdaExecutionMethodSettings) \
+            -> AwsLambdaExecutionMethodInfo:
         settings = AwsLambdaExecutionMethodInfo()
         settings.runtime_id = capability.runtime_id
         settings.function_arn = capability.function_arn

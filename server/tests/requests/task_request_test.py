@@ -15,8 +15,7 @@ from processes.execution_methods import (
 )
 
 from processes.execution_methods.aws_cloudwatch_scheduling_settings import (
-    SCHEDULING_TYPE_AWS_CLOUDWATCH,
-    AwsCloudwatchSchedulingSettings
+    SCHEDULING_TYPE_AWS_CLOUDWATCH
 )
 
 from processes.models import (
