@@ -168,8 +168,22 @@ export const stringToNullOrInt = (s: string): number | null => {
 }
 
 export const catchableToString = (ex: any): string => {
-  return (ex instanceof Error) ? ex.message :
-    ((typeof ex === 'string') ? ex : 'Unknown error');
+  // Check for API error response with detail field (Axios error)
+  if (ex?.response?.data?.detail) {
+    return ex.response.data.detail;
+  }
+  
+  // Fallback to error message
+  if (ex instanceof Error) {
+    return ex.message;
+  }
+  
+  // Fallback to string if it's already a string
+  if (typeof ex === 'string') {
+    return ex;
+  }
+  
+  return 'Unknown error';
 }
 
 export function makeLink(value?: string | null, url?: string | null, forceExternal?: boolean): any {
