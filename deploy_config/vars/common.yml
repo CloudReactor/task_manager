@@ -484,12 +484,19 @@ project_task_name_to_config:
   web:
     description: "Web Server"
     command: "{{ 'gunicorn task_manager.wsgi --bind 0.0.0.0:8000 --workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir /dev/shm' if resolved_cloudreactor.enabled else './migrate_and_runserver.sh' }}"
-    service_instance_count: 1
+    service_instance_count: 2
     min_service_instance_count: 1
     max_concurrency: null
     ecs:
       cpu_units: 1024
       memory_mb: 2048
+      capacity_provider_strategy:
+        - capacity_provider: FARGATE
+          weight: 1
+          base: 1
+        - capacity_provider: FARGATE_SPOT
+          weight: 3
+          base: 0
       extra_main_container_properties:
         portMappings:
           - containerPort: 8000
@@ -534,3 +541,8 @@ project_task_name_to_config:
     wrapper:
       process_timeout_seconds: 600
       enable_status_update_listener: true
+    ecs:
+      capacity_provider_strategy:
+        - capacity_provider: FARGATE_SPOT
+          weight: 1
+          base: 1
