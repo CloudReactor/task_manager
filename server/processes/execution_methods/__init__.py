@@ -22,8 +22,7 @@ from .aws_ecs_execution_method import (
     AwsEcsServiceSettings,
     AwsEcsServiceDeploymentCircuitBreaker,
     AwsEcsServiceDeploymentConfiguration,
-    AwsApplicationLoadBalancer,
-    AwsApplicationLoadBalancerSettings
+    AwsApplicationLoadBalancer
 )
 
 from .aws_lambda_execution_method import (

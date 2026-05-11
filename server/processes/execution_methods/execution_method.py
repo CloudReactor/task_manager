@@ -140,6 +140,7 @@ class ExecutionMethod:
     def should_update_or_force_recreate_service(self,
             old_execution_method: ExecutionMethod | None=None) \
             -> tuple[bool, bool]:
+        """Returns a tuple of (should_update, should_force_create)"""
         return (False, False)
 
     def setup_service(self,

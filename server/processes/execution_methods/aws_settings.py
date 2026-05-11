@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import os
 from urllib.parse import quote
@@ -9,6 +9,8 @@ import uuid
 import boto3
 
 from pydantic import BaseModel
+
+from ..common.constants import UNSET_VALUE
 
 from ..common.aws import *
 from ..exception import UnprocessableEntity
@@ -68,7 +70,7 @@ class AwsNetworkSettings(BaseModel):
     selected_subnet: str | None = None
     selected_subnet_infrastructure_website_url: str | None = None
 
-    def update_derived_attrs(self, aws_settings: 'AwsSettings',
+    def update_derived_attrs(self, aws_settings: AwsSettings,
           execution_method: ExecutionMethod | None = None) -> None:
         region = self.compute_region(aws_settings=aws_settings,
             execution_method=execution_method)
@@ -92,7 +94,7 @@ class AwsNetworkSettings(BaseModel):
             self.security_group_infrastructure_website_urls = None
 
 
-    def compute_region(self, aws_settings: 'AwsSettings',
+    def compute_region(self, aws_settings: AwsSettings,
             execution_method: ExecutionMethod | None = None) -> str | None:
         region = self.region or aws_settings.region
 
@@ -114,7 +116,7 @@ class AwsLogOptions(BaseModel):
     max_buffer_size: str | None = None
     stream_infrastructure_website_url: str | None = None
 
-    def update_derived_attrs(self, aws_settings: 'AwsSettings',
+    def update_derived_attrs(self, aws_settings: AwsSettings,
             execution_method: ExecutionMethod | None = None) -> None:
         self.stream_infrastructure_website_url = None
 
@@ -129,7 +131,7 @@ class AwsLogOptions(BaseModel):
                     + aws_encode(self.group) + '/log-events/' \
                     + aws_encode(self.stream)
 
-    def compute_region(self, aws_settings: 'AwsSettings',
+    def compute_region(self, aws_settings: AwsSettings,
             execution_method: ExecutionMethod | None = None) -> str | None:
         region = self.region or aws_settings.region
 
@@ -144,7 +146,7 @@ class AwsLoggingSettings(BaseModel):
     options: AwsLogOptions | None = None
     infrastructure_website_url: str | None = None
 
-    def update_derived_attrs(self, aws_settings: 'AwsSettings',
+    def update_derived_attrs(self, aws_settings: AwsSettings,
             execution_method: ExecutionMethod | None) -> None:
         self.infrastructure_website_url = None
 
@@ -168,7 +170,7 @@ class AwsLoggingSettings(BaseModel):
             options.update_derived_attrs(aws_settings=aws_settings)
 
 
-    def compute_region(self, aws_settings: 'AwsSettings',
+    def compute_region(self, aws_settings: AwsSettings,
             execution_method: ExecutionMethod | None = None) -> str | None:
         region: str | None = None
         options = self.options
@@ -188,6 +190,20 @@ class AwsLoggingSettings(BaseModel):
 class AwsXraySettings(BaseModel):
     trace_id: str | None = None
     context_missing: str | None = None
+
+class AwsTagKeyValuePair(BaseModel):
+    key: str
+    value: str
+
+    @staticmethod
+    def dict_to_pair_list(d: dict[str, Any]) -> list[AwsTagKeyValuePair]:
+        return [AwsTagKeyValuePair(key=k, value=v) for k, v in d.items() \
+                if k and v and (v != UNSET_VALUE)]
+        
+    @staticmethod
+    def pair_list_to_dict(pairs: list[AwsTagKeyValuePair]) -> dict[str, Any]:
+        return { pair.key: pair.value for pair in pairs \
+                if pair.key and pair.value and (pair.value != UNSET_VALUE) }
 
 
 PROTECTED_AWS_SETTINGS_PROPERTIES = [

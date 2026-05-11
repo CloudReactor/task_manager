@@ -24,7 +24,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from pytest_assert_utils import *
 
-from processes.common.aws import extract_cluster_name
 from processes.common.request_helpers import (
     context_with_request, make_fake_request
 )
@@ -35,7 +34,7 @@ from processes.execution_methods.aws_cloudwatch_scheduling_settings import (
     SCHEDULING_TYPE_AWS_CLOUDWATCH, AwsCloudwatchSchedulingSettings
 )
 from processes.execution_methods.aws_ecs_execution_method import (
-    AwsEcsExecutionMethod, LAUNCH_TYPE_FARGATE
+    AwsEcsExecutionMethod, LAUNCH_TYPE_FARGATE, extract_ecs_cluster_name
 )
 from processes.models import *
 from processes.serializers import *
@@ -636,8 +635,8 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
 
     ecs_client = aws_settings.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
-            clusterName=extract_cluster_name(ecs_settings.cluster_arn))
-
+            clusterName=extract_ecs_cluster_name(ecs_settings.cluster_arn))
+    
     task_def_response = ecs_client.register_task_definition(family='nginx',
         executionRoleArn=ecs_settings.execution_role_arn,
         networkMode='awsvpc',
@@ -738,24 +737,22 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
                 'maximum_percent': 200,
                 'deployment_circuit_breaker': {
                     'enable': True,
-                    'rollback_on_failure': False
+                    'rollback': False
                 }
             },
             'force_new_deployment': True,
-            'load_balancer_settings': {
-                'load_balancers': [
-                    {
-                        'target_group_arn': 'arn:aws:elasticloadbalancing:us-west-1:123456789012:targetgroup/example-web/hello',
-                        'container_name': 'hello',
-                        'container_port': 8080
-                    }
-                ],
-                'health_check_grace_period_seconds': 60,
-            },
-            'tags': {
-                'TagC': 'C',
-                'TagD': 'D'
-            }
+            'health_check_grace_period_seconds': 60,
+            'load_balancers': [
+                {
+                    'target_group_arn': 'arn:aws:elasticloadbalancing:us-west-1:123456789012:targetgroup/example-web/hello',
+                    'container_name': 'hello',
+                    'container_port': 8080
+                }
+            ],
+            'tags': [
+                {'key': 'TagC', 'value': 'C'},
+                {'key': 'TagD', 'value': 'D'}
+            ]
         }
 
     if schedule:

@@ -123,10 +123,13 @@ def make_aws_console_s3_object_url(object_arn: str) -> str | None:
 
     return None
 
-def make_aws_console_kms_key_url(key_id: str, region: str | None = None) -> str | None:
+def make_aws_console_kms_key_url(key_id: str | None, region: str | None = None) -> str | None:
     # Example key ID: xyz-deadbeefdeadbeefdeadbeefdeadbeef
     # Example output URL: https://us-west-1.console.aws.amazon.com/kms/home?region=us-west-1#/kms/keys/xyz-deadbeefdeadbeefdeadbeefdeadbeef
 
+    if not key_id:
+        return None
+    
     resolved_key_id = key_id
 
     m = KMS_ARN_REGEX.match(key_id)
@@ -154,101 +157,32 @@ def make_aws_console_kms_key_url(key_id: str, region: str | None = None) -> str 
         make_region_parameter(region) + '#/kms/keys/' + aws_encode(resolved_key_id)
 
 
-def extract_cluster_name(ecs_cluster_arn: str | None) -> str | None:
-    if not ecs_cluster_arn:
+def make_aws_console_target_group_url(target_group_arn: str | None) -> str | None:    
+    if not target_group_arn:
         return None
+
+    # Target group ARN format:
+    # arn:aws:elasticloadbalancing:[region]:[aws_account_id]:targetgroup/[target_group_name]/[id]
 
     try:
-        last_slash_index = ecs_cluster_arn.rfind('/')
-        return ecs_cluster_arn[last_slash_index+1:]
-    except Exception:
-        logger.error(f'Failed to compute cluster name for ARN {ecs_cluster_arn}',
-                exc_info=True)
-        return None
-
-
-def make_aws_console_ecs_cluster_url(ecs_cluster_arn: str | None) -> str | None:
-    if not ecs_cluster_arn:
-        return None
-
-    cluster_name = extract_cluster_name(ecs_cluster_arn)
-
-    if not cluster_name:
-        logger.error(f'Failed to compute AWS console URL for ARN {ecs_cluster_arn}: no cluster name',
-                exc_info=True)
-        return None
-
-    try:
-        parts = ecs_cluster_arn.split(':')
-        region = parts[3]
-        return make_regioned_aws_console_base_url(region) + ECS_HOME_PATH + \
-                '?' + make_region_parameter(region) + '#/clusters/' + quote(cluster_name) + \
-                '/tasks'
-    except Exception:
-        logger.error(f'Failed to compute AWS console URL for ARN {ecs_cluster_arn}',
-                exc_info=True)
-
-    return None
-
-def make_aws_console_ecs_task_definition_url(task_definition_arn: str | None) -> str | None:
-    if not task_definition_arn:
-        return None
-
-    try:
-        parts = task_definition_arn.split(':')
-        region = parts[3]
-        version_number = parts[-1]
-        middle = parts[-2]
-        slash_index = middle.index('/')
-        task_name = middle[slash_index+1:]
-
-        return make_regioned_aws_console_base_url(region) + ECS_HOME_PATH + \
-                '?' + make_region_parameter(region) + '#/taskDefinitions/' + quote(task_name) + \
-                '/' + version_number
-    except Exception:
-        logger.error(f'Failed to compute AWS console URL for ARN {task_definition_arn}',
-                exc_info=True)
-
-    return None
-
-def make_aws_console_ecs_service_url(ecs_service_arn: str | None,
-        cluster_name: str | None = None):
-    if not ecs_service_arn:
-        return None
-
-    # ECS Service ARN has old format:
-    # arn:aws:ecs:[region]:[aws_account_id]:service/[service_name]
-
-    # ECS Service ARN has new format:
-    # arn:aws:ecs:[region]:[aws_account_id]:service/[cluster_name]/[service_name]
-
-    # AWS Console URL has format:
-    # https://us-east-2.console.aws.amazon.com/ecs/home?region=us-east-2#/clusters/[cluster_name]/services/[service_name]/details
-
-    try:
-        parts = ecs_service_arn.split(':')
+        parts = target_group_arn.split(':')
         region = parts[3]
         last_part = parts[5]
 
         last_part_parts = last_part.split('/')
-        if len(last_part_parts) < 3:
-            if not cluster_name:
-                logger.warning('Service ARN is old format and no cluster name given, returning None')
-                return None
-            service_name = last_part_parts[1]
-        else:
-            cluster_name = last_part_parts[1]
-            service_name = last_part_parts[2]
+        if len(last_part_parts) != 3 or last_part_parts[0] != 'targetgroup':
+            logger.warning(f"Target Group ARN {target_group_arn=} is not the expected format")
+            return None
 
-        return make_regioned_aws_console_base_url(region) + ECS_HOME_PATH \
-                + '?' + make_region_parameter(region) + '#/clusters/' \
-                + quote(cluster_name) + '/services/' \
-                + quote(service_name) + '/details'
+        return make_regioned_aws_console_base_url(region) + 'ec2/v2/home?' + \
+                make_region_parameter(region) + '#TargetGroup:targetGroupArn=' + \
+                quote(target_group_arn)
     except Exception:
-        logger.error(f'Failed to compute AWS console URL for ECS Service ARN {ecs_service_arn}',
+        logger.warning(f'Failed to compute AWS console URL for Target Group ARN {target_group_arn}',
                 exc_info=True)
 
     return None
+
 
 def make_aws_console_lambda_function_url(
         function_arn: str | None) -> str | None:

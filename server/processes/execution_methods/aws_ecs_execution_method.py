@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, FrozenSet, Literal, TYPE_CHECKING, cast, override
 
-from dataclasses import dataclass
+from dataclasses import Field, dataclass
 import logging
 import random
 import re
@@ -13,19 +13,19 @@ from django.utils import timezone
 
 from rest_framework.exceptions import APIException
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from botocore.exceptions import ClientError
 
 from ..common.aws import *
 from ..common.utils import coalesce, deepmerge
 from ..exception.unprocessable_entity import UnprocessableEntity
-from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsNetworkSettings, AwsSettings
+from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsNetworkSettings, AwsSettings, AwsTagKeyValuePair
 from .aws_cloudwatch_scheduling_settings import (
     SCHEDULING_TYPE_AWS_CLOUDWATCH,
     AwsCloudwatchSchedulingSettings
 )
-from .aws_base_execution_method import AwsBaseExecutionMethod, Boto3SerializableSettings
+from .aws_base_execution_method import AwsBaseExecutionMethod, AwsSubSettingsWithRole, Boto3SerializableSettings
 
 if TYPE_CHECKING:
     from ..models import (
@@ -40,7 +40,6 @@ logger = logging.getLogger(__name__)
 
 
 SERVICE_PROVIDER_AWS_ECS = 'AWS ECS'
-
 
 AWS_ECS_PLATFORM_VERSION_DEFAULT = '1.4.0'
 AWS_ECS_PLATFORM_VERSION_LATEST = 'LATEST'
@@ -57,11 +56,119 @@ ALL_LAUNCH_TYPES = [LAUNCH_TYPE_FARGATE, LAUNCH_TYPE_EC2, LAUNCH_TYPE_EXTERNAL]
 PROPAGATE_TAGS_TASK_DEFINITION = 'TASK_DEFINITION'
 PROPAGATE_TAGS_SERVICE = 'SERVICE'
 
+DEFAULT_SCHEDULING_STRATEGY = 'REPLICA'
+DEFAULT_ACCESS_LOG_FORMAT = 'TEXT'
+
+def extract_ecs_cluster_name(ecs_cluster_arn: str | None) -> str | None:
+    if not ecs_cluster_arn:
+        return None
+
+    try:
+        last_slash_index = ecs_cluster_arn.rfind('/')
+        return ecs_cluster_arn[last_slash_index+1:]
+    except Exception:
+        logger.error(f'Failed to compute cluster name for ARN {ecs_cluster_arn}',
+                exc_info=True)
+        return None
+
+
+def make_aws_console_ecs_cluster_url(ecs_cluster_arn: str | None) -> str | None:
+    if not ecs_cluster_arn:
+        return None
+
+    cluster_name = extract_ecs_cluster_name(ecs_cluster_arn)
+
+    if not cluster_name:
+        logger.error(f'Failed to compute AWS console URL for ARN {ecs_cluster_arn}: no cluster name',
+                exc_info=True)
+        return None
+
+    try:
+        parts = ecs_cluster_arn.split(':')
+        region = parts[3]
+        return make_regioned_aws_console_base_url(region) + ECS_HOME_PATH + \
+                '?' + make_region_parameter(region) + '#/clusters/' + quote(cluster_name) + \
+                '/tasks'
+    except Exception:
+        logger.error(f'Failed to compute AWS console URL for ARN {ecs_cluster_arn}',
+                exc_info=True)
+
+    return None
+
+def make_aws_console_ecs_task_definition_url(task_definition_arn: str | None) -> str | None:
+    if not task_definition_arn:
+        return None
+
+    try:
+        parts = task_definition_arn.split(':')
+        region = parts[3]
+        version_number = parts[-1]
+        middle = parts[-2]
+        slash_index = middle.index('/')
+        task_name = middle[slash_index+1:]
+
+        return make_regioned_aws_console_base_url(region) + ECS_HOME_PATH + \
+                '?' + make_region_parameter(region) + '#/taskDefinitions/' + quote(task_name) + \
+                '/' + version_number
+    except Exception:
+        logger.error(f'Failed to compute AWS console URL for ARN {task_definition_arn}',
+                exc_info=True)
+
+    return None
+
+def make_aws_console_ecs_service_url(ecs_service_arn: str | None,
+        cluster_name: str | None = None):
+    if not ecs_service_arn:
+        return None
+
+    # ECS Service ARN has old format:
+    # arn:aws:ecs:[region]:[aws_account_id]:service/[service_name]
+
+    # ECS Service ARN has new format:
+    # arn:aws:ecs:[region]:[aws_account_id]:service/[cluster_name]/[service_name]
+
+    # AWS Console URL has format:
+    # https://us-east-2.console.aws.amazon.com/ecs/home?region=us-east-2#/clusters/[cluster_name]/services/[service_name]/details
+
+    try:
+        parts = ecs_service_arn.split(':')
+        region = parts[3]
+        last_part = parts[5]
+
+        last_part_parts = last_part.split('/')
+        if len(last_part_parts) < 3:
+            if not cluster_name:
+                logger.warning('Service ARN is old format and no cluster name given, returning None')
+                return None
+            service_name = last_part_parts[1]
+        else:
+            cluster_name = last_part_parts[1]
+            service_name = last_part_parts[2]
+
+        return make_regioned_aws_console_base_url(region) + ECS_HOME_PATH \
+                + '?' + make_region_parameter(region) + '#/clusters/' \
+                + quote(cluster_name) + '/services/' \
+                + quote(service_name) + '/details'
+    except Exception:
+        logger.error(f'Failed to compute AWS console URL for ECS Service ARN {ecs_service_arn}',
+                exc_info=True)
+
+    return None
+
 # Type aliases for valid ECS configuration values
 LaunchType = Literal['EC2', 'FARGATE', 'EXTERNAL']
-PropagateTags = Literal['TASK_DEFINITION', 'SERVICE']
+PropagateTags = Literal['TASK_DEFINITION', 'SERVICE', 'NONE']
 PlatformVersion = Literal['1.4.0', 'LATEST']
-
+SchedulingStrategy = Literal['REPLICA', 'DAEMON']
+DeploymentConfigurationStrategy = Literal['ROLLING', 'BLUE_GREEN', 'LINEAR', 'CANARY']
+AvailabilityZoneRebalancing = Literal['ENABLED', 'DISABLED']
+LifecycleStage = Literal['RECONCILE_SERVICE', 'PRE_SCALE_UP', 'POST_SCALE_UP', 
+    'TEST_TRAFFIC_SHIFT', 'POST_TEST_TRAFFIC_SHIFT', 'PRODUCTION_TRAFFIC_SHIFT']
+ServiceConnectLogDriver = Literal['json-file', 'syslog', 'journald', 'gelf', 'fluentd', 'awslogs', 'splunk', 'awsfirelens']
+AccessLogFormat = Literal['TEXT', 'JSON']
+AccessLogIncludeQueryParameters = Literal['DISABLED', 'ENABLED']
+FilesystemType = Literal['ext3', 'ext4', 'xfs', 'ntfs']
+VolumeTagPropagation = Literal['TASK_DEFINITION', 'SERVICE', 'NONE']
 
 class ContainerSettings(BaseModel):
     name: str | None = None
@@ -172,87 +279,237 @@ class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
 
     def update_derived_attrs(self, aws_settings: AwsSettings | None):
         super().update_derived_attrs(aws_settings=aws_settings)
+        self.infrastructure_website_url = self.make_aws_console_url()
 
-        self.infrastructure_website_url = None
-
+    def make_aws_console_url(self) -> str | None:
         if self.task_arn and self.cluster_arn:
             parts = self.task_arn.split(':')
             aws_region = parts[3]
 
-            if aws_region:
-                last_part = parts[5]
-                last_part_parts = last_part.split('/')
-                if len(last_part_parts) < 3:
-                    cluster_name = extract_cluster_name(self.cluster_arn)
-                    task_id = last_part_parts[1]
-                else:
-                    cluster_name = last_part_parts[1]
-                    task_id = last_part_parts[2]
+            if not aws_region:
+                return None
+            
+            last_part = parts[5]
+            last_part_parts = last_part.split('/')
+            if len(last_part_parts) < 3:
+                cluster_name = extract_ecs_cluster_name(self.cluster_arn)
+                task_id = last_part_parts[1]
+            else:
+                cluster_name = last_part_parts[1]
+                task_id = last_part_parts[2]
 
-                if cluster_name is None:
-                    logger.warning("Task.infrastructure_website_url() can't determine cluster_name")
-                else:
-                    self.infrastructure_website_url = AWS_CONSOLE_BASE_URL \
-                        + 'ecs/home?region=' \
-                        + quote(aws_region) + '#/clusters/' \
-                        + quote(cluster_name) + '/tasks/' \
-                        + quote(task_id) + '/details'
+            if cluster_name is None:
+                logger.warning("Task.infrastructure_website_url() can't determine cluster_name")
+                return None
+            
+            return AWS_CONSOLE_BASE_URL + 'ecs/home?region=' \
+                + quote(aws_region) + '#/clusters/' \
+                + quote(cluster_name) + '/tasks/' \
+                + quote(task_id) + '/details'
 
     
 class AwsEcsServiceDeploymentCircuitBreaker(BaseModel):
-    enable: bool | None = None
-    rollback_on_failure: bool | None = None
+    enable: bool = False
+    rollback: bool = False
 
+
+class AwsEcsServiceDeploymentAlarms(Boto3SerializableSettings):
+    alarm_names: list[str] = None
+    rollback: bool = False
+    enable: bool = True
+
+
+class AwsEcsServiceDeploymentLifecycleHook(AwsSubSettingsWithRole):
+    hook_target_arn: str | None = None
+    lifecycle_stages: list[LifecycleStage] | None = None
+    hook_details: Any | None = None
+
+class AwsEcsServiceDeploymentLinearConfiguration(Boto3SerializableSettings):
+    step_percent: float | None = None
+    step_bake_time_in_minutes: int | None = None
+
+class AwsEcsServiceDeploymentCanaryConfiguration(Boto3SerializableSettings):
+    canary_percent: float | None = None
+    canary_bake_time_in_minutes: int | None = None
 
 class AwsEcsServiceDeploymentConfiguration(Boto3SerializableSettings):
     maximum_percent: int | None = None
     minimum_healthy_percent: int | None = None
     deployment_circuit_breaker: AwsEcsServiceDeploymentCircuitBreaker | None = None
-    alarms: dict[str, Any] | None = None
-    strategy: str | None = None
+    alarms: AwsEcsServiceDeploymentAlarms | None = None
+    strategy: DeploymentConfigurationStrategy | None = None
     bake_time_in_minutes: int | None = None
-    lifecycle_hooks: list[dict[str, Any]] | None = None
-    linear_configuration: dict[str, Any] | None = None
-    canary_configuration: dict[str, Any] | None = None
+    lifecycle_hooks: list[AwsEcsServiceDeploymentLifecycleHook] | None = None
+    linear_configuration: AwsEcsServiceDeploymentLinearConfiguration | None = None
+    canary_configuration: AwsEcsServiceDeploymentCanaryConfiguration | None = None
 
-class AwsApplicationLoadBalancer(BaseModel):
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:    
+        for hook in (self.lifecycle_hooks or []):
+            hook.update_derived_attrs(aws_settings=aws_settings)
+
+
+class AwsApplicationLoadBalancerAdvancedConfiguration(AwsSubSettingsWithRole):
+    alternate_target_group_arn: str | None = None
+    production_listener_rule: str | None = None
+    test_listener_rule: str | None = None
+
+    @override
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        super().update_derived_attrs(aws_settings=aws_settings)
+
+        self.alternate_target_group_infrastructure_website_url = make_aws_console_target_group_url(
+                self.alternate_target_group_arn)
+
+
+class AwsApplicationLoadBalancer(Boto3SerializableSettings):
     target_group_arn: str | None = None
     target_group_infrastructure_website_url: str | None = None
+    load_balancer_name: str | None = None
     container_name: str | None = None
     container_port: int | None = None
+    advanced_configuration: AwsApplicationLoadBalancerAdvancedConfiguration | None = None
 
-    def update_derived_attrs(self, task: Task, aws_settings: AwsSettings | None) -> None:
-        self.target_group_infrastructure_website_url = None
+    def to_boto3_dict(self, main_container_name: str | None) -> dict[str, Any]:
+        result = super().to_boto3_dict()
 
-        if self.target_group_arn:
-            region: str | None = None
+        if main_container_name and (self.container_name is None):
+            result['containerName'] = main_container_name
 
-            if task.run_environment:
-                region = task.run_environment.aws_default_region
+        return result
 
-            if aws_settings and aws_settings.network:
-                region = aws_settings.network.region or region
-
-            if region:
-                self.target_group_infrastructure_website_url = \
-                    f"https://{region}.console.aws.amazon.com/ec2/v2/home?" \
-                    + f"region={region}#TargetGroup:targetGroupArn=" \
-                    + self.target_group_arn
-
-class AwsApplicationLoadBalancerSettings(BaseModel):
-    health_check_grace_period_seconds: int | None = None
-    load_balancers: list[AwsApplicationLoadBalancer] | None = None
-
-    def update_derived_attrs(self, task: Task, aws_settings: AwsSettings | None) -> None:
-        if self.load_balancers:
-            for load_balancer in self.load_balancers:
-                load_balancer.update_derived_attrs(task=task, aws_settings=aws_settings)
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        self.target_group_infrastructure_website_url = make_aws_console_target_group_url(self.target_group_arn)
+        
+        if self.advanced_configuration:
+            self.advanced_configuration.update_derived_attrs(aws_settings=aws_settings)
 
 class ServiceRegistry(Boto3SerializableSettings):
     registry_arn: str | None = None
     port: int | None = None
     container_name: str | None = None
     container_port: int | None = None
+
+
+# Service Connect Configuration Models
+
+class AwsServiceConnectTestTrafficRuleHeaderValue(Boto3SerializableSettings):
+    exact: str | None = None
+
+class AwsServiceConnectTestTrafficRuleHeader(Boto3SerializableSettings):
+    name: str | None = None
+    value: AwsServiceConnectTestTrafficRuleHeaderValue | None = None
+
+
+class AwsServiceConnectTestTrafficRules(Boto3SerializableSettings):
+    header: AwsServiceConnectTestTrafficRuleHeader | None = None
+
+class AwsServiceConnectClientAlias(Boto3SerializableSettings):
+    port: int | None = None
+    dns_name: str | None = None
+    test_traffic_rules: AwsServiceConnectTestTrafficRules | None = None
+
+class AwsServiceConnectTimeout(Boto3SerializableSettings):
+    idle_timeout_seconds: int | None = None
+    per_request_timeout_seconds: int | None = None
+
+
+class AwsServiceConnectIssuedCertificateAuthority(Boto3SerializableSettings):
+    aws_pca_authority_arn: str | None = None
+
+
+class AwsServiceConnectTls(AwsSubSettingsWithRole):
+    issued_certificate_authority: AwsServiceConnectIssuedCertificateAuthority | None = None
+    kms_key: str | None = None
+
+class AwsServiceConnectService(Boto3SerializableSettings):
+    port_name: str | None = None
+    discovery_name: str | None = None
+    client_aliases: list[AwsServiceConnectClientAlias] | None = None
+    ingress_port_override: int | None = None
+    timeout: AwsServiceConnectTimeout | None = None
+    tls: AwsServiceConnectTls | None = None
+
+    @override
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        if self.tls:
+            self.tls.update_derived_attrs(aws_settings=aws_settings)
+
+
+class AwsServiceConnectLogConfigurationSecretOption(Boto3SerializableSettings):
+    name: str | None = None
+    value_from: str | None = None
+
+
+class AwsServiceConnectLogConfiguration(Boto3SerializableSettings):
+    log_driver: ServiceConnectLogDriver | None = None
+    options: dict[str, str] | None = None
+    secret_options: list[AwsServiceConnectLogConfigurationSecretOption] | None = None
+
+
+class AwsServiceConnectAccessLogConfiguration(Boto3SerializableSettings):
+    format: AccessLogFormat = DEFAULT_ACCESS_LOG_FORMAT
+    include_query_parameters: AccessLogIncludeQueryParameters | None = None
+
+
+class AwsServiceConnectConfiguration(Boto3SerializableSettings):
+    enabled: bool | None = None
+    namespace: str | None = None
+    services: list[AwsServiceConnectService] | None = None
+    log_configuration: AwsServiceConnectLogConfiguration | None = None
+    access_log_configuration: AwsServiceConnectAccessLogConfiguration | None = None
+
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        for service in (self.services or []):
+            service.update_derived_attrs(aws_settings=aws_settings)
+
+
+# Volume Configuration Models
+class AwsVolumeTagSpecification(Boto3SerializableSettings):
+    resource_type: str | None = None
+    tags: list[AwsTagKeyValuePair] | None = None
+    propagate_tags: VolumeTagPropagation | None = None
+
+
+class AwsManagedEBSVolume(AwsSubSettingsWithRole):
+    encrypted: bool | None = None
+    kms_key_id: str | None = None
+    kms_key_infrastructure_website_url: str | None = None
+    volume_type: str | None = None
+    size_in_gib: int | None = Field(None, alias='sizeInGiB')
+    snapshot_id: str | None = None
+    volume_initialization_rate: int | None = None
+    iops: int | None = None
+    throughput: int | None = None
+    tag_specifications: list[AwsVolumeTagSpecification] | None = None
+    filesystem_type: FilesystemType | None = None
+
+    @override
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        super().update_derived_attrs(aws_settings=aws_settings)
+        
+        self.kms_key_infrastructure_website_url = make_aws_console_kms_key_url(self.kms_key_id)
+
+class AwsVolumeConfiguration(Boto3SerializableSettings):
+    name: str
+    managed_ebs_volume: AwsManagedEBSVolume | None = None
+
+    @override
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        if self.managed_ebs_volume:
+            self.managed_ebs_volume.update_derived_attrs(aws_settings=aws_settings)
+
+
+class AwsVpcLatticeConfiguration(AwsSubSettingsWithRole):
+    target_group_arn: str | None = None
+    target_group_infrastructure_website_url: str | None = None
+    port_name: str | None = None
+
+    @override
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        super().update_derived_attrs(aws_settings=aws_settings)
+                
+        self.target_group_infrastructure_website_url = make_aws_console_target_group_url(
+                self.target_group_arn)
 
 @dataclass
 class AwsEcsServiceResponseFragment:
@@ -261,6 +518,7 @@ class AwsEcsServiceResponseFragment:
     service_arn: str
     service_name: str
     next_service_name_suffix: int | None = None
+    tags: list[dict[str, str]] | None = None
 
     @staticmethod
     def from_boto_service_response_fragment(service_dict: dict[str, Any]) -> 'AwsEcsServiceResponseFragment':
@@ -268,9 +526,11 @@ class AwsEcsServiceResponseFragment:
         service_name = sd['serviceName']
         service_arn = sd['serviceArn']
         last_status = sd['status'].upper()
-        index: int | None = None
-
+        tags = sd.get('tags', [])
+        
         logger.info(f"Last status of service '{service_name}' with ARN '{service_arn}' is {last_status}")
+
+        index: int | None = None
 
         if last_status in ('DRAINING', 'ACTIVE', 'INACTIVE'):
             m = AwsEcsExecutionMethod.SERVICE_NAME_REGEX.match(service_name)
@@ -291,30 +551,32 @@ class AwsEcsServiceResponseFragment:
             last_status = last_status,
             service_arn = service_arn,
             service_name = service_name,
-            next_service_name_suffix=index
+            next_service_name_suffix=index,
+            tags=tags,
         )
 
 @dataclass
 class AwsEcsServiceTeardownResult:
     service_info: AwsEcsServiceResponseFragment | None = None
 
-class AwsEcsServiceSettings(BaseModel):
+class AwsEcsServiceSettings(Boto3SerializableSettings):
     deployment_configuration: AwsEcsServiceDeploymentConfiguration | None = None
-    scheduling_strategy: str | None = None
+    scheduling_strategy: SchedulingStrategy | None = None
     force_new_deployment: bool | None = None
-    availability_zone_rebalancing: str | None = None
-    load_balancer_settings: AwsApplicationLoadBalancerSettings | None = None
+    availability_zone_rebalancing: AvailabilityZoneRebalancing | None = None
+    health_check_grace_period_seconds: int | None = None
+    load_balancers: list[AwsApplicationLoadBalancer] | None = None
     service_registries: list[ServiceRegistry] | None = None    
-    service_connect_configuration: dict[str, Any] | None = None
-    volume_configurations: list[dict[str, Any]] | None = None
-    vpc_lattice_configurations: list[dict[str, Any]] | None = None    
-    tags: dict[str, str] | None = None
-    service_arn: str | None = None    
+    service_connect_configuration: AwsServiceConnectConfiguration | None = None
+    volume_configurations: list[AwsVolumeConfiguration] | None = None
+    vpc_lattice_configurations: list[AwsVpcLatticeConfiguration] | None = None        
+    tags: list[AwsTagKeyValuePair] | None = None
+    service_arn: str | None = None
 
-    def update_derived_attrs(self, task: Task,
-            aws_ecs_settings: AwsEcsExecutionMethodSettings,
+    @override
+    def update_derived_attrs(self, aws_ecs_settings: AwsEcsExecutionMethodSettings,
             aws_settings: AwsSettings | None):
-        cluster_name = extract_cluster_name(aws_ecs_settings.cluster_arn)
+        cluster_name = extract_ecs_cluster_name(aws_ecs_settings.cluster_arn)
 
         if cluster_name and self.service_arn:
             self.infrastructure_website_url = make_aws_console_ecs_service_url(
@@ -323,69 +585,30 @@ class AwsEcsServiceSettings(BaseModel):
         else:
             self.infrastructure_website_url = None
 
-        if self.load_balancer_settings:
-            self.load_balancer_settings.update_derived_attrs(task=task,
-                aws_settings=aws_settings)
+        if self.deployment_configuration:
+            self.deployment_configuration.update_derived_attrs(aws_settings=aws_settings)
+
+        
+        for lb in (self.load_balancers or []):
+            lb.update_derived_attrs(aws_settings=aws_settings)
+
+        if self.service_connect_configuration:
+            self.service_connect_configuration.update_derived_attrs(aws_settings=aws_settings)
+
+        for volume_config in (self.volume_configurations or []):
+            volume_config.update_derived_attrs(aws_settings=aws_settings)
+
+        for vpc_lattice_config in (self.vpc_lattice_configurations or []):
+            vpc_lattice_config.update_derived_attrs(aws_settings=aws_settings)
+
+    @override
+    def get_boto3_excluded_field_names(self) -> set[str]:
+        return set(['service_arn'])
 
     @staticmethod
-    def from_boto_service_response_fragment(service_dict: dict[str, Any]) -> 'AwsEcsServiceSettings':
-        sd = service_dict
-
-        ss = AwsEcsServiceSettings(
-            service_arn=sd.get('serviceArn'),
-            scheduling_strategy=sd.get('schedulingStrategy'),
-            enable_ecs_managed_tags=sd.get('enableECSManagedTags'),
-            propagate_tags=sd.get('propagateTags')
-        )
-
-        dc = sd.get('deploymentConfiguration')
-
-        if dc:
-            parsed_dcb: AwsEcsServiceDeploymentCircuitBreaker | None = None
-
-            dcb = dc.get('deploymentCircuitBreaker')
-            if dcb:
-                parsed_dcb = AwsEcsServiceDeploymentCircuitBreaker(
-                    enable=dcb.get('enable'),
-                    rollback_on_failure=dcb.get('rollback')
-                )
-
-            ss.deployment_configuration = AwsEcsServiceDeploymentConfiguration(
-                maximum_percent=dc.get('maximumPercent'),
-                minimum_healthy_percent=dc.get('minimumHealthyPercent'),
-                deployment_circuit_breaker=parsed_dcb
-            )
-
-        lbs = sd.get('loadBalancers')
-
-        if lbs:
-            parsed_lbs = []
-            for lb in lbs:
-                parsed_lbs.append(AwsApplicationLoadBalancer(
-                    target_group_arn=lb.get('targetGroupArn'),
-                    container_name=lb.get('containerName'),
-                    container_port=lb.get('containerPort')
-                ))
-
-            ss.load_balancer_settings = AwsApplicationLoadBalancerSettings(
-                health_check_grace_period_seconds=sd.get('healthCheckGracePeriodSeconds'),
-                load_balancers=parsed_lbs
-            )
-
-        tags = sd.get('tags')
-
-        if tags:
-            parsed_tags = {}
-            for tag in tags:
-                k = tag.get('key')
-                v = tag.get('value')
-                if (k is not None) and (v is not None):
-                    parsed_tags[k] = v
-
-            ss.tags = parsed_tags
-
-        return ss
-
+    def from_boto_service_response_fragment(service_dict: dict[str, Any]) -> AwsEcsServiceSettings:
+        return AwsEcsServiceSettings.model_validate(service_dict)
+    
 class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
     NAME = 'AWS ECS'
     
@@ -591,13 +814,14 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             'State': 'ENABLED',
             'Description': f"Scheduled execution of Task '{task.name}' ({task.uuid})"
         }
-            # TODO: use add_creation_args()
-            # Tags=[
-            #     {
-            #         'Key': 'string',
-            #         'Value': 'string'
-            #     },
-            # ],
+
+        tags = self.compute_tags(for_scheduled_task=True)
+
+        if tags:
+            kwargs['Tags'] = [ 
+                { 'Key': pair.key, 'Value': pair.value } \
+                    for pair in AwsTagKeyValuePair.dict_to_pair_list(tags)
+            ]
 
         execution_role_arn = self.settings.execution_role_arn
         logger.info(f"Using execution role arn = '{execution_role_arn}'")
@@ -815,18 +1039,27 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if not was_managed_ecs_service:
             logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} was_managed_ecs_service=false, forcing recreate")
             return (True, True)
-
+        
         if (not old_task) or (old_task.service_settings is None) or \
                 (not old_aws_ecs_execution_method):
             logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} missing old_aws_ecs_execution_method, forcing recreate")
             return (True, True)
-
+        
         try:
             old_settings = old_aws_ecs_execution_method.settings
 
             logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {old_settings=}")
 
-            if (old_settings.launch_type != self.settings.launch_type) or \
+            old_launch_type = old_settings.launch_type
+            new_launch_type = self.settings.launch_type
+
+            if old_launch_type and old_settings.capacity_provider_strategy:
+                old_launch_type = None
+
+            if new_launch_type and self.settings.capacity_provider_strategy:
+                new_launch_type = None
+
+            if (old_launch_type != new_launch_type) or \
                   (old_settings.cluster_arn != self.settings.cluster_arn):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} launch type or cluster differs, forcing recreate")
                 return (True, True)
@@ -900,15 +1133,16 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 return (True, False)
 
             if (old_settings.task_definition_arn != self.settings.task_definition_arn) or \
-                (old_settings.platform_version != self.settings.platform_version) or \
-                (old_settings.capacity_provider_strategy != self.settings.capacity_provider_strategy) or \
-                (old_settings.enable_execute_command != self.settings.enable_execute_command) or \
-                (old_settings.enable_ecs_managed_tags != self.settings.enable_ecs_managed_tags) or \
-                (old_settings.propagate_tags != self.settings.propagate_tags):                
+                    (old_settings.platform_version != self.settings.platform_version) or \
+                    (old_settings.capacity_provider_strategy != self.settings.capacity_provider_strategy) or \
+                    (old_settings.enable_execute_command != self.settings.enable_execute_command) or \
+                    (old_settings.propagate_tags != self.settings.propagate_tags) or \
+                    (old_settings.enable_ecs_managed_tags != self.settings.enable_ecs_managed_tags):            
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} ECS settings changed, update required, but not recreate (3)")
                 return (True, False)
 
-            if (old_aws_ecs_execution_method.compute_tags() != self.compute_tags()):
+            if (old_aws_ecs_execution_method.compute_tags(for_service=True) != \
+                self.compute_tags(for_service=True)):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} tags changed, update required but not recreate")
                 return (True, False)
 
@@ -925,21 +1159,17 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} security groups have changed from {old_network.security_groups} to {network.security_groups}, update required but not recreate")
                 return (True, False)
 
-            if ss:
-                dc = ss.deployment_configuration
-                old_dc = old_ss.deployment_configuration
-
-                if dc and (dc != old_dc):
-                    logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {dc=} != {old_dc=}, requires update but no recreate (2)")
-                    return (True, False)
-                
-                sr = ss.service_registries
-                old_sr = old_ss.service_registries
-
-                if (sr or []) != (old_sr or []):
-                    logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {sr=} != {old_sr=}, requires update but no recreate (3)")
-                    return (True, False)
-
+            if (old_ss.deployment_configuration != ss.deployment_configuration) or \
+                    (old_ss.scheduling_strategy != ss.scheduling_strategy) or \
+                    (old_ss.force_new_deployment != ss.force_new_deployment) or \
+                    (old_ss.availability_zone_rebalancing != ss.availability_zone_rebalancing) or \
+                    (old_ss.health_check_grace_period_seconds != ss.health_check_grace_period_seconds) or \
+                    (old_ss.load_balancers != ss.load_balancers) or \
+                    (old_ss.service_registries != ss.service_registries) or \
+                    (old_ss.volume_configurations != ss.volume_configurations) or \
+                    (old_ss.vpc_lattice_configurations != ss.vpc_lattice_configurations):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {old_ss=}, {ss=}, requires update but no recreate (2)")
+                return (True, False)
         except Exception:
             logger.warning(f"Can't parse old Task service settings: {task.uuid=} {old_ss}", exc_info=True)
             return (True, True)
@@ -949,7 +1179,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         return (False, False)
 
     @override
-    def setup_service(self, old_execution_method: 'ExecutionMethod' | None=None,
+    def setup_service(self, old_execution_method: ExecutionMethod | None=None,
             force_creation: bool=False, teardown_result: Any | None=None) -> None:
         task = self.task
 
@@ -1046,9 +1276,47 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             args['forceNewDeployment'] = ss.force_new_deployment or False
 
             response = ecs_client.update_service(**args)
+
+            updated_service_info = AwsEcsServiceResponseFragment.from_boto_service_response_fragment(
+                    service_dict=response['service'])
+            current_tag_list = updated_service_info.tags or []
+            current_tags = { pair.key: pair.value for pair in current_tag_list }
+
+            new_tag_pair_list = ss.tags or []
+            tags_to_add: list[dict[str, str]] = []
+            tags_to_remove: list[str] = []
+            for pair in new_tag_pair_list:
+                k = pair.key
+                v = pair.value
+
+                if (k not in current_tags) or (current_tags.get(k) != v):
+                    tags_to_add.append({ 'key': k, 'value': v })
+
+            new_tags = AwsTagKeyValuePair.pair_list_to_dict(new_tag_pair_list)
+            tags_to_remove: list[str] = []
+            
+            for k, in current_tags.keys():
+                if k not in new_tags:
+                    tags_to_remove.append(k)
+
+            logger.info(f"setup_service() for Task {task.name} updating tags from {current_tags} to {new_tags} ...")
+
+            if tags_to_remove:
+                logger.info(f"setup_service() for Task {task.name} removing tags {tags_to_remove} ...")
+                ecs_client.untag_resource(
+                    resourceArn=ss.service_arn,
+                    tagKeys=tags_to_remove
+                )
+
+            if tags_to_add:
+                logger.info(f"setup_service() for Task {task.name} adding tags {tags_to_add} ...")
+                ecs_client.tag_resource(
+                    resourceArn=ss.service_arn,
+                    tags=tags_to_add
+                )
         else:
             args = self.add_creation_args(self.make_common_service_args(
-                    include_launch_type=True))
+                    include_launch_type=True), for_service=True)
 
             new_service_name: str | None = None
 
@@ -1064,7 +1332,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
             client_token = ''.join(random.choice(string.ascii_letters) for i in range(30))
             args['clientToken'] = client_token
-            args['schedulingStrategy'] = ss.scheduling_strategy or 'REPLICA'
+            args['schedulingStrategy'] = ss.scheduling_strategy or DEFAULT_SCHEDULING_STRATEGY
             args['deploymentController'] = {
                 # TODO: support EXTERNAL deployment controller for running on EKS or self-managed Kubernetes
                 'type': 'ECS'
@@ -1307,21 +1575,21 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 overrides['taskRoleArn'] = self.settings.task_role_arn
 
             args.update({
-              'overrides': overrides,
-              'count': 1,
-              'startedBy': 'CloudReactor',
-              # placementConstraints=[
-              #     {
-              #         'type': 'distinctInstance' | 'memberOf',
-              #         'expression': 'string'
-              #     },
-              # ],
-              # placementStrategy=[
-              #     {
-              #         'type': 'random' | 'spread' | 'binpack',
-              #         'field': 'string'
-              #     },
-              # ],
+                'overrides': overrides,
+                'count': 1,
+                'startedBy': 'CloudReactor',
+                # placementConstraints=[
+                #     {
+                #         'type': 'distinctInstance' | 'memberOf',
+                #         'expression': 'string'
+                #     },
+                # ],
+                # placementStrategy=[
+                #     {
+                #         'type': 'random' | 'spread' | 'binpack',
+                #         'field': 'string'
+                #     },
+                # ],
             })
 
             if self.settings.enable_ecs_managed_tags is not None:
@@ -1396,8 +1664,8 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 services=[service_arn_or_name])
             services = response_dict['services']
 
-            if len(services) == 0:
-                logger.info(f"No service named '{service_arn_or_name}' found for cluster '{cluster}'")
+            if len(services) != 1:
+                logger.info(f"No or multiple services named '{service_arn_or_name}' found for cluster '{cluster}'")
                 return None
 
             return AwsEcsServiceResponseFragment.from_boto_service_response_fragment(
@@ -1417,8 +1685,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         session_id = session_id or str(uuid.uuid4())
 
-        return self.aws_settings.make_boto3_client('ecs',
-              session_uuid=session_id)
+        return self.aws_settings.make_boto3_client('ecs', session_uuid=session_id)
 
     def delete_service(self, service_name: str, ecs_client: Any) -> AwsEcsServiceResponseFragment:
         logger.info(f"Deleting service '{service_name}' ...")
@@ -1518,30 +1785,20 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             'minimumHealthyPercent': coalesce(dc.minimum_healthy_percent, 100),
             'deploymentCircuitBreaker': {
                 'enable': coalesce(dcb.enable, False),
-                'rollback': coalesce(dcb.rollback_on_failure, False),
+                'rollback': coalesce(dcb.rollback, False),
             }
         })
 
         args['deploymentConfiguration'] = dc_arg
 
-        load_balancer_settings = ss.load_balancer_settings
+        if ss.scheduling_strategy:
+            args['schedulingStrategy'] = ss.scheduling_strategy
 
-        if load_balancer_settings and load_balancer_settings.load_balancers:
-            load_balancer_dicts = []
-            for lb_setting in load_balancer_settings.load_balancers:
-                load_balancer_dict = {
-                    'targetGroupArn': lb_setting.target_group_arn,
-                    'containerName': lb_setting.container_name or self.settings.main_container_name,
-                    'containerPort': lb_setting.container_port
-                }
-                load_balancer_dicts.append(load_balancer_dict)
-
-            args['loadBalancers'] = load_balancer_dicts
-
-            if len(load_balancer_dicts) > 0:
-                args['healthCheckGracePeriodSeconds'] = \
-                    load_balancer_settings.health_check_grace_period_seconds or \
-                    self.DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
+        if ss.load_balancers:
+            args['loadBalancers'] = [lb.to_boto3_dict(main_container_name=self.settings.main_container_name) for lb in ss.load_balancers]                
+            args['healthCheckGracePeriodSeconds'] = \
+                ss.health_check_grace_period_seconds or \
+                self.DEFAULT_LOAD_BALANCER_HEALTH_CHECK_GRACE_PERIOD_SECONDS
 
         service_registries = ss.service_registries
         if service_registries is not None:
@@ -1551,15 +1808,16 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             args['serviceConnectConfiguration'] = ss.service_connect_configuration.to_boto3_dict()
 
         if ss.volume_configurations is not None:
-            args['volumes'] = ss.volume_configurations
+            args['volumes'] = [vc.to_boto3_dict() for vc in ss.volume_configurations]
 
         if ss.vpc_lattice_configurations is not None:
-            args['vpcLatticeConfigurations'] = ss.vpc_lattice_configurations
+            args['vpcLatticeConfigurations'] = [vlc.to_boto3_dict() for vlc in ss.vpc_lattice_configurations]
 
         return args
 
-    def add_creation_args(self, args: dict[str, Any]) -> dict[str, Any]:
-        tags = self.compute_tags()
+    def add_creation_args(self, args: dict[str, Any], for_scheduled_task: bool = False,
+            for_service: bool = False) -> dict[str, Any]:
+        tags = self.compute_tags(for_scheduled_task=for_scheduled_task, for_service=for_service)
 
         if len(tags) > 0:
             args['tags']  = [
@@ -1568,18 +1826,13 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
 
         return args
 
-    def compute_tags(self) -> dict[str, str]:
-        tags = (self.aws_settings.tags or {}).copy()
+    def compute_tags(self, for_scheduled_task: bool = False, for_service: bool = False) -> dict[str, str]:
+        output_tags = (self.aws_settings.tags or {}).copy()
 
-        if self.service_settings and self.service_settings.tags:
-            tags |= self.service_settings.tags
+        # TODO: add scheduled task tags
 
-        output_tags: dict[str, str] = {}
-
-        for k, v in tags.items():
-            # Ignore empty values
-            if v and (v != '__UNSET__'):
-                output_tags[k] = v
+        if for_service and self.service_settings:
+            output_tags.update(AwsTagKeyValuePair.pair_list_to_dict(self.service_settings.tags or []))
 
         return output_tags
 
@@ -1610,8 +1863,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
             self.task.execution_method_capability_details = aws_ecs_settings.model_dump()
 
         if self.service_settings:
-            self.service_settings.update_derived_attrs(task=self.task,
-                    aws_ecs_settings=self.settings,
+            self.service_settings.update_derived_attrs(aws_ecs_settings=self.settings,
                     aws_settings=self.aws_settings)
             self.task.service_settings = deepmerge(self.task.service_settings,
                     self.service_settings.model_dump())

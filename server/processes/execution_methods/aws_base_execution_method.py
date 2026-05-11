@@ -5,10 +5,11 @@ from typing import Any, TYPE_CHECKING, override
 import logging
 from urllib.parse import quote
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SerializationInfo, SerializerFunctionWrapHandler, model_serializer
 from pydantic.alias_generators import to_camel
 
 
+from ..common.aws import normalize_role_arn, make_aws_console_role_url
 from ..common.utils import deepmerge
 from .execution_method import ExecutionMethod
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
@@ -27,21 +28,62 @@ logger = logging.getLogger(__name__)
 class Boto3SerializableSettings(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True
+        validate_by_alias=True,
+        validate_by_name=True,
+        from_attributes=True,
+        serialize_by_alias=False,
     )
+
+    def get_boto3_excluded_field_names(self) -> set[str]:
+        """Override in subclasses to exclude specific fields from to_boto3_dict()"""
+        return set()
+
+    def get_all_boto3_excluded_fields(self) -> set[str]:
+        """Return a set of field names to exclude from to_boto3_dict()"""
+        excluded = self.get_boto3_excluded_field_names()
+        
+        # Automatically exclude fields ending with _infrastructure_website_url
+        for field_name in self.model_fields:
+            if field_name.endswith('_infrastructure_website_url') or (field_name == 'infrastructure_website_url'):
+                excluded.add(field_name)
+        
+        return excluded
+
+    @model_serializer(mode='wrap')
+    def _boto3_serializer(self, handler: SerializerFunctionWrapHandler, info: SerializationInfo) -> dict[str, Any]:
+        result = handler(self)
+        if info.by_alias:
+            for field_name in self.get_all_boto3_excluded_fields():
+                result.pop(to_camel(field_name), None)
+        return result
 
     def to_boto3_dict(self) -> dict[str, Any]:
         return self.model_dump(mode='json', by_alias=True, exclude_unset=True, exclude_none=True)
+    
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        pass
+class AwsSubSettingsWithRole(Boto3SerializableSettings):
+    role_arn: str | None = None
+    role_infrastructure_website_url: str | None = None
 
+    @override
+    def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
+        if aws_settings:
+            aws_account_id = aws_settings.account_id
+            region = aws_settings.region
+
+            if aws_account_id and region and self.role_arn:
+                self.role_arn = normalize_role_arn(self.role_arn,
+                        aws_account_id=aws_account_id)
+
+        self.role_infrastructure_website_url = make_aws_console_role_url(self.role_arn)
 
 class AwsBaseExecutionMethod(ExecutionMethod):
     def __init__(self, name: str,
             task: Task | None = None,
             task_execution: TaskExecution | None = None,
             aws_settings: dict[str, Any] | None = None) -> None:
-        super().__init__(name, task=task,
-                task_execution=task_execution)
+        super().__init__(name, task=task, task_execution=task_execution)
 
         if aws_settings is None:
             self.aws_settings = self.merge_aws_settings(task=task,
