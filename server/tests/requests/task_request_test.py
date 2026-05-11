@@ -296,36 +296,33 @@ def make_request_body(uuid_send_type: str | None,
         api_key_run_environment: RunEnvironment | None = None,
         task: Task | None = None,
         execution_method_type: str | None = None,
-        emcd: dict[str, Any] | None = None,
-        legacy_emc: dict[str, Any] | None = None) \
+        emcd: dict[str, Any] | None = None) \
         -> Tuple[dict[str, Any], RunEnvironment | None]:
     request_data: dict[str, Any] = {
       'name': 'Some Task',
       'passive': False,
     }
 
-    if legacy_emc is None:
-        if emcd is None:
-            # Use task factory to generate execution_method_capability
-            task_for_emcd = task
-            if task_for_emcd is None:
-                task_for_emcd = task_factory()
-            emcd = task_for_emcd.execution_method_capability_details
 
-            # Remove extra Task so we don't mess up counts
-            if task is None:
-                task_for_emcd.delete()
+    if emcd is None:
+        # Use task factory to generate execution_method_capability
+        task_for_emcd = task
+        if task_for_emcd is None:
+            task_for_emcd = task_factory()
+        emcd = task_for_emcd.execution_method_capability_details
 
-        if not execution_method_type:
-            if task:
-                execution_method_type = task.execution_method_type
-            else:
-                execution_method_type = AwsEcsExecutionMethod.NAME
+        # Remove extra Task so we don't mess up counts
+        if task is None:
+            task_for_emcd.delete()
 
-        request_data['execution_method_type'] = execution_method_type
-        request_data['execution_method_capability_details'] = emcd
-    else:
-        request_data['execution_method_capability'] = legacy_emc
+    if not execution_method_type:
+        if task:
+            execution_method_type = task.execution_method_type
+        else:
+            execution_method_type = AwsEcsExecutionMethod.NAME
+
+    request_data['execution_method_type'] = execution_method_type
+    request_data['execution_method_capability_details'] = emcd
 
     group = user.groups.first()
     run_environment: RunEnvironment | None = None
@@ -751,20 +748,15 @@ def test_task_create_access_control(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""
-  em_type, is_legacy_schema
+  em_type,
 """, [
   (None, False),
   ('', False),
   ('Unknown', False),
   ('unknown', False),
   ('UNKNOWN', False),
-  (None, True),
-  ('', True),
-  ('Unknown', True),
-  ('unknown', True),
-  ('UNKNOWN', True),
 ])
-def test_task_create_passive_task(em_type: str, is_legacy_schema,
+def test_task_create_passive_task(em_type: str,
         user_factory, group_factory,
         run_environment_factory, task_factory,
         api_client) -> None:
@@ -791,15 +783,7 @@ def test_task_create_passive_task(em_type: str, is_legacy_schema,
         'passive': True
     }
 
-    if is_legacy_schema:
-        emc = {}
-
-        if em_type is not None:
-            emc['type'] = em_type
-
-        request_data['execution_method_capability'] = emc
-    else:
-        request_data['execution_method_capability_type'] = em_type
+    request_data['execution_method_capability_type'] = em_type
 
     response = client.post(url, data=request_data)
 
