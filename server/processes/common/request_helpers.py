@@ -1,4 +1,6 @@
-from typing import (cast, Any, Sequence, Tuple, Union, TYPE_CHECKING)
+from __future__ import annotations
+
+from typing import (cast, Any, Sequence, Union, TYPE_CHECKING)
 
 import logging
 from urllib.parse import urlparse
@@ -82,7 +84,7 @@ def context_with_request() -> dict[str, Any]:
     }
 
 def user_and_group_from_request(request: Request | None = None) -> \
-        Tuple[User | None, Group | None]:
+        tuple[User | None, Group | None]:
     r = request or request_for_context()
 
     user: User | None = None
@@ -106,7 +108,7 @@ def user_and_group_from_request(request: Request | None = None) -> \
     return (user, group)
 
 def required_user_and_group_from_request(request: Request | None = None) -> \
-        Tuple[User, Group | None]:
+        tuple[User, Group | None]:
     opt_user, opt_group = user_and_group_from_request(request=request)
 
     if not opt_user:
@@ -185,9 +187,9 @@ def extract_filtered_group(request: Request,
 
 def ensure_group_access_level(group: Group | None = None,
         min_access_level: int | None = -1,
-        run_environment: 'RunEnvironment | None' = None,
+        run_environment: RunEnvironment | None = None,
         allow_api_key: bool = True,
-        request: Request | None = None) -> Tuple[User, Group | None, int]:
+        request: Request | None = None) -> tuple[User, Group | None, int]:
     from ..models import UserGroupAccessLevel
 
     request = request or request_for_context()
@@ -245,7 +247,7 @@ def ensure_group_access_level(group: Group | None = None,
     return (request_user, request_group, access_level)
 
 def extract_authenticated_run_environment(
-        request: Request | None = None) -> 'RunEnvironment | None':
+        request: Request | None = None) -> RunEnvironment | None:
     request = request or request_for_context()
     if hasattr(request.auth, 'run_environment'):
         return cast('SaasToken', request.auth).run_environment

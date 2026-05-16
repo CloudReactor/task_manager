@@ -1,25 +1,43 @@
 from typing import override
 
+import logging
+
+from django.core.exceptions import ObjectDoesNotExist
+
 from django_filters import CharFilter
 from django_filters import rest_framework as filters
 from django_filters.filters import NumberFilter
 
-# model_class_to_type_string not used here
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from ..models import (
     NotificationDeliveryMethod,
     EmailNotificationDeliveryMethod,
-    PagerDutyNotificationDeliveryMethod
+    PagerDutyNotificationDeliveryMethod,
+    AppriseNotificationDeliveryMethod,
+    BasicEvent,
+    UserGroupAccessLevel,
 )
 from ..serializers import (
     NotificationDeliveryMethodSerializer,
     EmailNotificationDeliveryMethodSerializer,
-    PagerDutyNotificationDeliveryMethodSerializer
+    PagerDutyNotificationDeliveryMethodSerializer,
+    AppriseNotificationDeliveryMethodSerializer,
+)
+from ..common.request_helpers import (
+    ensure_group_access_level,
+    required_user_and_group_from_request,
 )
 
 from .base_view_set import BaseViewSet
 from .atomic_viewsets import AtomicModelViewSet
 from .cloning_mixin import CloningMixin
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationDeliveryMethodFilter(filters.FilterSet):
@@ -44,6 +62,7 @@ class NotificationDeliveryMethodViewSet(AtomicModelViewSet, CloningMixin, BaseVi
     _type_to_serializer = {
         'email': EmailNotificationDeliveryMethodSerializer,
         'pager_duty': PagerDutyNotificationDeliveryMethodSerializer,
+        'apprise': AppriseNotificationDeliveryMethodSerializer,
     }
 
     @override
@@ -60,16 +79,55 @@ class NotificationDeliveryMethodViewSet(AtomicModelViewSet, CloningMixin, BaseVi
                 return self._type_to_serializer[delivery_method_type]
 
         # For update/retrieve actions, check the instance type
-        if self.action in ('retrieve', 'update', 'partial_update', 'destroy'):
-            try:
-                obj = self.get_object()
-                if isinstance(obj, EmailNotificationDeliveryMethod):
-                    return EmailNotificationDeliveryMethodSerializer
-                elif isinstance(obj, PagerDutyNotificationDeliveryMethod):
-                    return PagerDutyNotificationDeliveryMethodSerializer
-            except Exception:
-                # Object doesn't exist or permission denied
-                pass
+        try:
+            obj = self.get_object()
+            if isinstance(obj, EmailNotificationDeliveryMethod):
+                return EmailNotificationDeliveryMethodSerializer
+            elif isinstance(obj, PagerDutyNotificationDeliveryMethod):
+                return PagerDutyNotificationDeliveryMethodSerializer
+            elif isinstance(obj, AppriseNotificationDeliveryMethod):
+                return AppriseNotificationDeliveryMethodSerializer
+        except Exception:
+            # Object doesn't exist or permission denied
+            pass
 
         # Default to base serializer
         return NotificationDeliveryMethodSerializer
+
+    @action(methods=['post'], detail=True,
+            url_path='test_event', url_name='test_event')
+    def test_event(self, request: Request, uuid: str):
+        try:
+            method = self.model_objects.get(uuid=uuid)
+        except ObjectDoesNotExist:
+            raise NotFound(detail="Resource not found")
+
+        _user, group = required_user_and_group_from_request(request=request)[:2]
+
+        ensure_group_access_level(group=method.created_by_group,
+            min_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            run_environment=getattr(method, 'run_environment', None),
+            allow_api_key=True, request=request)
+
+        event = BasicEvent(
+            severity=BasicEvent.Severity.INFO,
+            error_summary=f"Test event from Notification Delivery Method '{method.name}'",
+            source=BasicEvent.SOURCE_SYSTEM,
+            created_by_group=method.created_by_group,
+            run_environment=getattr(method, 'run_environment', None),
+        )
+        event.save()
+
+        try:
+            result = method.send(event)
+        except Exception as ex:
+            logger.warning(f"test_event send failed for {method.uuid}: {ex}")
+            return Response(
+                {'error': str(ex)},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        return Response(
+            {'event_uuid': str(event.uuid), 'result': result},
+            status=status.HTTP_200_OK
+        )

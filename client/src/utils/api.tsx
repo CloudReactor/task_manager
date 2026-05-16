@@ -573,6 +573,15 @@ export async function cloneNotificationDeliveryMethod(uuid: string, attributes?:
   return response.data as NotificationDeliveryMethod;
 }
 
+export async function sendTestEventToNotificationDeliveryMethod(uuid: string,
+    abortSignal?: AbortSignal): Promise<{ event_uuid: string; result: any }> {
+  const response = await makeAuthenticatedClient().post(
+    `api/v1/notification_delivery_methods/${uuid}/test_event/`, {}, {
+      signal: abortSignal
+    });
+  return response.data;
+}
+
 export async function deleteNotificationDeliveryMethod(uuid: string, abortSignal?: AbortSignal): Promise<void> {
   return await makeAuthenticatedClient().delete(
     'api/v1/notification_delivery_methods/' + uuid + '/', {

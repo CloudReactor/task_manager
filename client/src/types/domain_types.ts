@@ -112,7 +112,7 @@ export interface NotificationDeliveryMethod extends TrackedEntityReference, Desc
   run_environment: EntityReference | null;
   rate_limit_tiers: RateLimitTier[];
   enabled?: boolean;
-  delivery_method_type?: string; // 'email' or 'pagerduty'
+  delivery_method_type?: string; // 'email', 'pagerduty', or 'apprise'
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -179,6 +179,17 @@ export function makeEmptyPagerDutyNotificationDeliveryMethod(): PagerDutyNotific
     pagerduty_event_class_template: null,
     pagerduty_event_component_template: null,
     pagerduty_event_group_template: null,
+  });
+}
+
+// Apprise-specific delivery method (backend: AppriseNotificationDeliveryMethod)
+export interface AppriseNotificationDeliveryMethod extends NotificationDeliveryMethod {
+  apprise_url?: string | null;
+}
+
+export function makeEmptyAppriseNotificationDeliveryMethod(): AppriseNotificationDeliveryMethod {
+  return Object.assign(makeEmptyNotificationDeliveryMethod(), {
+    apprise_url: null,
   });
 }
 

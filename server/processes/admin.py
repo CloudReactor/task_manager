@@ -28,6 +28,7 @@ from .models.notification_profile import NotificationProfile
 from .models.notification_delivery_method import NotificationDeliveryMethod
 from .models.email_notification_delivery_method import EmailNotificationDeliveryMethod
 from .models.pagerduty_notification_delivery_method import PagerDutyNotificationDeliveryMethod
+from .models.apprise_notification_delivery_method import AppriseNotificationDeliveryMethod
 from .models.notification import Notification
 from .models.user_profile import UserProfile
 from .models.group_info import GroupInfo
@@ -151,6 +152,7 @@ admin.site.register(NotificationProfile, NotificationProfileAdmin)
 admin.site.register(NotificationDeliveryMethod, NotificationDeliveryMethodAdmin)
 admin.site.register(EmailNotificationDeliveryMethod, NotificationDeliveryMethodAdmin)
 admin.site.register(PagerDutyNotificationDeliveryMethod, NotificationDeliveryMethodAdmin)
+admin.site.register(AppriseNotificationDeliveryMethod, NotificationDeliveryMethodAdmin)
 admin.site.register(Notification, NotificationAdmin)
 
 admin.site.register(Task, TaskAdmin)

@@ -7,6 +7,7 @@ import {
   NotificationDeliveryMethod,
   EmailNotificationDeliveryMethod,
   PagerDutyNotificationDeliveryMethod,
+  AppriseNotificationDeliveryMethod,
   makeEmptyNotificationDeliveryMethod
 } from '../../types/domain_types';
 import {
@@ -17,6 +18,9 @@ import * as Yup from 'yup';
 
 import * as React from 'react';
 import { useContext, useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { create } from 'react-modal-promise';
 
 import './NotificationDeliveryMethodEditor.css';
 
@@ -46,19 +50,22 @@ import { Button } from '@mui/material/';
 import RunEnvironmentSelector from '../common/RunEnvironmentSelector';
 import FormikErrorsSummary from '../common/FormikErrorsSummary';
 import NotificationEventSeveritySelector from '../common/NotificationEventSeveritySelector/NotificationEventSeveritySelector';
+import AsyncConfirmationModal from '../common/AsyncConfirmationModal';
 
 type Props = {
   notificationDeliveryMethod?: NotificationDeliveryMethod;
   onSaveStarted?: (method: NotificationDeliveryMethod) => void;
   onSaveSuccess?: (method: NotificationDeliveryMethod) => void;
   onSaveError?: (err: unknown, values: any) => void;
+  onDirtyChanged?: (isDirty: boolean) => void;
+  onCancelRequested?: () => void;
 }
 
 const validationSchema = Yup.object().shape({
   name: Yup.string().max(200).required('Name is required'),
   description: Yup.string().max(5000),
   enabled: Yup.boolean(),
-  delivery_method_type: Yup.string().oneOf(['email', 'pagerduty']).required('Type is required')
+  delivery_method_type: Yup.string().oneOf(['email', 'pagerduty', 'apprise']).required('Type is required')
 });
 
 const emailValidationSchema = validationSchema.concat(Yup.object().shape({
@@ -69,12 +76,27 @@ const pagerdutyValidationSchema = validationSchema.concat(Yup.object().shape({
   pagerduty_api_key: Yup.string().required('API key is required')
 }));
 
+const appriseValidationSchema = validationSchema.concat(Yup.object().shape({
+  apprise_url: Yup.string().required('Apprise URL is required')
+}));
+
+const DirtyWatcher = ({ dirty, onDirtyChanged }: {
+  dirty: boolean;
+  onDirtyChanged?: (isDirty: boolean) => void;
+}) => {
+  useEffect(() => { onDirtyChanged?.(dirty); }, [dirty]);
+  return null;
+};
+
 const NotificationDeliveryMethodEditor = ({
   notificationDeliveryMethod,
   onSaveStarted,
   onSaveSuccess,
-  onSaveError
+  onSaveError,
+  onDirtyChanged,
+  onCancelRequested
 }: Props) => {
+  const navigate = useNavigate();
   const context = useContext(GlobalContext);
 
   const {
@@ -87,17 +109,19 @@ const NotificationDeliveryMethodEditor = ({
   // Helper to convert backend type to UI type
   const backendToUiType = (backendType?: string): string => {
     if (!backendType) return 'email';
-    // Backend now returns "email" or "pager_duty"
+    // Backend now returns "email", "pager_duty", or "apprise"
     if (backendType === 'email') return 'email';
     if (backendType === 'pager_duty') return 'pagerduty';
+    if (backendType === 'apprise') return 'apprise';
     return backendType;
   };
 
   // Helper to convert UI type to backend type
   const uiToBackendType = (uiType: string): string => {
-    // Backend expects "email" or "pager_duty"
+    // Backend expects "email", "pager_duty", or "apprise"
     if (uiType === 'email') return 'email';
     if (uiType === 'pagerduty') return 'pager_duty';
+    if (uiType === 'apprise') return 'apprise';
     return uiType;
   };
 
@@ -109,6 +133,7 @@ const NotificationDeliveryMethodEditor = ({
   // Cast to appropriate type based on delivery method type
   const emailMethod = method as EmailNotificationDeliveryMethod;
   const pagerdutyMethod = method as PagerDutyNotificationDeliveryMethod;
+  const appriseMethod = method as AppriseNotificationDeliveryMethod;
 
   // Memoize initialValues to prevent unnecessary re-renders
   const initialValues = useMemo(() => Object.assign({}, method, {
@@ -118,7 +143,11 @@ const NotificationDeliveryMethodEditor = ({
     email_to_addresses: emailMethod.email_to_addresses || [],
     email_cc_addresses: emailMethod.email_cc_addresses || [],
     email_bcc_addresses: emailMethod.email_bcc_addresses || [],
-    pagerduty_api_key: pagerdutyMethod.pagerduty_api_key || ''
+    pagerduty_api_key: pagerdutyMethod.pagerduty_api_key || '',
+    pagerduty_event_class_template: pagerdutyMethod.pagerduty_event_class_template || '',
+    pagerduty_event_component_template: pagerdutyMethod.pagerduty_event_component_template || '',
+    pagerduty_event_group_template: pagerdutyMethod.pagerduty_event_group_template || '',
+    apprise_url: appriseMethod.apprise_url || '',
   }) as any, [notificationDeliveryMethod]);
 
   const getCurrentValidationSchema = () => {
@@ -126,6 +155,8 @@ const NotificationDeliveryMethodEditor = ({
       return emailValidationSchema;
     } else if (selectedType === 'pagerduty') {
       return pagerdutyValidationSchema;
+    } else if (selectedType === 'apprise') {
+      return appriseValidationSchema;
     }
     return validationSchema;
   };
@@ -192,9 +223,32 @@ const NotificationDeliveryMethodEditor = ({
           isValid,
           touched,
           isSubmitting,
-          setFieldValue
-        }) => (
+          setFieldValue,
+          dirty
+        }) => {
+          const handleCancel = async () => {
+            if (onCancelRequested) {
+              onCancelRequested();
+              return;
+            }
+            if (dirty) {
+              const modal = create(AsyncConfirmationModal);
+              const rv = await modal({
+                title: 'Discard changes?',
+                confirmLabel: 'Discard',
+                confirmButtonVariant: 'danger',
+                children: (
+                  <p>You have unsaved changes. Are you sure you want to leave without saving?</p>
+                )
+              });
+              if (!rv) return;
+            }
+            navigate(-1);
+          };
+
+          return (
           <FormikForm noValidate onSubmit={handleSubmit}>
+            <DirtyWatcher dirty={dirty} onDirtyChanged={onDirtyChanged} />
             <fieldset disabled={!isAccessAllowed || isSubmitting}>
               <Row className="pb-3">
                 <Col>
@@ -417,26 +471,6 @@ const NotificationDeliveryMethodEditor = ({
                 </Col>
               </Row>
 
-              {/* PagerDuty-specific fields */}
-              {selectedType === 'pagerduty' && (
-                <>
-                  <Row className="pb-3">
-                    <Col sm={12}>
-                      <Form.Group controlId="pagerduty_api_key">
-                        <Form.Label>PagerDuty API Key *</Form.Label>
-                        <Field
-                          name="pagerduty_api_key"
-                          type="text"
-                          className="form-control"
-                          placeholder="Enter PagerDuty API key"
-                        />
-                        <ErrorMessage name="pagerduty_api_key" component="div" className="text-danger" />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                </>
-              )}
-
               {/* Type Selector */}
               <Row className="pb-3">
                 <Col sm={4} md={3}>
@@ -451,7 +485,7 @@ const NotificationDeliveryMethodEditor = ({
                           cursor: 'not-allowed'
                         }}
                       >
-                        {selectedType === 'email' ? 'Email' : 'PagerDuty'}
+                        {selectedType === 'email' ? 'Email' : selectedType === 'pagerduty' ? 'PagerDuty' : 'Apprise'}
                       </div>
                     ) : (
                       <Field
@@ -464,18 +498,20 @@ const NotificationDeliveryMethodEditor = ({
                           setSelectedType(newType);
                           setFieldValue('delivery_method_type', newType);
 
-                          // Reset type-specific fields
-                          if (newType === 'email') {
-                            setFieldValue('email_to_addresses', []);
-                            setFieldValue('email_cc_addresses', []);
-                            setFieldValue('email_bcc_addresses', []);
-                          } else if (newType === 'pagerduty') {
-                            setFieldValue('pagerduty_api_key', '');
-                          }
+                          // Clear ALL type-specific fields to avoid validation errors from other types
+                          setFieldValue('email_to_addresses', []);
+                          setFieldValue('email_cc_addresses', []);
+                          setFieldValue('email_bcc_addresses', []);
+                          setFieldValue('pagerduty_api_key', '');
+                          setFieldValue('pagerduty_event_class_template', '');
+                          setFieldValue('pagerduty_event_component_template', '');
+                          setFieldValue('pagerduty_event_group_template', '');
+                          setFieldValue('apprise_url', '');
                         }}
                       >
                         <option value="email">Email</option>
                         <option value="pagerduty">PagerDuty</option>
+                        <option value="apprise">Apprise</option>
                       </Field>
                     )}
                     <ErrorMessage name="delivery_method_type" component="div" className="text-danger" />
@@ -625,6 +661,53 @@ const NotificationDeliveryMethodEditor = ({
                 </>
               )}
 
+              {/* PagerDuty-specific fields */}
+              {selectedType === 'pagerduty' && (
+                <>
+                  <Row className="pb-3">
+                    <Col sm={12}>
+                      <Form.Group controlId="pagerduty_api_key">
+                        <Form.Label>PagerDuty API Key *</Form.Label>
+                        <Field
+                          name="pagerduty_api_key"
+                          type="text"
+                          className="form-control"
+                          placeholder="Enter PagerDuty API key"
+                        />
+                        <ErrorMessage name="pagerduty_api_key" component="div" className="text-danger" />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </>
+              )}
+
+              {/* Apprise-specific fields */}
+              {selectedType === 'apprise' && (
+                <>
+                  <Row className="pb-3">
+                    <Col sm={12} md={8}>
+                      <Form.Group controlId="apprise_url">
+                        <Form.Label>Apprise URL *</Form.Label>
+                        <Field
+                          name="apprise_url"
+                          type="text"
+                          className="form-control"
+                          placeholder="e.g. slack://token/channel or mailto://user:pass@gmail.com"
+                        />
+                        <Form.Text className="text-muted">
+                          Supports 100+ services. See the{' '}
+                          <a href="https://appriseit.com/services/" target="_blank" rel="noopener noreferrer">
+                            Apprise URL documentation
+                          </a>{' '}
+                          for format. Configured with CloudReactor Task Manager branding.
+                        </Form.Text>
+                        <ErrorMessage name="apprise_url" component="div" className="text-danger" />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </>
+              )}
+
 
               {/* Submit Button */}
               <Row className="pt-4">
@@ -637,11 +720,21 @@ const NotificationDeliveryMethodEditor = ({
                   >
                     {isSubmitting ? 'Saving...' : 'Save'}
                   </Button>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    style={{ marginLeft: '8px' }}
+                    disabled={isSubmitting}
+                    onClick={handleCancel}
+                  >
+                    Cancel
+                  </Button>
                 </Col>
               </Row>
             </fieldset>
           </FormikForm>
-        )}
+          );
+        }}
       </Formik>
     </Container>
   );

@@ -67,7 +67,8 @@ from tests.factories import (
     NotificationProfileFactory,
     EmailNotificationDeliveryMethodFactory,
     PagerDutyNotificationDeliveryMethodFactory,
-    NotificationFactory,    
+    AppriseNotificationDeliveryMethodFactory,
+    NotificationFactory,
 )
 
 
@@ -114,6 +115,7 @@ register(DelayedTaskExecutionStartEventFactory)
 register(NotificationProfileFactory)
 register(EmailNotificationDeliveryMethodFactory)
 register(PagerDutyNotificationDeliveryMethodFactory)
+register(AppriseNotificationDeliveryMethodFactory)
 register(NotificationFactory)
 
 
@@ -503,11 +505,11 @@ def setup_aws() -> AwsSettings:
     aws_settings.network = network_settings
 
     network = AwsNetwork()
-    network.aws_account_id = aws_settings.account_id    
-    
+    network.aws_account_id = aws_settings.account_id
+
     vpc_response = ec2.create_vpc(CidrBlock='10.0.0.0/16')
     vpc_id = vpc_response['Vpc']['VpcId']
-    
+
     # Set network.vpc with Vpc instance configured from vpc_response
     network.vpc = Vpc(
         id=vpc_response['Vpc']['VpcId'],
@@ -553,15 +555,15 @@ def setup_aws() -> AwsSettings:
             }
         ]
     }
-    
+
     role_response = iam.create_role(
         RoleName='cloudreactor-events-role',
         AssumeRolePolicyDocument=json.dumps(trust_policy),
         Description='Role for EventBridge to manage ECS services'
     )
-    
+
     events_role_arn = role_response['Role']['Arn']
-    
+
     # Attach policy to allow EventBridge to run ECS tasks
     ecs_policy = {
         'Version': '2012-10-17',
@@ -585,13 +587,13 @@ def setup_aws() -> AwsSettings:
             }
         ]
     }
-    
+
     iam.put_role_policy(
         RoleName='cloudreactor-events-role',
         PolicyName='ecs-management-policy',
         PolicyDocument=json.dumps(ecs_policy)
     )
-    
+
     aws_settings.events_role_arn = events_role_arn
     aws_settings.assumed_role_external_id = 'DEADBEEF'
 
@@ -610,7 +612,7 @@ class AwsEcsSetup(NamedTuple):
     @property
     def task_definition_arn(self) -> str:
         return cast(str, self.task_definition['taskDefinitionArn'])
-    
+
     def make_execution_method_settings(self) -> AwsEcsExecutionMethodSettings:
         return AwsEcsExecutionMethodSettings(
             task_definition_arn=self.task_definition_arn,
@@ -623,7 +625,7 @@ class AwsEcsSetup(NamedTuple):
             allocated_cpu_units=self.task_definition['containerDefinitions'][0]['cpu'],
             allocated_memory_mb=self.task_definition['containerDefinitions'][0]['memory'],
         )
-    
+
 
 def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     aws_settings = run_environment.parsed_aws_settings()
@@ -635,7 +637,7 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
     ecs_client = aws_settings.make_boto3_client('ecs')
     cluster_response = ecs_client.create_cluster(
             clusterName=extract_cluster_name(ecs_settings.cluster_arn))
-    
+
     task_def_response = ecs_client.register_task_definition(family='nginx',
         executionRoleArn=ecs_settings.execution_role_arn,
         networkMode='awsvpc',
@@ -660,9 +662,9 @@ def setup_aws_ecs(run_environment: RunEnvironment) -> AwsEcsSetup:
                   }
             }
         }])
-    
+
     cluster_arn = cluster_response['cluster']['clusterArn']
-    
+
     ecs_settings.cluster_arn = cluster_arn
 
     execution_role_arn = coalesce(ecs_settings.execution_role_arn, aws_settings.events_role_arn)
@@ -705,7 +707,7 @@ def make_aws_ecs_task_request_body(run_environment: RunEnvironment,
         'execution_role_arn': aws_ecs_setup.execution_role_arn,
         'task_role_arn': 'arn:aws:iam::123456789012:role/task',
         'enable_ecs_managed_tags': True,
-        'propagate_tags': 'SERVICE',        
+        'propagate_tags': 'SERVICE',
     }
     body['infrastructure_type'] = 'AWS'
     body['infrastructure_settings'] = {
@@ -904,7 +906,7 @@ def validate_saved_task(body_task: dict[str, Any], model_task: Task,
     if body_service_settings:
         model_service_settings = model_task.service_settings
         assert model_service_settings is not None
-                        
+
     if model_task.is_service:
         body_is_service_managed = body_task.get('is_service_managed')
         if body_is_service_managed is None:
@@ -920,7 +922,7 @@ def validate_aws_ecs_task_settings(model_task: Task, aws_settings: AwsSettings,
         aws_ecs_setup: AwsEcsSetup) -> None:
     if model_task.min_service_instance_count is not None:
         assert model_task.min_service_instance_count >= 0
-    
+
     assert model_task.execution_method_type == 'AWS ECS'
 
     emcd = model_task.execution_method_capability_details

@@ -40,6 +40,12 @@ export interface EntityDetailConfig<T extends EntityReference> {
   fetchEntity: (uuid: string, abortSignal: AbortSignal) => Promise<T>;
   cloneEntity: (uuid: string, values: any, abortSignal: AbortSignal) => Promise<T>;
   deleteEntity: (uuid: string, abortSignal: AbortSignal) => Promise<void>;
+  navigateToListOnSave?: boolean;
+  extraToolbarActions?: React.ComponentType<{
+    entity: T | null;
+    isFormDirty: boolean;
+    onFlash: (body: React.ReactNode, variant: BootstrapVariant) => void;
+  }>;
 }
 
 export interface EntityDetailInnerProps<T extends EntityReference> extends AbortSignalProps {
@@ -47,6 +53,8 @@ export interface EntityDetailInnerProps<T extends EntityReference> extends Abort
   onSaveStarted: (T) => void;
   onSaveSuccess: (T) => void;
   onSaveError: (err: unknown, values: any) => void;
+  onDirtyChanged?: (isDirty: boolean) => void;
+  onCancelRequested?: () => void;
 }
 
 export const makeEntityDetailComponent = <T extends EntityReference, P>(
@@ -73,7 +81,9 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
       makeDeletionConfirmationNode,
       fetchEntity,
       cloneEntity,
-      deleteEntity
+      deleteEntity,
+      navigateToListOnSave = true,
+      extraToolbarActions: ExtraToolbarActions,
     } = config;
 
     const [entity, setEntity] = useState<T | null>(null);
@@ -84,6 +94,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
     const [isCloning, setCloning] = useState(false);
     const [isDeleting, setDeleting] = useState(false);
     const [isSaving, setSaving] = useState(false);
+    const [isFormDirty, setFormDirty] = useState(false);
 
     const location = useLocation();
     const path = location.pathname;
@@ -225,6 +236,27 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
       }
     }, [entity]);
 
+    const handleDirtyChanged = useCallback((isDirty: boolean) => {
+      setFormDirty(isDirty);
+    }, []);
+
+    const handleCancelRequested = useCallback(async () => {
+      if (isFormDirty) {
+        const modal = create(AsyncConfirmationModal);
+        const rv = await modal({
+          title: 'Discard changes?',
+          confirmLabel: 'Discard',
+          confirmButtonVariant: 'danger',
+          faIconName: 'times',
+          children: (
+            <p>You have unsaved changes. Are you sure you want to leave without saving?</p>
+          )
+        });
+        if (!rv) return;
+      }
+      pushToListView();
+    }, [isFormDirty, pushToListView]);
+
     const handleSaveStarted = useCallback((t: T) => {
       setSaving(true);
       setFlashBody(null);
@@ -232,9 +264,16 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
 
     const handleSaveSuccess = useCallback((t: T) => {
       setSaving(false);
-      setFlashBody(null);
-      pushToListView();
-    }, []);
+      setFormDirty(false);
+      if (navigateToListOnSave) {
+        setFlashBody(null);
+        pushToListView();
+      } else {
+        setFlashBody(`${entityName} saved successfully.`);
+        setFlashAlertVariant('success');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, [navigateToListOnSave, pushToListView]);
 
     const handleSaveError = useCallback((ex: unknown, values: any) => {
       setSaving(false);
@@ -297,6 +336,17 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
                   onActionRequested={handleActionRequested}
                   faIconName="trash" label="Delete"
                   inProgress={isDeleting} />
+
+                {ExtraToolbarActions && (
+                  <ExtraToolbarActions
+                    entity={entity}
+                    isFormDirty={isFormDirty}
+                    onFlash={(body, variant) => {
+                      setFlashBody(body);
+                      setFlashAlertVariant(variant);
+                    }}
+                  />
+                )}
               </ButtonToolbar>
             </Col>
           </Row>
@@ -304,14 +354,19 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
 
         {
           flashBody && !isLoading && !isDeleting && !isCloning && !isSaving &&
-          <Alert
-            variant={flashAlertVariant || 'success'}
-            onClose={() => {
-              setFlashBody(null);
-            }}
-            dismissible>
-            {flashBody}
-          </Alert>
+          <Row>
+            <Col>
+              <Alert
+                style={{ marginLeft: '5px' }}
+                variant={flashAlertVariant || 'success'}
+                onClose={() => {
+                  setFlashBody(null);
+                }}
+                dismissible>
+                {flashBody}
+              </Alert>
+            </Col>
+          </Row>
         }
 
         {
@@ -320,6 +375,8 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
              onSaveStarted={handleSaveStarted}
              onSaveSuccess={handleSaveSuccess}
              onSaveError={handleSaveError}
+             onDirtyChanged={handleDirtyChanged}
+             onCancelRequested={handleCancelRequested}
              {...pRest} />
           ) :
           (<Loading />)

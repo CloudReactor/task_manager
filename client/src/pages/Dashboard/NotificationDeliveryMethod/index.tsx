@@ -44,6 +44,7 @@ const NotificationDeliveryMethodList = makeEntityList<NotificationDeliveryMethod
               if (!fullType) return 'Unknown';
               if (fullType === 'email') return 'Email';
               if (fullType === 'pager_duty') return 'PagerDuty';
+              if (fullType === 'apprise') return 'Apprise';
               return _.startCase(fullType);
             };
             const methodType = getDisplayType(method.delivery_method_type);

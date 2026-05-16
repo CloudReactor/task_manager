@@ -8,6 +8,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "six>=1.15.0,<2.0.0",
+    "apprise>=1.0.0,<2.0.0",
     "beautifulsoup4>=4.12.3,<5.0.0",
     "boto3>=1.37.18,<2.0.0",
     "cloudreactor-procwrapper[allextras]==6.0.2",
@@ -48,6 +49,7 @@ dependencies = [
     "stringcase==1.2.0,<2.0.0",
     # "django-queryinspect==1.1.0" # Uncomment if needed
     "whitenoise>=6.9.0",
+    "sentry-sdk>=2.59.0",
 ]
 
 [project.optional-dependencies]

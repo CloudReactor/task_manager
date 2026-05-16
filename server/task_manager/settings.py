@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import logging
 import os
 from datetime import timedelta
 
@@ -23,6 +24,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env = environ.Env()
 
 env.read_env(os.path.join(BASE_DIR, '.env'), parse_comments=True)
+
+DEPLOYMENT_ENVIRONMENT = env.str('PROC_WRAPPER_DEPLOYMENT', default='development')
 
 IN_PYTEST = env.bool('IN_PYTEST', default=False)
 
@@ -119,7 +122,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', 60 * 60 * 24 * 365)
 
 # django-csf settings
-CONTENT_SECURITY_POLICY = {    
+CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": ["'none'"],
         "script-src": [SELF],
@@ -389,6 +392,22 @@ LOGGING = {
 
 CACHE_INVALIDATE_ON_CREATE = 'whole-model'
 
+sentry_dsn = env.str('SENTRY_DSN', default=None)
+
+if sentry_dsn:
+    import sentry_sdk
+
+    logging.info("Initializing Sentry ...")
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        # Do not add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        send_default_pii=False,
+    )
+else:
+    logging.info("SENTRY_DSN not set, skipping Sentry initialization")
+
+
 SPECTACULAR_SETTINGS = {
     'TITLE': 'CloudReactor API',
     'DESCRIPTION': 'CloudReactor API Documentation',
@@ -434,6 +453,20 @@ SPECTACULAR_SETTINGS = {
     'PREPROCESSING_HOOKS': [
         'spectacular.preprocessing_hook'
     ],
+}
+
+app_id = 'io.cloudreactor.taskmanager'
+app_desc = 'CloudReactor Task Manager'
+
+if DEPLOYMENT_ENVIRONMENT != 'production':
+    cleaned_env = ''.join(c for c in DEPLOYMENT_ENVIRONMENT if c.isalnum())
+    app_id += f".{cleaned_env}"
+    app_desc += f" ({DEPLOYMENT_ENVIRONMENT})"
+
+APPRISE_SETTINGS = {
+  'APP_ID': app_id,
+  'APP_DESC': app_desc,
+  'APP_URL': EXTERNAL_BASE_URL,
 }
 
 

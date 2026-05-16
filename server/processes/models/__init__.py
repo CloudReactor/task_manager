@@ -24,6 +24,7 @@ from .notification_delivery_method import NotificationDeliveryMethod
 from .notification import Notification
 from .pagerduty_notification_delivery_method import PagerDutyNotificationDeliveryMethod
 from .email_notification_delivery_method import EmailNotificationDeliveryMethod
+from .apprise_notification_delivery_method import AppriseNotificationDeliveryMethod
 from .notification_send_status import NotificationSendStatus
 from .notification_profile import NotificationProfile
 from .event import Event, BasicEvent
