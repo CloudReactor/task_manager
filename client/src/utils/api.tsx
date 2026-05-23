@@ -677,7 +677,7 @@ export async function fetchTasks(opts?: TaskPageFetchOptions)
     params['latest_task_execution__status'] = opts.statuses.join(',');
   }
 
-  params['omit'] = 'current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,notification_profiles,links';
+  params['omit'] = 'logs_url,current_service_info,execution_method_capability_details,infrastructure_settings,scheduling_settings,service_settings,notification_profiles,links';
 
   if (opts.otherParams) {
     Object.assign(params, opts.otherParams);

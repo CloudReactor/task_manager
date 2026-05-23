@@ -264,7 +264,8 @@ class ExecutionMethod:
 
     @staticmethod
     def make_execution_method(task: Task | None = None,
-            task_execution: TaskExecution | None = None) -> ExecutionMethod:
+            task_execution: TaskExecution | None = None,
+            raise_on_error: bool = True) -> ExecutionMethod | None:
         from .aws_codebuild_execution_method import AwsCodeBuildExecutionMethod
         from .aws_ecs_execution_method import AwsEcsExecutionMethod
         from .aws_lambda_execution_method import AwsLambdaExecutionMethod
@@ -285,17 +286,27 @@ class ExecutionMethod:
 
         em: ExecutionMethod | None = None
 
-        if emt == AwsEcsExecutionMethod.NAME:
-            em = AwsEcsExecutionMethod(task=task, task_execution=task_execution)
-        elif emt == AwsLambdaExecutionMethod.NAME:
-            em = AwsLambdaExecutionMethod(task=task, task_execution=task_execution)
-        elif emt == AwsCodeBuildExecutionMethod.NAME:
-            em = AwsCodeBuildExecutionMethod(task=task, task_execution=task_execution)
-        else:
-            em = UnknownExecutionMethod(task=task, task_execution=task_execution)
-
+        try:
+            if emt == AwsEcsExecutionMethod.NAME:
+                em = AwsEcsExecutionMethod(task=task, task_execution=task_execution)
+            elif emt == AwsLambdaExecutionMethod.NAME:
+                em = AwsLambdaExecutionMethod(task=task, task_execution=task_execution)
+            elif emt == AwsCodeBuildExecutionMethod.NAME:
+                em = AwsCodeBuildExecutionMethod(task=task, task_execution=task_execution)
+            else:
+                em = UnknownExecutionMethod(task=task, task_execution=task_execution)
+        except Exception as e:
+            if raise_on_error:
+                raise APIException(f"Failed to create execution method of type {emt}: {str(e)}") from e
+            else:   
+                logger.error(f"Failed to create execution method of type {emt}", exc_info=True)
+                    
         if task_execution is None:
-            em.sanitize_task_settings()
+            try:
+                em.sanitize_task_settings()
+            except Exception as e:
+                logger.warning(f"Failed to sanitize task settings for execution method of type {emt}",
+                        exc_info=True)
         
         return em
 

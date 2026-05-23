@@ -155,7 +155,12 @@ class TaskSerializer(GroupSettingSerializerMixin,
         if task.passive:
             return []
 
-        return [c.name for c in task.execution_method().capabilities()]
+        em = task.execution_method(raise_on_error=False)
+
+        if em:
+            return [c.name for c in em.capabilities()]
+        else:
+            return []
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         task: Task | None = None

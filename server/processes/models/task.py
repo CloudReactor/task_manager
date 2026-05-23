@@ -189,7 +189,7 @@ class Task(TaskExecutionConfiguration, Schedulable):
 
     @property
     def logs_url(self) -> str | None:
-        em = self.execution_method()
+        em = self.execution_method(raise_on_error=False)
         if em:
             return em.logs_url()
         else:
@@ -271,8 +271,8 @@ class Task(TaskExecutionConfiguration, Schedulable):
         logger.info(f'Removed {num_in_progress_deleted=} in-progress Task Execution history items for Task {self.uuid}')
         return num_completed_deleted + num_in_progress_deleted
 
-    def execution_method(self) -> ExecutionMethod:
-        return ExecutionMethod.make_execution_method(task=self)
+    def execution_method(self, raise_on_error: bool = True) -> ExecutionMethod | None:
+        return ExecutionMethod.make_execution_method(task=self, raise_on_error=raise_on_error)
 
     def save_without_sync(self, **kwargs) -> 'Task':
         old_sync = self.should_skip_synchronize_with_run_environment
@@ -445,7 +445,10 @@ class Task(TaskExecutionConfiguration, Schedulable):
         return should_update_scheduled_execution or should_update_service
 
     def enrich_settings(self) -> None:
-        self.execution_method().enrich_task_settings()
+        em = self.execution_method(raise_on_error=False)
+
+        if em:
+            em.enrich_task_settings()
 
 
 @receiver(pre_save, sender=Task)
@@ -486,9 +489,11 @@ def pre_delete_task(sender: Type[Task], instance: Task, **kwargs) -> None:
     logger.info(f"pre-delete with instance {task}")
 
     if task.enabled and (not task.passive):
-        execution_method = task.execution_method()
-        if task.has_active_managed_scheduled_execution():
-            execution_method.teardown_scheduled_execution()
+        execution_method = task.execution_method(raise_on_error=False)
 
-        if task.is_active_managed_service():
-            execution_method.teardown_service()
+        if execution_method:
+            if task.has_active_managed_scheduled_execution():
+                execution_method.teardown_scheduled_execution()
+
+            if task.is_active_managed_service():
+                execution_method.teardown_service()

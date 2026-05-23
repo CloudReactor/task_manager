@@ -565,7 +565,7 @@ export interface Task extends Executable, TaskExecutionConfiguration {
   latest_task_execution: NamelessEntityReference | null;
   links: ExternalLink[];
   log_query: string;
-  logs_url: string;
+  logs_url?: string;
   max_concurrency: number | null;
   max_heartbeat_lateness_before_abandonment_seconds: number | null;
   max_heartbeat_lateness_before_alert_seconds: number | null;
@@ -575,10 +575,10 @@ export interface Task extends Executable, TaskExecutionConfiguration {
   passive: boolean;
   project_url: string;
   run_environment: EntityReference;
-  scheduling_provider_type: string | null;
+     scheduling_provider_type: string;
   scheduling_settings: object | null;
   service_instance_count: number;
-  service_provider_type: string | null;
+  service_provider_type: string;
   service_settings: object | null;
   was_auto_created: boolean;
 }
