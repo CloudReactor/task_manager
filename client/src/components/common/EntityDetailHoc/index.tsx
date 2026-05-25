@@ -87,7 +87,7 @@ export const makeEntityDetailComponent = <T extends EntityReference, P>(
     } = config;
 
     const [entity, setEntity] = useState<T | null>(null);
-    const [flashBody, setFlashBody] = useState<string | null>(null);
+    const [flashBody, setFlashBody] = useState<React.ReactNode>(null);
     const [flashAlertVariant, setFlashAlertVariant] = useState<BootstrapVariant>('info');
     const [isLoading, setLoading] = useState(false);
     const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);

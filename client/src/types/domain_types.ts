@@ -646,10 +646,10 @@ implements Task {
   run_environment = new EntityReferenceImpl();
   schedule = '';
   scheduled_instance_count = null;
-  scheduling_provider_type = null;
+  scheduling_provider_type = '';
   scheduling_settings = null;
   service_instance_count = 0;
-  service_provider_type = null;
+  service_provider_type = '';
   service_settings = null;
   status_update_interval_seconds = null;
   status_update_port = null;
