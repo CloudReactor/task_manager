@@ -31,7 +31,7 @@ class RunEnvironment(InfrastructureConfiguration, NamedWithUuidModel):
     default_aws_ecs_configuration = models.JSONField(null=True, blank=True)
     default_aws_lambda_configuration = models.JSONField(null=True, blank=True)
 
-    notification_profiles: models.ManyToManyField['NotificationProfile', 'NotificationProfile'] = models.ManyToManyField('NotificationProfile')
+    notification_profiles: models.ManyToManyField[NotificationProfile, NotificationProfile] = models.ManyToManyField('NotificationProfile', blank=True)
 
     @override
     def parsed_infrastructure_settings(self) -> InfrastructureSettings | None:
