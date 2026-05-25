@@ -301,7 +301,7 @@ class ExecutionMethod:
             else:   
                 logger.error(f"Failed to create execution method of type {emt}", exc_info=True)
                     
-        if task_execution is None:
+        if em and (task_execution is None):
             try:
                 em.sanitize_task_settings()
             except Exception as e:
