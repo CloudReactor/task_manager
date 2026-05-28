@@ -272,17 +272,6 @@ export interface NamedInfrastructureSettings<T> {
   }
 }
 
-export interface LegacyExecutionMethodCapability {
-  capabilities: string[];
-  type: string;
-}
-
-export class LegacyExecutionMethodCapabilityImpl
-implements LegacyExecutionMethodCapabilityImpl {
-  capabilities = []
-  type = EXECUTION_METHOD_TYPE_UNKNOWN;
-}
-
 export interface ContainerSettings {
   name?: string | null;
   docker_id?: string | null;
