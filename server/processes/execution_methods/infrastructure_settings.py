@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+from ..common import PydanticSettingsModel
 
 if TYPE_CHECKING:
     from .execution_method import ExecutionMethod
 
 
-class InfrastructureSettings(BaseModel):
+class InfrastructureSettings(PydanticSettingsModel):
     def can_manage_infrastructure(self) -> bool:
         return False
 

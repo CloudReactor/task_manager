@@ -405,8 +405,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
         if task:
             if (emcd is not None) and task.execution_method_capability_details and \
                 (task.execution_method_type == execution_method_type):
-                emcd = deepmerge(task.execution_method_capability_details.copy(), emcd, 
-                        ignore_none=False)
+                emcd = deepmerge(task.execution_method_capability_details.copy(), emcd)
                 validated['execution_method_capability_details'] = emcd
                 logger.info(f"to_internal_value(): {task.uuid}: Merged old {emcd=}")
             else:
@@ -416,7 +415,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             if (infrastructure_settings is not None) and task.infrastructure_settings and \
                     ((not infrastructure_type) or (task.infrastructure_type == infrastructure_type)):
                 infrastructure_settings = deepmerge(task.infrastructure_settings.copy(),
-                                                    infrastructure_settings, ignore_none=False)
+                                                    infrastructure_settings)
                 validated['infrastructure_settings'] = infrastructure_settings
                 logger.info(f"to_internal_value(): {task.uuid}: Merged old {infrastructure_settings=}")
             else:
@@ -426,8 +425,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             scheduling_settings = validated.get('scheduling_settings')
             if (scheduling_settings is not None) and task.scheduling_settings and \
                     ((not scheduling_provider_type) or (task.scheduling_provider_type == scheduling_provider_type)):
-                scheduling_settings = deepmerge(task.scheduling_settings.copy(),
-                                                scheduling_settings, ignore_none=False)
+                scheduling_settings = deepmerge(task.scheduling_settings.copy(), scheduling_settings)
                 validated['scheduling_settings'] = scheduling_settings
                 logger.info(f"to_internal_value(): {task.uuid}: Merged old {scheduling_settings=}")
             else:
@@ -437,8 +435,7 @@ class TaskSerializer(GroupSettingSerializerMixin,
             service_settings = validated.get('service_settings')
             if (service_settings is not None) and task.service_settings and \
                     ((not service_provider_type) or (task.service_provider_type == service_provider_type)):
-                service_settings = deepmerge(task.service_settings.copy(), service_settings,
-                                             ignore_none=False)
+                service_settings = deepmerge(task.service_settings.copy(), service_settings)
                 validated['service_settings'] = service_settings
                 logger.info(f"to_internal_value(): {task.uuid}: Merged old {service_settings=}")
             else:

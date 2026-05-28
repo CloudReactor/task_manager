@@ -27,7 +27,7 @@ from pytest_assert_utils import *
 from processes.common.request_helpers import (
     context_with_request, make_fake_request
 )
-from processes.common.utils import coalesce
+from processes.common.utils import INHERIT_VALUE, coalesce
 from processes.execution_methods import *
 from processes.execution_methods.aws_settings import INFRASTRUCTURE_TYPE_AWS, Vpc
 from processes.execution_methods.aws_cloudwatch_scheduling_settings import (
@@ -270,8 +270,11 @@ def assert_deep_subset(subset: Any, superset: Any, attr: str | None=None) \
     elif isinstance(subset, abc.Mapping):
         assert isinstance(superset, abc.Mapping)
         for k, v in subset.items():
-            assert k in superset
-            assert_deep_subset(v, superset[k], f"{attr}.{k}")
+            if v == INHERIT_VALUE:
+                assert k not in superset
+            else:
+                assert k in superset
+                assert_deep_subset(v, superset[k], f"{attr}.{k}")
     elif isinstance(subset, abc.Sequence):
         assert isinstance(superset, abc.Sequence)
         assert len(subset) == len(superset)
@@ -439,7 +442,7 @@ def validate_serialized_run_environment(body_re: dict[str, Any], model_re: run_e
 
     if model_re.aws_settings:
         expected_aws_settings = model_re.aws_settings.copy()
-        del expected_aws_settings['secret_key']
+        expected_aws_settings.pop('secret_key', None)
 
         assert body_re['infrastructure_settings'][INFRASTRUCTURE_TYPE_AWS][
             RunEnvironmentSerializer.DEFAULT_LABEL][RunEnvironmentSerializer.SETTINGS_KEY] == expected_aws_settings
@@ -621,8 +624,6 @@ class AwsEcsSetup(NamedTuple):
             execution_role_arn=self.execution_role_arn,
             platform_version='1.4.0',
             main_container_name=self.task_definition['containerDefinitions'][0]['name'],
-            allocated_cpu_units=self.task_definition['containerDefinitions'][0]['cpu'],
-            allocated_memory_mb=self.task_definition['containerDefinitions'][0]['memory'],
         )
 
 
@@ -1144,8 +1145,10 @@ def make_aws_ecs_task_execution_request_body(
         infra = task_request_fragment.get('infrastructure_settings') or {}
 
         te_logging = (infra.get('logging') or {}).copy()
-        te_logging.pop('stream_prefix', None)
-        te_logging['stream'] = "ecs/curl/cd189a933e5849daa93386466019ab50"
+        te_logging_options = te_logging.get('options', {})
+        te_logging_options.pop('stream_prefix', None)
+        te_logging_options['stream'] = "ecs/curl/cd189a933e5849daa93386466019ab50"
+        te_logging['options'] = te_logging_options
 
         body['infrastructure_settings'] = {
             'region': 'us-east-2',
