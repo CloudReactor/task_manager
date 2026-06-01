@@ -564,3 +564,48 @@ def test_should_update_or_force_recreate_service_enable_ecs_managed_tags_change(
     # Enable ECS managed tags change should update but not recreate
     assert should_update is True
     assert should_recreate is False
+
+
+@pytest.mark.django_db
+@mock_aws
+def test_should_update_or_force_recreate_service_resource_management_type_change(task_factory):
+    """Test when resource_management_type changes (should force recreate)"""
+    task = task_factory(execution_method_type=AwsEcsExecutionMethod.NAME)
+    run_env = task.run_environment
+
+    aws_settings = setup_aws()
+    run_env.aws_settings = aws_settings.model_dump()
+    run_env.save()
+
+    aws_ecs_setup = setup_aws_ecs(run_env)
+    task_settings = aws_ecs_setup.make_execution_method_settings().model_dump()
+    task.execution_method_capability_details = task_settings
+    task.service_instance_count = 1
+    task.service_provider_type = SERVICE_PROVIDER_AWS_ECS
+    task.save()
+
+    assert task.service_settings is not None
+    ss = AwsEcsServiceSettings.model_validate(task.service_settings)
+    assert ss.service_arn is not None
+    assert ss.resource_management_type is None
+
+    # Create old execution method with no resource_management_type
+    old_execution_method = AwsEcsExecutionMethod(task=task)
+
+    # Get a fresh task instance from database for new execution method
+    task = Task.objects.get(uuid=task.uuid)
+
+    # Change resource_management_type in service_settings
+    new_service_settings = task.service_settings.copy()
+    new_service_settings['resource_management_type'] = 'ECS'
+    task.service_settings = new_service_settings
+    task.save_without_sync()
+
+    new_execution_method = AwsEcsExecutionMethod(task=task)
+
+    should_update, should_recreate = new_execution_method.should_update_or_force_recreate_service(
+        old_execution_method=old_execution_method)
+
+    # resource_management_type change should force recreate
+    assert should_update is True
+    assert should_recreate is True

@@ -20,10 +20,11 @@ import {
   AwsLambdaExecutionMethodCapability,
   AwsCodeBuildExecutionMethodCapability,
   AwsInfrastructureSettings,
-  AwsEcsServiceSettings
+  AwsEcsServiceSettings,
+  CapacityProviderStrategyItem
 } from '../../types/domain_types';
 
-import { Table } from 'react-bootstrap';
+import { Col, Row, Table } from 'react-bootstrap';
 
 import BooleanIcon from '../common/BooleanIcon';
 
@@ -97,6 +98,22 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
       pair('Supported launch types',
         awsEcsEmc.supported_launch_types ? awsEcsEmc.supported_launch_types.join(', ') : 'N/A'),
       pair('Default launch type', awsEcsEmc.launch_type),
+      ...(awsEcsEmc.capacity_provider_strategy?.length ? [pair('Capacity provider strategy',
+        <div style={{marginTop: '0.4rem', marginBottom: '-0.5rem'}}>
+          <Row className="g-0 fw-bold pb-1 mb-1">
+            <Col xs={8}>Provider</Col>
+            <Col xs={2} className="text-end">Weight</Col>
+            <Col xs={2} className="text-end">Base</Col>
+          </Row>
+          {awsEcsEmc.capacity_provider_strategy.map((item: CapacityProviderStrategyItem, index: number) => (
+            <Row key={index} className="g-0 py-1">
+              <Col xs={8}>{item.capacity_provider}</Col>
+              <Col xs={2} className="text-end">{item.weight ?? 'N/A'}</Col>
+              <Col xs={2} className="text-end">{item.base ?? 'N/A'}</Col>
+            </Row>
+          ))}
+        </div>
+      )] : [pair('Capacity provider strategy', 'N/A')]),
       pair('ECS cluster ARN', awsEcsEmc.cluster_arn ?
         makeLink(awsEcsEmc.cluster_arn, awsEcsEmc.cluster_infrastructure_website_url) :
         <span>Default ({
@@ -124,6 +141,7 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
 
     if (serviceProviderType === SERVICE_PROVIDER_AWS_ECS) {
       const awsEcsServiceSettings = serviceSettings as AwsEcsServiceSettings;
+      const deployConfig = awsEcsServiceSettings?.deployment_configuration;
 
       const serviceArn = awsEcsServiceSettings.service_arn;
 
@@ -134,36 +152,188 @@ const TaskSettings = ({ task, runEnvironment }: Props) => {
       }
 
       execMethodRows.push(pair('Service options', <span/>));
-
-      execMethodRows.push(pair('Propagate tags',
-        awsEcsServiceSettings.propagate_tags || 'Default'));
+      execMethodRows.push(pair('Scheduling strategy', awsEcsServiceSettings.scheduling_strategy || 'Default'));
+      execMethodRows.push(pair('Availability zone rebalancing', awsEcsServiceSettings.availability_zone_rebalancing || 'Default'));
+      execMethodRows.push(pair('Resource management type', awsEcsServiceSettings.resource_management_type || 'Default'));
+      execMethodRows.push(pair('Propagate tags', awsEcsServiceSettings.propagate_tags || 'Default'));
 
       execMethodRows.push(pair('Deployment options', <span/>));
       execMethodRows.push(pair('Force new deployment?',
         <BooleanIcon checked={awsEcsServiceSettings?.force_new_deployment ?? false} />));
-      execMethodRows.push(pair('Maximum %',
-        awsEcsServiceSettings?.deployment_configuration?.maximum_percent ?? 'N/A'));
-      execMethodRows.push(pair('Minimum healthy %',
-        awsEcsServiceSettings?.deployment_configuration?.minimum_healthy_percent ?? 'N/A'));
+      execMethodRows.push(pair('Deployment strategy', deployConfig?.strategy || 'ROLLING'));
+      execMethodRows.push(pair('Maximum %', deployConfig?.maximum_percent ?? 'N/A'));
+      execMethodRows.push(pair('Minimum healthy %', deployConfig?.minimum_healthy_percent ?? 'N/A'));
+      execMethodRows.push(pair('Bake time', deployConfig?.bake_time_in_minutes != null
+        ? `${deployConfig.bake_time_in_minutes} min` : 'N/A'));
       execMethodRows.push(pair('Enable circuit breaker?',
-        <BooleanIcon checked={awsEcsServiceSettings?.deployment_configuration?.deployment_circuit_breaker?.enable ?? false} />));
+        <BooleanIcon checked={deployConfig?.deployment_circuit_breaker?.enable ?? false} />));
       execMethodRows.push(pair('Rollback on failure?',
-        <BooleanIcon checked={awsEcsServiceSettings?.deployment_configuration?.deployment_circuit_breaker?.rollback_on_failure ?? false} />));
+        <BooleanIcon checked={deployConfig?.deployment_circuit_breaker?.rollback_on_failure ?? false} />));
 
-      const loadBalancerSettings = awsEcsServiceSettings?.load_balancer_settings;
-      const loadBalancers = loadBalancerSettings?.load_balancers;
+      const alarms = deployConfig?.alarms;
+      if (alarms) {
+        execMethodRows.push(pair('Deployment alarms', <span />));
+        execMethodRows.push(pair('  Enable alarms?', <BooleanIcon checked={alarms.enable ?? false} />));
+        execMethodRows.push(pair('  Rollback on alarm?', <BooleanIcon checked={alarms.rollback ?? false} />));
+        execMethodRows.push(pair('  Alarm names', alarms.alarm_names?.join(', ') || 'N/A'));
+      }
 
-      if (loadBalancerSettings && loadBalancers?.length) {
+      if (deployConfig?.strategy === 'LINEAR' && deployConfig.linear_configuration) {
+        const lc = deployConfig.linear_configuration;
+        execMethodRows.push(pair('Linear step %', lc.step_percent ?? 'N/A'));
+        execMethodRows.push(pair('Linear step bake time', lc.step_bake_time_in_minutes != null
+          ? `${lc.step_bake_time_in_minutes} min` : 'N/A'));
+      }
+
+      if (deployConfig?.strategy === 'CANARY' && deployConfig.canary_configuration) {
+        const cc = deployConfig.canary_configuration;
+        execMethodRows.push(pair('Canary %', cc.canary_percent ?? 'N/A'));
+        execMethodRows.push(pair('Canary bake time', cc.canary_bake_time_in_minutes != null
+          ? `${cc.canary_bake_time_in_minutes} min` : 'N/A'));
+      }
+
+      const lifecycleHooks = deployConfig?.lifecycle_hooks;
+      if (lifecycleHooks?.length) {
+        execMethodRows.push(pair('Lifecycle hooks',
+          <div style={{marginTop: '0.4rem', marginBottom: '-0.5rem'}}>
+            <Row className="g-0 fw-bold pb-1 mb-1">
+              <Col xs={6}>Hook target ARN</Col>
+              <Col xs={6}>Lifecycle stages</Col>
+            </Row>
+            {lifecycleHooks.map((hook, i) => (
+              <Row key={i} className="g-0 py-1">
+                <Col xs={6}>{hook.hook_target_arn || 'N/A'}</Col>
+                <Col xs={6}>{hook.lifecycle_stages?.join(', ') || 'N/A'}</Col>
+              </Row>
+            ))}
+          </div>
+        ));
+      }
+
+      const loadBalancers = awsEcsServiceSettings.load_balancers
+      const healthCheckGracePeriod = awsEcsServiceSettings.health_check_grace_period_seconds
+
+      if (loadBalancers?.length) {
         execMethodRows.push(pair('Load balancer health check grace period',
-          formatDuration(loadBalancerSettings.health_check_grace_period_seconds)));
+          formatDuration(healthCheckGracePeriod ?? null)));
 
         loadBalancers.forEach((loadBalancer, index) => {
-          execMethodRows.push(pair('Load balancer ' + (index + 1), <span />))
+          execMethodRows.push(pair('Load balancer ' + (index + 1), <span />));
           execMethodRows.push(pair('  Target group ARN',
             makeLink(loadBalancer.target_group_arn, loadBalancer.target_group_infrastructure_website_url)));
+          if (loadBalancer.load_balancer_name) {
+            execMethodRows.push(pair('  Load balancer name', loadBalancer.load_balancer_name));
+          }
           execMethodRows.push(pair('  Container name', loadBalancer.container_name || '(Default)'));
           execMethodRows.push(pair('  Container port', loadBalancer.container_port));
-        })
+          const adv = loadBalancer.advanced_configuration;
+          if (adv) {
+            execMethodRows.push(pair('  Alternate target group ARN',
+              makeLink(adv.alternate_target_group_arn, adv.alternate_target_group_infrastructure_website_url)));
+            if (adv.production_listener_rule) {
+              execMethodRows.push(pair('  Production listener rule', adv.production_listener_rule));
+            }
+            if (adv.test_listener_rule) {
+              execMethodRows.push(pair('  Test listener rule', adv.test_listener_rule));
+            }
+          }
+        });
+      }
+
+      const serviceRegistries = awsEcsServiceSettings.service_registries;
+      if (serviceRegistries?.length) {
+        execMethodRows.push(pair('Service registries',
+          <div style={{marginTop: '0.4rem', marginBottom: '-0.5rem'}}>
+            <Row className="g-0 fw-bold pb-1 mb-1">
+              <Col xs={6}>Registry ARN</Col>
+              <Col xs={6} className="text-end">Port</Col>
+            </Row>
+            {serviceRegistries.map((reg, i) => (
+              <Row key={i} className="g-0 py-1">
+                <Col xs={6}>{reg.registry_arn || 'N/A'}</Col>
+                <Col xs={6} className="text-end">{reg.port ?? 'N/A'}</Col>
+              </Row>
+            ))}
+            <Row className="g-0 fw-bold pt-1 mt-1">
+              <Col xs={6}>Container name</Col>
+              <Col xs={6} className="text-end">Container port</Col>
+            </Row>
+            {serviceRegistries.map((reg, i) => (
+              <Row key={i} className="g-0 py-1">
+                <Col xs={6}>{reg.container_name || 'N/A'}</Col>
+                <Col xs={6} className="text-end">{reg.container_port ?? 'N/A'}</Col>
+              </Row>
+            ))}
+          </div>
+        ));
+      }
+
+      const scc = awsEcsServiceSettings.service_connect_configuration;
+      if (scc) {
+        execMethodRows.push(pair('Service Connect', <span />));
+        execMethodRows.push(pair('  Enabled?', <BooleanIcon checked={scc.enabled ?? false} />));
+        execMethodRows.push(pair('  Namespace', scc.namespace || 'N/A'));
+        if (scc.services?.length) {
+          execMethodRows.push(pair('  Services',
+            <div style={{marginTop: '0.4rem', marginBottom: '-0.5rem'}}>
+              <Row className="g-0 fw-bold pb-1 mb-1">
+                <Col xs={3}>Port name</Col>
+                <Col xs={3}>Discovery name</Col>
+                <Col xs={6} className="text-end">Ingress port override</Col>
+              </Row>
+              {scc.services.map((svc, i) => (
+                <Row key={i} className="g-0 py-1">
+                  <Col xs={3}>{svc.port_name || 'N/A'}</Col>
+                  <Col xs={3}>{svc.discovery_name || 'N/A'}</Col>
+                  <Col xs={6} className="text-end">{svc.ingress_port_override ?? 'N/A'}</Col>
+                </Row>
+              ))}
+            </div>
+          ));
+        }
+        if (scc.log_configuration) {
+          execMethodRows.push(pair('  Log driver', scc.log_configuration.log_driver || 'N/A'));
+        }
+      }
+
+      const volumeConfigurations = awsEcsServiceSettings.volume_configurations;
+      if (volumeConfigurations?.length) {
+        execMethodRows.push(pair('Volume configurations',
+          <div style={{marginTop: '0.4rem', marginBottom: '-0.5rem'}}>
+            <Row className="g-0 fw-bold pb-1 mb-1">
+              <Col xs={3}>Name</Col>
+              <Col xs={3}>Filesystem</Col>
+              <Col xs={3}>Volume type</Col>
+              <Col xs={3} className="text-end">Size (GiB)</Col>
+            </Row>
+            {volumeConfigurations.map((vol, i) => (
+              <Row key={i} className="g-0 py-1">
+                <Col xs={3}>{vol.name}</Col>
+                <Col xs={3}>{vol.managed_ebs_volume?.filesystem_type || 'N/A'}</Col>
+                <Col xs={3}>{vol.managed_ebs_volume?.volume_type || 'N/A'}</Col>
+                <Col xs={3} className="text-end">{vol.managed_ebs_volume?.size_in_gib ?? 'N/A'}</Col>
+              </Row>
+            ))}
+          </div>
+        ));
+      }
+
+      const vpcLatticeConfigurations = awsEcsServiceSettings.vpc_lattice_configurations;
+      if (vpcLatticeConfigurations?.length) {
+        execMethodRows.push(pair('VPC Lattice configurations',
+          <div style={{marginTop: '0.4rem', marginBottom: '-0.5rem'}}>
+            <Row className="g-0 fw-bold pb-1 mb-1">
+              <Col xs={9}>Target group ARN</Col>
+              <Col xs={3} className="text-end">Port name</Col>
+            </Row>
+            {vpcLatticeConfigurations.map((vlc, i) => (
+              <Row key={i} className="g-0 py-1">
+                <Col xs={9}>{makeLink(vlc.target_group_arn, vlc.target_group_infrastructure_website_url)}</Col>
+                <Col xs={3} className="text-end">{vlc.port_name || 'N/A'}</Col>
+              </Row>
+            ))}
+          </div>
+        ));
       }
     }
 

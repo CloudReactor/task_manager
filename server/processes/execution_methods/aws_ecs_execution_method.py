@@ -171,6 +171,7 @@ AccessLogFormat = Literal['TEXT', 'JSON']
 AccessLogIncludeQueryParameters = Literal['DISABLED', 'ENABLED']
 FilesystemType = Literal['ext3', 'ext4', 'xfs', 'ntfs']
 VolumeTagPropagation = Literal['TASK_DEFINITION', 'SERVICE', 'NONE']
+ResourceManagementType = Literal['CUSTOMER', 'ECS']
 
 class ContainerSettings(PydanticSettingsModel):
     name: str | None = None
@@ -577,7 +578,9 @@ class AwsEcsServiceSettings(Boto3SerializableSettings):
     service_connect_configuration: AwsServiceConnectConfiguration | None = None
     volume_configurations: list[AwsVolumeConfiguration] | None = None
     vpc_lattice_configurations: list[AwsVpcLatticeConfiguration] | None = None        
+    resource_management_type: ResourceManagementType | None = None
     tags: list[AwsTagKeyValuePair] | None = None
+    
     service_arn: str | None = None
     infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
 
@@ -1082,6 +1085,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {ss.service_arn=} != {old_ss.service_arn=}, forcing recreate")
                 return (True, True)
 
+            if ss and ss.resource_management_type and (ss.resource_management_type != old_ss.resource_management_type):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {ss.resource_management_type=} != {old_ss.resource_management_type=}, forcing recreate")
+                return (True, True)
+
             old_aws_settings = old_aws_ecs_execution_method.aws_settings
 
             if not old_aws_settings:
@@ -1145,7 +1152,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     (old_settings.capacity_provider_strategy != self.settings.capacity_provider_strategy) or \
                     (old_settings.enable_execute_command != self.settings.enable_execute_command) or \
                     (old_settings.propagate_tags != self.settings.propagate_tags) or \
-                    (old_settings.enable_ecs_managed_tags != self.settings.enable_ecs_managed_tags):            
+                    (old_settings.enable_ecs_managed_tags != self.settings.enable_ecs_managed_tags):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} ECS settings changed, update required, but not recreate (3)")
                 return (True, False)
 
