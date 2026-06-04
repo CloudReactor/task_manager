@@ -307,6 +307,7 @@ export interface AwsEcsExecutionMethodCapability {
   platform_version?: string | null;
   capacity_provider_strategy?: CapacityProviderStrategyItem[] | null;
   enable_ecs_managed_tags?: boolean | null;
+  enable_execute_command?: boolean | null;
   propagate_tags?: boolean | null;
   task_group?: string | null;
   containers?: ContainerSettings[] | null;
