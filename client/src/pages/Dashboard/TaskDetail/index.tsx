@@ -393,7 +393,12 @@ const TaskDetail = ({
               {(() => {
                 switch (selectedTab) {
                   case 'settings':
-                    return <TaskSettings task={task} runEnvironment={runEnvironment ?? undefined} />;
+                    return <TaskSettings 
+                      task={task} 
+                      runEnvironment={runEnvironment ?? undefined}
+                      onSave={(data) => handleTaskSubmitted(task.uuid, data)}
+                      isMutationAllowed={!!isMutationAllowed}
+                    />;
                   case 'notifications':
                     return <TaskNotificationsTab task={task} onTaskSaved={handleTaskSubmitted} />;
                   case 'events':

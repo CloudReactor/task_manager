@@ -8,6 +8,7 @@ import * as Yup from 'yup';
 import { Task, NotificationProfile } from "../../types/domain_types";
 
 import {
+  Button,
   Form, FormCheck, FormControl, FormGroup, FormLabel, FormText,
   InputGroup,
   Row, Col, Container
@@ -19,7 +20,6 @@ import {
 } from 'formik';
 
 import NotificationProfileSelector from '../common/NotificationProfileSelector';
-import CustomButton from '../common/Button/CustomButton';
 import styles from './TaskNotificationsTab.module.scss';
 import NotificationEventSeveritySelector from '../common/NotificationEventSeveritySelector/NotificationEventSeveritySelector';
 
@@ -523,15 +523,15 @@ const TaskNotificationsTab = ({
                     </Row>
                   </fieldset>
 
-                  <CustomButton className={styles.saveButton}
-                    onActionRequested={ (action, cbData) => handleSubmit() }
-                    color="primary"
+                  <Button
+                    variant="success"
+                    size="sm"
+                    onClick={() => handleSubmit()}
                     type="button"
                     disabled={isSubmitting}
-                    label="Save changes"
-                    inProgress={isSubmitting}
-                    faIconName="save"
-                  />
+                  >
+                    {isSubmitting ? 'Saving...' : 'Save'}
+                  </Button>
                 </Form>
               </div>
             </Fragment>

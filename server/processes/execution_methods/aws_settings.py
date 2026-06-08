@@ -6,12 +6,11 @@ import os
 from urllib.parse import quote
 import uuid
 
+from pydantic import Field
+
 import boto3
 
-from pydantic import BaseModel
-
-from ..common.constants import UNSET_VALUE
-
+from ..common import UNSET_VALUE, EXCLUDE_IF_NONE, PydanticSettingsModel
 from ..common.aws import *
 from ..exception import UnprocessableEntity
 from .infrastructure_settings import InfrastructureSettings
@@ -23,22 +22,22 @@ if TYPE_CHECKING:
 INFRASTRUCTURE_TYPE_AWS = 'AWS'
 
 
-class SecurityGroup(BaseModel):
+class SecurityGroup(PydanticSettingsModel):
     name: str | None = None
     id: str | None = None
-    infrastructure_website_url: str | None = None
+    infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
 
-class Vpc(BaseModel):
+class Vpc(PydanticSettingsModel):
     name: str | None = None
     id: str | None = None
-    infrastructure_website_url: str | None = None
+    infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
 
-class Subnet(BaseModel):
+class Subnet(PydanticSettingsModel):
     name: str | None = None
     id: str | None = None
-    infrastructure_website_url: str | None = None
+    infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
 
-class AwsNetwork(BaseModel):
+class AwsNetwork(PydanticSettingsModel):
     network_mode: str | None = None
     device_number: int | None = None
     eni_id: str | None = None
@@ -57,18 +56,18 @@ class AwsNetwork(BaseModel):
     vpc: Vpc | None = None
 
 
-class AwsNetworkSettings(BaseModel):
+class AwsNetworkSettings(PydanticSettingsModel):
     region: str | None = None
     availability_zone: str | None = None
     subnets: list[str] | None = None
-    subnet_infrastructure_website_urls: list[str] | None = None
+    subnet_infrastructure_website_urls: list[str] | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     security_groups: list[str] | None = None
-    security_group_infrastructure_website_urls: list[str] | None = None
+    security_group_infrastructure_website_urls: list[str] | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     assign_public_ip: bool | None = None
     networks: list[AwsNetwork] | None = None
     vpc_id: str | None = None
     selected_subnet: str | None = None
-    selected_subnet_infrastructure_website_url: str | None = None
+    selected_subnet_infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
 
     def update_derived_attrs(self, aws_settings: AwsSettings,
           execution_method: ExecutionMethod | None = None) -> None:
@@ -104,7 +103,7 @@ class AwsNetworkSettings(BaseModel):
         return region
 
 
-class AwsLogOptions(BaseModel):
+class AwsLogOptions(PydanticSettingsModel):
     region: str | None = None
     group: str | None = None
     create_group: str | None = None
@@ -114,7 +113,7 @@ class AwsLogOptions(BaseModel):
     multiline_pattern: str | None = None
     mode: str | None = None
     max_buffer_size: str | None = None
-    stream_infrastructure_website_url: str | None = None
+    stream_infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
 
     def update_derived_attrs(self, aws_settings: AwsSettings,
             execution_method: ExecutionMethod | None = None) -> None:
@@ -141,10 +140,10 @@ class AwsLogOptions(BaseModel):
         return region
 
 
-class AwsLoggingSettings(BaseModel):
+class AwsLoggingSettings(PydanticSettingsModel):
     driver: str | None = None
     options: AwsLogOptions | None = None
-    infrastructure_website_url: str | None = None
+    infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
 
     def update_derived_attrs(self, aws_settings: AwsSettings,
             execution_method: ExecutionMethod | None) -> None:
@@ -187,11 +186,11 @@ class AwsLoggingSettings(BaseModel):
         return region
 
 
-class AwsXraySettings(BaseModel):
+class AwsXraySettings(PydanticSettingsModel):
     trace_id: str | None = None
     context_missing: str | None = None
 
-class AwsTagKeyValuePair(BaseModel):
+class AwsTagKeyValuePair(PydanticSettingsModel):
     key: str
     value: str
 
@@ -217,12 +216,12 @@ class AwsSettings(InfrastructureSettings):
     access_key: str | None = None
     secret_key: str | None = None
     events_role_arn: str | None = None
-    events_role_infrastructure_website_url: str | None = None
+    events_role_infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     assumed_role_external_id: str | None = None
     execution_role_arn: str | None = None
-    execution_role_infrastructure_website_url: str | None = None
+    execution_role_infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     workflow_starter_lambda_arn: str | None = None
-    workflow_starter_lambda_infrastructure_website_url: str | None = None
+    workflow_starter_lambda_infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     workflow_starter_access_key: str | None = None
     network: AwsNetworkSettings | None = None
     logging: AwsLoggingSettings | None = None

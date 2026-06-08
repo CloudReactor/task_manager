@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from django.contrib.auth.models import User
 
+from processes.common.utils import INHERIT_VALUE
 from processes.execution_methods import (
     AwsEcsExecutionMethod, UnknownExecutionMethod
 )
@@ -1106,33 +1107,33 @@ def test_task_set_notification_profiles(
 
         old_count = Task.objects.count()
 
-        am_group = user.groups.first()
-        am_run_environment = run_environment
+        np_group = user.groups.first()
+        np_run_environment = run_environment
 
         if notification_profile_send_type == SEND_ID_CORRECT:
-            am_run_environment = am_run_environment or \
+            np_run_environment = np_run_environment or \
                     api_key_run_environment
         if notification_profile_send_type == SEND_ID_WRONG:
-            am_group = group_factory()
+            np_group = group_factory()
         elif notification_profile_send_type == SEND_ID_IN_WRONG_GROUP:
-            am_group = group_factory()
-            set_group_access_level(user=user, group=am_group,
+            np_group = group_factory()
+            set_group_access_level(user=user, group=np_group,
                     access_level=UserGroupAccessLevel.ACCESS_LEVEL_ADMIN)
         elif notification_profile_send_type == SEND_ID_WITH_OTHER_RUN_ENVIRONMENT:
-            am_run_environment = run_environment_factory(created_by_group=am_group)
+            np_run_environment = run_environment_factory(created_by_group=np_group)
         elif notification_profile_send_type == SEND_ID_WITHOUT_RUN_ENVIRONMENT:
-            am_run_environment = None
+            np_run_environment = None
 
-        notification_profile = notification_profile_factory(created_by_group=am_group,
-                run_environment=am_run_environment)
+        notification_profile = notification_profile_factory(created_by_group=np_group,
+                run_environment=np_run_environment)
 
         if notification_profile_send_type:
-            am_uuid = notification_profile.uuid
+            np_uuid = notification_profile.uuid
             if notification_profile_send_type == SEND_ID_NOT_FOUND:
-                am_uuid = uuid.uuid4()
+                np_uuid = uuid.uuid4()
 
             body_notification_profiles = [{
-                'uuid': str(am_uuid)
+                'uuid': str(np_uuid)
             }]
 
             request_data['notification_profiles'] = body_notification_profiles
@@ -1141,7 +1142,7 @@ def test_task_set_notification_profiles(
             response = client.post(url, data=request_data)
         else:
             # Prevent conflict with previous iteration's created entity
-            request_data['name'] = 'Updated AM'
+            request_data['name'] = 'Updated NP'
             response = client.patch(url, data=request_data)
 
         actual_status_code = status_code
@@ -1647,6 +1648,97 @@ def test_task_enable_aws_ecs_task(
 
     validate_aws_ecs_task_settings(model_task=updated_task, aws_settings=aws_settings,
             aws_ecs_setup=aws_ecs_setup)
+
+@pytest.mark.django_db
+@mock_aws
+def test_task_update_aws_ecs_task_with_inherit_value(
+        user_factory, group_factory,
+        run_environment_factory, task_factory,
+        api_client) -> None:
+    """
+    Test Task created with AWS ECS execution method.
+    """
+
+    user = user_factory()
+
+    task, api_key_run_environment, client, url = common_setup(
+            is_authenticated=True,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_scope_type=SCOPE_TYPE_CORRECT,
+            uuid_send_type=SEND_ID_CORRECT,
+            user=user,
+            group_factory=group_factory,
+            run_environment_factory=run_environment_factory,
+            task_factory=task_factory,
+            api_client=api_client)
+
+    assert api_key_run_environment is not None
+
+    aws_settings = setup_aws()
+    api_key_run_environment.aws_settings = aws_settings
+    api_key_run_environment.save()
+    
+    aws_ecs_setup = setup_aws_ecs(run_environment=api_key_run_environment)
+
+    task.execution_method_type = AwsEcsExecutionMethod.NAME
+    task.execution_method_capability_details = aws_ecs_setup.make_execution_method_settings()
+    task.infrastructure_type = INFRASTRUCTURE_TYPE_AWS
+    task.infrastructure_settings = aws_settings
+    task.save()
+
+    validate_aws_ecs_task_settings(model_task=task, aws_settings=aws_settings,
+            aws_ecs_setup=aws_ecs_setup)
+    
+    request_data = {
+        'infrastructure_settings': {
+            'network': {
+                'subnets': INHERIT_VALUE,
+                'security_groups': INHERIT_VALUE,
+                'assign_public_ip': INHERIT_VALUE,
+            }
+        }
+
+    }
+
+    old_count = Task.objects.count()
+
+    logger.info(f"{request_data=}")
+
+    response = client.patch(url, data=request_data)
+
+    assert response.status_code == 200
+
+    new_count = Task.objects.count()
+
+    assert new_count == old_count
+
+    response_task = cast(dict[str, Any], response.data)
+    task_uuid = response_task['uuid']
+    updated_task = Task.objects.get(uuid=task_uuid)
+
+    ensure_serialized_task_valid(response_task=response_task,
+            task=updated_task, user=user,
+            group_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_access_level=UserGroupAccessLevel.ACCESS_LEVEL_DEVELOPER,
+            api_key_run_environment=api_key_run_environment)
+
+    validate_saved_task(body_task=request_data, model_task=updated_task)
+
+    validate_aws_ecs_task_settings(model_task=updated_task, aws_settings=aws_settings,
+            aws_ecs_setup=aws_ecs_setup)
+
+    aws_settings = updated_task.infrastructure_settings
+
+    print(f"{aws_settings=}")
+
+    network = aws_settings['network']
+    assert 'subnets' not in network
+    assert 'subnet_infrastructure_website_urls' not in network
+    assert 'security_groups' not in network
+    assert 'security_group_infrastructure_website_urls' not in network
+    assert 'assign_public_ip' not in network
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("""

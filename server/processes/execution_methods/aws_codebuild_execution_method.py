@@ -9,12 +9,15 @@ from django.utils import timezone
 
 from rest_framework.exceptions import APIException
 
-from pydantic import ConfigDict, BaseModel
+from pydantic import ConfigDict, Field
 
 from botocore.exceptions import ClientError
 
+from ..common import (
+    PydanticSettingsModel, EXCLUDE_IF_NONE,
+    deepmerge, lookup_string, lookup_int, lookup_bool, to_camel
+)
 from ..common.aws import *
-from ..common.utils import deepmerge, lookup_string, lookup_int, lookup_bool, to_camel
 from .aws_base_execution_method import AwsBaseExecutionMethod
 from .aws_settings import *
 from .execution_method import ExecutionMethodSettings
@@ -29,13 +32,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AwsCodeBuildCache(BaseModel):
+class AwsCodeBuildCache(PydanticSettingsModel):
     type: str | None = None
     location: str | None = None
     modes: list[str] | None = None
 
 
-class AwsCodeBuildArtifact(BaseModel):
+class AwsCodeBuildArtifact(PydanticSettingsModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
     
     location: str | None = None
@@ -53,15 +56,18 @@ class AwsCodeBuildExecutionMethodSettings(ExecutionMethodSettings):
     initiator: str | None = None
     source_repo_url: str | None = None
     source_version: str | None = None
-    source_version_infrastructure_website_url: str | None = None
+    source_version_infrastructure_website_url: str | None = \
+            Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     environment_type: str | None = None
     compute_type: str | None = None
     privileged_mode: bool | None = None
     image_pull_credentials_type: str | None = None
     kms_key_id: str | None = None
-    kms_key_infrastructure_website_url: str | None = None
+    kms_key_infrastructure_website_url: str | None = \
+            Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     service_role: str | None = None
-    service_role_infrastructure_website_url: str | None = None
+    service_role_infrastructure_website_url: str | None = \
+            Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     timeout_in_minutes: int | None = None
     queued_timeout_in_minutes: int | None = None
     cache: AwsCodeBuildCache | None = None
@@ -69,7 +75,8 @@ class AwsCodeBuildExecutionMethodSettings(ExecutionMethodSettings):
     secondary_artifacts: list[AwsCodeBuildArtifact] | None = None
     debug_session_enabled: bool | None = None
     assumed_role_arn: str | None = None
-    assumed_role_infrastructure_website_url: str | None = None
+    assumed_role_infrastructure_website_url: str | None = \
+            Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     project_name: str | None = None
 
 
@@ -156,7 +163,7 @@ class AwsCodeBuildExecutionMethodSettings(ExecutionMethodSettings):
             self.cache = AwsCodeBuildCache.model_validate(cache_dict)
 
 
-class AwsCodeBuildWebhookInfo(BaseModel):
+class AwsCodeBuildWebhookInfo(PydanticSettingsModel):
     actor_account_id: str | None = None
     base_ref: str | None = None
     event: str | None = None
@@ -166,12 +173,12 @@ class AwsCodeBuildWebhookInfo(BaseModel):
     trigger: str | None = None
 
 
-class AwsCodeBuildReport(BaseModel):
+class AwsCodeBuildReport(PydanticSettingsModel):
     report_arn: str | None = None
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
-class AwsCodeBuildProjectFileSystemLocation(BaseModel):
+class AwsCodeBuildProjectFileSystemLocation(PydanticSettingsModel):
     type: str | None = None
     location: str | None = None
     mount_point: str | None = None
@@ -180,7 +187,7 @@ class AwsCodeBuildProjectFileSystemLocation(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
-class AwsCodeBuildDebugSession(BaseModel):
+class AwsCodeBuildDebugSession(PydanticSettingsModel):
     session_enabled: bool | None = None
     session_target: str | None = None
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
@@ -442,8 +449,7 @@ class AwsCodeBuildExecutionMethod(AwsBaseExecutionMethod):
             aws_codebuild_settings =  AwsCodeBuildExecutionMethodInfo.model_validate(emd)
             aws_codebuild_settings.update_derived_attrs(aws_settings=self.aws_settings)
 
-            self.task_execution.execution_method_details = deepmerge(
-                    emd, aws_codebuild_settings.model_dump())
+            self.task_execution.execution_method_details = aws_codebuild_settings.model_dump()
 
 
     def update_aws_settings_from_start_build_response(self, response: dict[str, Any]) -> None:

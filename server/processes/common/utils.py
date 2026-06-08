@@ -5,6 +5,9 @@ import re
 
 from django.utils.text import camel_case_to_spaces
 
+INHERIT_VALUE = "__inherit__"
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,17 +40,22 @@ def coalesce(*arg):
 
 
 def deepmerge_with_lists_pair(dest: Any, src: Any,
-        append_lists: bool=False, ignore_none: bool=True) -> Any:
+        append_lists: bool=False, ignore_none: bool=False) -> Any:
     if isinstance(dest, str): # because string is iterable
         if src is None:
-            return dest
+            if ignore_none:
+                return dest
+            else:
+                return None
 
         return src
 
     if isinstance(dest, abc.MutableMapping):
         if (not isinstance(src, str)) and isinstance(src, abc.Mapping):
             for k, v in src.items():
-                if k in dest:
+                if v == INHERIT_VALUE:
+                    dest.pop(k, None)
+                elif k in dest:
                     dest[k] = deepmerge_with_lists_pair(dest[k], v,
                             append_lists=append_lists, ignore_none=ignore_none)
                 else:
@@ -86,7 +94,7 @@ def deepmerge_with_lists_pair(dest: Any, src: Any,
 def deepmerge_core(append_lists: bool, ignore_none: bool, *args) -> Any:
     """
     Deep merge, including dict elements of lists.
-    The third argument is modified in place.
+    The first non-keyword argument is modified in place.
     """
     dest = None
 
@@ -103,7 +111,7 @@ def deepmerge_core(append_lists: bool, ignore_none: bool, *args) -> Any:
 def deepmerge_with_lists(*args) -> Any:
     """
     Deep merge, including dict elements of lists.
-    The first argument is modified in place.
+    The first non-keyword argument is modified in place.
     """
     return deepmerge_core(True, True, *args)
 

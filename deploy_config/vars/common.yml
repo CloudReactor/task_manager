@@ -441,6 +441,66 @@ project_task_config:
     # status_update_socket_port: 2373
     log_level: INFO
     # log_secrets: False
+
+    # Set to false to exclude timestamps from the log output, in case
+    # are timestamps are added by the logging provider. The deployer sets up
+    # CloudWatch Logs (which adds timestamps) for this project, so we
+    # set this to false here.
+    include_timestamps_in_log: false
+
+    # The maximum number of trailing log lines to send to CloudReactor if the
+    # process fails
+    num_log_lines_sent_on_failure: 25
+
+    # The maximum number of trailing log lines to send to CloudReactor if the
+    # process times out
+    num_log_lines_sent_on_timeout: 25
+
+    # The maximum number of trailing log lines to send to CloudReactor if the
+    # process succeeds
+    # num_log_lines_sent_on_success: 5
+
+    # The maximum number of length of each log line. If a log line is longer
+    # than this value, it will be truncated to this length before being sent.
+    max_log_line_length: 1000
+
+    # # By default, stdout and stderr and merged into the debug log tail
+    # # in CloudReactor. Set this to false to use the error log tail for stderr.
+    # merge_stdout_and_stderr_logs: true
+
+    # # Set to true to ignore stdout from the process, for the purposes of
+    # # sending logs to CloudReactor
+    # ignore_stdout: false
+
+    # # Set to true to ignore stderr from the process, for the purposes of
+    # # sending logs to CloudReactor
+    # ignore_stderr: false
+
+    # # Listen for status updates from the process, sent on the status socket
+    # # port via UDP.
+    # enable_status_update_listener: true
+
+    # # Minimum of number of seconds to wait between sending status updates to
+    # # the API server. -1 means to not send status updates except with
+    # # heartbeats.
+    # status_update_interval_seconds: 60
+
+    # # The port used to receive status updates from the process.
+    # status_update_socket_port: 2373
+
+    # managed_probability: 1.0
+    # failure_report_probability: 1.0
+    # timeout_report_probability: 1.0
+
+    # # This data is sent back from the wrapper to CloudReactor when it starts.
+    # # It may be used to identify properties about instance of the task that is
+    # # running.
+    # other_metadata:
+    #   a: 'b'
+    #   embedded:
+    #     c: 'd'
+    #     f: 1
+
     # # Optional Rollbar token used by the wrapper script.
     # # Can point to AWS Secrets Manager, or be the access token itself.
     # rollbar_access_token: "arn:aws:secretsmanager:[aws_region]:[aws_account_id]:secret:CloudReactor/example/common/rollbar_access_token-xxx"
@@ -497,21 +557,23 @@ project_task_name_to_config:
         - capacity_provider: FARGATE_SPOT
           weight: 3
           base: 0
+      propagate_tags: SERVICE # Or "TASK_EXECUTION"
+      # enable_ecs_managed_tags: True
       extra_main_container_properties:
         portMappings:
           - containerPort: 8000
             protocol: tcp
     service_settings:
+      # force_new_deployment: False
       deployment_configuration:
-        # force_new_deployment: False
         minimum_healthy_percent: 100
         maximum_percent: 200
-        enable_circuit_breaker: True
-        rollback_on_failure: True
-        # enable_ecs_managed_tags: True
-        # propagate_tags: SERVICE # Or "TASK_EXECUTION"
-        # tags:
-        #   IS_SERVICE: TRUE
+        deployment_circuit_breaker:
+            enable: True
+            rollback: True
+      tags:
+        - key: IS_SERVICE
+          value: "TRUE"
 
   create_superuser:
     command: "python manage.py createsuperuser --noinput"

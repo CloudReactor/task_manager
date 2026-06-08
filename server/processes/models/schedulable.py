@@ -46,7 +46,7 @@ class Schedulable(NamedWithUuidModel, ExecutionProbabilities):
     run_environment = models.ForeignKey(RunEnvironment,
         related_name='+', on_delete=models.CASCADE, blank=True, null=True)
 
-    notification_profiles = models.ManyToManyField(NotificationProfile)
+    notification_profiles = models.ManyToManyField(NotificationProfile, blank=True)
 
     schedule = models.CharField(max_length=1000, blank=True)
     scheduled_instance_count = models.PositiveIntegerField(null=True, blank=True)

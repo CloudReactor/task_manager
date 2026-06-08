@@ -30,6 +30,9 @@ import {
 import * as C from './constants';
 import * as UIC from './ui_constants';
 
+// Sentinel value used to indicate a field should inherit from defaults
+export const INHERIT_SENTINEL = '__inherit__';
+
 export interface ResultsPage<T> {
   count: number;
   results: T[];

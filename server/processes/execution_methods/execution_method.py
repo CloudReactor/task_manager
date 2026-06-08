@@ -5,14 +5,11 @@ from typing import Any, FrozenSet, TYPE_CHECKING
 import logging
 import enum
 
-from pydantic import BaseModel
 from rest_framework.exceptions import (
     APIException,
     ValidationError
 )
-
-from ..common.request_helpers import context_with_request
-from ..common.utils import coalesce
+from ..common import PydanticSettingsModel, coalesce, context_with_request
 from ..exception import UnprocessableEntity
 
 if TYPE_CHECKING:
@@ -23,7 +20,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-class ExecutionMethodSettings(BaseModel):
+class ExecutionMethodSettings(PydanticSettingsModel):
     infrastructure_website_url: str | None = None
 
 class ExecutionMethod:
@@ -301,7 +298,7 @@ class ExecutionMethod:
             else:   
                 logger.error(f"Failed to create execution method of type {emt}", exc_info=True)
                     
-        if task_execution is None:
+        if em and (task_execution is None):
             try:
                 em.sanitize_task_settings()
             except Exception as e:

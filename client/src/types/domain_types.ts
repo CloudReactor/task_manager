@@ -272,17 +272,6 @@ export interface NamedInfrastructureSettings<T> {
   }
 }
 
-export interface LegacyExecutionMethodCapability {
-  capabilities: string[];
-  type: string;
-}
-
-export class LegacyExecutionMethodCapabilityImpl
-implements LegacyExecutionMethodCapabilityImpl {
-  capabilities = []
-  type = EXECUTION_METHOD_TYPE_UNKNOWN;
-}
-
 export interface ContainerSettings {
   name?: string | null;
   docker_id?: string | null;
@@ -291,6 +280,12 @@ export interface ContainerSettings {
   image_id?: string | null;
   labels?: Record<string, string> | null;
   container_arn?: string | null;
+}
+
+export interface CapacityProviderStrategyItem {
+  capacity_provider: string;
+  weight?: number | null;
+  base?: number | null;
 }
 
 export interface AwsEcsExecutionMethodCapability {
@@ -310,7 +305,9 @@ export interface AwsEcsExecutionMethodCapability {
   task_role_arn?: string | null;
   task_role_infrastructure_website_url?: string | null;
   platform_version?: string | null;
+  capacity_provider_strategy?: CapacityProviderStrategyItem[] | null;
   enable_ecs_managed_tags?: boolean | null;
+  enable_execute_command?: boolean | null;
   propagate_tags?: boolean | null;
   task_group?: string | null;
   containers?: ContainerSettings[] | null;
@@ -420,32 +417,181 @@ export interface AwsEcsServiceDeploymentCircuitBreaker {
   rollback_on_failure: boolean | null;
 }
 
+export interface AwsEcsServiceDeploymentAlarms {
+  alarm_names: string[] | null;
+  rollback: boolean | null;
+  enable: boolean | null;
+}
+
+export interface AwsEcsServiceDeploymentLifecycleHook {
+  hook_target_arn: string | null;
+  lifecycle_stages: string[] | null;
+  hook_details: any | null;
+}
+
+export interface AwsEcsServiceDeploymentLinearConfiguration {
+  step_percent: number | null;
+  step_bake_time_in_minutes: number | null;
+}
+
+export interface AwsEcsServiceDeploymentCanaryConfiguration {
+  canary_percent: number | null;
+  canary_bake_time_in_minutes: number | null;
+}
+
 export interface AwsEcsServiceDeploymentConfiguration {
   maximum_percent: number | null;
   minimum_healthy_percent: number | null;
   deployment_circuit_breaker: AwsEcsServiceDeploymentCircuitBreaker | null;
+  alarms: AwsEcsServiceDeploymentAlarms | null;
+  strategy: string | null;
+  bake_time_in_minutes: number | null;
+  lifecycle_hooks: AwsEcsServiceDeploymentLifecycleHook[] | null;
+  linear_configuration: AwsEcsServiceDeploymentLinearConfiguration | null;
+  canary_configuration: AwsEcsServiceDeploymentCanaryConfiguration | null;
+}
+
+export interface AwsApplicationLoadBalancerAdvancedConfiguration {
+  alternate_target_group_arn: string | null;
+  alternate_target_group_infrastructure_website_url: string | null;
+  production_listener_rule: string | null;
+  test_listener_rule: string | null;
 }
 
 export interface AwsApplicationLoadBalancer {
   target_group_arn: string | null;
   target_group_infrastructure_website_url: string | null;
+  load_balancer_name: string | null;
+  container_name: string | null;
+  container_port: number | null;
+  advanced_configuration: AwsApplicationLoadBalancerAdvancedConfiguration | null;
+}
+
+
+export interface ServiceRegistry {
+  registry_arn: string | null;
+  port: number | null;
   container_name: string | null;
   container_port: number | null;
 }
 
-export interface AwsApplicationLoadBalancerSettings {
-  health_check_grace_period_seconds: number | null;
-  load_balancers: AwsApplicationLoadBalancer[] | null;
+export interface AwsServiceConnectTestTrafficRuleHeaderValue {
+  exact: string | null;
+}
+
+export interface AwsServiceConnectTestTrafficRuleHeader {
+  name: string | null;
+  value: AwsServiceConnectTestTrafficRuleHeaderValue | null;
+}
+
+export interface AwsServiceConnectTestTrafficRules {
+  header: AwsServiceConnectTestTrafficRuleHeader | null;
+}
+
+export interface AwsServiceConnectClientAlias {
+  port: number | null;
+  dns_name: string | null;
+  test_traffic_rules: AwsServiceConnectTestTrafficRules | null;
+}
+
+export interface AwsServiceConnectTimeout {
+  idle_timeout_seconds: number | null;
+  per_request_timeout_seconds: number | null;
+}
+
+export interface AwsServiceConnectIssuedCertificateAuthority {
+  aws_pca_authority_arn: string | null;
+}
+
+export interface AwsServiceConnectTls {
+  issued_certificate_authority: AwsServiceConnectIssuedCertificateAuthority | null;
+  kms_key: string | null;
+}
+
+export interface AwsServiceConnectService {
+  port_name: string | null;
+  discovery_name: string | null;
+  client_aliases: AwsServiceConnectClientAlias[] | null;
+  ingress_port_override: number | null;
+  timeout: AwsServiceConnectTimeout | null;
+  tls: AwsServiceConnectTls | null;
+}
+
+export interface AwsServiceConnectLogConfigurationSecretOption {
+  name: string | null;
+  value_from: string | null;
+}
+
+export interface AwsServiceConnectLogConfiguration {
+  log_driver: string | null;
+  options: Record<string, string> | null;
+  secret_options: AwsServiceConnectLogConfigurationSecretOption[] | null;
+}
+
+export interface AwsServiceConnectAccessLogConfiguration {
+  format: string | null;
+  include_query_parameters: string | null;
+}
+
+export interface AwsServiceConnectConfiguration {
+  enabled: boolean | null;
+  namespace: string | null;
+  services: AwsServiceConnectService[] | null;
+  log_configuration: AwsServiceConnectLogConfiguration | null;
+  access_log_configuration: AwsServiceConnectAccessLogConfiguration | null;
+}
+
+export interface AwsVolumeTagSpecification {
+  resource_type: string | null;
+  tags: AwsTagKeyValuePair[] | null;
+  propagate_tags: string | null;
+}
+
+export interface AwsManagedEBSVolume {
+  encrypted: boolean | null;
+  kms_key_id: string | null;
+  kms_key_infrastructure_website_url: string | null;
+  volume_type: string | null;
+  size_in_gib: number | null;
+  snapshot_id: string | null;
+  volume_initialization_rate: number | null;
+  iops: number | null;
+  throughput: number | null;
+  tag_specifications: AwsVolumeTagSpecification[] | null;
+  filesystem_type: string | null;
+}
+
+export interface AwsVolumeConfiguration {
+  name: string;
+  managed_ebs_volume: AwsManagedEBSVolume | null;
+}
+
+export interface AwsVpcLatticeConfiguration {
+  target_group_arn: string | null;
+  target_group_infrastructure_website_url: string | null;
+  port_name: string | null;
+}
+
+export interface AwsTagKeyValuePair {
+  key: string;
+  value: string;
 }
 
 export interface AwsEcsServiceSettings {
   deployment_configuration: AwsEcsServiceDeploymentConfiguration | null;
   scheduling_strategy: string | null;
   force_new_deployment: boolean | null;
-  load_balancer_settings: AwsApplicationLoadBalancerSettings | null;
+  availability_zone_rebalancing: string | null;
+  resource_management_type: string | null;
+  health_check_grace_period_seconds: number | null;
+  load_balancers: AwsApplicationLoadBalancer[] | null;
+  service_registries: ServiceRegistry[] | null;
+  service_connect_configuration: AwsServiceConnectConfiguration | null;
+  volume_configurations: AwsVolumeConfiguration[] | null;
+  vpc_lattice_configurations: AwsVpcLatticeConfiguration[] | null;
   enable_ecs_managed_tags: boolean | null;
   propagate_tags: string | null;
-  tags: Record<string, string> | null
+  tags: AwsTagKeyValuePair[] | null;
   service_arn: string | null;
   infrastructure_website_url: string | null;
 }

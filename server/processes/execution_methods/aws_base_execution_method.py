@@ -5,12 +5,12 @@ from typing import Any, TYPE_CHECKING, override
 import logging
 from urllib.parse import quote
 
-from pydantic import BaseModel, ConfigDict, SerializationInfo, SerializerFunctionWrapHandler, model_serializer
+from pydantic import ConfigDict, SerializationInfo, SerializerFunctionWrapHandler, model_serializer
 from pydantic.alias_generators import to_camel
 
 
+from ..common import PydanticSettingsModel, deepmerge
 from ..common.aws import normalize_role_arn, make_aws_console_role_url
-from ..common.utils import deepmerge
 from .execution_method import ExecutionMethod
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsSettings
 
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Has model_config suitable for use in boto3
-class Boto3SerializableSettings(BaseModel):
+class Boto3SerializableSettings(PydanticSettingsModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
         validate_by_alias=True,
@@ -62,6 +62,7 @@ class Boto3SerializableSettings(BaseModel):
     
     def update_derived_attrs(self, aws_settings: AwsSettings | None) -> None:
         pass
+    
 class AwsSubSettingsWithRole(Boto3SerializableSettings):
     role_arn: str | None = None
     role_infrastructure_website_url: str | None = None
@@ -146,8 +147,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
 
             aws_settings.update_derived_attrs(execution_method=self)
 
-            self.task.infrastructure_settings = deepmerge(
-                    aws_settings_dict, aws_settings.model_dump())
+            self.task.infrastructure_settings = aws_settings.model_dump()
 
         # TODO: scheduling URLs
 
@@ -162,8 +162,7 @@ class AwsBaseExecutionMethod(ExecutionMethod):
 
             aws_settings.update_derived_attrs(execution_method=self)
 
-            self.task_execution.infrastructure_settings = deepmerge(
-                    aws_settings_dict, aws_settings.model_dump())
+            self.task_execution.infrastructure_settings = aws_settings.model_dump()
 
     @override
     def logs_url(self) -> str | None:

@@ -13,12 +13,14 @@ from django.utils import timezone
 
 from rest_framework.exceptions import APIException
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from botocore.exceptions import ClientError
 
+from processes.common.pydantic_settings_model import EXCLUDE_IF_NONE
+
+from ..common import PydanticSettingsModel, coalesce, deepmerge
 from ..common.aws import *
-from ..common.utils import coalesce, deepmerge
 from ..exception.unprocessable_entity import UnprocessableEntity
 from .aws_settings import INFRASTRUCTURE_TYPE_AWS, AwsNetworkSettings, AwsSettings, AwsTagKeyValuePair
 from .aws_cloudwatch_scheduling_settings import (
@@ -169,8 +171,9 @@ AccessLogFormat = Literal['TEXT', 'JSON']
 AccessLogIncludeQueryParameters = Literal['DISABLED', 'ENABLED']
 FilesystemType = Literal['ext3', 'ext4', 'xfs', 'ntfs']
 VolumeTagPropagation = Literal['TASK_DEFINITION', 'SERVICE', 'NONE']
+ResourceManagementType = Literal['CUSTOMER', 'ECS']
 
-class ContainerSettings(BaseModel):
+class ContainerSettings(PydanticSettingsModel):
     name: str | None = None
     docker_id: str | None = None
     docker_name: str | None = None
@@ -185,16 +188,18 @@ class CapacityProviderStrategyItem(Boto3SerializableSettings):
     weight: int | None = None
     base: int | None = None
 
-class AwsEcsCommonSettings(BaseModel):
+class AwsEcsCommonSettings(PydanticSettingsModel):
     launch_type: LaunchType | None = None
     cluster_arn: str | None = None
-    cluster_infrastructure_website_url: str | None = None
+    cluster_infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     task_definition_arn: str | None = None
-    task_definition_infrastructure_website_url: str | None = None
+    task_definition_infrastructure_website_url: str | None = \
+            Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     execution_role_arn: str | None = None
-    execution_role_infrastructure_website_url: str | None = None
+    execution_role_infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     task_role_arn: str | None = None
-    task_role_infrastructure_website_url: str | None = None
+    task_role_infrastructure_website_url: str | None = \
+            Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     platform_version: PlatformVersion | None = None
     capacity_provider_strategy: list[CapacityProviderStrategyItem] | None = None
     task_group: str | None = None    
@@ -308,7 +313,7 @@ class AwsEcsExecutionMethodInfo(AwsEcsExecutionMethodSettings):
                 + quote(task_id) + '/details'
 
     
-class AwsEcsServiceDeploymentCircuitBreaker(BaseModel):
+class AwsEcsServiceDeploymentCircuitBreaker(PydanticSettingsModel):
     enable: bool = False
     rollback: bool = False
 
@@ -363,7 +368,8 @@ class AwsApplicationLoadBalancerAdvancedConfiguration(AwsSubSettingsWithRole):
 
 class AwsApplicationLoadBalancer(Boto3SerializableSettings):
     target_group_arn: str | None = None
-    target_group_infrastructure_website_url: str | None = None
+    target_group_infrastructure_website_url: str | None = \
+        Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     load_balancer_name: str | None = None
     container_name: str | None = None
     container_port: int | None = None
@@ -473,7 +479,8 @@ class AwsVolumeTagSpecification(Boto3SerializableSettings):
 class AwsManagedEBSVolume(AwsSubSettingsWithRole):
     encrypted: bool | None = None
     kms_key_id: str | None = None
-    kms_key_infrastructure_website_url: str | None = None
+    kms_key_infrastructure_website_url: str | None = \
+            Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     volume_type: str | None = None
     size_in_gib: int | None = Field(None, alias='sizeInGiB')
     snapshot_id: str | None = None
@@ -501,7 +508,8 @@ class AwsVolumeConfiguration(Boto3SerializableSettings):
 
 class AwsVpcLatticeConfiguration(AwsSubSettingsWithRole):
     target_group_arn: str | None = None
-    target_group_infrastructure_website_url: str | None = None
+    target_group_infrastructure_website_url: str | None = \
+            Field(default=None, exclude_if=EXCLUDE_IF_NONE)
     port_name: str | None = None
 
     @override
@@ -570,8 +578,11 @@ class AwsEcsServiceSettings(Boto3SerializableSettings):
     service_connect_configuration: AwsServiceConnectConfiguration | None = None
     volume_configurations: list[AwsVolumeConfiguration] | None = None
     vpc_lattice_configurations: list[AwsVpcLatticeConfiguration] | None = None        
+    resource_management_type: ResourceManagementType | None = None
     tags: list[AwsTagKeyValuePair] | None = None
+    
     service_arn: str | None = None
+    infrastructure_website_url: str | None = Field(default=None, exclude_if=EXCLUDE_IF_NONE)
 
     @override
     def update_derived_attrs(self, aws_ecs_settings: AwsEcsExecutionMethodSettings,
@@ -1074,6 +1085,10 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {ss.service_arn=} != {old_ss.service_arn=}, forcing recreate")
                 return (True, True)
 
+            if ss and ss.resource_management_type and (ss.resource_management_type != old_ss.resource_management_type):
+                logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} {ss.resource_management_type=} != {old_ss.resource_management_type=}, forcing recreate")
+                return (True, True)
+
             old_aws_settings = old_aws_ecs_execution_method.aws_settings
 
             if not old_aws_settings:
@@ -1137,7 +1152,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
                     (old_settings.capacity_provider_strategy != self.settings.capacity_provider_strategy) or \
                     (old_settings.enable_execute_command != self.settings.enable_execute_command) or \
                     (old_settings.propagate_tags != self.settings.propagate_tags) or \
-                    (old_settings.enable_ecs_managed_tags != self.settings.enable_ecs_managed_tags):            
+                    (old_settings.enable_ecs_managed_tags != self.settings.enable_ecs_managed_tags):
                 logger.info(f"should_update_or_force_recreate_service(): {task.uuid=} ECS settings changed, update required, but not recreate (3)")
                 return (True, False)
 
@@ -1865,8 +1880,7 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         if self.service_settings:
             self.service_settings.update_derived_attrs(aws_ecs_settings=self.settings,
                     aws_settings=self.aws_settings)
-            self.task.service_settings = deepmerge(self.task.service_settings,
-                    self.service_settings.model_dump())
+            self.task.service_settings = self.service_settings.model_dump()
 
     @override
     def enrich_task_execution_settings(self) -> None:
@@ -1878,8 +1892,6 @@ class AwsEcsExecutionMethod(AwsBaseExecutionMethod):
         emd = self.task_execution.execution_method_details
 
         if emd:
-            aws_ecs_settings =  AwsEcsExecutionMethodInfo.model_validate(emd)
+            aws_ecs_settings = AwsEcsExecutionMethodInfo.model_validate(emd)
             aws_ecs_settings.update_derived_attrs(aws_settings=self.aws_settings)
-
-            self.task_execution.execution_method_details = deepmerge(
-                    emd, aws_ecs_settings.model_dump())
+            self.task_execution.execution_method_details = aws_ecs_settings.model_dump()

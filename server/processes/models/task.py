@@ -303,7 +303,10 @@ class Task(TaskExecutionConfiguration, Schedulable):
         old_execution_method: ExecutionMethod | None = None
 
         if old_self:
-            old_execution_method = old_self.execution_method()
+            old_execution_method = old_self.execution_method(raise_on_error=False)
+
+            if old_execution_method is None:
+                logger.error(f"synchronize_with_run_environment: Failed to create old execution method for Task {old_self.uuid} with type {old_self.execution_method_type}")
 
         if old_self and (self.schedule != old_self.schedule):
             self.schedule_updated_at = timezone.now()

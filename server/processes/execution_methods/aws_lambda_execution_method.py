@@ -9,12 +9,10 @@ from django.utils import timezone
 
 from rest_framework.exceptions import APIException
 
-from pydantic import BaseModel
-
 from botocore.exceptions import ClientError
 
+from ..common import PydanticSettingsModel, deepmerge
 from ..common.aws import *
-from ..common.utils import deepmerge
 from .execution_method import ExecutionMethod, ExecutionMethodSettings
 from .aws_base_execution_method import AwsBaseExecutionMethod
 from .aws_settings import *
@@ -48,12 +46,12 @@ class AwsLambdaExecutionMethodSettings(ExecutionMethodSettings):
         logger.debug(f"{self.infrastructure_website_url=}")
 
 
-class AwsCognitoIdentity(BaseModel):
+class AwsCognitoIdentity(PydanticSettingsModel):
     id: str | None = None
     pool_id: str | None = None
 
 
-class AwsCognitoClient(BaseModel):
+class AwsCognitoClient(PydanticSettingsModel):
     installation_id: str | None = None
     app_title: str | None = None
     app_version_name: str | None = None
@@ -61,7 +59,7 @@ class AwsCognitoClient(BaseModel):
     app_package_name: str | None = None
 
 
-class AwsClientContext(BaseModel):
+class AwsClientContext(PydanticSettingsModel):
     client: AwsCognitoClient | None = None
     custom: dict[str, Any] | None = None
     env: dict[str, Any] | None = None
@@ -249,5 +247,4 @@ class AwsLambdaExecutionMethod(AwsBaseExecutionMethod):
             aws_lambda_settings =  AwsLambdaExecutionMethodInfo.model_validate(emd)
             aws_lambda_settings.update_derived_attrs(aws_settings=self.aws_settings)
 
-            self.task_execution.execution_method_details = deepmerge(
-                    emd, aws_lambda_settings.model_dump())
+            self.task_execution.execution_method_details = aws_lambda_settings.model_dump()
