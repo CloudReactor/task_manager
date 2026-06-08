@@ -575,10 +575,10 @@ export interface Task extends Executable, TaskExecutionConfiguration {
   passive: boolean;
   project_url: string;
   run_environment: EntityReference;
-     scheduling_provider_type: string;
+    scheduling_provider_type: string | null;
   scheduling_settings: object | null;
   service_instance_count: number;
-  service_provider_type: string;
+  service_provider_type: string | null;
   service_settings: object | null;
   was_auto_created: boolean;
 }
