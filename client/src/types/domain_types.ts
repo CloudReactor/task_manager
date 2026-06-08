@@ -526,7 +526,7 @@ export interface TaskExecutionConfiguration {
   infrastructure_type: string;
   other_metadata: any;
   prevent_offline_execution: boolean | null;
-  process_command: string | null;
+  process_command: string;
   process_timeout_seconds: number | null;
   process_max_retries: number | null;
   process_retry_delay_seconds: number | null;
@@ -575,10 +575,10 @@ export interface Task extends Executable, TaskExecutionConfiguration {
   passive: boolean;
   project_url: string;
   run_environment: EntityReference;
-    scheduling_provider_type: string | null;
+  scheduling_provider_type: string;
   scheduling_settings: object | null;
   service_instance_count: number;
-  service_provider_type: string | null;
+  service_provider_type: string;
   service_settings: object | null;
   was_auto_created: boolean;
 }
@@ -635,7 +635,7 @@ implements Task {
   postponed_missing_execution_before_start_seconds = null;
   postponed_timeout_before_success_seconds = null;
   prevent_offline_execution = null;
-  process_command = null;
+  process_command = '';
   process_timeout_seconds = null;
   process_max_retries = null;
   process_retry_delay_seconds = null;
@@ -646,10 +646,10 @@ implements Task {
   run_environment = new EntityReferenceImpl();
   schedule = '';
   scheduled_instance_count = null;
-  scheduling_provider_type = null;
+  scheduling_provider_type = '';
   scheduling_settings = null;
   service_instance_count = 0;
-  service_provider_type = null;
+  service_provider_type = '';
   service_settings = null;
   status_update_interval_seconds = null;
   status_update_port = null;
