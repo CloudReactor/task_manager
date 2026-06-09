@@ -672,7 +672,7 @@ export interface TaskExecutionConfiguration {
   infrastructure_type: string;
   other_metadata: any;
   prevent_offline_execution: boolean | null;
-  process_command: string | null;
+  process_command: string;
   process_timeout_seconds: number | null;
   process_max_retries: number | null;
   process_retry_delay_seconds: number | null;
@@ -721,7 +721,7 @@ export interface Task extends Executable, TaskExecutionConfiguration {
   passive: boolean;
   project_url: string;
   run_environment: EntityReference;
-     scheduling_provider_type: string;
+  scheduling_provider_type: string;
   scheduling_settings: object | null;
   service_instance_count: number;
   service_provider_type: string;
@@ -781,7 +781,7 @@ implements Task {
   postponed_missing_execution_before_start_seconds = null;
   postponed_timeout_before_success_seconds = null;
   prevent_offline_execution = null;
-  process_command = null;
+  process_command = '';
   process_timeout_seconds = null;
   process_max_retries = null;
   process_retry_delay_seconds = null;
