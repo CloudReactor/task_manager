@@ -126,7 +126,7 @@ const AWS_INFRASTRUCTURE_ITEMS = [{
 const AWS_EXTRA_ITEMS = [{
   controls: [
     {
-      name: `infrastructure_settings.${INFRASTRUCTURE_TYPE_AWS}.__default__.settings.assign_public_ip`,
+      name: `infrastructure_settings.${INFRASTRUCTURE_TYPE_AWS}.__default__.settings.network.assign_public_ip`,
       label: 'Assign Public IP by Default',
       type: 'checkbox',
       controlId: 'forExecutionMethodCapabilitiesDefaultAssignPublicIp',
