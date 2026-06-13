@@ -399,49 +399,69 @@ class TaskSerializer(GroupSettingSerializerMixin,
             (data.get('passive') is None):
             validated['passive'] = True
 
+        # Below we must call deepmerge() even though the existing Task may not exist or have the relevant settings, 
+        # because we want to allow the request body to include the inherit sentinel value to remove existing values, 
+        # and that only works if we merge with the existing values (which may be empty).
+
+        task_id = task.uuid if task else '[NEW]'
+
+        if emcd is not None:
+            src_emcd: dict[str, Any] = {}
+            if task and task.execution_method_capability_details and \
+                (task.execution_method_type == execution_method_type):
+                logger.info(f"to_internal_value(): {task_id}: Merging old {emcd=}")
+                src_emcd = task.execution_method_capability_details.copy()
+            else:
+                logger.info(f"to_internal_value(): {task_id}: skipping emcd merge")
+    
+            emcd = deepmerge(src_emcd, emcd)
+            validated['execution_method_capability_details'] = emcd
+
         infrastructure_type = validated.get('infrastructure_type')
         infrastructure_settings = validated.get('infrastructure_settings')
 
-        if task:
-            if (emcd is not None) and task.execution_method_capability_details and \
-                (task.execution_method_type == execution_method_type):
-                emcd = deepmerge(task.execution_method_capability_details.copy(), emcd)
-                validated['execution_method_capability_details'] = emcd
-                logger.info(f"to_internal_value(): {task.uuid}: Merged old {emcd=}")
-            else:
-                logger.info(f"to_internal_value(): {task.uuid}: skipping emcd merge")
-
-            infrastructure_settings = validated.get('infrastructure_settings')
-            if (infrastructure_settings is not None) and task.infrastructure_settings and \
+        if infrastructure_settings is not None:
+            src_infra_settings: dict[str, Any] = {}
+            if task and task.infrastructure_settings and \
                     ((not infrastructure_type) or (task.infrastructure_type == infrastructure_type)):
-                infrastructure_settings = deepmerge(task.infrastructure_settings.copy(),
-                                                    infrastructure_settings)
-                validated['infrastructure_settings'] = infrastructure_settings
-                logger.info(f"to_internal_value(): {task.uuid}: Merged old {infrastructure_settings=}")
+                logger.info(f"to_internal_value(): {task_id}: Merging old {infrastructure_settings=}")
+                src_infra_settings = task.infrastructure_settings.copy()
             else:
-                logger.info(f"to_internal_value(): {task.uuid}: skipping infra merge")
+                logger.info(f"to_internal_value(): {task_id}: skipping infra merge")
+                
+            infrastructure_settings = deepmerge(src_infra_settings,
+                                                infrastructure_settings)
+            validated['infrastructure_settings'] = infrastructure_settings
+            
+        scheduling_provider_type = validated.get('scheduling_provider_type')
+        scheduling_settings = validated.get('scheduling_settings')
 
-            scheduling_provider_type = validated.get('scheduling_provider_type')
-            scheduling_settings = validated.get('scheduling_settings')
-            if (scheduling_settings is not None) and task.scheduling_settings and \
+        if scheduling_settings is not None:
+            src_scheduling_settings: dict[str, Any] = {}
+            if (scheduling_settings is not None) and task and task.scheduling_settings and \
                     ((not scheduling_provider_type) or (task.scheduling_provider_type == scheduling_provider_type)):
-                scheduling_settings = deepmerge(task.scheduling_settings.copy(), scheduling_settings)
-                validated['scheduling_settings'] = scheduling_settings
-                logger.info(f"to_internal_value(): {task.uuid}: Merged old {scheduling_settings=}")
+                src_scheduling_settings = task.scheduling_settings.copy()                                
+                logger.info(f"to_internal_value(): {task_id}: Merging old {scheduling_settings=}")
             else:
-                logger.info(f"to_internal_value(): {task.uuid}: skipping scheduling settings merge")
+                logger.info(f"to_internal_value(): {task_id}: skipping scheduling settings merge")
 
-            service_provider_type = validated.get('service_provider_type')
-            service_settings = validated.get('service_settings')
-            if (service_settings is not None) and task.service_settings and \
+            scheduling_settings = deepmerge(src_scheduling_settings, scheduling_settings)
+            validated['scheduling_settings'] = scheduling_settings
+
+        service_provider_type = validated.get('service_provider_type')
+        service_settings = validated.get('service_settings')
+
+        if service_settings is not None:
+            src_service_settings: dict[str, Any] = {}
+            if task and task.service_settings and \
                     ((not service_provider_type) or (task.service_provider_type == service_provider_type)):
-                service_settings = deepmerge(task.service_settings.copy(), service_settings)
-                validated['service_settings'] = service_settings
-                logger.info(f"to_internal_value(): {task.uuid}: Merged old {service_settings=}")
+                src_service_settings = task.service_settings.copy()
+                logger.info(f"to_internal_value(): {task_id}: Merging old {service_settings=}")                
             else:
-                logger.info(f"to_internal_value(): {task.uuid}: skipping service settings merge")
-        else:
-            logger.info("to_internal_value(): skipping all merging because Task does not exist")
+                logger.info(f"to_internal_value(): {task_id}: skipping service settings merge")
+
+            service_settings = deepmerge(src_service_settings, service_settings)
+            validated['service_settings'] = service_settings
 
         self.set_validated_notification_profiles(data=data, validated=validated,
                 run_environment=run_environment)
