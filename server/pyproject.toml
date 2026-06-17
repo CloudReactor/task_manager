@@ -13,7 +13,7 @@ dependencies = [
     "boto3>=1.37.18,<2.0.0",
     "cloudreactor-procwrapper[allextras]==6.0.2",
     "crontab>=1.0.1,<2.0.0",
-    "cryptography==46.0.7",
+    "cryptography==48.0.1",
     "Django>=5.2,<6.0.0",
     "django>=5.2.14,<6.0.0",
     "django-cors-headers>=4.7.0,<5.0.0",
